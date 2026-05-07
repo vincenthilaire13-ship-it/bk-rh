@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BK Suivi Équipe</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap');
+:root{--red:#D62300;--orange:#FF8732;--yellow:#F5A623;--dark:#1A1A1A;--gray:#2C2C2C;--r:8px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Barlow,sans-serif;background:var(--dark);color:#F5F0E8;min-height:100vh;}
+/* HEADER */
+header{background:linear-gradient(135deg,var(--red),#A01800);padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:58px;box-shadow:0 4px 20px rgba(0,0,0,.5);position:sticky;top:0;z-index:100;}
+header h1{font-family:Barlow Condensed,sans-serif;font-weight:900;font-size:1.5rem;letter-spacing:1px;color:var(--yellow);text-transform:uppercase;}
+header h1 span{color:#fff;}
+#user-info{display:flex;align-items:center;gap:8px;font-size:.82rem;}
+#role-badge{background:var(--yellow);color:var(--dark);font-weight:700;padding:3px 10px;border-radius:20px;font-size:.72rem;text-transform:uppercase;letter-spacing:1px;}
+#btn-logout{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:4px 12px;border-radius:20px;cursor:pointer;font-size:.78rem;}
+/* LOGIN */
+#login-screen{min-height:100vh;background:radial-gradient(ellipse at top,#2C1810,#1A1A1A 65%);}
+.login-step{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;}
+/* TILES */
+.tile{border-radius:14px;border:2px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;transition:transform .18s,box-shadow .18s;user-select:none;}
+.tile:hover{transform:translateY(-4px) scale(1.04);}
+.tile:active{transform:scale(.96);}
+.tile-admin{width:155px;height:155px;background:linear-gradient(145deg,#3A2A00,#1E1600);border-color:var(--yellow);}
+.tile-rh{width:155px;height:155px;background:linear-gradient(145deg,#1E2A1E,#111811);border-color:#4A8A4A;}
+.tile-dir{width:160px;height:160px;background:linear-gradient(145deg,#2A1500,#1A0D00);border-color:var(--orange);}
+.tile-mgr{width:138px;height:138px;background:linear-gradient(145deg,#1E2A3A,#111820);border-color:#4A7FAA;}
+.tile-bk{width:175px;height:175px;border-color:var(--orange);background:linear-gradient(145deg,#2A1800,#180F00);}
+.tile-icon{font-size:2.4rem;line-height:1;}
+.tile-mgr .tile-icon{font-size:1.9rem;}
+.tile-bk .tile-icon{font-size:2.8rem;}
+.tile-label{font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:.95rem;text-transform:uppercase;letter-spacing:2px;color:#fff;}
+.tile-bk .tile-label{font-size:1.3rem;letter-spacing:3px;}
+.tile-sub{font-size:.7rem;color:#aaa;text-align:center;max-width:110px;}
+/* PIN */
+.pin-box{background:#2C2C2C;border:2px solid #444;border-radius:14px;padding:32px 28px;width:300px;max-width:94vw;box-shadow:0 0 60px rgba(0,0,0,.6);text-align:center;}
+.pin-dot{width:13px;height:13px;border-radius:50%;border:2px solid #555;background:transparent;transition:background .15s;}
+.pin-dot.filled{background:var(--orange);border-color:var(--orange);}
+.pin-dot.error{background:var(--red);border-color:var(--red);}
+.pinpad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:18px;}
+.pkey{background:#1A1A1A;border:1px solid #444;color:#fff;border-radius:9px;height:50px;font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:1.3rem;cursor:pointer;transition:background .12s,transform .1s;}
+.pkey:hover{background:#2A2A2A;}
+.pkey:active{background:#333;transform:scale(.93);}
+.pkey-back{background:#1A1000;border-color:#5A4000;color:var(--yellow);font-size:.9rem;}
+.pkey-del{background:#1A0A0A;border-color:#5A1010;color:#cc5555;}
+/* APP */
+#app{display:none;}
+nav{background:var(--gray);border-bottom:2px solid #333;display:flex;padding:0 12px;gap:2px;overflow-x:auto;}
+nav button{background:none;border:none;color:#888;padding:13px 14px;cursor:pointer;font-family:Barlow Condensed,sans-serif;font-weight:600;font-size:.9rem;text-transform:uppercase;letter-spacing:1px;border-bottom:3px solid transparent;white-space:nowrap;transition:color .2s;}
+nav button:hover{color:#ddd;}
+nav button.active{color:var(--orange);border-bottom-color:var(--orange);}
+.page{display:none;padding:16px;max-width:980px;margin:0 auto;}
+.page.active{display:block;}
+/* CARDS */
+.card{background:var(--gray);border-radius:var(--r);padding:18px;margin-bottom:14px;border:1px solid #333;}
+.sec-title{font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:1.2rem;text-transform:uppercase;letter-spacing:2px;color:var(--orange);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.sec-title::after{content:'';flex:1;height:1px;background:#333;}
+/* RESTAURANT TABS */
+.rtabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.rtab{background:#1A1A1A;border:2px solid #444;color:#888;padding:7px 16px;border-radius:20px;cursor:pointer;font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:.88rem;text-transform:uppercase;letter-spacing:1px;transition:all .18s;}
+.rtab:hover{border-color:#666;color:#ccc;}
+.rtab.on{background:var(--orange);border-color:var(--orange);color:#fff;}
+.rtab-bk500.on{background:#FF8732;border-color:#FF8732;}
+.rtab-bk509.on{background:#FF6B35;border-color:#FF6B35;}
+.rtab-bk526.on{background:#FFB347;border-color:#FFB347;}
+/* RESTO SECTION HEADER */
+.rsec{margin-bottom:24px;}
+.rsec-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--r);margin-bottom:10px;font-family:Barlow Condensed,sans-serif;font-weight:900;font-size:1.15rem;text-transform:uppercase;letter-spacing:2px;}
+.rsec-bk500{background:rgba(255,135,50,.12);border-left:4px solid #FF8732;color:#FF8732;}
+.rsec-bk509{background:rgba(255,107,53,.12);border-left:4px solid #FF6B35;color:#FF6B35;}
+.rsec-bk526{background:rgba(255,179,71,.12);border-left:4px solid #FFB347;color:#FFB347;}
+/* FORM */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.flabel{display:block;font-size:.78rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+.fi{background:#1A1A1A;border:1px solid #444;color:#fff;padding:9px 12px;border-radius:var(--r);font-family:Barlow,sans-serif;font-size:.88rem;width:100%;}
+.fi:focus{outline:none;border-color:var(--orange);}
+select.fi option{background:#1A1A1A;}
+textarea.fi{resize:vertical;min-height:75px;}
+/* PROBLEMS */
+.prob-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:9px;margin:14px 0;}
+.prob-item{display:flex;flex-direction:column;gap:0;}
+.prob-check{display:flex;align-items:center;gap:7px;background:#1A1A1A;border:1px solid #444;border-radius:var(--r);padding:9px 11px;cursor:pointer;transition:border-color .2s,background .2s;}
+.prob-check .chk{width:17px;height:17px;border:2px solid #555;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;}
+.prob-check.on{border-color:var(--red);background:rgba(214,35,0,.1);}
+.prob-check.on .chk{background:var(--red);border-color:var(--red);}
+.prob-extra{display:none;margin-top:4px;padding:8px;background:#111;border-radius:6px;border:1px solid #333;}
+.prob-extra.show{display:block;}
+/* SEVERITY */
+.sev-row{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0;}
+.sev-btn{padding:5px 14px;border-radius:18px;border:2px solid transparent;cursor:pointer;font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:.88rem;text-transform:uppercase;letter-spacing:1px;transition:all .15s;background:#1A1A1A;}
+.sev-btn[data-s="1"]{color:#4CAF50;border-color:#4CAF50;}.sev-btn[data-s="2"]{color:var(--yellow);border-color:var(--yellow);}
+.sev-btn[data-s="3"]{color:var(--orange);border-color:var(--orange);}.sev-btn[data-s="4"]{color:var(--red);border-color:var(--red);}
+.sev-btn.on[data-s="1"]{background:#4CAF50;color:#fff;}.sev-btn.on[data-s="2"]{background:var(--yellow);color:var(--dark);}
+.sev-btn.on[data-s="3"]{background:var(--orange);color:#fff;}.sev-btn.on[data-s="4"]{background:var(--red);color:#fff;}
+/* BUTTONS */
+.btn{border:none;padding:10px 24px;border-radius:var(--r);font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:.95rem;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:transform .15s,box-shadow .15s;}
+.btn-red{background:linear-gradient(135deg,var(--red),#A01800);color:#fff;}
+.btn-red:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(214,35,0,.4);}
+.btn-gray{background:#333;color:#ddd;border:1px solid #555;}
+.btn-gray:hover{background:#444;}
+.btn-sm{padding:5px 10px;font-size:.78rem;letter-spacing:1px;}
+.btn-danger{background:transparent;border:1px solid #663333;color:#cc5555;padding:5px 9px;border-radius:var(--r);cursor:pointer;font-size:.78rem;transition:all .2s;}
+.btn-danger:hover{background:#441111;border-color:var(--red);color:var(--red);}
+/* INCIDENTS */
+.inc-item{background:#1A1A1A;border-left:4px solid #444;border-radius:0 var(--r) var(--r) 0;padding:11px 14px;margin-bottom:9px;display:flex;flex-direction:column;gap:5px;}
+.inc-item[data-s="1"]{border-left-color:#4CAF50;}.inc-item[data-s="2"]{border-left-color:var(--yellow);}
+.inc-item[data-s="3"]{border-left-color:var(--orange);}.inc-item[data-s="4"]{border-left-color:var(--red);}
+.inc-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px;}
+.inc-who{font-weight:600;color:var(--orange);}
+.inc-meta{font-size:.76rem;color:#888;}
+.inc-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:3px;}
+.tag{background:#2C2C2C;border:1px solid #444;padding:2px 7px;border-radius:11px;font-size:.73rem;color:#ccc;}
+.inc-note{font-size:.83rem;color:#bbb;font-style:italic;}
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:16px;}
+.stat-card{background:#1A1A1A;border-radius:var(--r);padding:14px;text-align:center;border:1px solid #333;}
+.stat-n{font-family:Barlow Condensed,sans-serif;font-size:2.3rem;font-weight:900;line-height:1;color:var(--orange);}
+.stat-l{font-size:.72rem;color:#888;margin-top:3px;text-transform:uppercase;letter-spacing:1px;}
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{text-align:left;padding:9px 11px;background:#1A1A1A;font-family:Barlow Condensed,sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:1px;font-size:.78rem;color:#888;border-bottom:2px solid #333;}
+.tbl td{padding:9px 11px;border-bottom:1px solid #2A2A2A;font-size:.87rem;}
+.tbl tr:hover td{background:rgba(255,255,255,.02);}
+.score-wrap{display:flex;align-items:center;gap:7px;}
+.score-bar{flex:1;height:5px;background:#333;border-radius:3px;overflow:hidden;}
+.score-fill{height:100%;border-radius:3px;}
+.sg .score-fill{background:#4CAF50;}.so .score-fill{background:var(--yellow);}
+.sb .score-fill{background:var(--orange);}.sc .score-fill{background:var(--red);}
+/* FILTERS */
+.filters{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px;}
+.filters select,.filters input{background:#1A1A1A;border:1px solid #444;color:#fff;padding:6px 11px;border-radius:var(--r);font-size:.83rem;font-family:Barlow,sans-serif;}
+/* EMPLOYEE CARD */
+.emp-card{background:#1A1A1A;border:1px solid #333;border-radius:var(--r);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;gap:8px;}
+.emp-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:.95rem;flex-shrink:0;}
+.av-e{background:#1E3A5F;color:#5BA3F5;}.av-m{background:#3A1E1E;color:var(--orange);}
+.av-d{background:#3A2A1E;color:var(--yellow);}.av-f{background:#3A3000;color:var(--yellow);}
+.role-pill{padding:2px 9px;border-radius:11px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;}
+.rp-e{background:#1E3A5F;color:#5BA3F5;}.rp-m{background:#3A1E1E;color:var(--orange);}
+.rp-d{background:#3A2A1E;color:var(--yellow);}.rp-f{background:#3A3000;color:var(--yellow);}
+/* MODAL */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;}
+.modal-ov.open{display:flex;}
+.modal{background:var(--gray);border:1px solid #444;border-radius:12px;padding:26px;width:400px;max-width:94vw;box-shadow:0 20px 60px rgba(0,0,0,.7);}
+.modal-title{font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:1.2rem;text-transform:uppercase;letter-spacing:2px;color:var(--orange);margin-bottom:16px;}
+/* LETTERS */
+.letter-card{background:#1A1A1A;border:1px solid #333;border-radius:var(--r);padding:16px;margin-bottom:12px;}
+.letter-card textarea.fi{min-height:150px;font-size:.86rem;line-height:1.6;}
+.lbadge{display:inline-block;padding:2px 9px;border-radius:11px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;}
+.lb-pend{background:#3A2A00;color:var(--yellow);}.lb-sent{background:#1E3A1E;color:#4CAF50;}.lb-rej{background:#3A1E1E;color:#cc5555;}
+/* MAIL TAG */
+.mail-tag{background:#1E2A1E;border:1px solid #3A5A3A;color:#7ACA7A;padding:3px 9px;border-radius:11px;font-size:.76rem;display:inline-flex;align-items:center;gap:5px;}
+.mail-tag button{background:none;border:none;color:#cc5555;cursor:pointer;font-size:.88rem;line-height:1;}
+/* TOAST */
+#toast{position:fixed;bottom:22px;right:22px;background:#2A2A2A;border-left:4px solid var(--orange);color:#fff;padding:13px 18px;border-radius:var(--r);font-size:.88rem;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:9999;transform:translateX(120%);transition:transform .3s;max-width:300px;}
+#toast.show{transform:translateX(0);}
+#toast.success{border-left-color:#4CAF50;}#toast.error{border-left-color:var(--red);}
+.empty{text-align:center;padding:36px;color:#555;}
+.empty .ei{font-size:2.8rem;margin-bottom:10px;}
+@media(max-width:600px){.form-row{grid-template-columns:1fr;}.stats-grid{grid-template-columns:repeat(2,1fr);}.tile-bk{width:145px;height:145px;}.tile-dir{width:145px;height:145px;}}
+</style>
+</head>
+<body>
+<!-- ════ LOGIN ════ -->
+<div id="login-screen">
+  <!-- STEP 0: Restaurant -->
+  <div class="login-step" id="step-resto">
+    <div style="text-align:center;margin-bottom:32px;">
+      <div style="font-size:3.2rem;">👑</div>
+      <h2 style="font-family:Barlow Condensed,sans-serif;font-weight:900;font-size:1.9rem;color:#F5A623;text-transform:uppercase;letter-spacing:3px;margin-top:6px;">BK Suivi</h2>
+      <p style="color:#888;font-size:.83rem;margin-top:4px;">Sélectionnez votre accès</p>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:20px;">
+      <div class="tile tile-admin" onclick="pickGlobal('admin')">
+        <div class="tile-icon">🛡️</div>
+        <div class="tile-label">Admin</div>
+        <div class="tile-sub">Accès total</div>
+      </div>
+      <div class="tile tile-rh" onclick="pickGlobal('rh')">
+        <div class="tile-icon">👩‍💼</div>
+        <div class="tile-label">Superviseure</div>
+        <div class="tile-sub">RH / Supervision</div>
+      </div>
+    </div>
+    <div style="width:100%;max-width:620px;height:1px;background:#333;margin-bottom:18px;"></div>
+    <p style="color:#555;font-size:.76rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;">Restaurants</p>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;">
+      <div class="tile tile-bk" onclick="pickResto('bk500')" style="border-color:#FF8732;">
+        <div class="tile-icon">🍔</div>
+        <div class="tile-label">BK 500</div>
+        <div class="tile-sub">Sélectionner</div>
+      </div>
+      <div class="tile tile-bk" onclick="pickResto('bk509')" style="border-color:#FF6B35;">
+        <div class="tile-icon">🍔</div>
+        <div class="tile-label">BK 509</div>
+        <div class="tile-sub">Sélectionner</div>
+      </div>
+      <div class="tile tile-bk" onclick="pickResto('bk526')" style="border-color:#FFB347;">
+        <div class="tile-icon">🍔</div>
+        <div class="tile-label">BK 526</div>
+        <div class="tile-sub">Sélectionner</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 1: Profiles -->
+  <div class="login-step" id="step-profiles" style="display:none;">
+    <button onclick="backToResto()" style="background:rgba(255,255,255,.1);border:1px solid #555;color:#aaa;padding:5px 14px;border-radius:18px;cursor:pointer;font-size:.8rem;margin-bottom:18px;">← Retour</button>
+    <div id="resto-title" style="font-family:Barlow Condensed,sans-serif;font-weight:900;font-size:1.8rem;color:var(--yellow);text-transform:uppercase;letter-spacing:3px;margin-bottom:6px;text-align:center;"></div>
+    <p style="color:#888;font-size:.82rem;margin-bottom:24px;">Sélectionnez votre profil</p>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-bottom:12px;">
+      <div class="tile tile-dir" onclick="pickProfile('directeur')" id="tile-dir">
+        <div class="tile-icon">👔</div>
+        <div class="tile-label">Directeur</div>
+        <div class="tile-sub" id="dir-sub">Directeur</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+      <div class="tile tile-mgr" onclick="pickProfile('manager1')"><div class="tile-icon">⭐</div><div class="tile-label">Manager 1</div><div class="tile-sub" id="m1-sub">Manager 1</div></div>
+      <div class="tile tile-mgr" onclick="pickProfile('manager2')"><div class="tile-icon">⭐</div><div class="tile-label">Manager 2</div><div class="tile-sub" id="m2-sub">Manager 2</div></div>
+      <div class="tile tile-mgr" onclick="pickProfile('manager3')"><div class="tile-icon">⭐</div><div class="tile-label">Manager 3</div><div class="tile-sub" id="m3-sub">Manager 3</div></div>
+      <div class="tile tile-mgr" onclick="pickProfile('manager4')"><div class="tile-icon">⭐</div><div class="tile-label">Manager 4</div><div class="tile-sub" id="m4-sub">Manager 4</div></div>
+    </div>
+  </div>
+
+  <!-- STEP 2: PIN -->
+  <div class="login-step" id="step-pin" style="display:none;">
+    <div class="pin-box">
+      <div id="pin-icon" style="font-size:2.6rem;margin-bottom:7px;"></div>
+      <div id="pin-name" style="font-family:Barlow Condensed,sans-serif;font-weight:900;font-size:1.4rem;color:var(--yellow);text-transform:uppercase;letter-spacing:2px;"></div>
+      <div id="pin-sub" style="font-size:.78rem;color:#888;margin:4px 0 18px;">Code PIN à 4 chiffres</div>
+      <div id="pin-dots" style="display:flex;justify-content:center;gap:11px;margin-bottom:2px;">
+        <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+      </div>
+      <div class="pinpad">
+        <button class="pkey" onclick="pk('1')">1</button><button class="pkey" onclick="pk('2')">2</button><button class="pkey" onclick="pk('3')">3</button>
+        <button class="pkey" onclick="pk('4')">4</button><button class="pkey" onclick="pk('5')">5</button><button class="pkey" onclick="pk('6')">6</button>
+        <button class="pkey" onclick="pk('7')">7</button><button class="pkey" onclick="pk('8')">8</button><button class="pkey" onclick="pk('9')">9</button>
+        <button class="pkey pkey-back" onclick="backFromPin()">← Retour</button>
+        <button class="pkey" onclick="pk('0')">0</button>
+        <button class="pkey pkey-del" onclick="delPin()">⌫</button>
+      </div>
+      <div id="pin-err" style="color:var(--red);font-size:.8rem;margin-top:12px;min-height:16px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ APP ════ -->
+<div id="app">
+  <header>
+    <h1>🔥 BK <span>Suivi</span></h1>
+    <div id="user-info">
+      <span id="uname"></span>
+      <span id="role-badge"></span>
+      <button id="btn-logout" onclick="logout()">Déconnexion</button>
+    </div>
+  </header>
+  <nav id="main-nav">
+    <button class="active" onclick="goPage('incidents',this)">📋 Incidents</button>
+    <button onclick="goPage('rapports',this)">📊 Rapports</button>
+    <button onclick="goPage('equipe',this)">👥 Équipe</button>
+    <button onclick="goPage('validations',this)">✉️ Validations <span id="vbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
+    <button onclick="goPage('parametres',this)">⚙️ Paramètres</button>
+  </nav>
+
+  <!-- ── INCIDENTS ── -->
+  <div class="page active" id="page-incidents">
+    <div class="card">
+      <div class="sec-title">⚠️ Signaler un incident</div>
+      <div class="form-row">
+        <div style="grid-column:1/-1"><label class="flabel">Équipier concerné</label>
+          <input type="text" id="emp-search" class="fi" placeholder="🔍 Rechercher par nom ou email..." oninput="filterEmpList()" autocomplete="off" style="margin-bottom:5px;">
+          <div id="emp-dropdown" style="background:#111;border:1px solid #444;border-radius:8px;max-height:200px;overflow-y:auto;display:none;"></div>
+          <div id="sel-emp-display" style="background:#1A2A1A;border:1px solid #3A5A3A;border-radius:8px;padding:9px 13px;display:none;">
+            <span id="sel-emp-name" style="color:#4CAF50;font-weight:600;"></span>
+            <span id="sel-emp-info" style="color:#888;font-size:.78rem;margin-left:8px;"></span>
+            <button onclick="clearEmpSel()" style="float:right;background:none;border:none;color:#cc5555;cursor:pointer;">✕</button>
+          </div>
+          <input type="hidden" id="sel-emp">
+        </div>
+        <div><label class="flabel">Date et heure</label><input type="datetime-local" id="inc-dt" class="fi"></div>
+      </div>
+      <label class="flabel">Type(s) d'incident</label>
+      <div class="prob-grid" id="prob-grid"></div>
+      <label class="flabel" style="margin-top:12px;">Type de sanction</label>
+      <div class="sev-row">
+        <button class="sev-btn" data-sanc="verbal" onclick="setSanction(this)" style="color:#F5A623;border-color:#F5A623;">📝 Observation verbale</button>
+        <button class="sev-btn" data-sanc="ecrit" onclick="setSanction(this)" style="color:#5BA3F5;border-color:#5BA3F5;">📄 Observation écrite</button>
+        <button class="sev-btn" data-sanc="avert" onclick="setSanction(this)" style="color:#FF8732;border-color:#FF8732;">⚠️ Avertissement</button>
+        <button class="sev-btn" data-sanc="mise" onclick="setSanction(this)" style="color:#D62300;border-color:#D62300;">🔴 Mise en demeure</button>
+      </div>
+      <label class="flabel" style="margin-top:12px;">Commentaire</label>
+      <textarea id="inc-note" class="fi" placeholder="Détails..."></textarea>
+      <div style="margin-top:13px;display:flex;gap:9px;">
+        <button class="btn btn-red" onclick="submitInc()">✔ Enregistrer</button>
+        <button class="btn btn-gray" onclick="resetForm()">✕ Réinitialiser</button>
+      </div>
+    </div>
+    <div class="sec-title" id="hist-title">🕒 Incidents récents</div>
+    <div class="filters" id="hist-filters">
+      <select id="f-who" onchange="renderHistory()"><option value="">Tous</option></select>
+      <select id="f-type" onchange="renderHistory()"><option value="">Tous types</option></select>
+      <select id="f-sev" onchange="renderHistory()">
+        <option value="">Toutes gravités</option>
+        <option value="1">🟢 Mineur</option><option value="2">🟡 Modéré</option>
+        <option value="3">🟠 Sérieux</option><option value="4">🔴 Grave</option>
+      </select>
+      <input type="date" id="f-date" onchange="renderHistory()">
+    </div>
+    <div id="inc-list"></div>
+  </div>
+
+  <!-- ── RAPPORTS ── -->
+  <div class="page" id="page-rapports">
+    <div id="rpt-tabs" class="rtabs" style="display:none;">
+      <button class="rtab on" onclick="setRptTab(this,'all')">🌐 Tous</button>
+      <button class="rtab rtab-bk500" onclick="setRptTab(this,'bk500')">🍔 BK 500</button>
+      <button class="rtab rtab-bk509" onclick="setRptTab(this,'bk509')">🍔 BK 509</button>
+      <button class="rtab rtab-bk526" onclick="setRptTab(this,'bk526')">🍔 BK 526</button>
+    </div>
+    <div class="card">
+      <div class="sec-title">📊 Paramètres</div>
+      <div style="display:flex;gap:11px;flex-wrap:wrap;align-items:flex-end;">
+        <div><label class="flabel">Période</label>
+          <select id="rpt-period" class="fi" style="width:auto;">
+            <option value="today">Aujourd'hui</option>
+            <option value="week" selected>Cette semaine</option>
+            <option value="month">Ce mois</option>
+            <option value="all">Tout</option>
+          </select>
+        </div>
+        <div><label class="flabel">Membre</label>
+          <select id="rpt-person" class="fi" style="width:auto;"><option value="all">Toute l'équipe</option></select>
+        </div>
+        <button class="btn btn-red" onclick="genReport()">📊 Générer</button>
+      </div>
+    </div>
+    <div id="rpt-out"></div>
+  </div>
+
+  <!-- ── ÉQUIPE ── -->
+  <div class="page" id="page-equipe">
+    <div id="eq-tabs" class="rtabs" style="display:none;">
+      <button class="rtab on" onclick="setEqTab(this,'all')">🌐 Tous</button>
+      <button class="rtab rtab-bk500" onclick="setEqTab(this,'bk500')">🍔 BK 500</button>
+      <button class="rtab rtab-bk509" onclick="setEqTab(this,'bk509')">🍔 BK 509</button>
+      <button class="rtab rtab-bk526" onclick="setEqTab(this,'bk526')">🍔 BK 526</button>
+    </div>
+    <div style="display:flex;gap:9px;margin-bottom:14px;flex-wrap:wrap;">
+      <button class="rtab on" id="ef-actif"   onclick="setEmpFilter(this,'actif')">✅ Actifs</button>
+      <button class="rtab"    id="ef-archive" onclick="setEmpFilter(this,'archive')">📁 Archivés</button>
+      <button class="rtab"    id="ef-tous"    onclick="setEmpFilter(this,'tous')">👥 Tous</button>
+    </div>
+    <div class="card" id="add-emp-card">
+      <div class="sec-title">➕ Ajouter un membre</div>
+      <div class="form-row">
+        <div><label class="flabel">Prénom Nom</label><input type="text" id="new-name" class="fi" placeholder="Jean Dupont"></div>
+        <div><label class="flabel">Rôle</label>
+          <select id="new-role" class="fi">
+            <option value="equipier">Équipier</option>
+            <option value="manager">Manager</option>
+            <option value="directeur">Directeur</option>
+          </select>
+        </div>
+      </div>
+      <div id="new-resto-row" style="display:none;margin-bottom:12px;">
+        <label class="flabel">Restaurant</label>
+        <select id="new-resto" class="fi" style="max-width:220px;">
+          <option value="bk500">BK 500</option>
+          <option value="bk509">BK 509</option>
+          <option value="bk526">BK 526</option>
+        </select>
+      </div>
+      <button class="btn btn-red" onclick="addEmp()">➕ Ajouter</button>
+    </div>
+    <div id="eq-list"></div>
+  </div>
+
+  <!-- ── VALIDATIONS ── -->
+  <div class="page" id="page-validations">
+    <div class="card">
+      <div class="sec-title">✉️ Courriers en attente</div>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">Relisez, modifiez si besoin, puis validez pour envoyer.</p>
+      <div id="letters-list"></div>
+    </div>
+  </div>
+
+  <!-- ── PARAMÈTRES ── -->
+  <div class="page" id="page-parametres">
+    <div class="card">
+      <div class="sec-title">🔑 Codes PIN</div>
+      <div id="pin-settings" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:11px;"></div>
+      <button class="btn btn-red" style="margin-top:14px;" onclick="savePins()">💾 Enregistrer les PIN</button>
+    </div>
+    <div class="card">
+      <div class="sec-title">✏️ Noms des profils</div>
+      <div id="names-settings" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:11px;"></div>
+      <button class="btn btn-red" style="margin-top:14px;" onclick="saveNames()">💾 Enregistrer les noms</button>
+    </div>
+    <div class="card">
+      <div class="sec-title">📬 Rapports automatiques</div>
+      <div class="form-row">
+        <div><label class="flabel">⏰ Heure d'envoi</label><input type="time" id="rpt-time" class="fi" value="22:00"></div>
+        <div><label class="flabel">📅 Fréquences</label>
+          <div style="margin-top:6px;display:flex;flex-direction:column;gap:5px;">
+            <label style="display:flex;align-items:center;gap:7px;font-size:.86rem;color:#ccc;cursor:pointer;"><input type="checkbox" id="sch-daily" checked style="accent-color:var(--orange);"> Tous les jours</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:.86rem;color:#ccc;cursor:pointer;"><input type="checkbox" id="sch-weekly" checked style="accent-color:var(--orange);"> Chaque lundi</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:.86rem;color:#ccc;cursor:pointer;"><input type="checkbox" id="sch-monthly" checked style="accent-color:var(--orange);"> Le 1er du mois</label>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <label class="flabel">📧 Destinataires des rapports</label>
+        <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;">
+          <select id="new-mail-role" class="fi" style="width:auto;"><option value="RH">RH</option><option value="Directeur">Directeur</option><option value="Superviseur">Superviseur</option><option value="Franchisé">Franchisé</option></select>
+          <input type="email" id="new-mail" class="fi" placeholder="email@exemple.com" style="flex:1;min-width:180px;">
+          <button class="btn btn-red" onclick="addMailRcp()">➕</button>
+        </div>
+        <div id="mail-rcps" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;"></div>
+      </div>
+      <div style="margin-top:14px;">
+        <label class="flabel">👥 Copies courriers employés</label>
+        <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;">
+          <input type="email" id="new-cc" class="fi" placeholder="email@exemple.com" style="flex:1;min-width:180px;">
+          <button class="btn btn-red" onclick="addCC()">➕</button>
+        </div>
+        <div id="cc-rcps" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;"></div>
+      </div>
+      <button class="btn btn-red" style="margin-top:16px;" onclick="saveMailSettings()">💾 Enregistrer</button>
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid #333;">
+        <p style="font-size:.78rem;color:#888;margin-bottom:9px;">📤 Tester l'envoi :</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-gray btn-sm" onclick="sendNow('today')">Aujourd'hui</button>
+          <button class="btn btn-gray btn-sm" onclick="sendNow('week')">Semaine</button>
+          <button class="btn btn-gray btn-sm" onclick="sendNow('month')">Mois</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-ov" id="modal-edit">
+  <div class="modal">
+    <div class="modal-title">✏️ Modifier</div>
+    <input type="hidden" id="edit-id">
+    <div style="margin-bottom:11px;"><label class="flabel">Prénom Nom</label><input type="text" id="edit-name" class="fi"></div>
+    <div style="margin-bottom:11px;"><label class="flabel">Rôle</label><select id="edit-role" class="fi"><option value="equipier">Équipier</option><option value="manager">Manager</option><option value="directeur">Directeur</option></select></div>
+    <div style="margin-bottom:11px;"><label class="flabel">E-mail (courriers)</label><input type="email" id="edit-email" class="fi" placeholder="email@exemple.com"></div>
+    <div id="edit-exit-date-row" style="display:none;margin-bottom:11px;"><label class="flabel">📅 Date de sortie définitive</label><input type="date" id="edit-exit-def" class="fi"></div>
+    <div style="display:flex;gap:9px;margin-top:16px;justify-content:flex-end;">
+      <button class="btn btn-gray" onclick="closeModal('modal-edit')">Annuler</button>
+      <button class="btn btn-red" onclick="saveEdit()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-ov" id="modal-exit">
+  <div class="modal" style="border-color:#663333;">
+    <div class="modal-title" style="color:var(--red);">📤 Sortie de l'équipier</div>
+    <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">La fiche et l'historique sont conservés.</p>
+    <input type="hidden" id="exit-id">
+    <div style="margin-bottom:11px;"><label class="flabel">Motif</label>
+      <select id="exit-motif" class="fi">
+        <option value="fin_contrat">Fin de contrat</option><option value="demission">Démission</option>
+        <option value="licenciement">Licenciement</option><option value="mutation">Mutation</option><option value="autre">Autre</option>
+      </select>
+    </div>
+    <div style="margin-bottom:11px;"><label class="flabel">Date de sortie</label><input type="date" id="exit-date" class="fi"></div>
+    <div style="margin-bottom:11px;"><label class="flabel">Commentaire</label><textarea id="exit-note" class="fi" style="min-height:55px;"></textarea></div>
+    <div style="display:flex;gap:9px;margin-top:16px;justify-content:flex-end;">
+      <button class="btn btn-gray" onclick="closeModal('modal-exit')">Annuler</button>
+      <button class="btn btn-red" onclick="confirmExit()">📤 Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ════ DATA ════
+const RESTOS={bk500:{id:'bk500',label:'BK 500',cls:'bk500'},bk509:{id:'bk509',label:'BK 509',cls:'bk509'},bk526:{id:'bk526',label:'BK 526',cls:'bk526'}};
+const GLOBALS={admin:{key:'admin',icon:'🛡️',title:'Admin',sub:'Accès total',role:'franchise'},rh:{key:'rh',icon:'👩‍💼',title:'Superviseure',sub:'RH / Supervision',role:'franchise'}};
+const PROFILES={directeur:{key:'directeur',icon:'👔',title:'Directeur',role:'directeur'},manager1:{key:'manager1',icon:'⭐',title:'Manager 1',role:'manager'},manager2:{key:'manager2',icon:'⭐',title:'Manager 2',role:'manager'},manager3:{key:'manager3',icon:'⭐',title:'Manager 3',role:'manager'},manager4:{key:'manager4',icon:'⭐',title:'Manager 4',role:'manager'}};
+const PROBS=[
+  {id:'lavage',icon:'🙌',label:'Lavage des mains',extra:null},
+  {id:'rasage',icon:'🪒',label:'Non rasé',extra:null},
+  {id:'proprete',icon:'🧼',label:'Manque de propreté',extra:null},
+  {id:'uniforme',icon:'👕',label:'Uniforme non conforme',extra:null},
+  {id:'retard',icon:'⏰',label:'Retard',extra:{type:'time',label:"Heure d'arrivée"}},
+  {id:'absence',icon:'🚫',label:'Absence injustifiée',extra:{type:'date',label:"Jour d'absence"}},
+  {id:'abandon',icon:'🏃',label:'Abandon de poste',extra:null},
+  {id:'lenteur',icon:'🐢',label:'Travail lent exprès',extra:null},
+  {id:'impolitesse',icon:'😤',label:'Impolitesse',extra:null},
+  {id:'gros_mots',icon:'🤬',label:'Gros mots',extra:null},
+  {id:'telephone',icon:'📵',label:'Téléphone au poste',extra:null},
+  {id:'refus',icon:'🙅',label:"Refus d'obéir",extra:null},
+  {id:'hygiene',icon:'🧽',label:'Hygiène alimentaire',extra:null},
+  {id:'autre',icon:'❗',label:'Autre',extra:null},
+];
+const LETTER_TRIGGERS=['retard','absence','abandon','impolitesse','gros_mots','refus','lenteur'];
+
+let DB=JSON.parse(localStorage.getItem('bk_v8')||'null')||{
+  employees:[{"id": "bk500_d", "name": "Directeur", "role": "directeur", "restoId": "bk500", "tileKey": "directeur"}, {"id": "bk500_m1", "name": "Manager 1", "role": "manager", "restoId": "bk500", "tileKey": "manager1"}, {"id": "bk500_m2", "name": "Manager 2", "role": "manager", "restoId": "bk500", "tileKey": "manager2"}, {"id": "bk500_m3", "name": "Manager 3", "role": "manager", "restoId": "bk500", "tileKey": "manager3"}, {"id": "bk500_m4", "name": "Manager 4", "role": "manager", "restoId": "bk500", "tileKey": "manager4"}, {"id": "bk509_d", "name": "Directeur", "role": "directeur", "restoId": "bk509", "tileKey": "directeur"}, {"id": "bk509_m1", "name": "Manager 1", "role": "manager", "restoId": "bk509", "tileKey": "manager1"}, {"id": "bk509_m2", "name": "Manager 2", "role": "manager", "restoId": "bk509", "tileKey": "manager2"}, {"id": "bk509_m3", "name": "Manager 3", "role": "manager", "restoId": "bk509", "tileKey": "manager3"}, {"id": "bk509_m4", "name": "Manager 4", "role": "manager", "restoId": "bk509", "tileKey": "manager4"}, {"id": "bk526_d", "name": "Directeur", "role": "directeur", "restoId": "bk526", "tileKey": "directeur"}, {"id": "bk526_m1", "name": "Manager 1", "role": "manager", "restoId": "bk526", "tileKey": "manager1"}, {"id": "bk526_m2", "name": "Manager 2", "role": "manager", "restoId": "bk526", "tileKey": "manager2"}, {"id": "bk526_m3", "name": "Manager 3", "role": "manager", "restoId": "bk526", "tileKey": "manager3"}, {"id": "bk526_m4", "name": "Manager 4", "role": "manager", "restoId": "bk526", "tileKey": "manager4"}, {"id": "bk500_abrial_maeva", "name": "Maeva Abrial", "role": "equipier", "restoId": "bk500", "email": "maeva-abrial@live.fr", "phone": "0769655301", "archived": false}, {"id": "bk500_aubry_yohann", "name": "Yohann Aubry", "role": "equipier", "restoId": "bk500", "email": "yohann.aubry54500@gmail.com", "phone": "0641130544", "archived": false}, {"id": "bk500_bonne_alicia", "name": "Alicia Bonne", "role": "equipier", "restoId": "bk500", "email": "bonne.alicia18@gmail.com", "phone": "0745328904", "archived": false}, {"id": "bk500_boudon_ogier_arielle", "name": "Arielle Boudon-Ogier", "role": "equipier", "restoId": "bk500", "email": "arielle.boudonogier@orange.fr", "phone": "0670858868", "archived": false}, {"id": "bk500_bourgue_thomas", "name": "Thomas Bourgue", "role": "equipier", "restoId": "bk500", "email": "tbourgue0@gmail.com", "phone": "0695860787", "archived": false}, {"id": "bk500_calvez_tessa", "name": "Tessa Calvez", "role": "equipier", "restoId": "bk500", "email": "tessacalvez34@gmail.com", "phone": "06 84 03 29 73", "archived": false}, {"id": "bk500_canal_faustine_nolhan", "name": "Faustine Nolhan Canal", "role": "equipier", "restoId": "bk500", "email": "faufau.ca@gmail.com", "phone": "0680800435", "archived": false}, {"id": "bk500_caussan_lucie", "name": "Lucie Caussan", "role": "equipier", "restoId": "bk500", "email": "lucie.caussan05@gmail.com", "phone": "07 60 25 11 46", "archived": false}, {"id": "bk500_cervera_alexandre_camille", "name": "Camille Cervera-Alexandre", "role": "equipier", "restoId": "bk500", "email": "crv.cam7@gmail.com", "phone": "0767152576", "archived": false}, {"id": "bk500_chantel_bradley", "name": "Bradley Chantel", "role": "equipier", "restoId": "bk500", "email": "bradleychantel.pro@gmail.com", "phone": "07 69 62 08 58", "archived": false}, {"id": "bk500_charaffidine_anli_nourdine", "name": "Anli Nourdine Charaffidine", "role": "equipier", "restoId": "bk500", "email": "anlinourdinecharaffidine@gmail.com", "phone": "0698208338", "archived": false}, {"id": "bk500_clain_jean_raphael", "name": "Jean-Raphael Clain", "role": "equipier", "restoId": "bk500", "email": "clainjeanraphael@gmail.com", "phone": "0623333040", "archived": false}, {"id": "bk500_duhautpas_maeva", "name": "Maeva Duhautpas", "role": "equipier", "restoId": "bk500", "email": "maeva_dhp@outlook.fr", "phone": "0651234076", "archived": false}, {"id": "bk500_fuentes_shania", "name": "Shania Fuentes", "role": "equipier", "restoId": "bk500", "email": "shania.fuentes@hotmail.com", "phone": "0781414090", "archived": false}, {"id": "bk500_galliez_nolan", "name": "Nolan Galliez", "role": "equipier", "restoId": "bk500", "email": "nolan.tom@outlook.fr", "phone": "0766138236", "archived": false}, {"id": "bk500_gauthier_alexandra", "name": "Alexandra Gauthier", "role": "equipier", "restoId": "bk500", "email": "alexndra.gimeno@gmail.com", "phone": "0612083989", "archived": false}, {"id": "bk500_giuntini_gastou_nina", "name": "Nina Giuntini Gastou", "role": "equipier", "restoId": "bk500", "email": "ninagiuntinigastou@gmail.com", "phone": "06 48 02 51 33", "archived": false}, {"id": "bk500_hemled_julia", "name": "Julia Hemled", "role": "equipier", "restoId": "bk500", "email": "hmd.julia@gmail.com", "phone": "0643593740", "archived": false}, {"id": "bk500_jaimon_marie", "name": "Marie Jaimon", "role": "equipier", "restoId": "bk500", "email": "marie.jaimon@gmail.com", "phone": "07 68 50 58 18", "archived": false}, {"id": "bk500_jambert_enzo", "name": "Enzo Jambert", "role": "equipier", "restoId": "bk500", "email": "jambertenzo11@gmail.com", "phone": "0784422695", "archived": false}, {"id": "bk500_klier_morgan", "name": "Morgan Klier", "role": "equipier", "restoId": "bk500", "email": "morgan201202@gmail.com", "phone": "0648547743", "archived": false}, {"id": "bk500_labourgade_audrey", "name": "Audrey Labourgade", "role": "equipier", "restoId": "bk500", "email": "audrey.labourgade@gmail.com", "phone": "07 69 74 52 58", "archived": false}, {"id": "bk500_le_goff_alexandre", "name": "Alexandre Le Goff", "role": "equipier", "restoId": "bk500", "email": "alexi34@hotmail.fr", "phone": "0683754015", "archived": false}, {"id": "bk500_le_joly_jocelyn", "name": "Jocelyn Le Joly", "role": "equipier", "restoId": "bk500", "email": "jocelynlejoly@gmail.com", "phone": "0675137156", "archived": false}, {"id": "bk500_ledee_samy", "name": "Samy Ledee", "role": "equipier", "restoId": "bk500", "email": "samy.lde@icloud.com", "phone": "0767443613", "archived": false}, {"id": "bk500_marti_audrey", "name": "Audrey Marti", "role": "equipier", "restoId": "bk500", "email": "audreymartipro@gmail.com", "phone": "0608247500", "archived": false}, {"id": "bk500_medom_sadefo_michele", "name": "Michele Medom Sadefo", "role": "equipier", "restoId": "bk500", "email": "michelemedom@gmail.com", "phone": "0651216097", "archived": false}, {"id": "bk500_meunier_tony", "name": "Tony Meunier", "role": "equipier", "restoId": "bk500", "email": "tonymeunier02@icloud.com", "phone": "0685762382", "archived": false}, {"id": "bk500_molina_ilias", "name": "Ilias Molina", "role": "equipier", "restoId": "bk500", "email": "iliasmolina81@gmail.com", "phone": "06 46 04 55 67", "archived": false}, {"id": "bk500_montes_lou", "name": "Lou Montes", "role": "equipier", "restoId": "bk500", "email": "loumontes13@gmail.com", "phone": "0610691914", "archived": false}, {"id": "bk500_ourkoune_semia", "name": "Semia Ourkoune", "role": "equipier", "restoId": "bk500", "email": "ourkounesemia@gmail.com", "phone": "0610209568", "archived": false}, {"id": "bk500_pautrat_soane", "name": "Soane Pautrat", "role": "equipier", "restoId": "bk500", "email": "pautratsoane@gmail.com", "phone": "0673755975", "archived": false}, {"id": "bk500_phomsavanh_manon", "name": "Manon Phomsavanh", "role": "equipier", "restoId": "bk500", "email": "manon.phomsavanh@gmail.com", "phone": "0782410567", "archived": false}, {"id": "bk500_pronzola_chloe", "name": "Chloe Pronzola", "role": "equipier", "restoId": "bk500", "email": "chloe.pronzola17@gmail.com", "phone": "07 68 98 40 78", "archived": false}, {"id": "bk500_pumiglia_lucie", "name": "Lucie Pumiglia", "role": "equipier", "restoId": "bk500", "email": "lucie.pumiglia@icloud.com", "phone": "0768145700", "archived": false}, {"id": "bk500_ranaivoson_marie_joelle_norosoa", "name": "Marie Joelle Norosoa Ranaivoson", "role": "equipier", "restoId": "bk500", "email": "mariejoelle.rn@gmail.com", "phone": "0651385924", "archived": false}, {"id": "bk500_ranque_yanis", "name": "Yanis Ranque", "role": "equipier", "restoId": "bk500", "email": "yanisranque@gmail.com", "phone": "0626541918", "archived": false}, {"id": "bk500_regnault_julie", "name": "Julie Regnault", "role": "equipier", "restoId": "bk500", "email": "regnault.julie2003@gmail.com", "phone": "0601394105", "archived": false}, {"id": "bk500_sitaru_ariuna_simona", "name": "Ariuna Simona Sitaru", "role": "equipier", "restoId": "bk500", "email": "borooariuna@gmail.com", "phone": "0650379293", "archived": false}, {"id": "bk500_tahir_clelie", "name": "Clelie Tahir", "role": "equipier", "restoId": "bk500", "email": "clelietahir@icloud.com", "phone": "0773267376", "archived": false}, {"id": "bk500_tampel_hugo", "name": "Hugo Tampel", "role": "equipier", "restoId": "bk500", "email": "hugo.tampel.tarbouriech@gmail.com", "phone": "06 86 40 90 28", "archived": false}, {"id": "bk500_thomas_houssemand_hugo", "name": "Hugo Thomas-Houssemand", "role": "equipier", "restoId": "bk500", "email": "hugothomas67.pro@gmail.com", "phone": "06 58 70 61 56", "archived": false}, {"id": "bk500_tohozin_urielle", "name": "Urielle Tohozin", "role": "equipier", "restoId": "bk500", "email": "tohozincarine@gmail.com", "phone": "0745457316", "archived": false}, {"id": "bk500_valette_joris", "name": "Joris Valette", "role": "equipier", "restoId": "bk500", "email": "valettejoris@orange.fr", "phone": "0651984083", "archived": false}, {"id": "bk500_verdun_leia", "name": "Leia Verdun", "role": "equipier", "restoId": "bk500", "email": "verdun.leia@orange.fr", "phone": "0695770267", "archived": false}, {"id": "bk500_vertut_simon", "name": "Simon Vertut", "role": "equipier", "restoId": "bk500", "email": "s.vertut34@gmail.com", "phone": "06 41 91 37 17", "archived": false}, {"id": "bk500_vorbe_ilian", "name": "Ilian Vorbe", "role": "equipier", "restoId": "bk500", "email": "ilian.vorbe@gmail.com", "phone": "06 95 67 64 72", "archived": false}, {"id": "bk526_acakpo_morel", "name": "Morel Acakpo", "role": "equipier", "restoId": "bk526", "email": "acakpomorelfritzel@gmail.com", "phone": "06 34 81 69 76", "archived": false}, {"id": "bk526_adamowski_claire", "name": "Claire Adamowski", "role": "equipier", "restoId": "bk526", "email": "clairadamowski@gmail.com", "phone": "06 95 02 35 08", "archived": false}, {"id": "bk526_ait_hamouda_hedi", "name": "Hedi Ait Hamouda", "role": "equipier", "restoId": "bk526", "email": "hedi.aithamouda@gmail.com", "phone": "0769116612", "archived": false}, {"id": "bk526_alimi_kevin", "name": "Kevin Alimi", "role": "equipier", "restoId": "bk526", "email": "kevin.alimi@free.fr", "phone": "0743659062", "archived": false}, {"id": "bk526_amichot_christopher", "name": "Christopher Amichot", "role": "equipier", "restoId": "bk526", "email": "christopher.amichot@gmail.com", "phone": "06 49 17 47 34", "archived": false}, {"id": "bk526_bacon_noemie", "name": "Noemie Bacon", "role": "equipier", "restoId": "bk526", "email": "baconnoemie@icloud.com", "phone": "07 66 86 18 66", "archived": false}, {"id": "bk526_bedraoui_souleymene", "name": "Souleymene Bedraoui", "role": "equipier", "restoId": "bk526", "email": "bedraouisouleymene@gmail.com", "phone": "0667597450", "archived": false}, {"id": "bk526_bogning_nanda_rodion_frank", "name": "Rodion Frank Bogning Nanda", "role": "equipier", "restoId": "bk526", "email": "bogningnanda@gmail.com", "phone": "06 52 18 73 74", "archived": false}, {"id": "bk526_bolo_theo", "name": "Theo Bolo", "role": "equipier", "restoId": "bk526", "email": "bolotheo336@gmail.com", "phone": "0625483681", "archived": false}, {"id": "bk526_bonkhal_najat", "name": "Najat Bonkhal", "role": "equipier", "restoId": "bk526", "email": "bonkhalnajet7@gmail.com", "phone": "07 82 60 85 63", "archived": false}, {"id": "bk526_bonnoron_theo", "name": "Theo Bonnoron", "role": "equipier", "restoId": "bk526", "email": "theo.bonnoron@gmail.com", "phone": "06 95 65 11 63", "archived": false}, {"id": "bk526_bouchrani_raphael", "name": "Raphael Bouchrani", "role": "equipier", "restoId": "bk526", "email": "b.raphaelpro@gmail.com", "phone": "06 34 46 76 86", "archived": false}, {"id": "bk526_bouis_emma", "name": "Emma Bouis", "role": "equipier", "restoId": "bk526", "email": "emma.bouis@gmail.com", "phone": "06 43 66 32 27", "archived": false}, {"id": "bk526_boukile_hamza", "name": "Hamza Boukile", "role": "equipier", "restoId": "bk526", "email": "hmz.bkl2@gmail.com", "phone": "07 81 66 54 54", "archived": false}, {"id": "bk526_bourdin_florian", "name": "Florian Bourdin", "role": "equipier", "restoId": "bk526", "email": "florian.bourdin@sfr.fr", "phone": "06 68 68 11 90", "archived": false}, {"id": "bk526_bousselmi_ilyes", "name": "Ilyes Bousselmi", "role": "equipier", "restoId": "bk526", "email": "ilyes.bousselmi07@gmail.com", "phone": "0648904196", "archived": false}, {"id": "bk526_candela_jerome", "name": "Jerome Candela", "role": "equipier", "restoId": "bk526", "email": "jerome_candela@yahoo.fr", "phone": "06 70 11 78 14", "archived": false}, {"id": "bk526_carasco_charles", "name": "Charles Carasco", "role": "equipier", "restoId": "bk526", "email": "zizou.azerty34@gmail.com", "phone": "0745909487", "archived": false}, {"id": "bk526_cavero_anna", "name": "Anna Cavero", "role": "equipier", "restoId": "bk526", "email": "anna.cavero@icloud.com", "phone": "06 62 43 87 96", "archived": false}, {"id": "bk526_chalies_kyllian", "name": "Kyllian Chalies", "role": "equipier", "restoId": "bk526", "email": "chalieskyllian34@gmail.com", "phone": "0749355345", "archived": false}, {"id": "bk526_chevrin_alban", "name": "Alban Chevrin", "role": "equipier", "restoId": "bk526", "email": "alban.chevr1@gmail.com", "phone": "0767131723", "archived": false}, {"id": "bk526_cretey_arthur", "name": "Arthur Cretey", "role": "equipier", "restoId": "bk526", "email": "arthurcretey@gmail.com", "phone": "06 59 26 97 67", "archived": false}, {"id": "bk526_delost_lou", "name": "Lou Delost", "role": "equipier", "restoId": "bk526", "email": "delost.lou@gmail.com", "phone": "07 64 20 07 67", "archived": false}, {"id": "bk526_deltell_florentin", "name": "Florentin Deltell", "role": "equipier", "restoId": "bk526", "email": "florentin.deltell@gmail.com", "phone": "06 86 83 41 99", "archived": false}, {"id": "bk526_delvoye_julian", "name": "Julian Delvoye", "role": "equipier", "restoId": "bk526", "email": "luzghard@gmail.com", "phone": "07 71 37 16 40", "archived": false}, {"id": "bk526_dewaghe_orane", "name": "Orane Dewaghe", "role": "equipier", "restoId": "bk526", "email": "orane66@outlook.fr", "phone": "06 58 26 57 43", "archived": false}, {"id": "bk526_diagne_yaye", "name": "Yaye Diagne", "role": "equipier", "restoId": "bk526", "email": "diagneyayeawa5@gmail.com", "phone": "06 01 17 64 99", "archived": false}, {"id": "bk526_djemai_romero_lou", "name": "Lou Djemai-Romero", "role": "equipier", "restoId": "bk526", "email": "lloudrm78@icloud.com", "phone": "0750876043", "archived": false}, {"id": "bk526_duarte_adrian", "name": "Adrian Duarte", "role": "equipier", "restoId": "bk526", "email": "asduarte06@gmail.com", "phone": "06 02 03 57 89", "archived": false}, {"id": "bk526_duvernay_baptiste", "name": "Baptiste Duvernay", "role": "equipier", "restoId": "bk526", "email": "bapt.duvernay@gmail.com", "phone": "0695205852", "archived": false}, {"id": "bk526_ferrier_kevin", "name": "Kevin Ferrier", "role": "equipier", "restoId": "bk526", "email": "kevin.ferrier@live.fr", "phone": "07 69 86 54 38", "archived": false}, {"id": "bk526_fontaine_julie", "name": "Julie Fontaine", "role": "equipier", "restoId": "bk526", "email": "julie.fontaine31@gmail.com", "phone": "06 12 24 33 54", "archived": false}, {"id": "bk526_frazer_sarah", "name": "Sarah Frazer", "role": "equipier", "restoId": "bk526", "email": "frazer.sarah15@gmail.com", "phone": "0612020952", "archived": false}, {"id": "bk526_garcia_joe", "name": "Joe Garcia", "role": "equipier", "restoId": "bk526", "email": "djodjogarcia18@gmail.com", "phone": "07 61 86 39 05", "archived": false}, {"id": "bk526_gasparini_zoe", "name": "Zoe Gasparini", "role": "equipier", "restoId": "bk526", "email": "gzoe06@icloud.com", "phone": "07 69 06 77 65", "archived": false}, {"id": "bk526_gilles_caius", "name": "Caius Gilles", "role": "equipier", "restoId": "bk526", "email": "caiusgilles@gmail.com", "phone": "06 45 76 21 48", "archived": false}, {"id": "bk526_gombert_caldi_rohan", "name": "Rohan Gombert-Caldi", "role": "equipier", "restoId": "bk526", "email": "rohangc66@gmail.com", "phone": "06 13 93 75 76", "archived": false}, {"id": "bk526_hamraoui_marine", "name": "Marine Hamraoui", "role": "equipier", "restoId": "bk526", "email": "marine.hamraoui@orange.fr", "phone": "07 82 09 90 23", "archived": false}, {"id": "bk526_houillon_sylvain", "name": "Sylvain Houillon", "role": "equipier", "restoId": "bk526", "email": "slengteng@hotmail.fr", "phone": "07 60 79 59 63", "archived": false}, {"id": "bk526_lamarre_axel", "name": "Axel Lamarre", "role": "equipier", "restoId": "bk526", "email": "axelamarre2@gmail.com", "phone": "0695970234", "archived": false}, {"id": "bk526_laubacher_amandine", "name": "Amandine Laubacher", "role": "equipier", "restoId": "bk526", "email": "amandine.laubacher@outlook.com", "phone": "0766041955", "archived": false}, {"id": "bk526_le_minihi_camille", "name": "Camille Le Minihi", "role": "equipier", "restoId": "bk526", "email": "camille.leminihi123@hotmail.com", "phone": "06 23 19 36 42", "archived": false}, {"id": "bk526_leclercq_chloe", "name": "Chloe Leclercq", "role": "equipier", "restoId": "bk526", "email": "chloeleclercq143@gmail.com", "phone": "06 19 67 70 88", "archived": false}, {"id": "bk526_marest_maxence", "name": "Maxence Marest", "role": "equipier", "restoId": "bk526", "email": "maxence.marest@outlook.com", "phone": "0670352961", "archived": false}, {"id": "bk526_martinez_mella_jade", "name": "Jade Martinez-Mella", "role": "equipier", "restoId": "bk526", "email": "jade.mm.pro@gmail.com", "phone": "07 62 65 48 23", "archived": false}, {"id": "bk526_namane_habib", "name": "Habib Namane", "role": "equipier", "restoId": "bk526", "email": "hbibox34@gmail.com", "phone": "06 78 73 54 90", "archived": false}, {"id": "bk526_pachot_giroux_coline", "name": "Coline Pachot Giroux", "role": "equipier", "restoId": "bk526", "email": "c.pachotgiroux@gmail.com", "phone": "07 88 37 70 18", "archived": false}, {"id": "bk526_pierre_alexis", "name": "Alexis Pierre", "role": "equipier", "restoId": "bk526", "email": "alexispierre859@gmail.com", "phone": "06 31 68 06 26", "archived": false}, {"id": "bk526_pons_alexis", "name": "Alexis Pons", "role": "equipier", "restoId": "bk526", "email": "alexispons1@gmail.com", "phone": "06 51 38 20 90", "archived": false}, {"id": "bk526_prevot_eva", "name": "Eva Prevot", "role": "equipier", "restoId": "bk526", "email": "evaprvt2007@gmail.com", "phone": "0678401660", "archived": false}, {"id": "bk526_ribes_lucas", "name": "Lucas Ribes", "role": "equipier", "restoId": "bk526", "email": "ribes.lucas.lr@gmail.com", "phone": "06 37 54 68 72", "archived": false}, {"id": "bk526_romera_quentin", "name": "Quentin Romera", "role": "equipier", "restoId": "bk526", "email": "quentin.romera@outlook.fr", "phone": "06 48 36 85 00", "archived": false}, {"id": "bk526_rosier_geffrey", "name": "Geffrey Rosier", "role": "equipier", "restoId": "bk526", "email": "geffreyrosier@gmail.com", "phone": "06 99 51 36 37", "archived": false}, {"id": "bk526_rousselle_patrick", "name": "Patrick Rousselle", "role": "equipier", "restoId": "bk526", "email": "patrick234.rousselle@gmail.com", "phone": "06 18 25 57 97", "archived": false}, {"id": "bk526_soppi_laurent", "name": "Laurent Soppi", "role": "equipier", "restoId": "bk526", "email": "dylansoppi@gmail.com", "phone": "0695795138", "archived": false}, {"id": "bk526_souliman_delafosse_chany", "name": "Chany Souliman Delafosse", "role": "equipier", "restoId": "bk526", "email": "chanysoulidel973@gmail.com", "phone": "06 26 28 94 45", "archived": false}, {"id": "bk526_toader_liam", "name": "Liam Toader", "role": "equipier", "restoId": "bk526", "email": "liamtoader34@gmail.com", "phone": "06 25 78 63 65", "archived": false}, {"id": "bk526_vigroux_lucas", "name": "Lucas Vigroux", "role": "equipier", "restoId": "bk526", "email": "lucas.vigroux07@gmail.com", "phone": "0608535051", "archived": false}, {"id": "bk526_zitouni_adela", "name": "Adela Zitouni", "role": "equipier", "restoId": "bk526", "email": "adela.zitouni@hotmail.com", "phone": "07 84 92 93 84", "archived": false}, {"id": "bk509_ahmed_touma", "name": "Touma Ahmed", "role": "equipier", "restoId": "bk509", "email": "ahmedtouma.at@gmail.com", "phone": "06 68 66 38 15", "archived": false}, {"id": "bk509_ahoyo_gloria", "name": "Gloria Ahoyo", "role": "equipier", "restoId": "bk509", "email": "ahoyogloria2020@gmail.com", "phone": "0613923850", "archived": false}, {"id": "bk509_alexandre_cherly", "name": "Cherly Alexandre", "role": "equipier", "restoId": "bk509", "email": "cherly_alexandre1@outlook.com", "phone": "0782800805", "archived": false}, {"id": "bk509_baccelli_lily", "name": "Lily Baccelli", "role": "equipier", "restoId": "bk509", "email": "lilybac34@gmail.com", "phone": "0612020952", "archived": false}, {"id": "bk509_ben_aguegueche_nadia", "name": "Nadia Ben Aguegueche", "role": "equipier", "restoId": "bk509", "email": "nadia.benaguegueche2@gmail.com", "phone": "0620718288", "archived": false}, {"id": "bk509_ben_amor_mehdi", "name": "Mehdi Ben Amor", "role": "equipier", "restoId": "bk509", "email": "mehdibenamor21@gmail.com", "phone": "06 51 05 95 21", "archived": false}, {"id": "bk509_benali_noam", "name": "Noam Benali", "role": "equipier", "restoId": "bk509", "email": "noamaigle@gmail.com", "phone": "0788765224", "archived": false}, {"id": "bk509_benhamida_anissa", "name": "Anissa Benhamida", "role": "equipier", "restoId": "bk509", "email": "benhamida34080@gmail.com", "phone": "0769562702", "archived": false}, {"id": "bk509_berna_tom", "name": "Tom Berna", "role": "equipier", "restoId": "bk509", "email": "berna.tom34@gmail.com", "phone": "0662948667", "archived": false}, {"id": "bk509_bourouiba_nassil", "name": "Nassil Bourouiba", "role": "equipier", "restoId": "bk509", "email": "n.bourouiba@gmail.com", "phone": "0652182888", "archived": false}, {"id": "bk509_carmona_esteban", "name": "Esteban Carmona", "role": "equipier", "restoId": "bk509", "email": "carmona.esteban2004@gmail.com", "phone": "07 69 39 28 18", "archived": false}, {"id": "bk509_djihadi_antoine", "name": "Antoine Djihadi", "role": "equipier", "restoId": "bk509", "email": "antoinedjihadi@gmail.com", "phone": "0627871945", "archived": false}, {"id": "bk509_el_jabari_martin_lana", "name": "Lana El Jabari-Martin", "role": "equipier", "restoId": "bk509", "email": "lanaaemartin@gmail.com", "phone": "07 69 29 10 11", "archived": false}, {"id": "bk509_el_maamri_malia", "name": "Malia El Maamri", "role": "equipier", "restoId": "bk509", "email": "melgraphique@gmail.com", "phone": "0761871910", "archived": false}, {"id": "bk509_esteve_valentine", "name": "Valentine Esteve", "role": "equipier", "restoId": "bk509", "email": "valentine34400@gmail.com", "phone": "06 49 64 68 77", "archived": false}, {"id": "bk509_ettabti_imane", "name": "Imane Ettabti", "role": "equipier", "restoId": "bk509", "email": "imane.444y@gmail.com", "phone": "0746432549", "archived": false}, {"id": "bk509_girard_marie", "name": "Marie Girard", "role": "equipier", "restoId": "bk509", "email": "marie.girard.0369@icloud.com", "phone": "0672874052", "archived": false}, {"id": "bk509_gonzalez_luna", "name": "Luna Gonzalez", "role": "equipier", "restoId": "bk509", "email": "gonzalezluna260303@gmail.com", "phone": "0615219653", "archived": false}, {"id": "bk509_gorius_margot", "name": "Margot Gorius", "role": "equipier", "restoId": "bk509", "email": "goriusmargot.nz@gmail.com", "phone": "0641553667", "archived": false}, {"id": "bk509_kemp_lucille", "name": "Lucille Kemp", "role": "equipier", "restoId": "bk509", "email": "lucillekemp@icloud.com", "phone": "0634641072", "archived": false}, {"id": "bk509_lacoste_gabriel", "name": "Gabriel Lacoste", "role": "equipier", "restoId": "bk509", "email": "gabriel.lacoste.1987@gmail.com", "phone": "0621860083", "archived": false}, {"id": "bk509_mari_lloria_florian", "name": "Florian Mari Lloria", "role": "equipier", "restoId": "bk509", "email": "marilloriaflorian@gmail.com", "phone": "0789030368", "archived": false}, {"id": "bk509_martal_ingrid", "name": "Ingrid Martal", "role": "equipier", "restoId": "bk509", "email": "martalingrid@gmail.com", "phone": "0668829670", "archived": false}, {"id": "bk509_martin_de_saint_semmera_brandon", "name": "Brandon Martin De Saint Semmera", "role": "equipier", "restoId": "bk509", "email": "brandon.mdss@outlook.com", "phone": "0781199532", "archived": false}, {"id": "bk509_matelet_joakym", "name": "Joakym Matelet", "role": "equipier", "restoId": "bk509", "email": "joakymmatelet@gmail.com", "phone": "07 67 29 99 11", "archived": false}, {"id": "bk509_mathieu_morgane", "name": "Morgane Mathieu", "role": "equipier", "restoId": "bk509", "email": "morgane.math@free.fr", "phone": "695258655", "archived": false}, {"id": "bk509_meissonnier_matteo", "name": "Matteo Meissonnier", "role": "equipier", "restoId": "bk509", "email": "matteo.meisso@gmail.com", "phone": "0781543775", "archived": false}, {"id": "bk509_noviant_noah", "name": "Noah Noviant", "role": "equipier", "restoId": "bk509", "email": "noahnoviant@icloud.com", "phone": "0782921295", "archived": false}, {"id": "bk509_patry_celia", "name": "Celia Patry", "role": "equipier", "restoId": "bk509", "email": "patrycelia7@gmail.com", "phone": "06 44 08 18 02", "archived": false}, {"id": "bk509_perrier_sylver", "name": "Sylver Perrier", "role": "equipier", "restoId": "bk509", "email": "sylverperrier@gmail.com", "phone": "06 67 13 56 12", "archived": false}, {"id": "bk509_picq_noemie", "name": "Noemie Picq", "role": "equipier", "restoId": "bk509", "email": "npicq750@gmail.com", "phone": "0767728916", "archived": false}, {"id": "bk509_pierron_thomas", "name": "Thomas Pierron", "role": "equipier", "restoId": "bk509", "email": "thomasp34670@gmail.com", "phone": "0612487372", "archived": false}, {"id": "bk509_poppe_kevin", "name": "Kevin Poppe", "role": "equipier", "restoId": "bk509", "email": "kevinpoppe1904@gmail.com", "phone": "0671375695", "archived": false}, {"id": "bk509_reboux_elyn", "name": "Elyn Reboux", "role": "equipier", "restoId": "bk509", "email": "elynreboux1@gmail.com", "phone": "0782787635", "archived": false}, {"id": "bk509_rico_romain", "name": "Romain Rico", "role": "equipier", "restoId": "bk509", "email": "romainrico10@gmail.com", "phone": "0676660194", "archived": false}, {"id": "bk509_robert_maitrejean_noelie", "name": "Noelie Robert Maitrejean", "role": "equipier", "restoId": "bk509", "email": "robertnoelie1809@gmail.com", "phone": "0610315149", "archived": false}, {"id": "bk509_rozmanowski_dimitri", "name": "Dimitri Rozmanowski", "role": "equipier", "restoId": "bk509", "email": "rozmanowskidimitri@gmail.com", "phone": "0610758263", "archived": false}, {"id": "bk509_saint_rapt_cassandre", "name": "Cassandre Saint-Rapt", "role": "equipier", "restoId": "bk509", "email": "cassandresaintrapt@gmail.com", "phone": "0688036170", "archived": false}, {"id": "bk509_santanon_nicolas", "name": "Nicolas Santanon", "role": "equipier", "restoId": "bk509", "email": "nicolas.santanon@gmail.com", "phone": "0649771521", "archived": false}, {"id": "bk509_segado_clara", "name": "Clara Segado", "role": "equipier", "restoId": "bk509", "email": "segado.clara66@icloud.com", "phone": "06 74 76 85 45", "archived": false}, {"id": "bk509_segura_alexis", "name": "Alexis Segura", "role": "equipier", "restoId": "bk509", "email": "segura.alexis.1sen3@gmail.com", "phone": "0782178621", "archived": false}, {"id": "bk509_terol_pascal", "name": "Pascal Terol", "role": "equipier", "restoId": "bk509", "email": "test@test.com", "phone": "467420721", "archived": false}, {"id": "bk509_vochre_melissa", "name": "Melissa Vochre", "role": "equipier", "restoId": "bk509", "email": "vochre_melissa@yahoo.fr", "phone": "0787564700", "archived": false}, {"id": "bk509_wondjo_oheko_wivine", "name": "Wivine Wondjo Oheko", "role": "equipier", "restoId": "bk509", "email": "wivinewondjooheko@gmail.com", "phone": "0751467191", "archived": false}],
+  incidents:[],letters:[],
+  globalPins:{admin:'0000',rh:'0000'},
+  restoPins:{bk500:{directeur:'0000',manager1:'0000',manager2:'0000',manager3:'0000',manager4:'0000'},bk509:{directeur:'0000',manager1:'0000',manager2:'0000',manager3:'0000',manager4:'0000'},bk526:{directeur:'0000',manager1:'0000',manager2:'0000',manager3:'0000',manager4:'0000'}},
+  restoNames:{bk500:{directeur:'Directeur',manager1:'Manager 1',manager2:'Manager 2',manager3:'Manager 3',manager4:'Manager 4'},bk509:{directeur:'Directeur',manager1:'Manager 1',manager2:'Manager 2',manager3:'Manager 3',manager4:'Manager 4'},bk526:{directeur:'Directeur',manager1:'Manager 1',manager2:'Manager 2',manager3:'Manager 3',manager4:'Manager 4'}},
+  mailSettings:{time:'22:00',daily:true,weekly:true,monthly:true,recipients:[],ccRecipients:[]}
+};
+// saveDB est remplacée par Supabase ci-dessous
+
+// ══════════════════════════════════════════════════════════════════════════════
+// BK SUIVI — Supabase sync
+// ══════════════════════════════════════════════════════════════════════════════
+const SUPA_URL = 'https://kzkopbvythfhdnjlnphm.supabase.co';
+const SUPA_KEY = 'sb_publishable_YU-stfHeY5y2UZYj1zNQKg_YQjK0340';
+
+const sb = {
+  async get(table, query) {
+    const url = `${SUPA_URL}/rest/v1/${table}?${query || 'select=*'}`;
+    const r = await fetch(url, { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } });
+    if (!r.ok) throw new Error(`GET ${table}: ${r.status}`);
+    return r.json();
+  },
+  async insert(table, data) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
+      method: 'POST',
+      headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+      body: JSON.stringify(data)
+    });
+    if (!r.ok) throw new Error(`INSERT ${table}: ${r.status} ${await r.text()}`);
+    const d = await r.json(); return Array.isArray(d) ? d[0] : d;
+  },
+  async patch(table, id, data) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return r.ok;
+  },
+  async patchWhere(table, where, data) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${where}`, {
+      method: 'PATCH',
+      headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return r.ok;
+  },
+  async del(table, id) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` }
+    });
+    return r.ok;
+  }
+};
+
+// ── Chargement initial depuis Supabase ────────────────────────────────────────
+async function loadFromSupabase() {
+  try {
+    const [emps, incs, lets, settArr] = await Promise.all([
+      sb.get('bks_employees', 'select=*&order=name.asc'),
+      sb.get('bks_incidents', 'select=*&order=created_at.desc'),
+      sb.get('bks_letters', 'select=*&order=created_at.desc'),
+      sb.get('bks_settings', 'select=*&id=eq.main'),
+    ]);
+    const sett = settArr[0] || {};
+    DB.employees = emps.map(e => ({
+      id: e.id, name: e.name, role: e.role, restoId: e.resto_id,
+      tileKey: e.tile_key, email: e.email || '', phone: e.phone || '',
+      archived: e.archived || false
+    }));
+    DB.incidents = (incs || []).map(i => ({
+      id: i.id, empId: i.emp_id, restoId: i.resto_id,
+      severity: i.severity, problems: i.problems || [],
+      extra: i.extra || {}, note: i.note || '',
+      createdBy: i.created_by, createdAt: i.created_at
+    }));
+    DB.letters = (lets || []).map(l => ({
+      id: l.id, empId: l.emp_id, restoId: l.resto_id,
+      type: l.type, subject: l.subject, body: l.body,
+      status: l.status, sigStatus: l.sig_status,
+      sentAt: l.sent_at, signedAt: l.signed_at, refusedAt: l.refused_at,
+      createdAt: l.created_at
+    }));
+    if (sett.global_pins) DB.globalPins = sett.global_pins;
+    if (sett.resto_pins) DB.restoPins = sett.resto_pins;
+    if (sett.resto_names) DB.restoNames = sett.resto_names;
+    if (sett.mail_settings) DB.mailSettings = sett.mail_settings;
+    console.log('Supabase chargé:', DB.employees.length, 'employés');
+  } catch(e) {
+    console.error('Erreur chargement Supabase:', e);
+  }
+}
+
+// ── saveDB : sauvegarde dans Supabase ─────────────────────────────────────────
+async function saveDB() {
+  try {
+    await sb.patchWhere('bks_settings', 'id=eq.main', {
+      global_pins: DB.globalPins,
+      resto_pins: DB.restoPins,
+      resto_names: DB.restoNames,
+      mail_settings: DB.mailSettings,
+      updated_at: new Date().toISOString()
+    });
+  } catch(e) { console.error('saveDB error:', e); }
+}
+
+// ── Sync automatique toutes les 5 secondes ────────────────────────────────────
+setInterval(async function() {
+  if (!curUser) return;
+  await loadFromSupabase();
+  if (typeof renderApp === 'function') renderApp();
+}, 5000);
+
+// Sync: ajouter les nouveaux employés si absents
+(function(){
+  var base=[{"id": "bk500_d", "name": "Directeur", "role": "directeur", "restoId": "bk500", "tileKey": "directeur"}, {"id": "bk500_m1", "name": "Manager 1", "role": "manager", "restoId": "bk500", "tileKey": "manager1"}, {"id": "bk500_m2", "name": "Manager 2", "role": "manager", "restoId": "bk500", "tileKey": "manager2"}, {"id": "bk500_m3", "name": "Manager 3", "role": "manager", "restoId": "bk500", "tileKey": "manager3"}, {"id": "bk500_m4", "name": "Manager 4", "role": "manager", "restoId": "bk500", "tileKey": "manager4"}, {"id": "bk509_d", "name": "Directeur", "role": "directeur", "restoId": "bk509", "tileKey": "directeur"}, {"id": "bk509_m1", "name": "Manager 1", "role": "manager", "restoId": "bk509", "tileKey": "manager1"}, {"id": "bk509_m2", "name": "Manager 2", "role": "manager", "restoId": "bk509", "tileKey": "manager2"}, {"id": "bk509_m3", "name": "Manager 3", "role": "manager", "restoId": "bk509", "tileKey": "manager3"}, {"id": "bk509_m4", "name": "Manager 4", "role": "manager", "restoId": "bk509", "tileKey": "manager4"}, {"id": "bk526_d", "name": "Directeur", "role": "directeur", "restoId": "bk526", "tileKey": "directeur"}, {"id": "bk526_m1", "name": "Manager 1", "role": "manager", "restoId": "bk526", "tileKey": "manager1"}, {"id": "bk526_m2", "name": "Manager 2", "role": "manager", "restoId": "bk526", "tileKey": "manager2"}, {"id": "bk526_m3", "name": "Manager 3", "role": "manager", "restoId": "bk526", "tileKey": "manager3"}, {"id": "bk526_m4", "name": "Manager 4", "role": "manager", "restoId": "bk526", "tileKey": "manager4"}, {"id": "bk500_abrial_maeva", "name": "Maeva Abrial", "role": "equipier", "restoId": "bk500", "email": "maeva-abrial@live.fr", "phone": "0769655301", "archived": false}, {"id": "bk500_aubry_yohann", "name": "Yohann Aubry", "role": "equipier", "restoId": "bk500", "email": "yohann.aubry54500@gmail.com", "phone": "0641130544", "archived": false}, {"id": "bk500_bonne_alicia", "name": "Alicia Bonne", "role": "equipier", "restoId": "bk500", "email": "bonne.alicia18@gmail.com", "phone": "0745328904", "archived": false}, {"id": "bk500_boudon_ogier_arielle", "name": "Arielle Boudon-Ogier", "role": "equipier", "restoId": "bk500", "email": "arielle.boudonogier@orange.fr", "phone": "0670858868", "archived": false}, {"id": "bk500_bourgue_thomas", "name": "Thomas Bourgue", "role": "equipier", "restoId": "bk500", "email": "tbourgue0@gmail.com", "phone": "0695860787", "archived": false}, {"id": "bk500_calvez_tessa", "name": "Tessa Calvez", "role": "equipier", "restoId": "bk500", "email": "tessacalvez34@gmail.com", "phone": "06 84 03 29 73", "archived": false}, {"id": "bk500_canal_faustine_nolhan", "name": "Faustine Nolhan Canal", "role": "equipier", "restoId": "bk500", "email": "faufau.ca@gmail.com", "phone": "0680800435", "archived": false}, {"id": "bk500_caussan_lucie", "name": "Lucie Caussan", "role": "equipier", "restoId": "bk500", "email": "lucie.caussan05@gmail.com", "phone": "07 60 25 11 46", "archived": false}, {"id": "bk500_cervera_alexandre_camille", "name": "Camille Cervera-Alexandre", "role": "equipier", "restoId": "bk500", "email": "crv.cam7@gmail.com", "phone": "0767152576", "archived": false}, {"id": "bk500_chantel_bradley", "name": "Bradley Chantel", "role": "equipier", "restoId": "bk500", "email": "bradleychantel.pro@gmail.com", "phone": "07 69 62 08 58", "archived": false}, {"id": "bk500_charaffidine_anli_nourdine", "name": "Anli Nourdine Charaffidine", "role": "equipier", "restoId": "bk500", "email": "anlinourdinecharaffidine@gmail.com", "phone": "0698208338", "archived": false}, {"id": "bk500_clain_jean_raphael", "name": "Jean-Raphael Clain", "role": "equipier", "restoId": "bk500", "email": "clainjeanraphael@gmail.com", "phone": "0623333040", "archived": false}, {"id": "bk500_duhautpas_maeva", "name": "Maeva Duhautpas", "role": "equipier", "restoId": "bk500", "email": "maeva_dhp@outlook.fr", "phone": "0651234076", "archived": false}, {"id": "bk500_fuentes_shania", "name": "Shania Fuentes", "role": "equipier", "restoId": "bk500", "email": "shania.fuentes@hotmail.com", "phone": "0781414090", "archived": false}, {"id": "bk500_galliez_nolan", "name": "Nolan Galliez", "role": "equipier", "restoId": "bk500", "email": "nolan.tom@outlook.fr", "phone": "0766138236", "archived": false}, {"id": "bk500_gauthier_alexandra", "name": "Alexandra Gauthier", "role": "equipier", "restoId": "bk500", "email": "alexndra.gimeno@gmail.com", "phone": "0612083989", "archived": false}, {"id": "bk500_giuntini_gastou_nina", "name": "Nina Giuntini Gastou", "role": "equipier", "restoId": "bk500", "email": "ninagiuntinigastou@gmail.com", "phone": "06 48 02 51 33", "archived": false}, {"id": "bk500_hemled_julia", "name": "Julia Hemled", "role": "equipier", "restoId": "bk500", "email": "hmd.julia@gmail.com", "phone": "0643593740", "archived": false}, {"id": "bk500_jaimon_marie", "name": "Marie Jaimon", "role": "equipier", "restoId": "bk500", "email": "marie.jaimon@gmail.com", "phone": "07 68 50 58 18", "archived": false}, {"id": "bk500_jambert_enzo", "name": "Enzo Jambert", "role": "equipier", "restoId": "bk500", "email": "jambertenzo11@gmail.com", "phone": "0784422695", "archived": false}, {"id": "bk500_klier_morgan", "name": "Morgan Klier", "role": "equipier", "restoId": "bk500", "email": "morgan201202@gmail.com", "phone": "0648547743", "archived": false}, {"id": "bk500_labourgade_audrey", "name": "Audrey Labourgade", "role": "equipier", "restoId": "bk500", "email": "audrey.labourgade@gmail.com", "phone": "07 69 74 52 58", "archived": false}, {"id": "bk500_le_goff_alexandre", "name": "Alexandre Le Goff", "role": "equipier", "restoId": "bk500", "email": "alexi34@hotmail.fr", "phone": "0683754015", "archived": false}, {"id": "bk500_le_joly_jocelyn", "name": "Jocelyn Le Joly", "role": "equipier", "restoId": "bk500", "email": "jocelynlejoly@gmail.com", "phone": "0675137156", "archived": false}, {"id": "bk500_ledee_samy", "name": "Samy Ledee", "role": "equipier", "restoId": "bk500", "email": "samy.lde@icloud.com", "phone": "0767443613", "archived": false}, {"id": "bk500_marti_audrey", "name": "Audrey Marti", "role": "equipier", "restoId": "bk500", "email": "audreymartipro@gmail.com", "phone": "0608247500", "archived": false}, {"id": "bk500_medom_sadefo_michele", "name": "Michele Medom Sadefo", "role": "equipier", "restoId": "bk500", "email": "michelemedom@gmail.com", "phone": "0651216097", "archived": false}, {"id": "bk500_meunier_tony", "name": "Tony Meunier", "role": "equipier", "restoId": "bk500", "email": "tonymeunier02@icloud.com", "phone": "0685762382", "archived": false}, {"id": "bk500_molina_ilias", "name": "Ilias Molina", "role": "equipier", "restoId": "bk500", "email": "iliasmolina81@gmail.com", "phone": "06 46 04 55 67", "archived": false}, {"id": "bk500_montes_lou", "name": "Lou Montes", "role": "equipier", "restoId": "bk500", "email": "loumontes13@gmail.com", "phone": "0610691914", "archived": false}, {"id": "bk500_ourkoune_semia", "name": "Semia Ourkoune", "role": "equipier", "restoId": "bk500", "email": "ourkounesemia@gmail.com", "phone": "0610209568", "archived": false}, {"id": "bk500_pautrat_soane", "name": "Soane Pautrat", "role": "equipier", "restoId": "bk500", "email": "pautratsoane@gmail.com", "phone": "0673755975", "archived": false}, {"id": "bk500_phomsavanh_manon", "name": "Manon Phomsavanh", "role": "equipier", "restoId": "bk500", "email": "manon.phomsavanh@gmail.com", "phone": "0782410567", "archived": false}, {"id": "bk500_pronzola_chloe", "name": "Chloe Pronzola", "role": "equipier", "restoId": "bk500", "email": "chloe.pronzola17@gmail.com", "phone": "07 68 98 40 78", "archived": false}, {"id": "bk500_pumiglia_lucie", "name": "Lucie Pumiglia", "role": "equipier", "restoId": "bk500", "email": "lucie.pumiglia@icloud.com", "phone": "0768145700", "archived": false}, {"id": "bk500_ranaivoson_marie_joelle_norosoa", "name": "Marie Joelle Norosoa Ranaivoson", "role": "equipier", "restoId": "bk500", "email": "mariejoelle.rn@gmail.com", "phone": "0651385924", "archived": false}, {"id": "bk500_ranque_yanis", "name": "Yanis Ranque", "role": "equipier", "restoId": "bk500", "email": "yanisranque@gmail.com", "phone": "0626541918", "archived": false}, {"id": "bk500_regnault_julie", "name": "Julie Regnault", "role": "equipier", "restoId": "bk500", "email": "regnault.julie2003@gmail.com", "phone": "0601394105", "archived": false}, {"id": "bk500_sitaru_ariuna_simona", "name": "Ariuna Simona Sitaru", "role": "equipier", "restoId": "bk500", "email": "borooariuna@gmail.com", "phone": "0650379293", "archived": false}, {"id": "bk500_tahir_clelie", "name": "Clelie Tahir", "role": "equipier", "restoId": "bk500", "email": "clelietahir@icloud.com", "phone": "0773267376", "archived": false}, {"id": "bk500_tampel_hugo", "name": "Hugo Tampel", "role": "equipier", "restoId": "bk500", "email": "hugo.tampel.tarbouriech@gmail.com", "phone": "06 86 40 90 28", "archived": false}, {"id": "bk500_thomas_houssemand_hugo", "name": "Hugo Thomas-Houssemand", "role": "equipier", "restoId": "bk500", "email": "hugothomas67.pro@gmail.com", "phone": "06 58 70 61 56", "archived": false}, {"id": "bk500_tohozin_urielle", "name": "Urielle Tohozin", "role": "equipier", "restoId": "bk500", "email": "tohozincarine@gmail.com", "phone": "0745457316", "archived": false}, {"id": "bk500_valette_joris", "name": "Joris Valette", "role": "equipier", "restoId": "bk500", "email": "valettejoris@orange.fr", "phone": "0651984083", "archived": false}, {"id": "bk500_verdun_leia", "name": "Leia Verdun", "role": "equipier", "restoId": "bk500", "email": "verdun.leia@orange.fr", "phone": "0695770267", "archived": false}, {"id": "bk500_vertut_simon", "name": "Simon Vertut", "role": "equipier", "restoId": "bk500", "email": "s.vertut34@gmail.com", "phone": "06 41 91 37 17", "archived": false}, {"id": "bk500_vorbe_ilian", "name": "Ilian Vorbe", "role": "equipier", "restoId": "bk500", "email": "ilian.vorbe@gmail.com", "phone": "06 95 67 64 72", "archived": false}, {"id": "bk526_acakpo_morel", "name": "Morel Acakpo", "role": "equipier", "restoId": "bk526", "email": "acakpomorelfritzel@gmail.com", "phone": "06 34 81 69 76", "archived": false}, {"id": "bk526_adamowski_claire", "name": "Claire Adamowski", "role": "equipier", "restoId": "bk526", "email": "clairadamowski@gmail.com", "phone": "06 95 02 35 08", "archived": false}, {"id": "bk526_ait_hamouda_hedi", "name": "Hedi Ait Hamouda", "role": "equipier", "restoId": "bk526", "email": "hedi.aithamouda@gmail.com", "phone": "0769116612", "archived": false}, {"id": "bk526_alimi_kevin", "name": "Kevin Alimi", "role": "equipier", "restoId": "bk526", "email": "kevin.alimi@free.fr", "phone": "0743659062", "archived": false}, {"id": "bk526_amichot_christopher", "name": "Christopher Amichot", "role": "equipier", "restoId": "bk526", "email": "christopher.amichot@gmail.com", "phone": "06 49 17 47 34", "archived": false}, {"id": "bk526_bacon_noemie", "name": "Noemie Bacon", "role": "equipier", "restoId": "bk526", "email": "baconnoemie@icloud.com", "phone": "07 66 86 18 66", "archived": false}, {"id": "bk526_bedraoui_souleymene", "name": "Souleymene Bedraoui", "role": "equipier", "restoId": "bk526", "email": "bedraouisouleymene@gmail.com", "phone": "0667597450", "archived": false}, {"id": "bk526_bogning_nanda_rodion_frank", "name": "Rodion Frank Bogning Nanda", "role": "equipier", "restoId": "bk526", "email": "bogningnanda@gmail.com", "phone": "06 52 18 73 74", "archived": false}, {"id": "bk526_bolo_theo", "name": "Theo Bolo", "role": "equipier", "restoId": "bk526", "email": "bolotheo336@gmail.com", "phone": "0625483681", "archived": false}, {"id": "bk526_bonkhal_najat", "name": "Najat Bonkhal", "role": "equipier", "restoId": "bk526", "email": "bonkhalnajet7@gmail.com", "phone": "07 82 60 85 63", "archived": false}, {"id": "bk526_bonnoron_theo", "name": "Theo Bonnoron", "role": "equipier", "restoId": "bk526", "email": "theo.bonnoron@gmail.com", "phone": "06 95 65 11 63", "archived": false}, {"id": "bk526_bouchrani_raphael", "name": "Raphael Bouchrani", "role": "equipier", "restoId": "bk526", "email": "b.raphaelpro@gmail.com", "phone": "06 34 46 76 86", "archived": false}, {"id": "bk526_bouis_emma", "name": "Emma Bouis", "role": "equipier", "restoId": "bk526", "email": "emma.bouis@gmail.com", "phone": "06 43 66 32 27", "archived": false}, {"id": "bk526_boukile_hamza", "name": "Hamza Boukile", "role": "equipier", "restoId": "bk526", "email": "hmz.bkl2@gmail.com", "phone": "07 81 66 54 54", "archived": false}, {"id": "bk526_bourdin_florian", "name": "Florian Bourdin", "role": "equipier", "restoId": "bk526", "email": "florian.bourdin@sfr.fr", "phone": "06 68 68 11 90", "archived": false}, {"id": "bk526_bousselmi_ilyes", "name": "Ilyes Bousselmi", "role": "equipier", "restoId": "bk526", "email": "ilyes.bousselmi07@gmail.com", "phone": "0648904196", "archived": false}, {"id": "bk526_candela_jerome", "name": "Jerome Candela", "role": "equipier", "restoId": "bk526", "email": "jerome_candela@yahoo.fr", "phone": "06 70 11 78 14", "archived": false}, {"id": "bk526_carasco_charles", "name": "Charles Carasco", "role": "equipier", "restoId": "bk526", "email": "zizou.azerty34@gmail.com", "phone": "0745909487", "archived": false}, {"id": "bk526_cavero_anna", "name": "Anna Cavero", "role": "equipier", "restoId": "bk526", "email": "anna.cavero@icloud.com", "phone": "06 62 43 87 96", "archived": false}, {"id": "bk526_chalies_kyllian", "name": "Kyllian Chalies", "role": "equipier", "restoId": "bk526", "email": "chalieskyllian34@gmail.com", "phone": "0749355345", "archived": false}, {"id": "bk526_chevrin_alban", "name": "Alban Chevrin", "role": "equipier", "restoId": "bk526", "email": "alban.chevr1@gmail.com", "phone": "0767131723", "archived": false}, {"id": "bk526_cretey_arthur", "name": "Arthur Cretey", "role": "equipier", "restoId": "bk526", "email": "arthurcretey@gmail.com", "phone": "06 59 26 97 67", "archived": false}, {"id": "bk526_delost_lou", "name": "Lou Delost", "role": "equipier", "restoId": "bk526", "email": "delost.lou@gmail.com", "phone": "07 64 20 07 67", "archived": false}, {"id": "bk526_deltell_florentin", "name": "Florentin Deltell", "role": "equipier", "restoId": "bk526", "email": "florentin.deltell@gmail.com", "phone": "06 86 83 41 99", "archived": false}, {"id": "bk526_delvoye_julian", "name": "Julian Delvoye", "role": "equipier", "restoId": "bk526", "email": "luzghard@gmail.com", "phone": "07 71 37 16 40", "archived": false}, {"id": "bk526_dewaghe_orane", "name": "Orane Dewaghe", "role": "equipier", "restoId": "bk526", "email": "orane66@outlook.fr", "phone": "06 58 26 57 43", "archived": false}, {"id": "bk526_diagne_yaye", "name": "Yaye Diagne", "role": "equipier", "restoId": "bk526", "email": "diagneyayeawa5@gmail.com", "phone": "06 01 17 64 99", "archived": false}, {"id": "bk526_djemai_romero_lou", "name": "Lou Djemai-Romero", "role": "equipier", "restoId": "bk526", "email": "lloudrm78@icloud.com", "phone": "0750876043", "archived": false}, {"id": "bk526_duarte_adrian", "name": "Adrian Duarte", "role": "equipier", "restoId": "bk526", "email": "asduarte06@gmail.com", "phone": "06 02 03 57 89", "archived": false}, {"id": "bk526_duvernay_baptiste", "name": "Baptiste Duvernay", "role": "equipier", "restoId": "bk526", "email": "bapt.duvernay@gmail.com", "phone": "0695205852", "archived": false}, {"id": "bk526_ferrier_kevin", "name": "Kevin Ferrier", "role": "equipier", "restoId": "bk526", "email": "kevin.ferrier@live.fr", "phone": "07 69 86 54 38", "archived": false}, {"id": "bk526_fontaine_julie", "name": "Julie Fontaine", "role": "equipier", "restoId": "bk526", "email": "julie.fontaine31@gmail.com", "phone": "06 12 24 33 54", "archived": false}, {"id": "bk526_frazer_sarah", "name": "Sarah Frazer", "role": "equipier", "restoId": "bk526", "email": "frazer.sarah15@gmail.com", "phone": "0612020952", "archived": false}, {"id": "bk526_garcia_joe", "name": "Joe Garcia", "role": "equipier", "restoId": "bk526", "email": "djodjogarcia18@gmail.com", "phone": "07 61 86 39 05", "archived": false}, {"id": "bk526_gasparini_zoe", "name": "Zoe Gasparini", "role": "equipier", "restoId": "bk526", "email": "gzoe06@icloud.com", "phone": "07 69 06 77 65", "archived": false}, {"id": "bk526_gilles_caius", "name": "Caius Gilles", "role": "equipier", "restoId": "bk526", "email": "caiusgilles@gmail.com", "phone": "06 45 76 21 48", "archived": false}, {"id": "bk526_gombert_caldi_rohan", "name": "Rohan Gombert-Caldi", "role": "equipier", "restoId": "bk526", "email": "rohangc66@gmail.com", "phone": "06 13 93 75 76", "archived": false}, {"id": "bk526_hamraoui_marine", "name": "Marine Hamraoui", "role": "equipier", "restoId": "bk526", "email": "marine.hamraoui@orange.fr", "phone": "07 82 09 90 23", "archived": false}, {"id": "bk526_houillon_sylvain", "name": "Sylvain Houillon", "role": "equipier", "restoId": "bk526", "email": "slengteng@hotmail.fr", "phone": "07 60 79 59 63", "archived": false}, {"id": "bk526_lamarre_axel", "name": "Axel Lamarre", "role": "equipier", "restoId": "bk526", "email": "axelamarre2@gmail.com", "phone": "0695970234", "archived": false}, {"id": "bk526_laubacher_amandine", "name": "Amandine Laubacher", "role": "equipier", "restoId": "bk526", "email": "amandine.laubacher@outlook.com", "phone": "0766041955", "archived": false}, {"id": "bk526_le_minihi_camille", "name": "Camille Le Minihi", "role": "equipier", "restoId": "bk526", "email": "camille.leminihi123@hotmail.com", "phone": "06 23 19 36 42", "archived": false}, {"id": "bk526_leclercq_chloe", "name": "Chloe Leclercq", "role": "equipier", "restoId": "bk526", "email": "chloeleclercq143@gmail.com", "phone": "06 19 67 70 88", "archived": false}, {"id": "bk526_marest_maxence", "name": "Maxence Marest", "role": "equipier", "restoId": "bk526", "email": "maxence.marest@outlook.com", "phone": "0670352961", "archived": false}, {"id": "bk526_martinez_mella_jade", "name": "Jade Martinez-Mella", "role": "equipier", "restoId": "bk526", "email": "jade.mm.pro@gmail.com", "phone": "07 62 65 48 23", "archived": false}, {"id": "bk526_namane_habib", "name": "Habib Namane", "role": "equipier", "restoId": "bk526", "email": "hbibox34@gmail.com", "phone": "06 78 73 54 90", "archived": false}, {"id": "bk526_pachot_giroux_coline", "name": "Coline Pachot Giroux", "role": "equipier", "restoId": "bk526", "email": "c.pachotgiroux@gmail.com", "phone": "07 88 37 70 18", "archived": false}, {"id": "bk526_pierre_alexis", "name": "Alexis Pierre", "role": "equipier", "restoId": "bk526", "email": "alexispierre859@gmail.com", "phone": "06 31 68 06 26", "archived": false}, {"id": "bk526_pons_alexis", "name": "Alexis Pons", "role": "equipier", "restoId": "bk526", "email": "alexispons1@gmail.com", "phone": "06 51 38 20 90", "archived": false}, {"id": "bk526_prevot_eva", "name": "Eva Prevot", "role": "equipier", "restoId": "bk526", "email": "evaprvt2007@gmail.com", "phone": "0678401660", "archived": false}, {"id": "bk526_ribes_lucas", "name": "Lucas Ribes", "role": "equipier", "restoId": "bk526", "email": "ribes.lucas.lr@gmail.com", "phone": "06 37 54 68 72", "archived": false}, {"id": "bk526_romera_quentin", "name": "Quentin Romera", "role": "equipier", "restoId": "bk526", "email": "quentin.romera@outlook.fr", "phone": "06 48 36 85 00", "archived": false}, {"id": "bk526_rosier_geffrey", "name": "Geffrey Rosier", "role": "equipier", "restoId": "bk526", "email": "geffreyrosier@gmail.com", "phone": "06 99 51 36 37", "archived": false}, {"id": "bk526_rousselle_patrick", "name": "Patrick Rousselle", "role": "equipier", "restoId": "bk526", "email": "patrick234.rousselle@gmail.com", "phone": "06 18 25 57 97", "archived": false}, {"id": "bk526_soppi_laurent", "name": "Laurent Soppi", "role": "equipier", "restoId": "bk526", "email": "dylansoppi@gmail.com", "phone": "0695795138", "archived": false}, {"id": "bk526_souliman_delafosse_chany", "name": "Chany Souliman Delafosse", "role": "equipier", "restoId": "bk526", "email": "chanysoulidel973@gmail.com", "phone": "06 26 28 94 45", "archived": false}, {"id": "bk526_toader_liam", "name": "Liam Toader", "role": "equipier", "restoId": "bk526", "email": "liamtoader34@gmail.com", "phone": "06 25 78 63 65", "archived": false}, {"id": "bk526_vigroux_lucas", "name": "Lucas Vigroux", "role": "equipier", "restoId": "bk526", "email": "lucas.vigroux07@gmail.com", "phone": "0608535051", "archived": false}, {"id": "bk526_zitouni_adela", "name": "Adela Zitouni", "role": "equipier", "restoId": "bk526", "email": "adela.zitouni@hotmail.com", "phone": "07 84 92 93 84", "archived": false}, {"id": "bk509_ahmed_touma", "name": "Touma Ahmed", "role": "equipier", "restoId": "bk509", "email": "ahmedtouma.at@gmail.com", "phone": "06 68 66 38 15", "archived": false}, {"id": "bk509_ahoyo_gloria", "name": "Gloria Ahoyo", "role": "equipier", "restoId": "bk509", "email": "ahoyogloria2020@gmail.com", "phone": "0613923850", "archived": false}, {"id": "bk509_alexandre_cherly", "name": "Cherly Alexandre", "role": "equipier", "restoId": "bk509", "email": "cherly_alexandre1@outlook.com", "phone": "0782800805", "archived": false}, {"id": "bk509_baccelli_lily", "name": "Lily Baccelli", "role": "equipier", "restoId": "bk509", "email": "lilybac34@gmail.com", "phone": "0612020952", "archived": false}, {"id": "bk509_ben_aguegueche_nadia", "name": "Nadia Ben Aguegueche", "role": "equipier", "restoId": "bk509", "email": "nadia.benaguegueche2@gmail.com", "phone": "0620718288", "archived": false}, {"id": "bk509_ben_amor_mehdi", "name": "Mehdi Ben Amor", "role": "equipier", "restoId": "bk509", "email": "mehdibenamor21@gmail.com", "phone": "06 51 05 95 21", "archived": false}, {"id": "bk509_benali_noam", "name": "Noam Benali", "role": "equipier", "restoId": "bk509", "email": "noamaigle@gmail.com", "phone": "0788765224", "archived": false}, {"id": "bk509_benhamida_anissa", "name": "Anissa Benhamida", "role": "equipier", "restoId": "bk509", "email": "benhamida34080@gmail.com", "phone": "0769562702", "archived": false}, {"id": "bk509_berna_tom", "name": "Tom Berna", "role": "equipier", "restoId": "bk509", "email": "berna.tom34@gmail.com", "phone": "0662948667", "archived": false}, {"id": "bk509_bourouiba_nassil", "name": "Nassil Bourouiba", "role": "equipier", "restoId": "bk509", "email": "n.bourouiba@gmail.com", "phone": "0652182888", "archived": false}, {"id": "bk509_carmona_esteban", "name": "Esteban Carmona", "role": "equipier", "restoId": "bk509", "email": "carmona.esteban2004@gmail.com", "phone": "07 69 39 28 18", "archived": false}, {"id": "bk509_djihadi_antoine", "name": "Antoine Djihadi", "role": "equipier", "restoId": "bk509", "email": "antoinedjihadi@gmail.com", "phone": "0627871945", "archived": false}, {"id": "bk509_el_jabari_martin_lana", "name": "Lana El Jabari-Martin", "role": "equipier", "restoId": "bk509", "email": "lanaaemartin@gmail.com", "phone": "07 69 29 10 11", "archived": false}, {"id": "bk509_el_maamri_malia", "name": "Malia El Maamri", "role": "equipier", "restoId": "bk509", "email": "melgraphique@gmail.com", "phone": "0761871910", "archived": false}, {"id": "bk509_esteve_valentine", "name": "Valentine Esteve", "role": "equipier", "restoId": "bk509", "email": "valentine34400@gmail.com", "phone": "06 49 64 68 77", "archived": false}, {"id": "bk509_ettabti_imane", "name": "Imane Ettabti", "role": "equipier", "restoId": "bk509", "email": "imane.444y@gmail.com", "phone": "0746432549", "archived": false}, {"id": "bk509_girard_marie", "name": "Marie Girard", "role": "equipier", "restoId": "bk509", "email": "marie.girard.0369@icloud.com", "phone": "0672874052", "archived": false}, {"id": "bk509_gonzalez_luna", "name": "Luna Gonzalez", "role": "equipier", "restoId": "bk509", "email": "gonzalezluna260303@gmail.com", "phone": "0615219653", "archived": false}, {"id": "bk509_gorius_margot", "name": "Margot Gorius", "role": "equipier", "restoId": "bk509", "email": "goriusmargot.nz@gmail.com", "phone": "0641553667", "archived": false}, {"id": "bk509_kemp_lucille", "name": "Lucille Kemp", "role": "equipier", "restoId": "bk509", "email": "lucillekemp@icloud.com", "phone": "0634641072", "archived": false}, {"id": "bk509_lacoste_gabriel", "name": "Gabriel Lacoste", "role": "equipier", "restoId": "bk509", "email": "gabriel.lacoste.1987@gmail.com", "phone": "0621860083", "archived": false}, {"id": "bk509_mari_lloria_florian", "name": "Florian Mari Lloria", "role": "equipier", "restoId": "bk509", "email": "marilloriaflorian@gmail.com", "phone": "0789030368", "archived": false}, {"id": "bk509_martal_ingrid", "name": "Ingrid Martal", "role": "equipier", "restoId": "bk509", "email": "martalingrid@gmail.com", "phone": "0668829670", "archived": false}, {"id": "bk509_martin_de_saint_semmera_brandon", "name": "Brandon Martin De Saint Semmera", "role": "equipier", "restoId": "bk509", "email": "brandon.mdss@outlook.com", "phone": "0781199532", "archived": false}, {"id": "bk509_matelet_joakym", "name": "Joakym Matelet", "role": "equipier", "restoId": "bk509", "email": "joakymmatelet@gmail.com", "phone": "07 67 29 99 11", "archived": false}, {"id": "bk509_mathieu_morgane", "name": "Morgane Mathieu", "role": "equipier", "restoId": "bk509", "email": "morgane.math@free.fr", "phone": "695258655", "archived": false}, {"id": "bk509_meissonnier_matteo", "name": "Matteo Meissonnier", "role": "equipier", "restoId": "bk509", "email": "matteo.meisso@gmail.com", "phone": "0781543775", "archived": false}, {"id": "bk509_noviant_noah", "name": "Noah Noviant", "role": "equipier", "restoId": "bk509", "email": "noahnoviant@icloud.com", "phone": "0782921295", "archived": false}, {"id": "bk509_patry_celia", "name": "Celia Patry", "role": "equipier", "restoId": "bk509", "email": "patrycelia7@gmail.com", "phone": "06 44 08 18 02", "archived": false}, {"id": "bk509_perrier_sylver", "name": "Sylver Perrier", "role": "equipier", "restoId": "bk509", "email": "sylverperrier@gmail.com", "phone": "06 67 13 56 12", "archived": false}, {"id": "bk509_picq_noemie", "name": "Noemie Picq", "role": "equipier", "restoId": "bk509", "email": "npicq750@gmail.com", "phone": "0767728916", "archived": false}, {"id": "bk509_pierron_thomas", "name": "Thomas Pierron", "role": "equipier", "restoId": "bk509", "email": "thomasp34670@gmail.com", "phone": "0612487372", "archived": false}, {"id": "bk509_poppe_kevin", "name": "Kevin Poppe", "role": "equipier", "restoId": "bk509", "email": "kevinpoppe1904@gmail.com", "phone": "0671375695", "archived": false}, {"id": "bk509_reboux_elyn", "name": "Elyn Reboux", "role": "equipier", "restoId": "bk509", "email": "elynreboux1@gmail.com", "phone": "0782787635", "archived": false}, {"id": "bk509_rico_romain", "name": "Romain Rico", "role": "equipier", "restoId": "bk509", "email": "romainrico10@gmail.com", "phone": "0676660194", "archived": false}, {"id": "bk509_robert_maitrejean_noelie", "name": "Noelie Robert Maitrejean", "role": "equipier", "restoId": "bk509", "email": "robertnoelie1809@gmail.com", "phone": "0610315149", "archived": false}, {"id": "bk509_rozmanowski_dimitri", "name": "Dimitri Rozmanowski", "role": "equipier", "restoId": "bk509", "email": "rozmanowskidimitri@gmail.com", "phone": "0610758263", "archived": false}, {"id": "bk509_saint_rapt_cassandre", "name": "Cassandre Saint-Rapt", "role": "equipier", "restoId": "bk509", "email": "cassandresaintrapt@gmail.com", "phone": "0688036170", "archived": false}, {"id": "bk509_santanon_nicolas", "name": "Nicolas Santanon", "role": "equipier", "restoId": "bk509", "email": "nicolas.santanon@gmail.com", "phone": "0649771521", "archived": false}, {"id": "bk509_segado_clara", "name": "Clara Segado", "role": "equipier", "restoId": "bk509", "email": "segado.clara66@icloud.com", "phone": "06 74 76 85 45", "archived": false}, {"id": "bk509_segura_alexis", "name": "Alexis Segura", "role": "equipier", "restoId": "bk509", "email": "segura.alexis.1sen3@gmail.com", "phone": "0782178621", "archived": false}, {"id": "bk509_terol_pascal", "name": "Pascal Terol", "role": "equipier", "restoId": "bk509", "email": "test@test.com", "phone": "467420721", "archived": false}, {"id": "bk509_vochre_melissa", "name": "Melissa Vochre", "role": "equipier", "restoId": "bk509", "email": "vochre_melissa@yahoo.fr", "phone": "0787564700", "archived": false}, {"id": "bk509_wondjo_oheko_wivine", "name": "Wivine Wondjo Oheko", "role": "equipier", "restoId": "bk509", "email": "wivinewondjooheko@gmail.com", "phone": "0751467191", "archived": false}];
+  base.forEach(function(be){
+    if(!DB.employees.find(function(e){return e.id===be.id;}))
+      DB.employees.push(JSON.parse(JSON.stringify(be)));
+  });
+})();
+function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):'';}
+
+// ════ STATE ════
+let curUser=null,curResto=null,pinProf=null,pinVal='';
+let selProbs=new Set(),selSev=null,extraData={};
+let empFilter='actif',eqTab='all',rptTab='all';
+
+// ════ LOGIN ════
+function showStep(id){
+  ['step-resto','step-profiles','step-pin'].forEach(function(s){
+    var el=document.getElementById(s);
+    if(el) el.style.display=s===id?'flex':'none';
+  });
+}
+function pickGlobal(key){
+  curResto=null;
+  var g=GLOBALS[key];
+  pinProf={key:key,icon:g.icon,title:g.title,sub:g.sub,role:g.role,pin:DB.globalPins[key]||'0000'};
+  openPin();
+}
+function pickResto(restoId){
+  curResto=restoId;
+  var r=RESTOS[restoId];
+  document.getElementById('resto-title').textContent=r.label;
+  var names=DB.restoNames[restoId]||{};
+  document.getElementById('dir-sub').textContent=names.directeur||'Directeur';
+  document.getElementById('m1-sub').textContent=names.manager1||'Manager 1';
+  document.getElementById('m2-sub').textContent=names.manager2||'Manager 2';
+  document.getElementById('m3-sub').textContent=names.manager3||'Manager 3';
+  document.getElementById('m4-sub').textContent=names.manager4||'Manager 4';
+  showStep('step-profiles');
+}
+function pickProfile(key){
+  var pins=DB.restoPins[curResto]||{};
+  var names=DB.restoNames[curResto]||{};
+  var tmpl=PROFILES[key];
+  pinProf={key:key,icon:tmpl.icon,title:tmpl.title,sub:names[key]||tmpl.title,role:tmpl.role,pin:pins[key]||'0000',restoId:curResto};
+  openPin();
+}
+function openPin(){
+  pinVal='';
+  document.getElementById('pin-icon').textContent=pinProf.icon;
+  document.getElementById('pin-name').textContent=pinProf.title;
+  document.getElementById('pin-sub').textContent=pinProf.sub;
+  document.getElementById('pin-err').textContent='';
+  refreshDots();
+  showStep('step-pin');
+}
+function backToResto(){showStep('step-resto');curResto=null;}
+function backFromPin(){pinVal='';if(curResto)showStep('step-profiles');else showStep('step-resto');}
+function pk(d){if(pinVal.length>=4)return;pinVal+=d;refreshDots();if(pinVal.length===4)setTimeout(checkPin,120);}
+function delPin(){pinVal=pinVal.slice(0,-1);refreshDots();document.getElementById('pin-err').textContent='';}
+function refreshDots(){document.querySelectorAll('.pin-dot').forEach(function(d,i){d.classList.toggle('filled',i<pinVal.length);d.classList.remove('error');});}
+function checkPin(){
+  if(pinVal!==pinProf.pin){
+    document.querySelectorAll('.pin-dot').forEach(function(d){d.classList.add('error');});
+    document.getElementById('pin-err').textContent='❌ Code incorrect';
+    setTimeout(function(){pinVal='';refreshDots();},800);
+    return;
+  }
+  var emp;
+  if(pinProf.restoId){
+    emp=DB.employees.find(function(e){return e.tileKey===pinProf.key&&e.restoId===pinProf.restoId;});
+    if(!emp) emp={id:pinProf.key+'_'+pinProf.restoId,name:pinProf.sub,role:pinProf.role,restoId:pinProf.restoId,tileKey:pinProf.key};
+  } else {
+    emp={id:pinProf.key,name:pinProf.sub||pinProf.title,role:pinProf.role,restoId:null,tileKey:pinProf.key};
+  }
+  curUser=emp;
+  var restoLbl=pinProf.restoId?' — '+RESTOS[pinProf.restoId].label:'';
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('uname').textContent=(pinProf.sub||pinProf.title)+restoLbl;
+  document.getElementById('role-badge').textContent=pinProf.title;
+  setupRole();initForm();renderHistory();renderEquipe();fillRptPersons();renderPinSettings();renderNamesSettings();loadMailSettings();renderMailRcps();renderCCRcps();updateVBadge();
+}
+function logout(){
+  curUser=null;curResto=null;pinProf=null;pinVal='';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app').style.display='none';
+  showStep('step-resto');
+}
+function setupRole(){
+  var r=curUser.role;
+  var isMgr=r==='manager';
+  document.getElementById('main-nav').style.display=isMgr?'none':'flex';
+  document.getElementById('hist-title').style.display=isMgr?'none':'';
+  document.getElementById('hist-filters').style.display=isMgr?'none':'';
+  document.getElementById('inc-list').style.display=isMgr?'none':'';
+  document.getElementById('add-emp-card').style.display=(r==='franchise'||r==='directeur')?'':'none';
+  var isGlobal=r==='franchise';
+  document.getElementById('eq-tabs').style.display=isGlobal?'flex':'none';
+  document.getElementById('rpt-tabs').style.display=isGlobal?'flex':'none';
+  document.getElementById('new-resto-row').style.display=isGlobal?'block':'none';
+}
+
+// ════ NAV ════
+function goPage(id,btn){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('nav button').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(id==='rapports'){fillRptPersons();genReport();}
+  if(id==='equipe') renderEquipe();
+  if(id==='validations') renderLetters();
+}
+function setEqTab(btn,restoId){eqTab=restoId;document.querySelectorAll('#eq-tabs .rtab').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');renderEquipe();}
+function setRptTab(btn,restoId){rptTab=restoId;document.querySelectorAll('#rpt-tabs .rtab').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');fillRptPersons();genReport();}
+function setEmpFilter(btn,f){empFilter=f;document.querySelectorAll('#page-equipe .rtab').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');renderEquipe();}
+
+// ════ FORM ════
+function initForm(){
+  var now=new Date();now.setMinutes(now.getMinutes()-now.getTimezoneOffset());
+  document.getElementById('inc-dt').value=now.toISOString().slice(0,16);
+  var grid=document.getElementById('prob-grid');
+  grid.innerHTML='';
+  selProbs=new Set();selSev=null;extraData={};
+  PROBS.forEach(function(p){
+    var wrap=document.createElement('div');
+    wrap.className='prob-item';
+    var div=document.createElement('div');
+    div.className='prob-check';
+    div.dataset.id=p.id;
+    div.innerHTML='<div class="chk">✓</div><span style="font-size:1.05rem;">'+p.icon+'</span><span style="font-size:.83rem;">'+p.label+'</span>';
+    div.onclick=function(){toggleProb(div,p);}
+    wrap.appendChild(div);
+    if(p.extra){
+      var ex=document.createElement('div');
+      ex.className='prob-extra';
+      ex.id='ex-'+p.id;
+      var inp=document.createElement('input');
+      inp.type=p.extra.type==='time'?'time':'date';
+      inp.className='fi';
+      inp.dataset.pid=p.id;
+      inp.oninput=function(){extraData[this.dataset.pid]=this.value;};
+      ex.innerHTML='<label class="flabel">'+p.extra.label+'</label>';
+      ex.appendChild(inp);
+      wrap.appendChild(ex);
+    }
+    grid.appendChild(wrap);
+  });
+  fillEmpSelect();
+  fillFilters();
+}
+function toggleProb(div,p){
+  if(selProbs.has(p.id)){selProbs.delete(p.id);div.classList.remove('on');if(p.extra){var ex=document.getElementById('ex-'+p.id);if(ex)ex.classList.remove('show');delete extraData[p.id];}}
+  else{selProbs.add(p.id);div.classList.add('on');if(p.extra){var ex=document.getElementById('ex-'+p.id);if(ex)ex.classList.add('show');}}
+}
+function setSev(btn){document.querySelectorAll('.sev-btn').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');selSev=btn.dataset.s;}
+function resetForm(){
+  selProbs=new Set();selSev=null;extraData={};
+  document.querySelectorAll('.prob-check').forEach(function(d){d.classList.remove('on');});
+  document.querySelectorAll('.prob-extra').forEach(function(d){d.classList.remove('show');});
+  document.querySelectorAll('.sev-btn').forEach(function(b){b.classList.remove('on');});
+  document.getElementById('inc-note').value='';
+  document.getElementById('sel-emp').value='';
+  var now=new Date();now.setMinutes(now.getMinutes()-now.getTimezoneOffset());
+  document.getElementById('inc-dt').value=now.toISOString().slice(0,16);
+}
+function fillEmpSelect(){
+  var sel=document.getElementById('sel-emp');
+  sel.innerHTML='<option value="">-- Choisir --</option>';
+  var r=curUser.role;
+  var targets;
+  if(r==='franchise') targets=DB.employees.filter(function(e){return e.role!=='franchise'&&!e.archived;});
+  else if(r==='directeur') targets=DB.employees.filter(function(e){return e.restoId===curUser.restoId&&e.role!=='directeur'&&!e.archived;});
+  else targets=DB.employees.filter(function(e){return e.restoId===curUser.restoId&&e.role==='equipier'&&!e.archived;});
+  targets.forEach(function(e){
+    var o=document.createElement('option');
+    o.value=e.id;
+    var rLbl=r==='franchise'&&RESTOS[e.restoId]?' ['+RESTOS[e.restoId].label+']':'';
+    o.textContent=e.name+' ('+cap(e.role)+')'+rLbl;
+    sel.appendChild(o);
+  });
+}
+function fillFilters(){
+  var fw=document.getElementById('f-who');
+  fw.innerHTML='<option value="">Tous</option>';
+  var r=curUser.role;
+  var emps;
+  if(r==='franchise') emps=DB.employees.filter(function(e){return e.role==='equipier'||e.role==='manager';});
+  else emps=DB.employees.filter(function(e){return (e.role==='equipier'||e.role==='manager')&&e.restoId===curUser.restoId;});
+  emps.forEach(function(e){
+    var o=document.createElement('option');o.value=e.id;
+    var rLbl=r==='franchise'&&RESTOS[e.restoId]?' ['+RESTOS[e.restoId].label+']':'';
+    o.textContent=e.name+rLbl;fw.appendChild(o);
+  });
+  var ft=document.getElementById('f-type');
+  ft.innerHTML='<option value="">Tous types</option>';
+  PROBS.forEach(function(p){var o=document.createElement('option');o.value=p.id;o.textContent=p.icon+' '+p.label;ft.appendChild(o);});
+}
+function submitInc(){
+  var empId=document.getElementById('sel-emp').value;
+  var dt=document.getElementById('inc-dt').value;
+  if(!empId){toast('Choisissez un équipier','error');return;}
+  if(selProbs.size===0){toast("Sélectionnez un type d'incident",'error');return;}
+  if(!selSev){toast('Choisissez une gravité','error');return;}
+  var inc={id:String(Date.now()),empId:empId,reporterId:curUser.id,reporterName:pinProf?pinProf.title:curUser.name,datetime:dt,problems:Array.from(selProbs),extraData:Object.assign({},extraData),severity:selSev,note:document.getElementById('inc-note').value.trim(),createdAt:new Date().toISOString()};
+  DB.incidents.push(inc);
+  createLetter(inc);
+  saveDB();
+  toast('Incident enregistré ✔','success');
+  resetForm();renderHistory();
+}
+
+// ════ HISTORY ════
+function renderHistory(){
+  var list=document.getElementById('inc-list');
+  if(!list) return;
+  var incs=DB.incidents.slice().sort(function(a,b){return new Date(b.datetime||b.createdAt)-new Date(a.datetime||a.createdAt);});
+  var r=curUser.role;
+  if(r==='manager'){
+    var ids=DB.employees.filter(function(e){return e.role==='equipier'&&e.restoId===curUser.restoId;}).map(function(e){return e.id;});
+    incs=incs.filter(function(i){return ids.indexOf(i.empId)>=0;});
+  } else if(r==='directeur'){
+    var ids=DB.employees.filter(function(e){return e.restoId===curUser.restoId;}).map(function(e){return e.id;});
+    incs=incs.filter(function(i){return ids.indexOf(i.empId)>=0;});
+  }
+  var fw=document.getElementById('f-who').value;
+  var ft=document.getElementById('f-type').value;
+  var fs=document.getElementById('f-sev').value;
+  var fd=document.getElementById('f-date').value;
+  if(fw) incs=incs.filter(function(i){return i.empId===fw;});
+  if(ft) incs=incs.filter(function(i){return i.problems.indexOf(ft)>=0;});
+  if(fs) incs=incs.filter(function(i){return i.severity===fs;});
+  if(fd) incs=incs.filter(function(i){return i.datetime&&i.datetime.startsWith(fd);});
+  if(incs.length===0){list.innerHTML='<div class="empty"><div class="ei">📋</div><p>Aucun incident</p></div>';return;}
+  list.innerHTML=incs.slice(0,80).map(function(i){
+    var emp=DB.employees.find(function(e){return e.id===i.empId;});
+    var empName=emp?emp.name:'Inconnu';
+    var restoLbl=emp&&RESTOS[emp.restoId]&&r==='franchise'?' ['+RESTOS[emp.restoId].label+']':'';
+    var tags=i.problems.map(function(pid){
+      var p=PROBS.find(function(x){return x.id===pid;});
+      if(!p) return '';
+      var xtra=i.extraData&&i.extraData[pid]?' ('+i.extraData[pid]+')':'';
+      return '<span class="tag">'+p.icon+' '+p.label+xtra+'</span>';
+    }).join('');
+    var dt=i.datetime?new Date(i.datetime).toLocaleString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+    var sevLbl=['','🟢 Mineur','🟡 Modéré','🟠 Sérieux','🔴 Grave'][parseInt(i.severity)]||'';
+    return '<div class="inc-item" data-s="'+i.severity+'">'
+      +'<div class="inc-head"><span class="inc-who">👤 '+empName+restoLbl+'</span><span class="inc-meta">'+dt+' · '+i.reporterName+' · '+sevLbl+'</span></div>'
+      +'<div class="inc-tags">'+tags+'</div>'
+      +(i.note?'<div class="inc-note">💬 '+i.note+'</div>':'')
+      +'</div>';
+  }).join('');
+}
+
+// ════ RAPPORTS ════
+function fillRptPersons(){
+  var sel=document.getElementById('rpt-person');
+  sel.innerHTML='<option value="all">Toute l\'équipe</option>';
+  var r=curUser.role;
+  var targets;
+  if(r==='franchise'){
+    var restoFilter=rptTab==='all'?null:rptTab;
+    targets=DB.employees.filter(function(e){return e.role!=='franchise'&&!e.archived&&(restoFilter?e.restoId===restoFilter:true);});
+  } else if(r==='directeur'){
+    targets=DB.employees.filter(function(e){return e.restoId===curUser.restoId&&e.role!=='directeur'&&!e.archived;});
+  } else {
+    targets=DB.employees.filter(function(e){return e.restoId===curUser.restoId&&e.role==='equipier'&&!e.archived;});
+  }
+  targets.forEach(function(e){
+    var o=document.createElement('option');o.value=e.id;
+    var rLbl=r==='franchise'&&RESTOS[e.restoId]?' ['+RESTOS[e.restoId].label+']':'';
+    o.textContent=e.name+rLbl;
+    sel.appendChild(o);
+  });
+}
+function filterIncsByPeriod(period){
+  var now=new Date();
+  return DB.incidents.filter(function(i){
+    var d=new Date(i.createdAt);
+    if(period==='today') return d>=new Date(now.toDateString());
+    if(period==='week'){var s=new Date(now);s.setDate(s.getDate()-7);return d>=s;}
+    if(period==='month'){var s=new Date(now);s.setMonth(s.getMonth()-1);return d>=s;}
+    return true;
+  });
+}
+function buildRestoBlock(restoId,incs,targets){
+  var resto=RESTOS[restoId];
+  var rIncs=incs.filter(function(i){var e=DB.employees.find(function(x){return x.id===i.empId;});return e&&e.restoId===restoId;});
+  var rTargets=targets.filter(function(e){return e.restoId===restoId;});
+  var total=rIncs.length;
+  var grave=rIncs.filter(function(i){return i.severity==='4';}).length;
+  var ser=rIncs.filter(function(i){return i.severity==='3';}).length;
+  var h='<div class="rsec">';
+  h+='<div class="rsec-hdr rsec-'+restoId+'">🍔 '+resto.label+' <span style="font-size:.8rem;font-weight:400;opacity:.7;">— '+total+' incident'+(total!==1?'s':'')+'</span></div>';
+  h+='<div class="stats-grid">';
+  h+='<div class="stat-card"><div class="stat-n">'+total+'</div><div class="stat-l">Incidents</div></div>';
+  h+='<div class="stat-card"><div class="stat-n" style="color:#4CAF50;">'+rTargets.length+'</div><div class="stat-l">Membres</div></div>';
+  h+='<div class="stat-card"><div class="stat-n" style="color:var(--orange);">'+ser+'</div><div class="stat-l">Sérieux</div></div>';
+  h+='<div class="stat-card"><div class="stat-n" style="color:var(--red);">'+grave+'</div><div class="stat-l">Graves</div></div>';
+  h+='</div>';
+  if(rTargets.length>0){
+    h+='<div class="card" style="padding:0;overflow:hidden;margin-bottom:10px;"><table class="tbl"><thead><tr><th>Nom</th><th>Rôle</th><th>Nb</th><th>Type fréquent</th><th>Max</th><th>Score</th></tr></thead><tbody>';
+    rTargets.forEach(function(emp){
+      var mInc=rIncs.filter(function(i){return i.empId===emp.id;});
+      var t=mInc.length;
+      var maxSev=mInc.reduce(function(m,i){return Math.max(m,parseInt(i.severity)||0);},0);
+      var freq={};mInc.forEach(function(i){i.problems.forEach(function(p){freq[p]=(freq[p]||0)+1;});});
+      var top='—';
+      if(Object.keys(freq).length){var tid=Object.entries(freq).sort(function(a,b){return b[1]-a[1];})[0][0];var pp=PROBS.find(function(x){return x.id===tid;});if(pp) top=pp.icon+' '+pp.label;}
+      var sv=Math.min(100,t*8+(maxSev>2?(maxSev-2)*10:0));
+      var sc=sv<20?'sg':sv<50?'so':sv<80?'sb':'sc';
+      var sevT=['','🟢','🟡','🟠','🔴'][maxSev]||'—';
+      h+='<tr><td><strong>'+emp.name+'</strong></td><td><span class="role-pill rp-'+emp.role[0]+'">'+cap(emp.role)+'</span></td>';
+      h+='<td style="font-weight:600;color:'+(t>5?'var(--red)':t>2?'var(--orange)':'#4CAF50')+'">'+t+'</td>';
+      h+='<td style="font-size:.8rem;">'+top+'</td><td>'+sevT+'</td>';
+      h+='<td><div class="score-wrap '+sc+'"><div class="score-bar"><div class="score-fill" style="width:'+sv+'%"></div></div><span style="font-size:.75rem;color:#888;width:28px;text-align:right;">'+sv+'</span></div></td></tr>';
+    });
+    h+='</tbody></table></div>';
+  } else {
+    h+='<p style="color:#555;font-size:.83rem;padding:8px 0 16px;">Aucun membre trouvé.</p>';
+  }
+  if(total>0){
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:8px;margin-bottom:8px;">';
+    PROBS.forEach(function(p){
+      var cnt=rIncs.filter(function(i){return i.problems.indexOf(p.id)>=0;}).length;
+      if(!cnt) return;
+      var pct=Math.round(cnt/total*100);
+      h+='<div style="background:#1A1A1A;border-radius:8px;padding:10px;"><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span style="font-size:.8rem;">'+p.icon+' '+p.label+'</span><strong style="color:var(--orange);">'+cnt+'</strong></div><div class="score-bar"><div class="score-fill" style="width:'+pct+'%;background:var(--orange);"></div></div></div>';
+    });
+    h+='</div>';
+  }
+  h+='</div>';
+  return h;
+}
+function genReport(){
+  var period=document.getElementById('rpt-period').value;
+  var personId=document.getElementById('rpt-person').value;
+  var pl={today:"Aujourd'hui",week:'7 derniers jours',month:'30 derniers jours',all:'Tout'};
+  var r=curUser.role;
+  var incs=filterIncsByPeriod(period);
+  var targets;
+  if(personId!=='all'){
+    targets=DB.employees.filter(function(e){return e.id===personId;});
+  } else if(r==='franchise'){
+    var rf=rptTab==='all'?null:rptTab;
+    targets=DB.employees.filter(function(e){return e.role!=='franchise'&&!e.archived&&(rf?e.restoId===rf:true);});
+  } else if(r==='directeur'){
+    targets=DB.employees.filter(function(e){return e.restoId===curUser.restoId&&e.role!=='directeur'&&!e.archived;});
+    var ids=targets.map(function(e){return e.id;});
+    incs=incs.filter(function(i){return ids.indexOf(i.empId)>=0;});
+  } else {
+    targets=DB.employees.filter(function(e){return e.restoId===curUser.restoId&&e.role==='equipier'&&!e.archived;});
+    var ids=targets.map(function(e){return e.id;});
+    incs=incs.filter(function(i){return ids.indexOf(i.empId)>=0;});
+  }
+  var out=document.getElementById('rpt-out');
+  var now=new Date();
+  var total=incs.length;
+  var grave=incs.filter(function(i){return i.severity==='4';}).length;
+  var ser=incs.filter(function(i){return i.severity==='3';}).length;
+  var h='<div style="text-align:center;padding:18px;background:linear-gradient(135deg,#1A1A1A,#2C2C2C);border-radius:var(--r);margin-bottom:16px;border:1px solid #333;">';
+  h+='<div style="font-family:Barlow Condensed,sans-serif;font-weight:900;font-size:1.5rem;color:var(--yellow);text-transform:uppercase;letter-spacing:3px;">📊 Rapport — '+pl[period]+'</div>';
+  h+='<p style="color:#888;margin-top:5px;font-size:.82rem;">Généré le '+now.toLocaleString('fr-FR')+'</p>';
+  if(r==='franchise'&&rptTab!=='all') h+='<p style="color:var(--orange);font-size:.85rem;margin-top:3px;">'+RESTOS[rptTab].label+'</p>';
+  h+='</div>';
+  h+='<div class="stats-grid">';
+  h+='<div class="stat-card"><div class="stat-n">'+total+'</div><div class="stat-l">Total incidents</div></div>';
+  h+='<div class="stat-card"><div class="stat-n" style="color:#4CAF50;">'+targets.length+'</div><div class="stat-l">Membres</div></div>';
+  h+='<div class="stat-card"><div class="stat-n" style="color:var(--orange);">'+ser+'</div><div class="stat-l">Sérieux</div></div>';
+  h+='<div class="stat-card"><div class="stat-n" style="color:var(--red);">'+grave+'</div><div class="stat-l">Graves</div></div>';
+  h+='</div>';
+  var isMulti=r==='franchise'&&rptTab==='all'&&personId==='all';
+  if(isMulti){
+    Object.keys(RESTOS).forEach(function(rid){h+=buildRestoBlock(rid,incs,targets);});
+  } else {
+    h+='<div class="card" style="padding:0;overflow:hidden;"><table class="tbl"><thead><tr><th>Nom</th><th>Rôle</th><th>Incidents</th><th>Type fréquent</th><th>Max</th><th>Score</th></tr></thead><tbody>';
+    targets.forEach(function(emp){
+      var mInc=incs.filter(function(i){return i.empId===emp.id;});
+      var t=mInc.length;
+      var maxSev=mInc.reduce(function(m,i){return Math.max(m,parseInt(i.severity)||0);},0);
+      var freq={};mInc.forEach(function(i){i.problems.forEach(function(p){freq[p]=(freq[p]||0)+1;});});
+      var top='—';
+      if(Object.keys(freq).length){var tid=Object.entries(freq).sort(function(a,b){return b[1]-a[1];})[0][0];var pp=PROBS.find(function(x){return x.id===tid;});if(pp) top=pp.icon+' '+pp.label;}
+      var sv=Math.min(100,t*8+(maxSev>2?(maxSev-2)*10:0));
+      var sc=sv<20?'sg':sv<50?'so':sv<80?'sb':'sc';
+      var sevT=['','🟢','🟡','🟠','🔴'][maxSev]||'—';
+      var rLbl=r==='franchise'&&RESTOS[emp.restoId]?' ['+RESTOS[emp.restoId].label+']':'';
+      h+='<tr><td><strong>'+emp.name+rLbl+'</strong></td><td><span class="role-pill rp-'+emp.role[0]+'">'+cap(emp.role)+'</span></td>';
+      h+='<td style="font-weight:600;color:'+(t>5?'var(--red)':t>2?'var(--orange)':'#4CAF50')+'">'+t+'</td>';
+      h+='<td style="font-size:.8rem;">'+top+'</td><td>'+sevT+'</td>';
+      h+='<td><div class="score-wrap '+sc+'"><div class="score-bar"><div class="score-fill" style="width:'+sv+'%"></div></div><span style="font-size:.75rem;color:#888;width:28px;text-align:right;">'+sv+'</span></div></td></tr>';
+    });
+    h+='</tbody></table></div>';
+    if(total>0){
+      h+='<div style="font-size:.78rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px;">Incidents par type</div>';
+      h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:8px;">';
+      PROBS.forEach(function(p){
+        var cnt=incs.filter(function(i){return i.problems.indexOf(p.id)>=0;}).length;
+        if(!cnt) return;
+        var pct=Math.round(cnt/total*100);
+        h+='<div style="background:#1A1A1A;border-radius:8px;padding:10px;"><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span style="font-size:.8rem;">'+p.icon+' '+p.label+'</span><strong style="color:var(--orange);">'+cnt+'</strong></div><div class="score-bar"><div class="score-fill" style="width:'+pct+'%;background:var(--orange);"></div></div></div>';
+      });
+      h+='</div>';
+    }
+  }
+  out.innerHTML=h;
+}
+
+// ════ ÉQUIPE ════
+function renderEquipe(){
+  var list=document.getElementById('eq-list');
+  if(!list) return;
+  var r=curUser.role;
+  var isGlobal=(r==='franchise');
+  var restosToShow;
+  if(isGlobal) restosToShow=eqTab==='all'?Object.keys(RESTOS):[eqTab];
+  else restosToShow=[curUser.restoId];
+  var canManage=r==='franchise'||r==='directeur';
+  var h='';
+  restosToShow.forEach(function(restoId){
+    if(!restoId) return;
+    var resto=RESTOS[restoId]||{label:restoId};
+    var emps=DB.employees.filter(function(e){return e.restoId===restoId&&(r==='manager'?e.role==='equipier':true);});
+    if(empFilter==='actif') emps=emps.filter(function(e){return !e.archived;});
+    else if(empFilter==='archive') emps=emps.filter(function(e){return !!e.archived;});
+    if(restosToShow.length>1){
+      h+='<div class="rsec-hdr rsec-'+restoId+'" style="margin-bottom:12px;">🍔 '+resto.label+' <span style="font-size:.8rem;font-weight:400;opacity:.7;">— '+emps.length+' membre'+(emps.length!==1?'s':'')+'</span></div>';
+    } else {
+      h+='<div class="sec-title">🍔 '+resto.label+'</div>';
+    }
+    if(emps.length===0){h+='<p style="color:#555;font-size:.83rem;padding:8px 0 18px;">Aucun membre dans cette catégorie.</p>';return;}
+    var order=['directeur','manager','equipier'];
+    order.forEach(function(ro){
+      var grp=emps.filter(function(e){return e.role===ro;});
+      if(!grp.length) return;
+      var ico=ro==='directeur'?'👑':ro==='manager'?'⭐':'👤';
+      h+='<div style="font-size:.76rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin:10px 0 5px;">'+ico+' '+cap(ro)+'s</div>';
+      grp.forEach(function(e){
+        var init=e.name.split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);
+        var myInc=DB.incidents.filter(function(i){return i.empId===e.id;}).length;
+        var arch=!!e.archived;
+        var mLabel={fin_contrat:'Fin de contrat',demission:'Démission',licenciement:'Licenciement',mutation:'Mutation',autre:'Autre'}[e.exitMotif]||'';
+        h+='<div class="emp-card" style="'+(arch?'opacity:.6;border-color:#553300;':'')+'">';
+        h+='<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">';
+        h+='<div class="emp-av av-'+ro[0]+'" style="'+(arch?'filter:grayscale(1);':'')+'">'+init+'</div>';
+        h+='<div style="min-width:0;">';
+        h+='<div style="font-weight:600;font-size:.9rem;">'+e.name+(arch?' <span style="font-size:.68rem;color:#888;background:#2A1A00;padding:1px 6px;border-radius:9px;">📁</span>':'')+'</div>';
+        h+='<div style="font-size:.73rem;color:#888;">'+cap(e.role)+' · '+myInc+' incident'+(myInc!==1?'s':'')+(e.email?' · '+e.email:'')+'</div>';
+        if(arch&&e.exitDate) h+='<div style="font-size:.71rem;color:#aa7700;">Sortie : '+new Date(e.exitDate).toLocaleDateString('fr-FR')+(mLabel?' · '+mLabel:'')+'</div>';
+        h+='</div></div>';
+        h+='<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">';
+        h+='<span class="role-pill rp-'+ro[0]+'">'+cap(ro)+'</span>';
+        if(canManage&&!arch) h+='<button class="btn btn-gray btn-sm" onclick="openEdit(\''+e.id+'\')">✏️</button>';
+        if(canManage&&!arch&&ro==='equipier') h+='<button class="btn-danger" onclick="openExit(\''+e.id+'\')">📤</button>';
+        if(canManage&&arch) h+='<button class="btn btn-gray btn-sm" onclick="openEdit(\''+e.id+'\')">📅</button>';
+        if(canManage&&arch) h+='<button class="btn-danger" onclick="delEmp(\''+e.id+'\')">🗑️</button>';
+        h+='</div></div>';
+      });
+    });
+    if(restosToShow.length>1) h+='<div style="height:10px;"></div>';
+  });
+  list.innerHTML=h||'<div class="empty"><div class="ei">👥</div><p>Aucun membre</p></div>';
+}
+function addEmp(){
+  var r=curUser.role;
+  if(r!=='directeur'&&r!=='franchise') return;
+  var name=document.getElementById('new-name').value.trim();
+  var role=document.getElementById('new-role').value;
+  if(!name){toast('Entrez un nom','error');return;}
+  var restoId;
+  if(r==='franchise'){var s=document.getElementById('new-resto');restoId=s?s.value:'bk500';}
+  else restoId=curUser.restoId;
+  DB.employees.push({id:'u'+Date.now(),name:name,role:role,archived:false,restoId:restoId});
+  saveDB();document.getElementById('new-name').value='';
+  renderEquipe();fillEmpSelect();fillFilters();fillRptPersons();
+  toast(name+' ajouté(e) dans '+(RESTOS[restoId]?RESTOS[restoId].label:restoId)+' ✔','success');
+}
+function delEmp(id){
+  var e=DB.employees.find(function(x){return x.id===id;});
+  if(!e||!confirm('Supprimer définitivement '+e.name+' ?')) return;
+  DB.employees=DB.employees.filter(function(x){return x.id!==id;});
+  saveDB();renderEquipe();fillEmpSelect();toast('Membre supprimé','');
+}
+function openEdit(id){
+  var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
+  document.getElementById('edit-id').value=id;
+  document.getElementById('edit-name').value=e.name;
+  document.getElementById('edit-role').value=e.role;
+  document.getElementById('edit-email').value=e.email||'';
+  var row=document.getElementById('edit-exit-date-row');
+  if(e.archived){row.style.display='block';document.getElementById('edit-exit-def').value=e.exitDateDefinitive||e.exitDate||'';}
+  else row.style.display='none';
+  document.getElementById('modal-edit').classList.add('open');
+}
+function saveEdit(){
+  var id=document.getElementById('edit-id').value;
+  var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
+  e.name=document.getElementById('edit-name').value.trim()||e.name;
+  e.role=document.getElementById('edit-role').value;
+  e.email=document.getElementById('edit-email').value.trim();
+  var def=document.getElementById('edit-exit-def').value;
+  if(def) e.exitDateDefinitive=def;
+  sb.patchWhere('bks_employees','id=eq.'+e.id,{name:e.name,role:e.role,resto_id:e.restoId,email:e.email||'',phone:e.phone||''}).catch(function(err){console.error('edit emp',err);});
+  saveDB();closeModal('modal-edit');renderEquipe();fillEmpSelect();fillFilters();fillRptPersons();toast(e.name+' mis à jour ✔','success');
+}
+function openExit(id){
+  var now=new Date();now.setMinutes(now.getMinutes()-now.getTimezoneOffset());
+  document.getElementById('exit-id').value=id;
+  document.getElementById('exit-date').value=now.toISOString().slice(0,10);
+  document.getElementById('exit-note').value='';
+  document.getElementById('exit-motif').value='fin_contrat';
+  document.getElementById('modal-exit').classList.add('open');
+}
+function confirmExit(){
+  var id=document.getElementById('exit-id').value;
+  var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
+  e.archived=true;e.exitDate=document.getElementById('exit-date').value;
+  e.exitMotif=document.getElementById('exit-motif').value;
+  e.exitNote=document.getElementById('exit-note').value.trim();
+  e.exitDateDefinitive=null;
+  sb.patchWhere('bks_employees','id=eq.'+emp.id,{archived:emp.archived}).catch(function(e){console.error('arch emp',e);});
+  saveDB();closeModal('modal-exit');empFilter='actif';renderEquipe();fillEmpSelect();fillFilters();fillRptPersons();
+  toast(e.name+' archivé(e). Historique conservé ✔','success');
+}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+// ════ LETTRES ════
+function createLetter(inc){
+  if(!inc.problems.some(function(p){return LETTER_TRIGGERS.indexOf(p)>=0;})) return;
+  if(!DB.letters) DB.letters=[];
+  if(DB.letters.find(function(l){return l.incidentId===inc.id;})) return;
+  var emp=DB.employees.find(function(e){return e.id===inc.empId;});
+  var empName=emp?emp.name:"l'équipier";
+  var type=(parseInt(inc.severity)>=4||inc.problems.indexOf('absence')>=0||inc.problems.indexOf('abandon')>=0)?'avertissement':'observation';
+  var dt=inc.datetime?new Date(inc.datetime).toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}):new Date().toLocaleDateString('fr-FR');
+  var pList=inc.problems.map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});var l=p?p.label:pid;if(inc.extraData&&inc.extraData[pid])l+=' ('+inc.extraData[pid]+')';return '- '+l;}).join('\n');
+  var body='Objet : '+(type==='avertissement'?'AVERTISSEMENT':'OBSERVATION')+'\n\n';
+  body+='Madame, Monsieur '+empName+',\n\n';
+  if(type==='avertissement'){
+    body+='Nous avons constaté le '+dt+' les manquements suivants :\n\n'+pList+'\n\n';
+    body+='Ces faits constituent une violation de vos obligations contractuelles et du règlement intérieur.\n\n';
+    body+='En conséquence, nous vous adressons le présent avertissement. Tout nouveau manquement pourra entraîner des sanctions plus graves.\n\n';
+  } else {
+    body+='Nous avons constaté le '+dt+' les points suivants :\n\n'+pList+'\n\n';
+    body+='Nous vous demandons de bien vouloir prendre note de ces observations et y remédier rapidement.\n\n';
+  }
+  if(inc.note) body+='Observations : '+inc.note+'\n\n';
+  body+='Fait par : '+(inc.reporterName||'?')+'\nDate : '+new Date().toLocaleDateString('fr-FR')+'\n\nCordialement,\nLa Direction';
+  DB.letters.push({id:'let_'+inc.id,incidentId:inc.id,empId:inc.empId,empName:empName,type:type,status:'pending',text:body,createdAt:new Date().toISOString(),createdBy:inc.reporterName||'?',validatedBy:null,sentAt:null});
+  saveDB();updateVBadge();
+}
+function updateVBadge(){
+  var n=(DB.letters||[]).filter(function(l){return l.status==='pending';}).length;
+  var b=document.getElementById('vbadge');if(!b)return;
+  b.textContent=n;b.style.display=n>0?'inline-flex':'none';
+}
+function renderLetters(){
+  var c=document.getElementById('letters-list');if(!c)return;
+  var letters=(DB.letters||[]).slice().sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);});
+  if(!letters.length){c.innerHTML='<div class="empty"><div class="ei">✉️</div><p>Aucun courrier</p></div>';return;}
+  var r=curUser.role;
+  c.innerHTML=letters.map(function(l){
+    var sLbl={pending:'⏳ En attente',sent:'✅ Envoyé',rejected:'❌ Refusé'}[l.status]||'';
+    var sCls={pending:'lb-pend',sent:'lb-sent',rejected:'lb-rej'}[l.status]||'';
+    var tLbl=l.type==='avertissement'?'🔴 Avertissement':'🟡 Observation';
+    var canVal=(r==='directeur'||r==='franchise')&&l.status==='pending';
+    var emp=DB.employees.find(function(e){return e.id===l.empId;});
+    var empEmail=emp&&emp.email?emp.email:'';
+    var h='<div class="letter-card">';
+    h+='<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:7px;margin-bottom:10px;">';
+    h+='<div><strong style="color:var(--orange);">👤 '+l.empName+'</strong> <span style="margin-left:8px;">'+tLbl+'</span> <span class="lbadge '+sCls+'" style="margin-left:7px;">'+sLbl+'</span></div>';
+    h+='<div style="font-size:.75rem;color:#888;">'+l.createdBy+' · '+new Date(l.createdAt).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})+'</div>';
+    h+='</div>';
+    if(canVal){h+='<div style="margin-bottom:9px;"><label class="flabel">📧 E-mail de '+l.empName+'</label><input type="email" id="emp-mail-'+l.id+'" class="fi" value="'+empEmail+'" placeholder="email@exemple.com" style="max-width:300px;"></div>';}
+    h+='<label class="flabel">📄 Contenu (modifiable)</label>';
+    h+='<textarea id="lt-'+l.id+'" class="fi" style="min-height:150px;font-size:.86rem;line-height:1.6;"'+(canVal?'':' readonly style="opacity:.6;"')+'>'+l.text+'</textarea>';
+    if(canVal){
+      h+='<div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap;">';
+      h+='<button class="btn btn-red" onclick="validateLetter(\''+l.id+'\')">✅ Valider et envoyer</button>';
+      h+='<button class="btn btn-gray" onclick="rejectLetter(\''+l.id+'\')">❌ Rejeter</button>';
+      h+='</div>';
+    } else if(l.status==='sent'){
+      h+='<p style="font-size:.78rem;color:#4CAF50;margin-top:7px;">✅ Envoyé par '+(l.validatedBy||'?')+' le '+(l.sentAt?new Date(l.sentAt).toLocaleDateString('fr-FR'):'')+'</p>';
+    }
+    h+='</div>';
+    return h;
+  }).join('');
+}
+function validateLetter(lid){
+  var l=(DB.letters||[]).find(function(x){return x.id===lid;});if(!l)return;
+  var ta=document.getElementById('lt-'+lid);if(ta) l.text=ta.value;
+  var mailInput=document.getElementById('emp-mail-'+lid);
+  var empEmail=mailInput?mailInput.value.trim():'';
+  if(!empEmail||empEmail.indexOf('@')<0){toast("Entrez l'e-mail de l'employé",'error');return;}
+  var emp=DB.employees.find(function(e){return e.id===l.empId;});if(emp) emp.email=empEmail;
+  var ms=DB.mailSettings||{};
+  var cc=(ms.ccRecipients||[]).concat((ms.recipients||[]).map(function(r){return r.email;})).filter(Boolean).join(',');
+  var subj='[BK] '+(l.type==='avertissement'?'Avertissement':'Observation')+' - '+l.empName;
+  window.open('mailto:'+empEmail+'?cc='+encodeURIComponent(cc)+'&subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(l.text),'_blank');
+  l.status='sent';l.validatedBy=curUser.name||pinProf.title||'Directeur';l.sentAt=new Date().toISOString();
+  saveDB();updateVBadge();renderLetters();toast('Courrier envoyé ✔','success');
+}
+function rejectLetter(lid){
+  var l=(DB.letters||[]).find(function(x){return x.id===lid;});if(!l)return;
+  if(!confirm('Rejeter ce courrier ?')) return;
+  l.status='rejected';saveDB();updateVBadge();renderLetters();toast('Courrier refusé','');
+}
+
+// ════ PARAMÈTRES ════
+function renderPinSettings(){
+  var c=document.getElementById('pin-settings');if(!c)return;
+  var r=curUser.role;
+  var h='';
+  if(r==='franchise'){
+    h+='<div style="grid-column:1/-1;font-size:.76rem;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Accès globaux</div>';
+    Object.keys(GLOBALS).forEach(function(k){var g=GLOBALS[k];h+='<div style="background:#1A1A1A;border-radius:8px;padding:13px;"><div style="font-size:.76rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;">'+g.icon+' '+g.title+'</div><input type="text" maxlength="4" id="pin-g-'+k+'" class="fi" value="'+(DB.globalPins[k]||'0000')+'" style="text-align:center;font-size:1.3rem;letter-spacing:8px;font-family:Barlow Condensed,sans-serif;font-weight:700;"></div>';});
+    Object.keys(RESTOS).forEach(function(rid){
+      var resto=RESTOS[rid];
+      h+='<div style="grid-column:1/-1;font-size:.76rem;color:#666;text-transform:uppercase;letter-spacing:1px;margin-top:10px;margin-bottom:3px;">'+resto.label+'</div>';
+      Object.keys(PROFILES).forEach(function(k){var tmpl=PROFILES[k];var names=DB.restoNames[rid]||{};var pins=DB.restoPins[rid]||{};h+='<div style="background:#1A1A1A;border-radius:8px;padding:13px;"><div style="font-size:.76rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;">'+tmpl.icon+' '+(names[k]||tmpl.title)+'</div><input type="text" maxlength="4" id="pin-'+rid+'-'+k+'" class="fi" value="'+(pins[k]||'0000')+'" style="text-align:center;font-size:1.3rem;letter-spacing:8px;font-family:Barlow Condensed,sans-serif;font-weight:700;"></div>';});
+    });
+  } else {
+    var rid=curUser.restoId;if(!rid)return;
+    Object.keys(PROFILES).forEach(function(k){var tmpl=PROFILES[k];var names=DB.restoNames[rid]||{};var pins=DB.restoPins[rid]||{};h+='<div style="background:#1A1A1A;border-radius:8px;padding:13px;"><div style="font-size:.76rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;">'+tmpl.icon+' '+(names[k]||tmpl.title)+'</div><input type="text" maxlength="4" id="pin-'+rid+'-'+k+'" class="fi" value="'+(pins[k]||'0000')+'" style="text-align:center;font-size:1.3rem;letter-spacing:8px;font-family:Barlow Condensed,sans-serif;font-weight:700;"></div>';});
+  }
+  c.innerHTML=h;
+}
+function savePins(){
+  var r=curUser.role;
+  if(r==='franchise'){
+    Object.keys(GLOBALS).forEach(function(k){var inp=document.getElementById('pin-g-'+k);if(inp&&/^\d{4}$/.test(inp.value)) DB.globalPins[k]=inp.value;});
+    Object.keys(RESTOS).forEach(function(rid){if(!DB.restoPins[rid])DB.restoPins[rid]={};Object.keys(PROFILES).forEach(function(k){var inp=document.getElementById('pin-'+rid+'-'+k);if(inp&&/^\d{4}$/.test(inp.value)) DB.restoPins[rid][k]=inp.value;});});
+  } else {
+    var rid=curUser.restoId;if(!rid)return;if(!DB.restoPins[rid])DB.restoPins[rid]={};
+    Object.keys(PROFILES).forEach(function(k){var inp=document.getElementById('pin-'+rid+'-'+k);if(inp&&/^\d{4}$/.test(inp.value)) DB.restoPins[rid][k]=inp.value;});
+  }
+  saveDB();toast('Codes PIN enregistrés ✔','success');
+}
+function renderNamesSettings(){
+  var c=document.getElementById('names-settings');if(!c)return;
+  var r=curUser.role;
+  var restos=r==='franchise'?Object.keys(RESTOS):[curUser.restoId];
+  var h='';
+  restos.forEach(function(rid){
+    if(!rid)return;
+    var resto=RESTOS[rid]||{label:rid};
+    h+='<div style="grid-column:1/-1;font-size:.76rem;color:#666;text-transform:uppercase;letter-spacing:1px;margin-top:8px;margin-bottom:3px;">'+resto.label+'</div>';
+    Object.keys(PROFILES).forEach(function(k){var tmpl=PROFILES[k];var names=DB.restoNames[rid]||{};h+='<div style="background:#1A1A1A;border-radius:8px;padding:13px;"><div style="font-size:.76rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;">'+tmpl.icon+' '+tmpl.title+'</div><input type="text" id="nm-'+rid+'-'+k+'" class="fi" value="'+(names[k]||'')+'" placeholder="Nom..."></div>';});
+  });
+  c.innerHTML=h;
+}
+function saveNames(){
+  var r=curUser.role;
+  var restos=r==='franchise'?Object.keys(RESTOS):[curUser.restoId];
+  restos.forEach(function(rid){
+    if(!rid)return;if(!DB.restoNames[rid])DB.restoNames[rid]={};
+    Object.keys(PROFILES).forEach(function(k){var inp=document.getElementById('nm-'+rid+'-'+k);if(inp&&inp.value.trim()){DB.restoNames[rid][k]=inp.value.trim();var emp=DB.employees.find(function(e){return e.tileKey===k&&e.restoId===rid;});if(emp)emp.name=inp.value.trim();}});
+  });
+  saveDB();toast('Noms enregistrés ✔','success');renderEquipe();
+}
+function loadMailSettings(){
+  var ms=DB.mailSettings||{};
+  document.getElementById('rpt-time').value=ms.time||'22:00';
+  document.getElementById('sch-daily').checked=ms.daily!==false;
+  document.getElementById('sch-weekly').checked=ms.weekly!==false;
+  document.getElementById('sch-monthly').checked=ms.monthly!==false;
+}
+function saveMailSettings(){
+  DB.mailSettings.time=document.getElementById('rpt-time').value;
+  DB.mailSettings.daily=document.getElementById('sch-daily').checked;
+  DB.mailSettings.weekly=document.getElementById('sch-weekly').checked;
+  DB.mailSettings.monthly=document.getElementById('sch-monthly').checked;
+  saveDB();toast('Paramètres enregistrés ✔','success');schedReports();
+}
+function addMailRcp(){
+  var role=document.getElementById('new-mail-role').value;
+  var email=document.getElementById('new-mail').value.trim();
+  if(!email||email.indexOf('@')<0){toast('Adresse invalide','error');return;}
+  if(!DB.mailSettings.recipients)DB.mailSettings.recipients=[];
+  DB.mailSettings.recipients.push({role:role,email:email});
+  document.getElementById('new-mail').value='';
+  renderMailRcps();saveDB();toast('Destinataire ajouté','success');
+}
+function renderMailRcps(){
+  var c=document.getElementById('mail-rcps');if(!c)return;
+  c.innerHTML=(DB.mailSettings.recipients||[]).map(function(r,i){return '<div class="mail-tag">'+r.role+' : '+r.email+'<button onclick="removeMailRcp('+i+')">✕</button></div>';}).join('');
+}
+function removeMailRcp(i){DB.mailSettings.recipients.splice(i,1);saveDB();renderMailRcps();}
+function addCC(){
+  var email=document.getElementById('new-cc').value.trim();
+  if(!email||email.indexOf('@')<0){toast('Adresse invalide','error');return;}
+  if(!DB.mailSettings.ccRecipients)DB.mailSettings.ccRecipients=[];
+  DB.mailSettings.ccRecipients.push(email);
+  document.getElementById('new-cc').value='';
+  renderCCRcps();saveDB();toast('Copie ajoutée','success');
+}
+function renderCCRcps(){
+  var c=document.getElementById('cc-rcps');if(!c)return;
+  c.innerHTML=(DB.mailSettings.ccRecipients||[]).map(function(e,i){return '<div class="mail-tag">📋 '+e+'<button onclick="removeCC('+i+')">✕</button></div>';}).join('');
+}
+function removeCC(i){DB.mailSettings.ccRecipients.splice(i,1);saveDB();renderCCRcps();}
+function buildTextReport(period){
+  var pl={today:"Aujourd'hui",week:'7 derniers jours',month:'30 derniers jours',all:'Tout'};
+  var now=new Date();
+  var incs=filterIncsByPeriod(period);
+  var txt='=== RAPPORT BK SUIVI - '+pl[period]+' ===\n';
+  txt+='Généré le '+now.toLocaleString('fr-FR')+'\n\n';
+  Object.keys(RESTOS).forEach(function(rid){
+    var rIncs=incs.filter(function(i){var e=DB.employees.find(function(x){return x.id===i.empId;});return e&&e.restoId===rid;});
+    txt+='\n— '+RESTOS[rid].label+' ('+rIncs.length+' incidents) —\n';
+    rIncs.forEach(function(i){
+      var emp=DB.employees.find(function(e){return e.id===i.empId;});
+      var dt=new Date(i.datetime||i.createdAt).toLocaleString('fr-FR');
+      var types=i.problems.map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});return p?p.label:pid;}).join(', ');
+      txt+='  '+dt+' | '+(emp?emp.name:'?')+' | '+types+'\n';
+    });
+  });
+  return txt;
+}
+function sendNow(period){
+  var ms=DB.mailSettings||{};
+  if(!(ms.recipients&&ms.recipients.length)){toast('Aucun destinataire configuré','error');return;}
+  var body=buildTextReport(period);
+  var pl={today:"Quotidien",week:'Hebdomadaire',month:'Mensuel'};
+  var subj='[BK Suivi] Rapport '+pl[period]+' - '+new Date().toLocaleDateString('fr-FR');
+  var emails=ms.recipients.map(function(r){return r.email;}).join(',');
+  window.open('mailto:'+emails+'?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank');
+  toast('Rapport prêt à envoyer 📧','success');
+}
+function schedReports(){
+  clearInterval(window._schInt);
+  window._schInt=setInterval(function(){
+    var ms=DB.mailSettings||{};
+    if(!ms.recipients||!ms.recipients.length) return;
+    var now=new Date();
+    var hm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    if(hm!==ms.time) return;
+    if(ms.daily) sendNow('today');
+    if(ms.weekly&&now.getDay()===1) sendNow('week');
+    if(ms.monthly&&now.getDate()===1) sendNow('month');
+  },60000);
+}
+
+// ═══ RECHERCHE EMPLOYÉ ═══
+function filterEmpList(){
+  var q=document.getElementById('emp-search').value.trim().toLowerCase();
+  var dd=document.getElementById('emp-dropdown');
+  if(!q){dd.style.display='none';return;}
+  var r=curUser.role;
+  var pool=DB.employees.filter(function(e){
+    return !e.archived&&e.role==='equipier'&&(r==='franchise'||e.restoId===curUser.restoId);
+  });
+  var res=pool.filter(function(e){
+    return e.name.toLowerCase().indexOf(q)>=0||(e.email||'').toLowerCase().indexOf(q)>=0;
+  }).slice(0,12);
+  if(!res.length){dd.innerHTML='<div style="padding:9px 13px;color:#555;">Aucun résultat</div>';dd.style.display='block';return;}
+  dd.innerHTML=res.map(function(e){
+    var rLbl=r==='franchise'&&RESTOS[e.restoId]?' <span style="color:#888;font-size:.72rem;">['+RESTOS[e.restoId].label+']</span>':'';
+    return '<div onclick="selectEmp(''+e.id+'')" style="padding:9px 13px;cursor:pointer;border-bottom:1px solid #1E1E1E;transition:background .15s;" onmouseover="this.style.background='#1E1E1E'" onmouseout="this.style.background=''">'
+      +'<strong>'+e.name+'</strong>'+rLbl
+      +(e.email||e.phone?'<div style="font-size:.73rem;color:#888;">'+(e.email||'')+(e.phone?' · '+e.phone:'')+'</div>':'')
+      +'</div>';
+  }).join('');
+  dd.style.display='block';
+}
+function selectEmp(id){
+  var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
+  document.getElementById('sel-emp').value=id;
+  document.getElementById('emp-search').value='';
+  document.getElementById('emp-dropdown').style.display='none';
+  document.getElementById('sel-emp-display').style.display='block';
+  document.getElementById('sel-emp-name').textContent=e.name;
+  var rLbl=RESTOS[e.restoId]?' · '+RESTOS[e.restoId].label:'';
+  document.getElementById('sel-emp-info').textContent=(e.email||'')+(e.phone?' · '+e.phone:'')+rLbl;
+}
+function clearEmpSel(){
+  document.getElementById('sel-emp').value='';
+  document.getElementById('sel-emp-display').style.display='none';
+  document.getElementById('emp-search').value='';
+  document.getElementById('emp-dropdown').style.display='none';
+}
+
+// ═══ TYPE SANCTION ═══
+var selSanction=null;
+function setSanction(btn){
+  document.querySelectorAll('.sev-btn[data-sanc]').forEach(function(b){b.style.background='';b.style.fontWeight='';});
+  btn.style.background=btn.style.color+'33';
+  btn.style.fontWeight='700';
+  selSanction=btn.dataset.sanc;
+  // Conserver compatibilité avec selSev
+  selSev={verbal:'2',ecrit:'2',avert:'3',mise:'4'}[selSanction]||'2';
+}
+var SANCTIONS={
+  verbal:{label:'Observation verbale',icon:'📝',color:'#F5A623'},
+  ecrit:{label:'Observation écrite',icon:'📄',color:'#5BA3F5'},
+  avert:{label:'Avertissement',icon:'⚠️',color:'#FF8732'},
+  mise:{label:'Mise en demeure',icon:'🔴',color:'#D62300'}
+};
+
+// ═══ OVERRIDE submitInc pour sanction + email ═══
+var _origSubmitInc=submitInc;
+submitInc=function(){
+  if(!document.getElementById('sel-emp').value){toast("Choisissez un équipier",'error');return;}
+  if(!selSanction){toast("Choisissez un type de sanction",'error');return;}
+  // Forcer selSev pour compatibilité
+  selSev={verbal:'2',ecrit:'2',avert:'3',mise:'4'}[selSanction]||'2';
+  // Créer incident avec type sanction
+  var empId=document.getElementById('sel-emp').value;
+  var dt=document.getElementById('inc-dt').value;
+  if(selProbs.size===0){toast("Sélectionnez un motif",'error');return;}
+  var inc={id:String(Date.now()),empId:empId,reporterId:curUser.id,reporterName:pinProf?pinProf.title:curUser.name,datetime:dt,problems:Array.from(selProbs),extraData:Object.assign({},extraData),severity:selSev,sanctionType:selSanction,note:document.getElementById('inc-note').value.trim(),createdAt:new Date().toISOString()};
+  DB.incidents.push(inc);
+  var lid=createLetterNew(inc);
+  saveDB();
+  toast('Signalement enregistré ✔','success');
+  // Reset
+  selProbs=new Set();selSev=null;selSanction=null;extraData={};clearEmpSel();
+  document.querySelectorAll('.prob-check').forEach(function(d){d.classList.remove('on');});
+  document.querySelectorAll('.prob-extra').forEach(function(d){d.classList.remove('show');});
+  document.querySelectorAll('.sev-btn[data-sanc]').forEach(function(b){b.style.background='';});
+  document.getElementById('inc-note').value='';
+  var now=new Date();now.setMinutes(now.getMinutes()-now.getTimezoneOffset());
+  document.getElementById('inc-dt').value=now.toISOString().slice(0,16);
+  renderHistory();updateVBadge();
+  // Email auto si employé a un email
+  var emp=DB.employees.find(function(e){return e.id===empId;});
+  if(emp&&emp.email&&lid)setTimeout(function(){sendLetterEmail(lid);},700);
+};
+
+function createLetterNew(inc){
+  if(!DB.letters)DB.letters=[];
+  var emp=DB.employees.find(function(e){return e.id===inc.empId;});
+  var empName=emp?emp.name:"l'équipier";
+  var restoLabel=emp&&RESTOS[emp.restoId]?RESTOS[emp.restoId].label:'Burger King';
+  var st=SANCTIONS[inc.sanctionType]||{label:'Observation',icon:'📄'};
+  var dt=inc.datetime?new Date(inc.datetime).toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}):new Date().toLocaleDateString('fr-FR');
+  var pList=inc.problems.map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});var l=p?p.label:pid;if(inc.extraData&&inc.extraData[pid])l+=' ('+inc.extraData[pid]+')';return '• '+l;}).join('\n');
+  var body=restoLabel+'\nDate : '+new Date().toLocaleDateString('fr-FR')+'\n\nObjet : '+st.label.toUpperCase()+'\n────────────────────────────────────\n\n';
+  body+='Madame, Monsieur '+empName+',\n\n';
+  if(inc.sanctionType==='verbal'){body+='Lors d\'un entretien le '+dt+', nous vous avons signalé :\n\n'+pList+'\n\nNous vous demandons de remédier à ces points rapidement.\n\n';}
+  else if(inc.sanctionType==='ecrit'){body+='Nous avons constaté le '+dt+ ' les points suivants :\n\n'+pList+'\n\nPar cette observation écrite, nous vous demandons de corriger ces comportements.\n\n';}
+  else if(inc.sanctionType==='avert'){body+='Nous avons constaté le '+dt+' les manquements suivants :\n\n'+pList+'\n\nCes faits constituent une violation de vos obligations. Nous vous notifions le présent AVERTISSEMENT ÉCRIT.\n\nTout nouveau manquement pourra entraîner des sanctions plus graves.\n\n';}
+  else if(inc.sanctionType==='mise'){body+='Nous avons constaté le '+dt+' les manquements graves suivants :\n\n'+pList+'\n\nPar la présente MISE EN DEMEURE, nous vous enjoignons de cesser immédiatement tout manquement, sous peine de licenciement.\n\n';}
+  if(inc.note)body+='Précisions : '+inc.note+'\n\n';
+  body+='────────────────────────────────────\nRédigé par : '+(inc.reporterName||'?')+'\n\nSignature de l\'employé(e) : ___________________________\n☐ Pris connaissance   ☐ Refuse de signer';
+  var lid='let_'+inc.id;
+  var sigUrl=window.location.origin+window.location.pathname+'#sign/'+lid;
+  DB.letters.push({id:lid,incidentId:inc.id,empId:inc.empId,empName:empName,empEmail:(emp&&emp.email)||'',sanctionType:inc.sanctionType,type:inc.sanctionType,status:'pending',sigStatus:'pending',text:body,createdAt:new Date().toISOString(),createdBy:inc.reporterName||'?',signedAt:null,refusedAt:null,sentAt:null});
+  return lid;
+}
+
+function sendLetterEmail(lid){
+  var l=(DB.letters||[]).find(function(x){return x.id===lid;});if(!l||!l.empEmail)return;
+  var st=SANCTIONS[l.sanctionType]||{label:'Courrier'};
+  var ms=DB.mailSettings||{};
+  var cc=(ms.ccRecipients||[]).concat((ms.recipients||[]).map(function(r){return r.email;})).filter(Boolean).join(',');
+  var sigUrl=window.location.origin+window.location.pathname+'#sign/'+lid;
+  var subj='[BK] '+st.label+' - '+l.empName;
+  var body=l.text+'\n\n────────────────────────────────────\n🔗 Lien pour signer ce document :\n'+sigUrl;
+  window.open('mailto:'+l.empEmail+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank');
+  l.sentAt=new Date().toISOString();saveDB();
+}
+
+// ═══ PAGE SIGNATURE ═══
+(function(){
+  var hash=window.location.hash;
+  if(hash.indexOf('#sign/')===0){
+    var lid=hash.slice(6);
+    document.getElementById('login-screen').style.display='none';
+    var sp=document.createElement('div');
+    sp.style.cssText='min-height:100vh;background:#1A1A1A;';
+    sp.innerHTML='<div style="background:linear-gradient(135deg,#C01E00,#8B1500);padding:16px 24px;text-align:center;"><div style="font-family:Barlow Condensed,sans-serif;font-weight:900;font-size:1.6rem;color:#F5A623;text-transform:uppercase;letter-spacing:3px;">🔥 BK Suivi — Signature</div></div>'
+      +'<div style="max-width:640px;margin:0 auto;padding:24px;" id="sig-body"></div>';
+    document.body.prepend(sp);
+    var l=(DB.letters||[]).find(function(x){return x.id===lid;});
+    var sb=document.getElementById('sig-body');
+    if(!l){sb.innerHTML='<p style="color:#cc5555;margin-top:20px;">Courrier introuvable.</p>';return;}
+    var st=SANCTIONS[l.sanctionType]||{label:'Courrier',color:'#FF8732'};
+    var done='';
+    if(l.sigStatus==='signed') done='<div style="text-align:center;padding:40px;"><div style="font-size:3rem;">✅</div><div style="font-family:Barlow Condensed,sans-serif;font-size:1.4rem;font-weight:700;color:#4CAF50;margin-top:10px;">Document signé le '+new Date(l.signedAt).toLocaleDateString('fr-FR')+'</div></div>';
+    else if(l.sigStatus==='refused') done='<div style="text-align:center;padding:40px;"><div style="font-size:3rem;">❌</div><div style="font-family:Barlow Condensed,sans-serif;font-size:1.4rem;font-weight:700;color:#cc5555;margin-top:10px;">Refus enregistré</div></div>';
+    var actions=done||'<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px;"><button onclick="doSign(''+lid+'')" style="background:linear-gradient(135deg,#4CAF50,#2E7D32);color:#fff;border:none;padding:12px 28px;border-radius:8px;font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:1rem;text-transform:uppercase;letter-spacing:2px;cursor:pointer;">✅ Je signe ce document</button><button onclick="doRefuse(''+lid+'')" style="background:#333;color:#ccc;border:1px solid #555;padding:12px 28px;border-radius:8px;font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:1rem;text-transform:uppercase;letter-spacing:2px;cursor:pointer;">❌ Je refuse de signer</button></div>';
+    sb.innerHTML='<div style="text-align:center;margin:20px 0;"><div style="font-family:Barlow Condensed,sans-serif;font-size:1.8rem;font-weight:900;color:#F5A623;">'+st.label+'</div><div style="color:#aaa;margin-top:5px;">Destinataire : <strong style="color:#fff;">'+l.empName+'</strong></div></div>'
+      +'<div style="background:#fafafa;color:#111;border-radius:8px;padding:28px;font-family:Georgia,serif;line-height:1.75;white-space:pre-wrap;margin:20px 0;font-size:.88rem;">'+l.text+'</div>'
+      +actions;
+  }
+})();
+function doSign(lid){
+  var l=(DB.letters||[]).find(function(x){return x.id===lid;});if(!l)return;
+  l.sigStatus='signed';l.signedAt=new Date().toISOString();saveDB();
+  document.getElementById('sig-body').innerHTML='<div style="text-align:center;padding:40px;"><div style="font-size:3rem;">✅</div><div style="font-family:Barlow Condensed,sans-serif;font-size:1.4rem;font-weight:700;color:#4CAF50;margin-top:10px;">Signature enregistrée. Merci !</div></div>';
+}
+function doRefuse(lid){
+  if(!confirm('Confirmer le refus de signature ?'))return;
+  var l=(DB.letters||[]).find(function(x){return x.id===lid;});if(!l)return;
+  l.sigStatus='refused';l.refusedAt=new Date().toISOString();saveDB();
+  document.getElementById('sig-body').innerHTML='<div style="text-align:center;padding:40px;"><div style="font-size:3rem;">❌</div><div style="font-family:Barlow Condensed,sans-serif;font-size:1.4rem;font-weight:700;color:#cc5555;margin-top:10px;">Refus enregistré.</div></div>';
+}
+
+// ═══ OVERRIDE renderLetters pour afficher statut signature + lien ═══
+var _origRenderLetters=renderLetters;
+renderLetters=function(){
+  var c=document.getElementById('letters-list');if(!c)return;
+  var letters=(DB.letters||[]).slice().sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);});
+  if(!letters.length){c.innerHTML='<div class="empty"><div class="ei">✉️</div><p>Aucun courrier</p></div>';return;}
+  var r=curUser.role;
+  if(r!=='franchise'){
+    var ids=DB.employees.filter(function(e){return e.restoId===curUser.restoId;}).map(function(e){return e.id;});
+    letters=letters.filter(function(l){return ids.indexOf(l.empId)>=0;});
+  }
+  var canVal=r==='directeur'||r==='franchise';
+  c.innerHTML=letters.map(function(l){
+    var st=SANCTIONS[l.sanctionType]||{label:l.type==='avertissement'?'Avertissement':'Observation',icon:'📄',color:'#FF8732'};
+    var ss=l.sigStatus||'pending';
+    var sigB=ss==='signed'?'<span style="background:#1A2A1A;color:#4CAF50;padding:2px 9px;border-radius:10px;font-size:.7rem;font-weight:700;">✍️ Signé le '+new Date(l.signedAt).toLocaleDateString('fr-FR')+'</span>'
+      :ss==='refused'?'<span style="background:#2A1A1A;color:#cc5555;padding:2px 9px;border-radius:10px;font-size:.7rem;font-weight:700;">❌ Refus signature</span>'
+      :'<span style="background:#2A2000;color:#F5A623;padding:2px 9px;border-radius:10px;font-size:.7rem;font-weight:700;">⏳ En attente signature</span>';
+    var sigUrl=window.location.origin+window.location.pathname+'#sign/'+l.id;
+    var editable=canVal&&ss!=='signed';
+    var h='<div class="letter-card" style="border-left:4px solid '+st.color+';">'
+      +'<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:7px;margin-bottom:10px;">'
+      +'<div><strong style="color:var(--orange);">👤 '+l.empName+'</strong><span style="background:'+st.color+'22;border:1px solid '+st.color+';color:'+st.color+';padding:2px 9px;border-radius:10px;font-size:.7rem;font-weight:700;margin-left:8px;">'+st.icon+' '+st.label+'</span></div>'
+      +'<div style="font-size:.74rem;color:#888;">'+l.createdBy+' · '+new Date(l.createdAt).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})+'</div>'
+      +'</div><div style="margin-bottom:10px;">'+sigB+'</div>';
+    if(editable)h+='<label class="flabel">📧 Email employé</label><input type="email" id="ml-'+l.id+'" class="fi" value="'+(l.empEmail||'')+'" placeholder="email@exemple.com" style="max-width:300px;margin-bottom:10px;">';
+    h+='<label class="flabel">📄 Courrier</label><textarea id="lt-'+l.id+'" class="fi" style="min-height:160px;font-size:.84rem;line-height:1.6;"'+(editable?'':' readonly')+'>'+l.text+'</textarea>';
+    h+='<div style="background:#111;border-radius:8px;border:1px solid #2A2A2A;padding:9px;margin-top:9px;">'
+      +'<div style="font-size:.73rem;color:#888;margin-bottom:5px;">🔗 Lien de signature :</div>'
+      +'<div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;">'
+      +'<input type="text" value="'+sigUrl+'" readonly class="fi" style="flex:1;font-size:.72rem;color:#4CAF50;cursor:pointer;" onclick="this.select();">'
+      +'<button onclick="navigator.clipboard.writeText(''+sigUrl+'').then(function(){toast('Lien copié ✔','success');})" style="background:#333;border:1px solid #555;color:#ccc;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:.78rem;">📋 Copier</button>'
+      +(editable?'<button onclick="sendLetterManual(''+l.id+'')" style="background:linear-gradient(135deg,#FF8732,#CC6600);color:#fff;border:none;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:.78rem;font-family:Barlow Condensed,sans-serif;font-weight:700;">📧 Envoyer</button>':'')
+      +'</div></div>';
+    if(editable)h+='<div style="display:flex;gap:9px;margin-top:10px;"><button class="btn btn-red" onclick="valLetter(''+l.id+'')">✅ Valider</button><button class="btn btn-gray" onclick="delLetter(''+l.id+'')">🗑️</button></div>';
+    h+='</div>';
+    return h;
+  }).join('');
+};
+function sendLetterManual(lid){
+  var l=(DB.letters||[]).find(function(x){return x.id===lid;});if(!l)return;
+  var mi=document.getElementById('ml-'+lid);var ta=document.getElementById('lt-'+lid);
+  var email=mi?mi.value.trim():l.empEmail;
+  if(!email||email.indexOf('@')<0){toast("Entrez l'email de l'employé",'error');return;}
+  if(ta)l.text=ta.value;
+  var emp=DB.employees.find(function(e){return e.id===l.empId;});if(emp)emp.email=email;
+  l.empEmail=email;
+  var st=SANCTIONS[l.sanctionType]||{label:'Courrier'};
+  var ms=DB.mailSettings||{};
+  var cc=(ms.ccRecipients||[]).concat((ms.recipients||[]).map(function(r){return r.email;})).filter(Boolean).join(',');
+  var sigUrl=window.location.origin+window.location.pathname+'#sign/'+lid;
+  var subj='[BK] '+st.label+' - '+l.empName;
+  var body=l.text+'\n\n────────────────────────────────────\n🔗 Lien pour signer :\n'+sigUrl;
+  window.open('mailto:'+email+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank');
+  l.sentAt=new Date().toISOString();saveDB();renderLetters();toast('Email ouvert ✔','success');
+}
+function valLetter(lid){
+  var l=(DB.letters||[]).find(function(x){return x.id===lid;});if(!l)return;
+  var ta=document.getElementById('lt-'+lid);if(ta)l.text=ta.value;
+  l.status='sent';l.validatedBy=pinProf?pinProf.title:'?';
+  saveDB();updateVBadge();renderLetters();toast('Validé ✔','success');
+}
+function delLetter(lid){
+  if(!confirm('Supprimer ce courrier ?'))return;
+  DB.letters=(DB.letters||[]).filter(function(x){return x.id!==lid;});
+  saveDB();updateVBadge();renderLetters();toast('Supprimé','');
+}
+
+// Afficher email+phone dans la fiche équipe
+var _origRenderEquipe=renderEquipe;
+
+// Override updateVBadge pour compter sigStatus pending
+var _origUpdateVBadge=updateVBadge;
+updateVBadge=function(){
+  var n=(DB.letters||[]).filter(function(l){return l.sigStatus==='pending'||l.status==='pending';}).length;
+  var b=document.getElementById('vbadge');if(!b)return;
+  b.textContent=n;b.style.display=n>0?'inline-flex':'none';
+};
+
+// TOAST
+var toastTm;
+function toast(msg,type){
+  var el=document.getElementById('toast');
+  el.textContent=msg;el.className=type?'show '+type:'show';
+  clearTimeout(toastTm);toastTm=setTimeout(function(){el.classList.remove('show');},3200);
+}
+window.onload=function(){schedReports();};
+</script>
+<script>
+// Chargement Supabase au démarrage
+window.addEventListener('DOMContentLoaded', async function() {
+  await loadFromSupabase();
+  console.log('App prête');
+});
+</script>
+</body>
+</html>
