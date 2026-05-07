@@ -318,6 +318,10 @@ textarea.fi{resize:vertical;min-height:75px;}
           </select>
         </div>
       </div>
+      <div class="form-row">
+        <div><label class="flabel">Email</label><input type="email" id="new-email" class="fi" placeholder="email@exemple.com"></div>
+        <div><label class="flabel">Téléphone</label><input type="tel" id="new-phone" class="fi" placeholder="06 00 00 00 00"></div>
+      </div>
       <div id="new-resto-row" style="display:none;margin-bottom:12px;">
         <label class="flabel">Restaurant</label>
         <select id="new-resto" class="fi" style="max-width:220px;">
@@ -875,7 +879,7 @@ function renderHistory(){
   var list=document.getElementById('inc-list');if(!list)return;
   var incs=DB.incidents.slice().sort(function(a,b){return new Date(b.datetime||b.createdAt)-new Date(a.datetime||a.createdAt);});
   var r=curUser.role;
-  if(r==='manager'){var ids=DB.employees.filter(function(e){return ( e.role==='equipier'||e.role==='leader')e.role==='equipier'&&e.restoId===curUser.restoId;}).mape.role==='equipier'&&e.restoId===curUser.restoId;}).mape.restoId===curUser.restoId;}).map(function(e){return e.id;});incs=incs.filter(function(i){return ids.indexOf(i.empId)>=0;});}
+  if(r==='manager'){var ids=DB.employees.filter(function(e){return (e.role==='equipier'||e.role==='leader')&&e.restoId===curUser.restoId;}).map(function(e){return e.id;});incs=incs.filter(function(i){return ids.indexOf(i.empId)>=0;});}
   else if(r==='directeur'){var ids=DB.employees.filter(function(e){return e.restoId===curUser.restoId;}).map(function(e){return e.id;});incs=incs.filter(function(i){return ids.indexOf(i.empId)>=0;});}
   var fw=document.getElementById('f-who').value;
   var ft=document.getElementById('f-type').value;
@@ -955,7 +959,7 @@ function genReport(){
   if(personId!=='all'){targets=DB.employees.filter(function(e){return e.id===personId;});}
   else if(r==='franchise'){var rf=rptTab==='all'?null:rptTab;targets=DB.employees.filter(function(e){return e.role!=='franchise'&&!e.archived&&(rf?e.restoId===rf:true);});}
   else if(r==='directeur'){targets=DB.employees.filter(function(e){return e.restoId===curUser.restoId&&e.role!=='directeur'&&!e.archived;});var ids=targets.map(function(e){return e.id;});incs=incs.filter(function(i){return ids.indexOf(i.empId)>=0;});}
-  else{targets=DB.employees.filter(function(e){return e.restoId===curUser.restoId&&( e.role==='equipier'||e.role==='leader')&&!e.archived;});var ids=targets.map(function(e){return e.id;});incs=incs.filter(function(i){return ids.indexOf(i.empId)>=0;});}
+  else{targets=DB.employees.filter(function(e){return e.restoId===curUser.restoId&&(e.role==='equipier'||e.role==='leader')&&!e.archived;});var ids=targets.map(function(e){return e.id;});incs=incs.filter(function(i){return ids.indexOf(i.empId)>=0;});}
   var out=document.getElementById('rpt-out');var now=new Date();var total=incs.length;var grave=incs.filter(function(i){return i.severity==='4';}).length;var ser=incs.filter(function(i){return i.severity==='3';}).length;
   var h='<div style="text-align:center;padding:18px;background:linear-gradient(135deg,#1A1A1A,#2C2C2C);border-radius:var(--r);margin-bottom:16px;border:1px solid #333;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.5rem;color:var(--yellow);text-transform:uppercase;letter-spacing:3px;">📊 Rapport — '+pl[period]+'</div><p style="color:#888;margin-top:5px;font-size:.82rem;">Généré le '+now.toLocaleString('fr-FR')+'</p>'+(r==='franchise'&&rptTab!=='all'?'<p style="color:var(--orange);font-size:.85rem;margin-top:3px;">'+RESTOS[rptTab].label+'</p>':'')+'</div>';
   h+='<div class="stats-grid"><div class="stat-card"><div class="stat-n">'+total+'</div><div class="stat-l">Total incidents</div></div><div class="stat-card"><div class="stat-n" style="color:#4CAF50;">'+targets.length+'</div><div class="stat-l">Membres</div></div><div class="stat-card"><div class="stat-n" style="color:var(--orange);">'+ser+'</div><div class="stat-l">Sérieux</div></div><div class="stat-card"><div class="stat-n" style="color:var(--red);">'+grave+'</div><div class="stat-l">Graves</div></div></div>';
@@ -1009,8 +1013,9 @@ function renderEquipe(){
           +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">'
           +'<span class="role-pill rp-'+ro[0]+'">'+cap(ro)+'</span>'
           +(canManage&&!arch?'<button class="btn btn-gray btn-sm" onclick="openEdit(\''+e.id+'\')">✏️</button>':'')
-          +(canManage&&!arch&&ro==='equipier'?'<button class="btn-danger" onclick="openExit(\''+e.id+'\')">📤</button>':'')
-          +(canManage&&arch?'<button class="btn btn-gray btn-sm" onclick="openEdit(\''+e.id+'\')">📅</button>':'')
+          +(canManage&&!arch&&(ro==='equipier'||ro==='leader')?'<button class="btn-danger" onclick="openExit(\''+e.id+'\')">📤</button>':'')
+          +(canManage&&arch?'<button class="btn btn-gray btn-sm" onclick="openEdit(\''+e.id+'\')">✏️</button>':'')
+          +(canManage&&arch?'<button class="btn btn-gray btn-sm" style="background:#1A3A1A;border-color:#3A7A3A;color:#4CAF50;" onclick="reactivateEmp(\''+e.id+'\')">♻️ Réactiver</button>':'')
           +(canManage&&arch?'<button class="btn-danger" onclick="delEmp(\''+e.id+'\')">🗑️</button>':'')
           +'</div></div>';
       });
@@ -1024,16 +1029,31 @@ async function addEmp(){
   var r=curUser.role;if(r!=='directeur'&&r!=='franchise')return;
   var name=document.getElementById('new-name').value.trim();
   var role=document.getElementById('new-role').value;
+  var email=document.getElementById('new-email').value.trim();
+  var phone=document.getElementById('new-phone').value.trim();
   if(!name){toast('Entrez un nom','error');return;}
+  if(!email||email.indexOf('@')<0){toast('Entrez un email valide','error');return;}
   var restoId=r==='franchise'?(document.getElementById('new-resto').value||'bk500'):curUser.restoId;
   var id='u'+Date.now();
   try {
-    await sb.insert('bks_employees',{id:id,name:name,role:role,resto_id:restoId,archived:false,email:'',phone:''});
+    await sb.insert('bks_employees',{id:id,name:name,role:role,resto_id:restoId,archived:false,email:email,phone:phone});
     await loadAll();
     document.getElementById('new-name').value='';
+    document.getElementById('new-email').value='';
+    document.getElementById('new-phone').value='';
     renderEquipe();fillFilters();fillRptPersons();
     toast(name+' ajouté(e) dans '+(RESTOS[restoId]?RESTOS[restoId].label:restoId)+' ✔','success');
   } catch(e){toast('Erreur','error');console.error(e);}
+}
+
+async function reactivateEmp(id){
+  var e=DB.employees.find(function(x){return x.id===id;});
+  if(!e||!confirm('Réactiver '+e.name+' ?'))return;
+  try{
+    await sb.patch('bks_employees','id=eq.'+id,{archived:false,exit_date:'',exit_motif:'',exit_note:''});
+    await loadAll();empFilter='actif';renderEquipe();
+    toast(e.name+' réactivé(e) ✔','success');
+  }catch(e2){toast('Erreur','error');}
 }
 
 async function delEmp(id){
