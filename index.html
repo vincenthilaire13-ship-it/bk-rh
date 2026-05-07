@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+<script>emailjs.init("BSFTPjQ82p7MQPrVx");</script>
 <title>BK Suivi Équipe</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap');
@@ -387,12 +389,14 @@ textarea.fi{resize:vertical;min-height:75px;}
       </div>
       <button class="btn btn-red" style="margin-top:16px;" onclick="saveMailSettings()">💾 Enregistrer</button>
       <div style="margin-top:18px;padding-top:14px;border-top:1px solid #333;">
-        <p style="font-size:.78rem;color:#888;margin-bottom:9px;">📤 Tester l'envoi :</p>
+        <p style="font-size:.78rem;color:#888;margin-bottom:9px;">📤 Tester l'envoi maintenant :</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-gray btn-sm" onclick="sendNow('today')">Aujourd'hui</button>
-          <button class="btn btn-gray btn-sm" onclick="sendNow('week')">Semaine</button>
-          <button class="btn btn-gray btn-sm" onclick="sendNow('month')">Mois</button>
+          <button class="btn btn-gray btn-sm" onclick="sendNow('today')">📊 Rapport du jour</button>
+          <button class="btn btn-gray btn-sm" onclick="sendNow('week')">📊 Rapport semaine</button>
+          <button class="btn btn-gray btn-sm" onclick="sendNow('month')">📊 Rapport mois</button>
         </div>
+        <p style="font-size:.75rem;color:#555;margin-top:10px;">⏰ Envoi automatique : tous les jours à 22h00 · lundis à 9h00 · 1er du mois à 9h00</p>
+        <p style="font-size:.75rem;color:#555;margin-top:4px;">📧 Destinataires : tous les directeurs avec email + liste ci-dessus</p>
       </div>
     </div>
   </div>
@@ -1338,21 +1342,44 @@ function buildTextReport(period){
   Object.keys(RESTOS).forEach(function(rid){var rIncs=incs.filter(function(i){var e=DB.employees.find(function(x){return x.id===i.empId;});return e&&e.restoId===rid;});txt+='\n— '+RESTOS[rid].label+' ('+rIncs.length+' incidents) —\n';rIncs.forEach(function(i){var emp=DB.employees.find(function(e){return e.id===i.empId;});var dt=new Date(i.datetime||i.createdAt).toLocaleString('fr-FR');var types=i.problems.map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});return p?p.label:pid;}).join(', ');txt+='  '+dt+' | '+(emp?emp.name:'?')+' | '+types+'\n';});});
   return txt;
 }
-function sendNow(period){
-  var ms=DB.mailSettings||{};if(!(ms.recipients&&ms.recipients.length)){toast('Aucun destinataire configuré','error');return;}
-  var body=buildTextReport(period);var pl={today:'Quotidien',week:'Hebdomadaire',month:'Mensuel'};
+async function sendReportEmail(period){
+  var pl={today:'Quotidien',week:'Hebdomadaire',month:'Mensuel'};
+  var body=buildTextReport(period);
   var subj='[BK Suivi] Rapport '+pl[period]+' - '+new Date().toLocaleDateString('fr-FR');
-  var emails=ms.recipients.map(function(r){return r.email;}).join(',');
-  window.open('mailto:'+emails+'?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank');
-  toast('Rapport prêt à envoyer 📧','success');
+  var emails=[];
+  // Directeurs depuis equipe
+  DB.employees.filter(function(e){return e.role==='directeur'&&!e.archived&&e.email;})
+    .forEach(function(e){if(emails.indexOf(e.email)<0)emails.push(e.email);});
+  // Destinataires manuels
+  var ms=DB.mailSettings||{};
+  (ms.recipients||[]).forEach(function(r){if(r.email&&emails.indexOf(r.email)<0)emails.push(r.email);});
+  if(!emails.length){toast('Aucun destinataire — ajoutez des directeurs avec email','error');return;}
+  var sent=0;
+  for(var i=0;i<emails.length;i++){
+    try{
+      await emailjs.send('checklist_bk','template_ijwamd3',{
+        to_email:emails[i],subject:subj,message:body,from_name:'BK Suivi'
+      });
+      sent++;
+    }catch(e){console.error('EmailJS',emails[i],e);}
+  }
+  toast('Rapport envoyé à '+sent+' destinataire'+(sent>1?'s':'')+' ✔','success');
 }
+
+function sendNow(period){ sendReportEmail(period); }
+
 function schedReports(){
   clearInterval(window._schInt);
   window._schInt=setInterval(function(){
-    var ms=DB.mailSettings||{};if(!ms.recipients||!ms.recipients.length)return;
-    var now=new Date();var hm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-    if(hm!==ms.time)return;
-    if(ms.daily)sendNow('today');if(ms.weekly&&now.getDay()===1)sendNow('week');if(ms.monthly&&now.getDate()===1)sendNow('month');
+    var now=new Date();
+    var h=now.getHours();var m=now.getMinutes();
+    var day=now.getDay();var date=now.getDate();
+    // Tous les jours à 22h00
+    if(h===22&&m===0) sendReportEmail('today');
+    // Tous les lundis à 9h00
+    if(day===1&&h===9&&m===0) sendReportEmail('week');
+    // Le 1er du mois à 9h00
+    if(date===1&&h===9&&m===0) sendReportEmail('month');
   },60000);
 }
 
