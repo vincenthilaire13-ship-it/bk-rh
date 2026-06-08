@@ -215,6 +215,7 @@ textarea.fi{resize:vertical;min-height:75px;}
       <div id="pin-err" style="color:var(--red);font-size:.8rem;margin-top:12px;min-height:16px;"></div>
     </div>
   </div>
+  <div id="login-version" style="position:fixed;bottom:10px;left:0;right:0;text-align:center;font-size:.7rem;color:#555;"></div>
 </div>
 
 <div id="app">
@@ -495,6 +496,10 @@ textarea.fi{resize:vertical;min-height:75px;}
 
   <!-- PARAMÈTRES -->
   <div class="page" id="page-parametres">
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div class="sec-title" style="margin-bottom:0;">ℹ️ Version de l'application</div>
+      <span id="app-version-badge" style="background:#1A1A1A;border:1px solid #444;color:var(--orange);padding:5px 14px;border-radius:20px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px;"></span>
+    </div>
     <div class="card">
       <div class="sec-title">🔑 Codes PIN</div>
       <div id="pin-settings" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:11px;"></div>
@@ -612,8 +617,9 @@ textarea.fi{resize:vertical;min-height:75px;}
 
 <script>
 // ══════════════════════════════════════════════════════════════════════════════
-// BKRH v8 — Formulaire public 100% isolé (login+app masqués) + onglets séparés Recrutement / Entretien — 2026-06-08 22:29
+// BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
+const APP_VERSION = '2026-06-08 22:33';
 
 const SUPA_URL = 'https://qggkbtzhkomhldhacohd.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZ2tidHpoa29taGxkaGFjb2hkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNzc0MzIsImV4cCI6MjA5NDc1MzQzMn0.l4W4rH4CFREugjImoRqN8hocmEXFcVqnN1-H78x3S-c';
@@ -784,6 +790,7 @@ function startSync() {
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 (async function() {
+  var lv=document.getElementById('login-version');if(lv)lv.textContent='Version '+APP_VERSION;
   var hash = window.location.hash;
   // Page publique de candidature : affichage immédiat, indépendant du chargement de l'app
   if (hash.indexOf('#postuler') === 0) {
@@ -970,7 +977,7 @@ function goPage(id, btn) {
   if (id==='entretien'){setEntSub(entSub);}
   if (id==='validations') renderLetters();
   if (id==='rapports-auto'){loadMailSettings();renderRcpsList();renderApercuDestinataires();}
-  if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();}
+  if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();var av=document.getElementById('app-version-badge');if(av)av.textContent=APP_VERSION;}
 }
 function setEqTab(btn,r){
   eqTab=r;
