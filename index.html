@@ -716,13 +716,25 @@ textarea.fi{resize:vertical;min-height:75px;}
   </div>
 </div>
 
+<div class="modal-ov" id="modal-dispos">
+  <div class="modal" style="width:600px;max-width:96vw;">
+    <div class="modal-title" id="dispos-title">📅 Disponibilités</div>
+    <p style="font-size:.82rem;color:#aaa;margin-bottom:8px;">Vérifiez et ajustez les disponibilités si elles ont changé pendant l'entretien. Glissez sur les barres pour tracer les créneaux.</p>
+    <div id="dispos-edit-body" style="max-height:55vh;overflow-y:auto;"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end;flex-wrap:wrap;">
+      <button class="btn btn-gray" onclick="closeModal('modal-dispos')">Annuler</button>
+      <button class="btn btn-red" onclick="confirmRetenir()">✅ Retenir et préparer le mail</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '2026-06-09 12:12';
+const APP_VERSION = '2026-06-09 12:55';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
@@ -2064,6 +2076,8 @@ async function candSupprimer(){
   }catch(e){toast('Erreur','error');console.error(e);}
 }
 
+function curCand(){return DB.candidatures.find(function(x){return x.id===_candId;});}
+
 function candConvoquer(){
   var dv=document.getElementById('cand-ent-date').value;
   if(!dv){toast('Choisissez une date d\'entretien','error');return;}
@@ -2072,7 +2086,30 @@ function candConvoquer(){
 function candReprogrammer(){var r=document.getElementById('cand-reprog');if(r)r.style.display='block';}
 
 function candRetenir(){
-  _candUpdate({statut:'retenu',note_interne:document.getElementById('cand-note').value.trim()},'Candidat retenu ✔',function(){mailRetenu();});
+  var c=curCand();if(!c)return;
+  document.getElementById('dispos-title').textContent='📅 Disponibilités — '+c.prenom+' '+c.nom;
+  var amp=getAmplitude();
+  // pré-remplir dispoState avec les créneaux existants du candidat
+  dispoState={};
+  var body=document.getElementById('dispos-edit-body');
+  body.innerHTML=JOURS.map(function(j){
+    var d=(c.dispos||{})[j[0]];
+    dispoState[j[0]]=(d&&d.creneaux)?d.creneaux.map(function(x){return {from:x.from,to:x.to};}):[];
+    return jourBlockHtml(j[0],j[1],amp);
+  }).join('');
+  document.getElementById('modal-dispos').classList.add('open');
+  JOURS.forEach(function(j){initJourBar(j[0]);});
+}
+
+function confirmRetenir(){
+  var dispos={};
+  JOURS.forEach(function(j){
+    var arr=(dispoState[j[0]]||[]).slice().sort(function(x,y){return x.from-y.from;});
+    var creneaux=arr.map(function(c){return {from:c.from,to:c.to};});
+    dispos[j[0]]={on:creneaux.length>0,creneaux:creneaux};
+  });
+  closeModal('modal-dispos');
+  _candUpdate({statut:'retenu',dispos:dispos,note_interne:document.getElementById('cand-note').value.trim()},'Candidat retenu ✔',function(){mailDocuments();});
 }
 
 function candRefuser(){
