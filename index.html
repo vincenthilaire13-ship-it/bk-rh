@@ -177,6 +177,7 @@ textarea.fi{resize:vertical;min-height:75px;}
       <div style="font-size:3.2rem;">👑</div>
       <h2 style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.9rem;color:#F5A623;text-transform:uppercase;letter-spacing:3px;margin-top:6px;">BKRH</h2>
       <p style="color:#888;font-size:.83rem;margin-top:4px;">Sélectionnez votre accès</p>
+      <div id="login-maj" style="display:inline-block;margin-top:12px;background:rgba(76,175,80,.12);border:1px solid #4CAF50;color:#4CAF50;padding:5px 16px;border-radius:20px;font-size:.8rem;font-weight:600;"></div>
     </div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:20px;">
       <div class="tile tile-admin" onclick="pickGlobal('admin')"><div class="tile-icon">🛡️</div><div class="tile-label">Admin</div><div class="tile-sub">Accès total</div></div>
@@ -706,7 +707,15 @@ textarea.fi{resize:vertical;min-height:75px;}
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '2026-06-09 11:07';
+const APP_VERSION = '2026-06-09 11:09';
+function formatMajDate(v){
+  // v = 'YYYY-MM-DD HH:MM'
+  try{
+    var mois=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+    var p=v.split(' ');var d=p[0].split('-');var h=(p[1]||'').split(':');
+    return parseInt(d[2],10)+' '+mois[parseInt(d[1],10)-1]+' '+d[0]+' à '+h[0]+'h'+h[1];
+  }catch(e){return v;}
+}
 
 const SUPA_URL = 'https://qggkbtzhkomhldhacohd.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZ2tidHpoa29taGxkaGFjb2hkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNzc0MzIsImV4cCI6MjA5NDc1MzQzMn0.l4W4rH4CFREugjImoRqN8hocmEXFcVqnN1-H78x3S-c';
@@ -878,7 +887,9 @@ function startSync() {
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 (async function() {
+  var majTxt='Mise à jour : '+formatMajDate(APP_VERSION);
   var lv=document.getElementById('login-version');if(lv)lv.textContent='Version '+APP_VERSION;
+  var lm=document.getElementById('login-maj');if(lm)lm.textContent='✓ '+majTxt;
   var hash = window.location.hash;
   // Page publique de candidature : affichage immédiat, indépendant du chargement de l'app
   if (hash.indexOf('#postuler') === 0) {
