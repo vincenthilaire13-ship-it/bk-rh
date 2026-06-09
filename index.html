@@ -569,6 +569,7 @@ textarea.fi{resize:vertical;min-height:75px;}
 
       <div id="mt-tabs" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
         <button class="rtab on" onclick="setMailTab(this,'retenu')">✅ Retenu</button>
+        <button class="rtab" onclick="setMailTab(this,'documents')">📄 Documents</button>
         <button class="rtab" onclick="setMailTab(this,'entretien')">📅 Entretien</button>
         <button class="rtab" onclick="setMailTab(this,'refus')">❌ Refus</button>
       </div>
@@ -721,7 +722,7 @@ textarea.fi{resize:vertical;min-height:75px;}
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '2026-06-09 11:42';
+const APP_VERSION = '2026-06-09 12:03';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
@@ -865,7 +866,9 @@ async function loadAll() {
       transport:c.transport||'',trajet:c.trajet||'',adresse:c.adresse||'',nationalite:c.nationalite||'',photo:c.photo||'',
       cvData:c.cv_data||'',cvName:c.cv_name||'',
       onboarding:c.onboarding||{},dateDebut:c.date_debut||'',essaiRappels:c.essai_rappels||{},
-      avisManagers:c.avis_managers||[],refusMotif:c.refus_motif||''};
+      avisManagers:c.avis_managers||[],refusMotif:c.refus_motif||'',
+      documents:c.documents||{},contactUrgence:c.contact_urgence||{},taillesTenue:c.tailles_tenue||'',
+      bkuIdentifiant:c.bku_identifiant||'',bkuMotdepasse:c.bku_motdepasse||'',docsSoumis:!!c.docs_soumis};
   });
   const sett = settArr && settArr[0];
   if (sett) {
@@ -916,6 +919,12 @@ function startSync() {
       .finally(function(){ if(!document.getElementById('postuler-body')){ try{showPostulerPage(rid);}catch(e){showPostulerPage(rid);} } });
     // Filet de sécurité : si la requête traîne, on affiche quand même au bout de 1,2s
     setTimeout(function(){ if(!document.getElementById('postuler-body')) { try{showPostulerPage(rid);}catch(e){} } }, 1200);
+    return;
+  }
+  // Page publique de dépôt des documents (candidat retenu)
+  if (hash.indexOf('#documents') === 0) {
+    var cid = hash.indexOf('/') >= 0 ? hash.split('/')[1] : '';
+    showDocsPage(cid);
     return;
   }
   try {
@@ -2072,6 +2081,10 @@ var MAIL_DEFAULTS={
   refus:{
     sujet:'Votre candidature chez {resto}',
     corps:'Bonjour {prenom},\n\nNous vous remercions pour l\'intérêt que vous portez à notre restaurant et pour le temps consacré à votre candidature.\n\nAprès étude, nous ne sommes pas en mesure de donner une suite favorable à votre candidature pour le moment.\n\nNous conservons vos coordonnées et nous nous permettrons de revenir vers vous si une opportunité correspondant à votre profil se présente.\n\nNous vous souhaitons une pleine réussite dans vos recherches.\n\nCordialement,\nL\'équipe {resto}'
+  },
+  documents:{
+    sujet:'Votre intégration chez {resto} — documents à fournir',
+    corps:'Bonjour {prenom},\n\nAfin de préparer au mieux votre intégration dans notre entreprise, nous vous remercions de déposer les documents suivants via ce lien sécurisé :\n{lien_docs}\n\nDocuments demandés :\n- Votre CV\n- Photocopie de votre carte d\'identité recto/verso\n- Justificatif de domicile de -3 mois\n- Carte vitale\n- Attestation CPAM\n- Si vous disposez déjà d\'une mutuelle ou d\'une complémentaire Santé Solidaire, votre attestation pour être dispensé de la mutuelle obligatoire du restaurant. Sinon, un courrier signé indiquant que vous souhaitez adhérer à la mutuelle obligatoire du restaurant.\n- RIB français\n- Si votre contrat est inférieur à 24h/semaine : une demande signée de contrat inférieur à 24h\n\nMerci de préciser également (directement sur le lien ou par retour de mail) :\n- Les coordonnées d\'une personne à contacter en cas d\'urgence (nom/prénom + numéro de téléphone)\n- Vos tailles de tenues\n\nD\'autre part, avant votre intégration il est impératif que vous ayez effectué les vidéos de formation réglementaires.\n\nVoici vos identifiants de connexion :\nhttp://www.burgerkinguniversity.com\nIdentifiant : {bku_id}\nMot de passe : {bku_mdp}\n\nMerci de nous prévenir par mail lorsqu\'elles sont faites.\n\nVotre intégration est prévue le {date_integration}, à condition que les vidéos soient terminées la veille au soir.\n\nUne fois l\'ensemble des documents réceptionné et les vidéos effectuées, vous recevrez un mail vous informant que votre contrat de travail est disponible pour signature électronique.\n\nJe reste disponible pour tout complément d\'informations,\n\nCordialement,\nL\'équipe {resto}'
   }
 };
 function getMailTpl(){
@@ -2080,13 +2093,20 @@ function getMailTpl(){
     expediteur:m.expediteur||MAIL_DEFAULTS.expediteur,
     entretien:m.entretien||MAIL_DEFAULTS.entretien,
     retenu:m.retenu||MAIL_DEFAULTS.retenu,
-    refus:m.refus||MAIL_DEFAULTS.refus
+    refus:m.refus||MAIL_DEFAULTS.refus,
+    documents:m.documents||MAIL_DEFAULTS.documents
   };
 }
 function _restoLabel(c){return RESTOS[c.restoId]?RESTOS[c.restoId].label:'Burger King';}
 function _fillTpl(txt,c,dateStr){
+  var lienDocs=publicBaseUrl()+'#documents/'+c.id;
+  var dInt=c.dateDebut?new Date(c.dateDebut+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}):'(à préciser)';
   return (txt||'').replace(/{prenom}/g,c.prenom||'').replace(/{nom}/g,c.nom||'')
-    .replace(/{resto}/g,_restoLabel(c)).replace(/{date}/g,dateStr||'');
+    .replace(/{resto}/g,_restoLabel(c)).replace(/{date}/g,dateStr||'')
+    .replace(/{lien_docs}/g,lienDocs)
+    .replace(/{bku_id}/g,c.bkuIdentifiant||'__________')
+    .replace(/{bku_mdp}/g,c.bkuMotdepasse||'__________')
+    .replace(/{date_integration}/g,dInt);
 }
 function _mailto(c,subject,body){
   var tpl=getMailTpl();
@@ -2113,6 +2133,11 @@ function mailRefus(){
   var tpl=getMailTpl();
   _mailto(c,_fillTpl(tpl.refus.sujet,c),_fillTpl(tpl.refus.corps,c));
 }
+function mailDocuments(){
+  var c=curCand();if(!c)return;
+  var tpl=getMailTpl();
+  _mailto(c,_fillTpl(tpl.documents.sujet,c),_fillTpl(tpl.documents.corps,c));
+}
 
 // ── ACTIONS : RETENU (intégration) ────────────────────────────────────────────
 async function _candUpdate(patch,msg,after){
@@ -2128,6 +2153,52 @@ async function _candUpdate(patch,msg,after){
   }catch(e){toast('Erreur','error');console.error(e);}
 }
 
+// ── DOCUMENTS D'INTÉGRATION ───────────────────────────────────────────────────
+var DOC_TYPES=[
+  {id:'cv',label:'CV'},
+  {id:'cni',label:'Carte d\'identité (recto/verso)'},
+  {id:'domicile',label:'Justificatif de domicile (-3 mois)'},
+  {id:'vitale',label:'Carte vitale'},
+  {id:'cpam',label:'Attestation CPAM'},
+  {id:'mutuelle',label:'Attestation mutuelle OU courrier d\'adhésion'},
+  {id:'rib',label:'RIB français'},
+  {id:'moins24h',label:'Demande contrat < 24h (si concerné)'}
+];
+
+function renderDocsRecap(c){
+  var docs=c.documents||{};
+  var rows=DOC_TYPES.map(function(d){
+    var has=docs[d.id]&&docs[d.id].data;
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:.8rem;">'
+      +'<span style="color:'+(has?'#4CAF50':'#888')+';">'+(has?'✓':'○')+' '+d.label+'</span>'
+      +(has?'<button class="btn btn-gray btn-sm" style="padding:2px 8px;font-size:.7rem;" onclick="downloadDoc(\''+c.id+'\',\''+d.id+'\')">Voir</button>':'')
+      +'</div>';
+  }).join('');
+  var extra='';
+  if(c.contactUrgence&&c.contactUrgence.nom)extra+='<div style="margin-top:8px;font-size:.78rem;color:#ccc;">🆘 Urgence : '+c.contactUrgence.nom+' — '+(c.contactUrgence.tel||'')+'</div>';
+  if(c.taillesTenue)extra+='<div style="font-size:.78rem;color:#ccc;">👕 Tailles : '+c.taillesTenue+'</div>';
+  return rows+extra;
+}
+
+function downloadDoc(cid,docId){
+  var c=DB.candidatures.find(function(x){return x.id===cid;});
+  if(!c||!c.documents||!c.documents[docId])return;
+  var d=c.documents[docId];
+  var a=document.createElement('a');a.href=d.data;a.download=d.name||docId;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+async function prepareMailDocs(){
+  var c=curCand();if(!c)return;
+  var id=document.getElementById('cand-bku-id').value.trim();
+  var mdp=document.getElementById('cand-bku-mdp').value.trim();
+  c.bkuIdentifiant=id;c.bkuMotdepasse=mdp;
+  try{
+    await sb.patch('bks_candidatures','id=eq.'+_candId,{bku_identifiant:id,bku_motdepasse:mdp,updated_at:new Date().toISOString()});
+    mailDocuments();
+  }catch(e){toast('Erreur','error');}
+}
+
 function candRetenuActionsHtml(c){
   var ob=c.onboarding||{};
   var steps=ONBOARD_STEPS.map(function(s){
@@ -2138,15 +2209,28 @@ function candRetenuActionsHtml(c){
   var done=onboardDone(c);
   var dateVal=c.dateDebut||'';
   var canStart=done.complete&&c.dateDebut;
+  // pièces reçues du candidat
+  var docs=c.documents||{};
+  var docCount=Object.keys(docs).filter(function(k){return docs[k]&&docs[k].data;}).length;
   return '<div style="background:#1A1A1A;border-radius:8px;padding:12px;">'
     +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
     +'<span style="font-size:.85rem;color:#4CAF50;font-weight:600;">✅ Candidat retenu</span>'
     +'<span style="font-size:.78rem;color:#888;">Intégration '+done.done+'/'+done.total+'</span></div>'
-    +'<button class="btn btn-gray btn-sm" onclick="mailRetenu()" style="margin-bottom:12px;">✉️ Renvoyer le mail (documents + vidéos)</button>'
+
+    +'<div class="flabel" style="margin-top:6px;">🎓 Identifiants Burger King University</div>'
+    +'<div class="form-row" style="margin-bottom:6px;">'
+    +'<div><input type="text" id="cand-bku-id" class="fi" placeholder="Identifiant" value="'+(c.bkuIdentifiant||'').replace(/"/g,'&quot;')+'"></div>'
+    +'<div><input type="text" id="cand-bku-mdp" class="fi" placeholder="Mot de passe" value="'+(c.bkuMotdepasse||'').replace(/"/g,'&quot;')+'"></div></div>'
+    +'<div class="flabel">📆 Date de démarrage</div>'
+    +'<input type="date" id="cand-debut" class="fi" value="'+dateVal+'" onchange="setDateDebut(this.value)" style="margin-bottom:8px;">'
+    +'<button class="btn btn-red btn-sm" onclick="prepareMailDocs()" style="margin-bottom:6px;">✉️ Enregistrer & ouvrir le mail « documents »</button>'
+    +'<p style="font-size:.72rem;color:#666;margin-bottom:12px;">Renseignez l\'identifiant, le mot de passe et la date, puis ouvrez le mail (modifiable avant envoi). Le candidat reçoit le lien pour déposer ses pièces.</p>'
+
+    +'<div class="flabel">📎 Pièces déposées par le candidat'+(c.docsSoumis?' <span style="color:#4CAF50;">(soumises)</span>':'')+'</div>'
+    +'<div style="background:#141414;border-radius:6px;padding:10px;margin-bottom:12px;">'+renderDocsRecap(c)+'</div>'
+
     +'<div class="flabel">Étapes d\'intégration</div>'
     +'<div style="margin-bottom:12px;">'+steps+'</div>'
-    +'<div class="flabel">📆 Date de démarrage</div>'
-    +'<input type="date" id="cand-debut" class="fi" value="'+dateVal+'" onchange="setDateDebut(this.value)" style="margin-bottom:12px;">'
     +'<button class="btn btn-red btn-sm" '+(canStart?'':'disabled style="opacity:.4;cursor:not-allowed;"')+' onclick="candDemarrer()">🚀 Démarrer la période d\'essai</button>'
     +(canStart?'':'<p style="font-size:.74rem;color:#666;margin-top:6px;">Cochez toutes les étapes et fixez une date de démarrage pour activer.</p>')
     +'<div style="margin-top:10px;"><button class="btn btn-gray btn-sm" style="color:#cc5555;border-color:#5a2020;" onclick="candRefuser()">❌ Finalement refuser</button></div>'
@@ -2247,6 +2331,86 @@ function minToLabel(m){
 }
 
 var dispoState={}; // {lun:[{from,to},...], ...} — liste de créneaux par jour
+
+// ── PAGE PUBLIQUE : DÉPÔT DES DOCUMENTS (candidat retenu) ─────────────────────
+var _docsCand=null,_docsData={};
+async function showDocsPage(cid){
+  document.getElementById('loading-screen').style.display='none';
+  var ls=document.getElementById('login-screen');if(ls)ls.style.display='none';
+  var ap=document.getElementById('app');if(ap)ap.style.display='none';
+  try{
+    var arr=await sb.get('bks_candidatures','select=id,prenom,nom,resto_id,documents,contact_urgence,tailles_tenue&id=eq.'+cid);
+    _docsCand=arr&&arr[0]?arr[0]:null;
+  }catch(e){_docsCand=null;}
+  var sp=document.createElement('div');sp.style.cssText='min-height:100vh;background:#1A1A1A;';
+  if(!_docsCand){
+    sp.innerHTML='<div style="max-width:560px;margin:0 auto;padding:60px 20px;text-align:center;color:#aaa;"><div style="font-size:3rem;">🔒</div><p>Ce lien n\'est pas valide ou a expiré. Merci de contacter le restaurant.</p></div>';
+    document.body.prepend(sp);return;
+  }
+  _docsData=(_docsCand.documents)||{};
+  var cu=_docsCand.contact_urgence||{};
+  var rows=DOC_TYPES.map(function(d){
+    var has=_docsData[d.id]&&_docsData[d.id].data;
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #2A2A2A;">'
+      +'<div id="doc-ic-'+d.id+'" style="width:26px;text-align:center;color:'+(has?'#4CAF50':'#666')+';">'+(has?'✓':'○')+'</div>'
+      +'<div style="flex:1;min-width:0;"><div style="font-size:.85rem;color:#ddd;">'+d.label+'</div><div id="doc-nm-'+d.id+'" style="font-size:.72rem;color:#4CAF50;">'+(has?(_docsData[d.id].name||'fichier'):'')+'</div></div>'
+      +'<input type="file" id="doc-in-'+d.id+'" accept="application/pdf,image/*" style="display:none;" onchange="handleDocFile(\''+d.id+'\',this)">'
+      +'<button type="button" class="btn btn-gray btn-sm" onclick="document.getElementById(\'doc-in-'+d.id+'\').click()">📎</button>'
+      +'</div>';
+  }).join('');
+  sp.innerHTML='<div style="background:linear-gradient(135deg,#D62300,#8B1500);padding:18px 24px;text-align:center;">'
+    +'<div style="font-size:2rem;">👑</div>'
+    +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.6rem;color:#F5A623;text-transform:uppercase;letter-spacing:2px;">Votre intégration</div>'
+    +'<div style="color:#fff;font-size:.85rem;opacity:.9;margin-top:3px;">Bonjour '+_docsCand.prenom+', déposez vos documents ci-dessous</div></div>'
+    +'<div style="max-width:560px;margin:0 auto;padding:20px 16px 60px;" id="docs-body">'
+    +'<div class="card"><div class="sec-title">📎 Vos documents</div>'
+    +'<p style="font-size:.78rem;color:#aaa;margin-bottom:10px;">Ajoutez chaque pièce (PDF ou photo). Vous pouvez compléter en plusieurs fois.</p>'+rows+'</div>'
+    +'<div class="card"><div class="sec-title">🆘 Contact en cas d\'urgence</div>'
+    +'<div class="form-row"><div><label class="flabel">Nom et prénom</label><input type="text" id="doc-urg-nom" class="fi" value="'+(cu.nom||'').replace(/"/g,'&quot;')+'"></div>'
+    +'<div><label class="flabel">Téléphone</label><input type="tel" id="doc-urg-tel" class="fi" value="'+(cu.tel||'').replace(/"/g,'&quot;')+'"></div></div></div>'
+    +'<div class="card"><div class="sec-title">👕 Tailles de tenues</div>'
+    +'<input type="text" id="doc-tailles" class="fi" placeholder="Ex : Haut M, Pantalon 42, Chaussures 43" value="'+(_docsCand.tailles_tenue||'').replace(/"/g,'&quot;')+'"></div>'
+    +'<button class="btn btn-red" style="width:100%;padding:14px;font-size:1.05rem;" onclick="submitDocs()">📤 Envoyer mes documents</button>'
+    +'<p style="font-size:.72rem;color:#666;text-align:center;margin-top:12px;">Vos documents sont transmis de façon sécurisée au service RH.</p>'
+    +'</div>';
+  document.body.prepend(sp);
+}
+
+function handleDocFile(docId,input){
+  var file=input.files&&input.files[0];if(!file)return;
+  if(file.size>5*1024*1024){alert('Fichier trop volumineux (max 5 Mo).');input.value='';return;}
+  var reader=new FileReader();
+  reader.onload=function(e){
+    _docsData[docId]={data:e.target.result,name:file.name};
+    document.getElementById('doc-ic-'+docId).textContent='✓';
+    document.getElementById('doc-ic-'+docId).style.color='#4CAF50';
+    document.getElementById('doc-nm-'+docId).textContent=file.name;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitDocs(){
+  if(!_docsCand)return;
+  var patch={
+    documents:_docsData,
+    contact_urgence:{nom:document.getElementById('doc-urg-nom').value.trim(),tel:document.getElementById('doc-urg-tel').value.trim()},
+    tailles_tenue:document.getElementById('doc-tailles').value.trim(),
+    docs_soumis:true,
+    updated_at:new Date().toISOString()
+  };
+  var btn=event&&event.target;if(btn){btn.disabled=true;btn.textContent='Envoi...';}
+  try{
+    await sb.patch('bks_candidatures','id=eq.'+_docsCand.id,patch);
+    document.getElementById('docs-body').innerHTML='<div style="text-align:center;padding:60px 20px;">'
+      +'<div style="font-size:3.5rem;">✅</div>'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.5rem;font-weight:700;color:#4CAF50;margin-top:14px;">Documents envoyés !</div>'
+      +'<p style="color:#aaa;margin-top:10px;line-height:1.6;">Merci '+_docsCand.prenom+' ! Vos documents ont bien été transmis. Vous pouvez revenir sur ce lien pour en ajouter d\'autres.<br><br>N\'oubliez pas de réaliser vos vidéos de formation et de nous prévenir une fois terminées.</p></div>';
+    window.scrollTo(0,0);
+  }catch(e){
+    if(btn){btn.disabled=false;btn.textContent='📤 Envoyer mes documents';}
+    alert('Une erreur est survenue. Merci de réessayer.');console.error(e);
+  }
+}
 
 function showPostulerPage(presetResto){
   document.getElementById('loading-screen').style.display='none';
