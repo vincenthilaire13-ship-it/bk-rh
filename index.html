@@ -174,7 +174,19 @@ textarea.fi{resize:vertical;min-height:75px;}
 <div id="login-screen">
   <div class="login-step" id="step-resto">
     <div style="text-align:center;margin-bottom:32px;">
-      <div style="font-size:3.2rem;">👑</div>
+      <div style="display:flex;justify-content:center;">
+        <svg width="84" height="84" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="lg-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF8732"/><stop offset="1" stop-color="#D62300"/></linearGradient>
+            <linearGradient id="lg-ring" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFC95C"/><stop offset="1" stop-color="#F5A623"/></linearGradient>
+          </defs>
+          <circle cx="100" cy="100" r="92" fill="url(#lg-bg)"/>
+          <circle cx="100" cy="100" r="92" fill="none" stroke="url(#lg-ring)" stroke-width="6"/>
+          <g opacity="0.55" fill="#FFE3B0"><circle cx="72" cy="78" r="17"/><path d="M44 138 c0 -20 13 -34 28 -34 s28 14 28 34 z"/></g>
+          <g opacity="0.55" fill="#FFE3B0"><circle cx="128" cy="78" r="17"/><path d="M100 138 c0 -20 13 -34 28 -34 s28 14 28 34 z"/></g>
+          <g fill="#FFFFFF"><circle cx="100" cy="70" r="22"/><path d="M64 150 c0 -25 16 -44 36 -44 s36 19 36 44 z"/></g>
+        </svg>
+      </div>
       <h2 style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.9rem;color:#F5A623;text-transform:uppercase;letter-spacing:3px;margin-top:6px;">BKRH</h2>
       <p style="color:#888;font-size:.83rem;margin-top:4px;">Sélectionnez votre accès</p>
       <div id="login-maj" style="display:inline-block;margin-top:12px;background:rgba(76,175,80,.12);border:1px solid #4CAF50;color:#4CAF50;padding:5px 16px;border-radius:20px;font-size:.8rem;font-weight:600;"></div>
@@ -707,7 +719,7 @@ textarea.fi{resize:vertical;min-height:75px;}
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '2026-06-09 11:09';
+const APP_VERSION = '2026-06-09 11:11';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
