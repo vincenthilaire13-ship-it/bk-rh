@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%91%91%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%91%91%3C/text%3E%3C/svg%3E">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <script>emailjs.init("BSFTPjQ82p7MQPrVx");</script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -174,19 +176,7 @@ textarea.fi{resize:vertical;min-height:75px;}
 <div id="login-screen">
   <div class="login-step" id="step-resto">
     <div style="text-align:center;margin-bottom:32px;">
-      <div style="display:flex;justify-content:center;">
-        <svg width="84" height="84" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="lg-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF8732"/><stop offset="1" stop-color="#D62300"/></linearGradient>
-            <linearGradient id="lg-ring" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFC95C"/><stop offset="1" stop-color="#F5A623"/></linearGradient>
-          </defs>
-          <circle cx="100" cy="100" r="92" fill="url(#lg-bg)"/>
-          <circle cx="100" cy="100" r="92" fill="none" stroke="url(#lg-ring)" stroke-width="6"/>
-          <g opacity="0.55" fill="#FFE3B0"><circle cx="72" cy="78" r="17"/><path d="M44 138 c0 -20 13 -34 28 -34 s28 14 28 34 z"/></g>
-          <g opacity="0.55" fill="#FFE3B0"><circle cx="128" cy="78" r="17"/><path d="M100 138 c0 -20 13 -34 28 -34 s28 14 28 34 z"/></g>
-          <g fill="#FFFFFF"><circle cx="100" cy="70" r="22"/><path d="M64 150 c0 -25 16 -44 36 -44 s36 19 36 44 z"/></g>
-        </svg>
-      </div>
+      <div style="font-size:3.2rem;">👑</div>
       <h2 style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.9rem;color:#F5A623;text-transform:uppercase;letter-spacing:3px;margin-top:6px;">BKRH</h2>
       <p style="color:#888;font-size:.83rem;margin-top:4px;">Sélectionnez votre accès</p>
       <div id="login-maj" style="display:inline-block;margin-top:12px;background:rgba(76,175,80,.12);border:1px solid #4CAF50;color:#4CAF50;padding:5px 16px;border-radius:20px;font-size:.8rem;font-weight:600;"></div>
@@ -243,7 +233,7 @@ textarea.fi{resize:vertical;min-height:75px;}
 
 <div id="app">
   <header>
-    <h1>BK<span>RH</span></h1>
+    <h1>👑 BK<span>RH</span></h1>
     <div id="user-info">
       <span id="uname"></span>
       <span id="role-badge"></span>
@@ -714,7 +704,7 @@ textarea.fi{resize:vertical;min-height:75px;}
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '2026-06-09 11:23';
+const APP_VERSION = '2026-06-09 11:31';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
@@ -855,7 +845,7 @@ async function loadAll() {
       motivation:c.motivation||'',statut:c.statut||'nouveau',entretienDate:c.entretien_date||null,
       noteInterne:c.note_interne||'',createdAt:c.created_at,
       dateNaissance:c.date_naissance||'',etudiant:!!c.etudiant,rqth:c.rqth||'',dernierEmploi:c.dernier_emploi||'',
-      transport:c.transport||'',trajet:c.trajet||'',adresse:c.adresse||'',photo:c.photo||'',
+      transport:c.transport||'',trajet:c.trajet||'',adresse:c.adresse||'',nationalite:c.nationalite||'',photo:c.photo||'',
       cvData:c.cv_data||'',cvName:c.cv_name||'',
       onboarding:c.onboarding||{},dateDebut:c.date_debut||'',essaiRappels:c.essai_rappels||{},
       avisManagers:c.avis_managers||[],refusMotif:c.refus_motif||''};
@@ -1969,6 +1959,7 @@ function openCand(id){
     +'<div><div class="flabel">Restaurant</div><span style="color:#eee;">'+(RESTOS[c.restoId]?RESTOS[c.restoId].label:c.restoId)+'</span></div>'
     +'<div><div class="flabel">Transport</div><span style="color:#eee;font-size:.85rem;">'+(c.transport||'—')+(c.trajet?' · '+c.trajet:'')+'</span></div>'
     +'<div><div class="flabel">Dernier emploi</div><span style="color:#eee;font-size:.85rem;">'+(c.dernierEmploi||'—')+'</span></div>'
+    +'<div><div class="flabel">Nationalité</div><span style="color:#eee;font-size:.85rem;">'+(c.nationalite||'—')+'</span></div>'
     +'<div style="grid-column:1/-1;"><div class="flabel">Adresse</div><span style="color:#eee;font-size:.85rem;">'+(c.adresse||'—')+'</span></div>'
     +(c.cvData?'<div style="grid-column:1/-1;"><div class="flabel">CV</div><button class="btn btn-gray btn-sm" onclick="downloadCV(\''+c.id+'\')">📄 Télécharger le CV'+(c.cvName?' ('+c.cvName+')':'')+'</button></div>':'')
     +'</div>'
@@ -2252,7 +2243,7 @@ function showPostulerPage(presetResto){
     +'<div class="form-row"><div><label class="flabel">Date de naissance *</label><input type="date" id="p-naissance" class="fi"></div>'
     +'<div><label class="flabel">Téléphone *</label><input type="tel" id="p-phone" class="fi" placeholder="06 00 00 00 00"></div></div>'
     +'<div class="form-row"><div><label class="flabel">Email *</label><input type="email" id="p-email" class="fi" placeholder="vous@email.com"></div>'
-    +'<div><label class="flabel">Restaurant souhaité *</label><select id="p-resto" class="fi">'+restoOpts+'</select></div></div>'
+    +'<div><label class="flabel">Nationalité *</label><input type="text" id="p-nationalite" class="fi" placeholder="Ex : Française"></div></div>'
     +'<div style="margin-bottom:14px;"><label class="flabel">Adresse postale *</label><input type="text" id="p-adresse" class="fi" placeholder="N°, rue, code postal, ville"></div>'
     +'<div class="form-row"><div><label class="flabel">Poste souhaité *</label><select id="p-poste" class="fi" onchange="togglePosteApprenti()">'+posteOpts+'</select></div>'
     +'<div><label class="flabel">Êtes-vous étudiant(e) ? *</label><select id="p-etudiant" class="fi"><option value="non">Non</option><option value="oui">Oui</option></select></div></div>'
@@ -2270,6 +2261,11 @@ function showPostulerPage(presetResto){
     +'<div style="margin-top:12px;"><label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Combien de temps mettez-vous pour venir travailler ? *</label>'
     +'<select id="p-trajet" class="fi" style="margin-top:5px;"><option value="">— Choisir —</option>'
     +'<option>Moins de 10 min</option><option>10 à 20 min</option><option>20 à 30 min</option><option>30 à 45 min</option><option>Plus de 45 min</option></select></div></div>'
+    +'<div class="card"><div class="sec-title">🍔 Dans quel restaurant ?</div>'
+    +'<p style="font-size:.8rem;color:#aaa;margin-bottom:10px;">Nous avons trois restaurants. Choisissez celui où vous souhaitez travailler :</p>'
+    +'<div id="p-resto-choice" style="display:flex;flex-direction:column;gap:8px;">'
+    +Object.keys(PUBLIC_RESTOS).map(function(k){return '<label style="display:flex;align-items:center;gap:10px;background:#1A1A1A;border:2px solid #333;border-radius:10px;padding:12px 14px;cursor:pointer;" onclick="pickRestoChoice(this,\''+k+'\')"><span style="font-size:1.4rem;">🍔</span><span style="font-weight:600;color:#eee;">'+PUBLIC_RESTOS[k]+'</span></label>';}).join('')
+    +'</div><input type="hidden" id="p-resto" value=""></div>'
     +'<div class="card"><div class="sec-title">📅 Vos disponibilités</div>'
     +'<div style="background:#1A1208;border:1px solid #4A3000;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:.8rem;color:#ddd;line-height:1.5;">'
     +'🍔 Le restaurant accueille la clientèle de <strong style="color:var(--orange);">11h à minuit</strong>.<br>'
@@ -2282,11 +2278,16 @@ function showPostulerPage(presetResto){
     +'<div><label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Pourquoi voulez-vous travailler chez nous ? *</label>'
     +'<textarea id="p-motivation" class="fi" style="min-height:70px;margin-top:5px;" placeholder="Dites-nous en quelques mots ce qui vous motive..."></textarea></div></div>'
     +'<div class="card"><div class="sec-title">📷 Votre photo</div>'
-    +'<p style="font-size:.8rem;color:#aaa;margin-bottom:10px;">Ajoutez une petite photo de vous (facultatif mais apprécié).</p>'
+    +'<p style="font-size:.8rem;color:#aaa;margin-bottom:10px;">Ajoutez une photo de vous : choisissez-en une, ou prenez-vous en photo maintenant (facultatif mais apprécié).</p>'
     +'<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">'
     +'<div id="p-photo-preview" style="width:90px;height:90px;border-radius:12px;background:#1A1A1A;border:2px dashed #444;display:flex;align-items:center;justify-content:center;font-size:2rem;color:#555;">📷</div>'
-    +'<div><input type="file" id="p-photo-input" accept="image/*" style="display:none;" onchange="handlePhoto(this)">'
-    +'<button type="button" class="btn btn-gray btn-sm" onclick="document.getElementById(\'p-photo-input\').click()">Choisir une photo</button>'
+    +'<div style="flex:1;min-width:180px;">'
+    +'<input type="file" id="p-photo-input" accept="image/*" style="display:none;" onchange="handlePhoto(this)">'
+    +'<input type="file" id="p-photo-cam" accept="image/*" capture="user" style="display:none;" onchange="handlePhoto(this)">'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+    +'<button type="button" class="btn btn-gray btn-sm" onclick="document.getElementById(\'p-photo-cam\').click()">📸 Me prendre en photo</button>'
+    +'<button type="button" class="btn btn-gray btn-sm" onclick="document.getElementById(\'p-photo-input\').click()">🖼️ Choisir une photo</button>'
+    +'</div>'
     +'<p style="font-size:.72rem;color:#666;margin-top:6px;">La photo est réduite automatiquement.</p></div></div></div>'
     +'<div class="card"><div class="sec-title">📄 Votre CV</div>'
     +'<p style="font-size:.8rem;color:#aaa;margin-bottom:10px;">Joignez votre CV (PDF ou image, facultatif).</p>'
@@ -2398,6 +2399,12 @@ function togglePosteApprenti(){
   if(row)row.style.display=(poste==='Apprenti')?'block':'none';
 }
 
+function pickRestoChoice(el,resto){
+  document.querySelectorAll('#p-resto-choice label').forEach(function(l){l.style.border='2px solid #333';l.style.background='#1A1A1A';});
+  el.style.border='2px solid var(--orange)';el.style.background='#2A1800';
+  document.getElementById('p-resto').value=resto;
+}
+
 function handleCV(input){
   var file=input.files&&input.files[0];if(!file)return;
   if(file.size>4*1024*1024){alert('Le CV est trop volumineux (max 4 Mo). Merci de le compresser.');input.value='';return;}
@@ -2440,6 +2447,7 @@ async function submitPostuler(){
   var transport=document.getElementById('p-transport').value;
   var trajet=document.getElementById('p-trajet').value;
   var adresse=document.getElementById('p-adresse').value.trim();
+  var nationalite=document.getElementById('p-nationalite').value.trim();
   var poste=document.getElementById('p-poste').value;
   var resto=document.getElementById('p-resto').value;
   var niveau=document.getElementById('p-niveau')?document.getElementById('p-niveau').value:'';
@@ -2449,11 +2457,12 @@ async function submitPostuler(){
   if(!naissance){alert('Merci d\'indiquer votre date de naissance.');return;}
   if(!phone){alert('Merci d\'indiquer votre téléphone.');return;}
   if(!email||email.indexOf('@')<0){alert('Merci d\'indiquer un email valide.');return;}
-  if(!resto){alert('Merci de choisir le restaurant souhaité.');return;}
+  if(!nationalite){alert('Merci d\'indiquer votre nationalité.');return;}
   if(!adresse){alert('Merci d\'indiquer votre adresse postale.');return;}
   if(poste==='Apprenti'&&!niveau){alert('Merci d\'indiquer votre niveau d\'apprentissage.');return;}
   if(!transport){alert('Merci d\'indiquer votre moyen de transport.');return;}
   if(!trajet){alert('Merci d\'indiquer votre temps de trajet.');return;}
+  if(!resto){alert('Merci de choisir le restaurant souhaité.');return;}
   if(!motivation){alert('Merci d\'expliquer pourquoi vous voulez travailler chez nous.');return;}
   var dispos={};
   JOURS.forEach(function(j){
@@ -2462,7 +2471,7 @@ async function submitPostuler(){
     dispos[j[0]]={on:creneaux.length>0,creneaux:creneaux};
   });
   var data={prenom:prenom,nom:nom,date_naissance:naissance,phone:phone,email:email,
-    adresse:adresse,
+    adresse:adresse,nationalite:nationalite,
     resto_id:resto,
     poste:poste,niveau_apprentissage:(poste==='Apprenti'?niveau:''),
     etudiant:document.getElementById('p-etudiant').value==='oui',
