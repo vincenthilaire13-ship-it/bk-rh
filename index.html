@@ -722,7 +722,7 @@ textarea.fi{resize:vertical;min-height:75px;}
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '2026-06-09 12:03';
+const APP_VERSION = '2026-06-09 12:12';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
@@ -2043,10 +2043,26 @@ function renderCandActions(c){
       +'<button class="btn btn-gray btn-sm" style="margin-left:6px;" onclick="candRemettreNouveau()">↩️ Remettre en Nouveau</button>'
       +'</div>';
   }
+  // Bouton suppression — réservé à l'admin (utile pour retirer des tests)
+  if(curUser&&curUser.role==='franchise'){
+    h+='<div style="border-top:1px solid #2A2A2A;margin-top:14px;padding-top:12px;">'
+      +'<button class="btn btn-gray btn-sm" style="color:#cc5555;border-color:#5a2020;width:100%;" onclick="candSupprimer()">🗑️ Supprimer définitivement cette candidature</button>'
+      +'<p style="font-size:.72rem;color:#666;margin-top:6px;text-align:center;">Action réservée à l\'administrateur, irréversible (utile pour effacer les tests).</p></div>';
+  }
   box.innerHTML=h;
 }
 
-function curCand(){return DB.candidatures.find(function(x){return x.id===_candId;});}
+async function candSupprimer(){
+  var c=curCand();if(!c)return;
+  if(!confirm('Supprimer définitivement la candidature de '+c.prenom+' '+c.nom+' ?\n\nCette action est irréversible.'))return;
+  try{
+    await sb.del('bks_candidatures','id=eq.'+_candId);
+    await loadAll();
+    renderCandidatures();if(candFilter==='entretien')renderAgenda();updateRBadge();
+    closeModal('modal-cand');
+    toast('Candidature supprimée','success');
+  }catch(e){toast('Erreur','error');console.error(e);}
+}
 
 function candConvoquer(){
   var dv=document.getElementById('cand-ent-date').value;
