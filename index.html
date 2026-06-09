@@ -316,12 +316,7 @@ textarea.fi{resize:vertical;min-height:75px;}
   <div class="page" id="page-outils-qr">
     <div class="card">
       <div class="sec-title">📲 QR code de candidature</div>
-      <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">Affichez ou imprimez ce QR code. Le candidat le scanne et arrive directement sur la fiche de recrutement, sans code ni accès à l'application.</p>
-      <div id="rec-qr-tabs" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
-        <button class="rtab on" onclick="setQrResto(this,'bk500')">🍔 BK 500</button>
-        <button class="rtab" onclick="setQrResto(this,'bk509')">🍔 BK 509</button>
-        <button class="rtab" onclick="setQrResto(this,'bk526')">🍔 BK 526</button>
-      </div>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">Un seul QR code pour les trois restaurants. Le candidat le scanne, arrive directement sur la fiche de recrutement et choisit lui-même le restaurant souhaité — sans code ni accès à l'application.</p>
       <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;">
         <div style="background:#fff;padding:14px;border-radius:12px;" id="rec-qr-box"></div>
         <div style="flex:1;min-width:220px;">
@@ -719,7 +714,7 @@ textarea.fi{resize:vertical;min-height:75px;}
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '2026-06-09 11:11';
+const APP_VERSION = '2026-06-09 11:23';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
@@ -861,6 +856,7 @@ async function loadAll() {
       noteInterne:c.note_interne||'',createdAt:c.created_at,
       dateNaissance:c.date_naissance||'',etudiant:!!c.etudiant,rqth:c.rqth||'',dernierEmploi:c.dernier_emploi||'',
       transport:c.transport||'',trajet:c.trajet||'',adresse:c.adresse||'',photo:c.photo||'',
+      cvData:c.cv_data||'',cvName:c.cv_name||'',
       onboarding:c.onboarding||{},dateDebut:c.date_debut||'',essaiRappels:c.essai_rappels||{},
       avisManagers:c.avis_managers||[],refusMotif:c.refus_motif||''};
   });
@@ -1672,16 +1668,14 @@ async function delLetter(lid){
 var JOURS = [['lun','Lundi'],['mar','Mardi'],['mer','Mercredi'],['jeu','Jeudi'],['ven','Vendredi'],['sam','Samedi'],['dim','Dimanche']];
 var POSTES = ['Équipier polyvalent','Équipier cuisine','Équipier comptoir / drive','Leader','Manager','Apprenti','Autre'];
 
-var qrResto = 'bk500';
 var candFilter = 'nouveau';
+var restoFilterQr = null;
 
 function publicBaseUrl(){return window.location.origin+window.location.pathname;}
 
-function setQrResto(btn,r){qrResto=r;document.querySelectorAll('#rec-qr-tabs .rtab').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');renderQr();}
-
 function renderQr(){
   var box=document.getElementById('rec-qr-box');if(!box)return;
-  var url=publicBaseUrl()+'#postuler/'+qrResto;
+  var url=publicBaseUrl()+'#postuler';
   document.getElementById('rec-qr-link').value=url;
   box.innerHTML='';
   try{new QRCode(box,{text:url,width:170,height:170,colorDark:'#1A1A1A',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});}
@@ -1694,16 +1688,15 @@ function copyQrLink(){
 }
 
 function printQr(){
-  var url=publicBaseUrl()+'#postuler/'+qrResto;
-  var label=RESTOS[qrResto]?RESTOS[qrResto].label:qrResto;
+  var url=publicBaseUrl()+'#postuler';
   var w=window.open('','_blank');
   var tmp=document.createElement('div');
   new QRCode(tmp,{text:url,width:300,height:300,correctLevel:QRCode.CorrectLevel.M});
   setTimeout(function(){
     var img=tmp.querySelector('img'),cv=tmp.querySelector('canvas');
     var src=img?img.src:(cv?cv.toDataURL():'');
-    w.document.write('<html><head><title>QR Candidature '+label+'</title></head><body style="text-align:center;font-family:Arial;padding:40px;">'
-      +'<h1 style="color:#D62300;">Rejoignez '+label+' !</h1>'
+    w.document.write('<html><head><title>QR Candidature Burger King</title></head><body style="text-align:center;font-family:Arial;padding:40px;">'
+      +'<h1 style="color:#D62300;">Rejoignez nos équipes Burger King !</h1>'
       +'<p style="font-size:18px;color:#333;">Scannez ce QR code pour postuler en 2 minutes</p>'
       +'<img src="'+src+'" style="width:300px;height:300px;margin:20px auto;">'
       +'<p style="color:#888;font-size:13px;">'+url+'</p>'
@@ -1713,8 +1706,7 @@ function printQr(){
 }
 
 function downloadAffichePdf(){
-  var url=publicBaseUrl()+'#postuler/'+qrResto;
-  var label=PUBLIC_RESTOS[qrResto]||(RESTOS[qrResto]?RESTOS[qrResto].label:qrResto);
+  var url=publicBaseUrl()+'#postuler';
   var slogan=(document.getElementById('rec-qr-slogan').value||'On recrute !').trim();
   var tmp=document.createElement('div');
   new QRCode(tmp,{text:url,width:600,height:600,colorDark:'#1A1A1A',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
@@ -1730,7 +1722,7 @@ function downloadAffichePdf(){
       doc.setTextColor(245,166,35);doc.setFont('helvetica','bold');doc.setFontSize(46);
       doc.text('ON RECRUTE',W/2,32,{align:'center'});
       doc.setTextColor(255,255,255);doc.setFontSize(15);
-      doc.text('Burger King '+label,W/2,46,{align:'center'});
+      doc.text('Burger King — Près d\'Arenes, St-Jean-de-Vedas, St-Clement',W/2,46,{align:'center'});
       doc.setTextColor(30,30,30);doc.setFont('helvetica','bold');doc.setFontSize(20);
       var slLines=doc.splitTextToSize(slogan,170);
       doc.text(slLines,W/2,80,{align:'center'});
@@ -1751,7 +1743,7 @@ function downloadAffichePdf(){
       doc.setFillColor(214,35,0);doc.rect(0,H-18,W,18,'F');
       doc.setTextColor(255,255,255);doc.setFontSize(9);
       doc.text(url,W/2,H-7,{align:'center'});
-      doc.save('Affiche_recrutement_'+qrResto+'.pdf');
+      doc.save('Affiche_recrutement_BK.pdf');
       toast('Affiche PDF générée ✔','success');
     }catch(e){toast('Erreur génération PDF','error');console.error(e);}
   },350);
@@ -1978,12 +1970,22 @@ function openCand(id){
     +'<div><div class="flabel">Transport</div><span style="color:#eee;font-size:.85rem;">'+(c.transport||'—')+(c.trajet?' · '+c.trajet:'')+'</span></div>'
     +'<div><div class="flabel">Dernier emploi</div><span style="color:#eee;font-size:.85rem;">'+(c.dernierEmploi||'—')+'</span></div>'
     +'<div style="grid-column:1/-1;"><div class="flabel">Adresse</div><span style="color:#eee;font-size:.85rem;">'+(c.adresse||'—')+'</span></div>'
+    +(c.cvData?'<div style="grid-column:1/-1;"><div class="flabel">CV</div><button class="btn btn-gray btn-sm" onclick="downloadCV(\''+c.id+'\')">📄 Télécharger le CV'+(c.cvName?' ('+c.cvName+')':'')+'</button></div>':'')
     +'</div>'
     +'<div class="flabel" style="margin-top:6px;">📅 Disponibilités</div>'
     +'<div style="background:#1A1A1A;border-radius:8px;padding:10px 14px;margin-bottom:14px;">'+disposHtml+'</div>'
     +(c.motivation?'<div class="flabel">💬 Pourquoi nous rejoindre</div><div style="background:#1A1A1A;border-radius:8px;padding:10px 14px;margin-bottom:4px;color:#eee;font-size:.86rem;white-space:pre-wrap;">'+c.motivation+'</div>':'');
   renderCandActions(c);
   document.getElementById('modal-cand').classList.add('open');
+}
+
+function downloadCV(id){
+  var c=DB.candidatures.find(function(x){return x.id===id;});
+  if(!c||!c.cvData)return;
+  var a=document.createElement('a');
+  a.href=c.cvData;
+  a.download=c.cvName||('CV_'+c.prenom+'_'+c.nom);
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
 function renderCandActions(c){
@@ -2210,7 +2212,7 @@ function essaiDecision(d){
 }
 
 // ── PAGE PUBLIQUE DE CANDIDATURE (hors login) ─────────────────────────────────
-var PUBLIC_RESTOS={bk500:'BK 500 — Près des Arènes',bk509:'BK 509 — Saint-Jean-de-Védas',bk526:'BK 526 — Saint-Clément-de-Rivière'};
+var PUBLIC_RESTOS={bk500:'BK 500 — Près d\'Arènes',bk509:'BK 509 — Saint-Jean-de-Védas',bk526:'BK 526 — Saint-Clément-de-Rivière'};
 
 // Amplitude horaire (modifiable plus tard via settings) — minutes depuis minuit
 function getAmplitude(){
@@ -2275,8 +2277,8 @@ function showPostulerPage(presetResto){
     +'<p style="font-size:.8rem;color:#aaa;margin-bottom:12px;">Pour chaque jour, glissez sur la barre pour tracer vos disponibilités. Vous pouvez tracer une plage continue (ex. 8h30 → 2h) ou ajouter une 2ᵉ plage avec coupure (ex. 8h30 → 14h, puis 15h → 18h).</p>'
     +jourRows+'</div>'
     +'<div class="card"><div class="sec-title">💼 Votre parcours</div>'
-    +'<div style="margin-bottom:14px;"><label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Avez-vous déjà travaillé ? Si oui, où et à quel poste ?</label>'
-    +'<input type="text" id="p-dernier" class="fi" style="margin-top:5px;" placeholder="Votre expérience (ou « première expérience »)"></div>'
+    +'<div style="margin-bottom:14px;"><label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Avez-vous déjà travaillé dans un Burger King ? Si oui, lequel ?</label>'
+    +'<input type="text" id="p-dernier" class="fi" style="margin-top:5px;" placeholder="Ex : Oui, BK Montpellier / Non, première expérience"></div>'
     +'<div><label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Pourquoi voulez-vous travailler chez nous ? *</label>'
     +'<textarea id="p-motivation" class="fi" style="min-height:70px;margin-top:5px;" placeholder="Dites-nous en quelques mots ce qui vous motive..."></textarea></div></div>'
     +'<div class="card"><div class="sec-title">📷 Votre photo</div>'
@@ -2286,6 +2288,11 @@ function showPostulerPage(presetResto){
     +'<div><input type="file" id="p-photo-input" accept="image/*" style="display:none;" onchange="handlePhoto(this)">'
     +'<button type="button" class="btn btn-gray btn-sm" onclick="document.getElementById(\'p-photo-input\').click()">Choisir une photo</button>'
     +'<p style="font-size:.72rem;color:#666;margin-top:6px;">La photo est réduite automatiquement.</p></div></div></div>'
+    +'<div class="card"><div class="sec-title">📄 Votre CV</div>'
+    +'<p style="font-size:.8rem;color:#aaa;margin-bottom:10px;">Joignez votre CV (PDF ou image, facultatif).</p>'
+    +'<input type="file" id="p-cv-input" accept="application/pdf,image/*" style="display:none;" onchange="handleCV(this)">'
+    +'<button type="button" class="btn btn-gray btn-sm" onclick="document.getElementById(\'p-cv-input\').click()">📎 Joindre mon CV</button>'
+    +'<div id="p-cv-name" style="font-size:.8rem;color:#4CAF50;margin-top:8px;"></div></div>'
     +'<button class="btn btn-red" style="width:100%;padding:14px;font-size:1.05rem;" onclick="submitPostuler()">📤 Envoyer ma candidature</button>'
     +'<p style="font-size:.72rem;color:#666;text-align:center;margin-top:12px;">Vos données sont transmises au service RH pour le traitement de votre candidature.</p>'
     +'</div>';
@@ -2306,9 +2313,8 @@ function jourBlockHtml(jour,label,amp){
       +'<div style="position:absolute;left:'+pct+'%;top:-14px;transform:translateX(-50%);font-size:.6rem;color:#666;white-space:nowrap;pointer-events:none;">'+minToLabel(m)+'</div>';
   }
   return '<div style="padding:14px 0 10px;border-bottom:1px solid #2A2A2A;">'
-    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">'
-    +'<span style="font-weight:700;color:#ddd;">'+label+'</span>'
-    +'<button type="button" id="addbtn-'+jour+'" onclick="addCreneauJour(\''+jour+'\')" style="background:#2A1800;border:1px solid var(--orange);color:var(--orange);padding:3px 12px;border-radius:14px;font-size:.78rem;cursor:pointer;">+ Ajouter une plage</button></div>'
+    +'<div style="margin-bottom:18px;">'
+    +'<span style="font-weight:700;color:#ddd;">'+label+'</span></div>'
     +'<div style="position:relative;margin-top:4px;">'+grads
     +'<div id="bar-'+jour+'" style="position:relative;height:40px;background:#141414;border:1px solid #333;border-radius:6px;overflow:hidden;cursor:crosshair;touch-action:none;"></div>'
     +'</div>'
@@ -2378,20 +2384,6 @@ function renderJourBar(jour){
       }).join('');
     }
   }
-  // bouton ajouter : désactivé si 2 plages
-  var addb=document.getElementById('addbtn-'+jour);
-  if(addb){var full=dispoState[jour].length>=2;addb.style.opacity=full?'.4':'1';addb.style.pointerEvents=full?'none':'auto';}
-}
-
-function addCreneauJour(jour){
-  if(dispoState[jour].length>=2){return;}
-  var amp=getAmplitude();
-  // proposer une plage par défaut qui ne chevauche pas
-  var def=dispoState[jour].length===0?{from:amp.start,to:Math.min(amp.start+330,amp.end)}:{from:Math.max.apply(null,dispoState[jour].map(function(c){return c.to;}))+60,to:amp.end};
-  if(def.from>=def.to)def.from=def.to-60;
-  if(def.from<amp.start)def.from=amp.start;
-  dispoState[jour].push(def);
-  renderJourBar(jour);
 }
 
 function removeCreneauJour(jour,i){
@@ -2404,6 +2396,19 @@ function togglePosteApprenti(){
   var poste=document.getElementById('p-poste').value;
   var row=document.getElementById('p-niveau-row');
   if(row)row.style.display=(poste==='Apprenti')?'block':'none';
+}
+
+function handleCV(input){
+  var file=input.files&&input.files[0];if(!file)return;
+  if(file.size>4*1024*1024){alert('Le CV est trop volumineux (max 4 Mo). Merci de le compresser.');input.value='';return;}
+  var reader=new FileReader();
+  reader.onload=function(e){
+    window._cvData=e.target.result;       // base64 (data URL)
+    window._cvName=file.name;
+    window._cvType=file.type;
+    document.getElementById('p-cv-name').textContent='✓ '+file.name;
+  };
+  reader.readAsDataURL(file);
 }
 
 function handlePhoto(input){
@@ -2466,11 +2471,12 @@ async function submitPostuler(){
     transport:transport,trajet:trajet,
     dispos:dispos,motivation:motivation,
     photo:window._photoData||'',
+    cv_data:window._cvData||'',cv_name:window._cvName||'',
     statut:'nouveau',created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
   var btn=event&&event.target;if(btn){btn.disabled=true;btn.textContent='Envoi...';}
   try{
     await sb.insert('bks_candidatures',data);
-    window._photoData=null;
+    window._photoData=null;window._cvData=null;window._cvName=null;
     document.getElementById('postuler-body').innerHTML='<div style="text-align:center;padding:60px 20px;">'
       +'<div style="font-size:3.5rem;">✅</div>'
       +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.5rem;font-weight:700;color:#4CAF50;margin-top:14px;">Candidature envoyée !</div>'
