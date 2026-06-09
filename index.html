@@ -151,6 +151,16 @@ textarea.fi{resize:vertical;min-height:75px;}
 .cal-dot{width:6px;height:6px;border-radius:50%;background:var(--orange);margin-top:2px;}
 .cal-cnt{position:absolute;top:2px;right:4px;font-size:.62rem;color:var(--orange);font-weight:700;}
 .cal-cell.sel .cal-cnt{color:#fff;}
+/* Planning */
+.pl-table{border-collapse:collapse;font-size:.78rem;}
+.pl-table th,.pl-table td{border:1px solid #2A2A2A;text-align:center;padding:0;}
+.pl-name{position:sticky;left:0;background:#1A1A1A;z-index:2;text-align:left!important;padding:6px 10px!important;font-weight:600;color:#ddd;white-space:nowrap;min-width:130px;}
+.pl-cat-row td{background:#241400;color:var(--orange);font-weight:700;text-transform:uppercase;letter-spacing:1px;font-size:.7rem;padding:5px 10px!important;text-align:left!important;position:sticky;left:0;}
+.pl-dayhead{font-size:.62rem;color:#888;padding:3px 2px!important;min-width:30px;}
+.pl-dayhead.we{background:#181818;color:#666;}
+.pl-cell{cursor:pointer;min-width:30px;height:30px;font-size:.68rem;font-weight:700;color:#fff;}
+.pl-cell.we{background:#141414;}
+.pl-cell:hover{outline:2px solid var(--orange);outline-offset:-2px;}
 </style>
 </head>
 <body>
@@ -235,6 +245,7 @@ textarea.fi{resize:vertical;min-height:75px;}
     <button onclick="goPage('rapports',this)">📊 Rapports</button>
     <button onclick="goPage('validations',this)">✉️ Validations <span id="vbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
     <button onclick="goPage('rapports-auto',this)">📬 Rapports auto</button>
+    <button onclick="goPage('planning',this)">🗓️ Planning</button>
     <button onclick="goPage('parametres',this)">⚙️ Paramètres</button>
   </nav>
 
@@ -503,6 +514,31 @@ textarea.fi{resize:vertical;min-height:75px;}
 
   </div>
 
+  <!-- PLANNING -->
+  <div class="page" id="page-planning">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+        <div class="sec-title" style="margin:0;">🗓️ Planning</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <button class="rtab on" id="plv-mois" onclick="setPlanView('mois')">📅 Mois</button>
+          <button class="rtab" id="plv-sem" onclick="setPlanView('semaine')">📆 Semaine</button>
+          <button class="btn btn-gray btn-sm" onclick="managePeople()">👥 Gérer les personnes</button>
+          <button class="btn btn-gray btn-sm" onclick="manageCodes()">🎨 Gérer les codes</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+        <button class="btn btn-gray btn-sm" onclick="planNav(-1)">←</button>
+        <div id="plan-period-label" style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.2rem;color:var(--yellow);text-transform:uppercase;letter-spacing:1px;"></div>
+        <button class="btn btn-gray btn-sm" onclick="planNav(1)">→</button>
+      </div>
+      <div id="plan-codes-legend" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <div id="plan-grid"></div>
+      </div>
+      <p style="font-size:.74rem;color:#666;margin-top:10px;">Touchez une case pour attribuer un code (ou saisir un texte libre). Faites défiler horizontalement pour voir tout le mois.</p>
+    </div>
+  </div>
+
   <!-- PARAMÈTRES -->
   <div class="page" id="page-parametres">
     <div class="card" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -610,13 +646,67 @@ textarea.fi{resize:vertical;min-height:75px;}
   </div>
 </div>
 
+<div class="modal-ov" id="modal-people">
+  <div class="modal" style="width:560px;max-width:96vw;">
+    <div class="modal-title">👥 Gérer les personnes</div>
+    <div style="background:#1A1A1A;border-radius:8px;padding:12px;margin-bottom:14px;">
+      <div class="form-row">
+        <div><label class="flabel">Nom</label><input type="text" id="np-nom" class="fi" placeholder="Prénom Nom"></div>
+        <div><label class="flabel">Catégorie</label><select id="np-cat" class="fi" onchange="npCatChange()">
+          <option value="directeur">Directeur</option>
+          <option value="superviseur">Superviseur</option>
+          <option value="rh">RH</option>
+          <option value="marchandise">Marchandise</option>
+          <option value="manager">Manager (par resto)</option>
+          <option value="leader">Leader (par resto)</option>
+        </select></div>
+      </div>
+      <div id="np-resto-row" style="display:none;margin-bottom:10px;"><label class="flabel">Restaurant</label>
+        <select id="np-resto" class="fi"><option value="bk500">BK 500</option><option value="bk509">BK 509</option><option value="bk526">BK 526</option></select></div>
+      <button class="btn btn-red btn-sm" onclick="addPerson()">+ Ajouter</button>
+    </div>
+    <div id="people-list" style="max-height:320px;overflow-y:auto;"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px;"><button class="btn btn-gray" onclick="closeModal('modal-people');renderPlanning();">Fermer</button></div>
+  </div>
+</div>
+
+<div class="modal-ov" id="modal-codes">
+  <div class="modal" style="width:500px;max-width:96vw;">
+    <div class="modal-title">🎨 Gérer les codes</div>
+    <div style="background:#1A1A1A;border-radius:8px;padding:12px;margin-bottom:14px;">
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+        <div style="flex:1;min-width:70px;"><label class="flabel">Code</label><input type="text" id="nc-code" class="fi" placeholder="J" maxlength="8"></div>
+        <div style="flex:2;min-width:120px;"><label class="flabel">Libellé</label><input type="text" id="nc-label" class="fi" placeholder="Journée"></div>
+        <div><label class="flabel">Couleur</label><input type="color" id="nc-couleur" class="fi" style="width:48px;padding:2px;height:38px;" value="#5BA3F5"></div>
+      </div>
+      <button class="btn btn-red btn-sm" style="margin-top:10px;" onclick="addCode()">+ Ajouter</button>
+    </div>
+    <div id="codes-list" style="max-height:300px;overflow-y:auto;"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px;"><button class="btn btn-gray" onclick="closeModal('modal-codes');renderPlanning();">Fermer</button></div>
+  </div>
+</div>
+
+<div class="modal-ov" id="modal-cell">
+  <div class="modal" style="width:380px;max-width:96vw;">
+    <div class="modal-title" id="cell-title">Attribuer</div>
+    <div id="cell-codes" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;"></div>
+    <label class="flabel">Ou texte libre</label>
+    <input type="text" id="cell-free" class="fi" placeholder="Ex : recrutement 526, VPO...">
+    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end;flex-wrap:wrap;">
+      <button class="btn btn-gray btn-sm" onclick="clearCell()">🗑️ Vider</button>
+      <button class="btn btn-gray btn-sm" onclick="closeModal('modal-cell')">Annuler</button>
+      <button class="btn btn-red btn-sm" onclick="saveCellFree()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '2026-06-09 08:06';
+const APP_VERSION = '2026-06-09 11:07';
 
 const SUPA_URL = 'https://qggkbtzhkomhldhacohd.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZ2tidHpoa29taGxkaGFjb2hkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNzc0MzIsImV4cCI6MjA5NDc1MzQzMn0.l4W4rH4CFREugjImoRqN8hocmEXFcVqnN1-H78x3S-c';
@@ -748,7 +838,7 @@ async function loadAll() {
       restoId:c.resto_id||'',poste:c.poste||'',niveauApprentissage:c.niveau_apprentissage||'',dispos:c.dispos||{},questionnaire:c.questionnaire||{},
       motivation:c.motivation||'',statut:c.statut||'nouveau',entretienDate:c.entretien_date||null,
       noteInterne:c.note_interne||'',createdAt:c.created_at,
-      dateNaissance:c.date_naissance||'',etudiant:!!c.etudiant,dernierEmploi:c.dernier_emploi||'',
+      dateNaissance:c.date_naissance||'',etudiant:!!c.etudiant,rqth:c.rqth||'',dernierEmploi:c.dernier_emploi||'',
       transport:c.transport||'',trajet:c.trajet||'',adresse:c.adresse||'',photo:c.photo||'',
       onboarding:c.onboarding||{},dateDebut:c.date_debut||'',essaiRappels:c.essai_rappels||{},
       avisManagers:c.avis_managers||[],refusMotif:c.refus_motif||''};
@@ -917,6 +1007,8 @@ function checkPin() {
         // Rapports auto et Paramètres : uniquement Admin et Superviseure
         if (txt.indexOf('Rapports auto')>=0 || txt.indexOf('Paramètres')>=0) {
           b.style.display = isAdmin ? '' : 'none';
+        } else if (txt.indexOf('Planning')>=0) {
+          b.style.display = (isGlobal||isDir) ? '' : 'none';
         } else if (txt.indexOf('Recrutement')>=0 || txt.indexOf('Outils QR')>=0) {
           b.style.display = (isGlobal||isDir) ? '' : 'none';
         } else {
@@ -973,6 +1065,7 @@ function goPage(id, btn) {
   if (id==='equipe') renderEquipe();
   if (id==='recrutement'){renderApercuForm();setCandFilter(candFilter||'nouveau');}
   if (id==='outils-qr'){renderQr();}
+  if (id==='planning'){openPlanning();}
   if (id==='validations') renderLetters();
   if (id==='rapports-auto'){loadMailSettings();renderRcpsList();renderApercuDestinataires();}
   if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();var av=document.getElementById('app-version-badge');if(av)av.textContent=APP_VERSION;}
@@ -1853,7 +1946,7 @@ function openCand(id){
   document.getElementById('cand-detail').innerHTML=
     '<div style="display:flex;gap:14px;align-items:center;margin-bottom:14px;">'+photoHtml
     +'<div style="flex:1;"><div style="font-weight:700;font-size:1.05rem;color:#fff;">'+c.prenom+' '+c.nom+'</div>'
-    +'<div style="font-size:.8rem;color:#888;">'+(ageTxt||'Date de naissance non renseignée')+(c.etudiant?' · 🎓 Étudiant(e)':'')+'</div></div></div>'
+    +'<div style="font-size:.8rem;color:#888;">'+(ageTxt||'Date de naissance non renseignée')+(c.etudiant?' · 🎓 Étudiant(e)':'')+(c.rqth==='oui'?' · ♿ RQTH':'')+'</div></div></div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">'
     +'<div><div class="flabel">Téléphone</div><a href="tel:'+c.phone+'" style="color:var(--orange);">'+(c.phone||'—')+'</a></div>'
     +'<div><div class="flabel">Email</div><a href="mailto:'+c.email+'" style="color:var(--orange);font-size:.82rem;word-break:break-all;">'+(c.email||'—')+'</a></div>'
@@ -2114,7 +2207,7 @@ function showPostulerPage(presetResto){
   var ap=document.getElementById('app');if(ap)ap.style.display='none';
   var amp=getAmplitude();
   var sp=document.createElement('div');sp.style.cssText='min-height:100vh;background:#1A1A1A;';
-  var restoOpts=Object.keys(PUBLIC_RESTOS).map(function(k){return '<option value="'+k+'"'+(k===presetResto?' selected':'')+'>'+PUBLIC_RESTOS[k]+'</option>';}).join('');
+  var restoOpts='<option value="">— Choisir un restaurant —</option>'+Object.keys(PUBLIC_RESTOS).map(function(k){return '<option value="'+k+'"'+(k===presetResto?' selected':'')+'>'+PUBLIC_RESTOS[k]+'</option>';}).join('');
   var posteOpts=POSTES.map(function(p){return '<option value="'+p+'">'+p+'</option>';}).join('');
   // init state : chaque jour démarre sans créneau
   dispoState={};
@@ -2138,7 +2231,11 @@ function showPostulerPage(presetResto){
     +'<div style="margin-bottom:14px;"><label class="flabel">Adresse postale *</label><input type="text" id="p-adresse" class="fi" placeholder="N°, rue, code postal, ville"></div>'
     +'<div class="form-row"><div><label class="flabel">Poste souhaité *</label><select id="p-poste" class="fi" onchange="togglePosteApprenti()">'+posteOpts+'</select></div>'
     +'<div><label class="flabel">Êtes-vous étudiant(e) ? *</label><select id="p-etudiant" class="fi"><option value="non">Non</option><option value="oui">Oui</option></select></div></div>'
-    +'<div id="p-niveau-row" style="display:none;margin-top:4px;"><label class="flabel">Niveau d\'apprentissage *</label><select id="p-niveau" class="fi"><option value="">— Choisir —</option><option>Niveau CAP</option><option>Niveau Bac</option><option>Niveau Bac+2</option></select></div>'
+    +'<div style="background:#0E1A22;border:1px solid #1E3A4A;border-radius:8px;padding:10px 12px;margin-top:4px;">'
+    +'<label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;display:flex;align-items:center;gap:6px;">♿ Bénéficiez-vous d\'une RQTH ? <span style="font-size:.72rem;color:#888;">(facultatif)</span></label>'
+    +'<p style="font-size:.74rem;color:#7AB8D8;margin:4px 0 8px;">Reconnaissance de la Qualité de Travailleur Handicapé. Cette information reste confidentielle et nous aide à adapter votre accueil. Vous n\'êtes pas obligé(e) de répondre.</p>'
+    +'<select id="p-rqth" class="fi"><option value="">Je préfère ne pas répondre</option><option value="oui">Oui</option><option value="non">Non</option></select></div>'
+    +'<div id="p-niveau-row" style="display:none;margin-top:10px;"><label class="flabel">Niveau d\'apprentissage *</label><select id="p-niveau" class="fi"><option value="">— Choisir —</option><option>Niveau CAP</option><option>Niveau Bac</option><option>Niveau Bac+2</option></select></div>'
     +'</div>'
     +'<div class="card"><div class="sec-title">🚗 Comment venez-vous ?</div>'
     +'<label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Votre moyen de transport pour venir travailler *</label>'
@@ -2316,12 +2413,15 @@ async function submitPostuler(){
   var trajet=document.getElementById('p-trajet').value;
   var adresse=document.getElementById('p-adresse').value.trim();
   var poste=document.getElementById('p-poste').value;
+  var resto=document.getElementById('p-resto').value;
   var niveau=document.getElementById('p-niveau')?document.getElementById('p-niveau').value:'';
+  var rqth=document.getElementById('p-rqth')?document.getElementById('p-rqth').value:'';
   var motivation=document.getElementById('p-motivation').value.trim();
   if(!prenom||!nom){alert('Merci d\'indiquer votre prénom et nom.');return;}
   if(!naissance){alert('Merci d\'indiquer votre date de naissance.');return;}
   if(!phone){alert('Merci d\'indiquer votre téléphone.');return;}
   if(!email||email.indexOf('@')<0){alert('Merci d\'indiquer un email valide.');return;}
+  if(!resto){alert('Merci de choisir le restaurant souhaité.');return;}
   if(!adresse){alert('Merci d\'indiquer votre adresse postale.');return;}
   if(poste==='Apprenti'&&!niveau){alert('Merci d\'indiquer votre niveau d\'apprentissage.');return;}
   if(!transport){alert('Merci d\'indiquer votre moyen de transport.');return;}
@@ -2335,9 +2435,10 @@ async function submitPostuler(){
   });
   var data={prenom:prenom,nom:nom,date_naissance:naissance,phone:phone,email:email,
     adresse:adresse,
-    resto_id:document.getElementById('p-resto').value,
+    resto_id:resto,
     poste:poste,niveau_apprentissage:(poste==='Apprenti'?niveau:''),
     etudiant:document.getElementById('p-etudiant').value==='oui',
+    rqth:rqth,
     dernier_emploi:document.getElementById('p-dernier').value.trim(),
     transport:transport,trajet:trajet,
     dispos:dispos,motivation:motivation,
@@ -2356,6 +2457,230 @@ async function submitPostuler(){
     if(btn){btn.disabled=false;btn.textContent='📤 Envoyer ma candidature';}
     alert('Une erreur est survenue. Merci de réessayer.');console.error(e);
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PLANNING (directeurs, superviseurs, RH, marchandise, managers/leaders par resto)
+// ══════════════════════════════════════════════════════════════════════════════
+var PLAN={people:[],codes:[],cells:{}}; // cells: {personId_YYYY-MM-DD: valeur}
+var planView='mois';
+var planRef=new Date();planRef.setDate(1);
+var CAT_LABELS={directeur:'Directeurs',superviseur:'Superviseurs',rh:'Ressources humaines',marchandise:'Marchandise',manager:'Managers',leader:'Leaders'};
+var CAT_ORDER=['directeur','superviseur','rh','marchandise','manager','leader'];
+
+function cellKey(pid,d){return pid+'_'+d;}
+function fmtDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+
+async function loadPlanning(){
+  try{
+    var res=await Promise.all([
+      sb.get('bks_planning_people','select=*&order=ordre.asc'),
+      sb.get('bks_planning_codes','select=*&order=ordre.asc'),
+      sb.get('bks_planning_cells','select=*')
+    ]);
+    PLAN.people=(res[0]||[]).filter(function(p){return p.actif!==false;});
+    PLAN.codes=res[1]||[];
+    PLAN.cells={};
+    (res[2]||[]).forEach(function(c){PLAN.cells[cellKey(c.person_id,c.jour)]=c.valeur;});
+  }catch(e){console.error('loadPlanning',e);}
+}
+
+async function openPlanning(){
+  await loadPlanning();
+  renderPlanning();
+}
+
+function setPlanView(v){
+  planView=v;
+  document.getElementById('plv-mois').classList.toggle('on',v==='mois');
+  document.getElementById('plv-sem').classList.toggle('on',v==='semaine');
+  renderPlanning();
+}
+
+function planNav(delta){
+  if(planView==='mois'){planRef.setMonth(planRef.getMonth()+delta);planRef.setDate(1);}
+  else{planRef.setDate(planRef.getDate()+delta*7);}
+  renderPlanning();
+}
+
+function planDays(){
+  var days=[];
+  if(planView==='mois'){
+    var y=planRef.getFullYear(),m=planRef.getMonth();
+    var n=new Date(y,m+1,0).getDate();
+    for(var i=1;i<=n;i++)days.push(new Date(y,m,i));
+  }else{
+    // semaine : partir du lundi de la semaine de planRef
+    var d=new Date(planRef);var dow=(d.getDay()+6)%7;d.setDate(d.getDate()-dow);
+    for(var j=0;j<7;j++){var x=new Date(d);x.setDate(d.getDate()+j);days.push(x);}
+  }
+  return days;
+}
+
+function codeByVal(v){return PLAN.codes.find(function(c){return c.code===v;});}
+
+function renderPlanning(){
+  var grid=document.getElementById('plan-grid');if(!grid)return;
+  // libellé période
+  var lbl=document.getElementById('plan-period-label');
+  if(planView==='mois'){lbl.textContent=planRef.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});}
+  else{var dd=planDays();lbl.textContent='Semaine du '+dd[0].toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})+' au '+dd[6].toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});}
+  // légende codes
+  var leg=document.getElementById('plan-codes-legend');
+  leg.innerHTML=PLAN.codes.map(function(c){return '<span style="display:inline-flex;align-items:center;gap:5px;font-size:.74rem;color:#ccc;"><span style="width:14px;height:14px;border-radius:3px;background:'+c.couleur+';display:inline-block;"></span>'+c.code+(c.label?' = '+c.label:'')+'</span>';}).join('');
+  if(!PLAN.people.length){grid.innerHTML='<div class="empty"><div class="ei">🗓️</div><p>Aucune personne. Cliquez sur « Gérer les personnes » pour en ajouter.</p></div>';return;}
+
+  var days=planDays();
+  // restreindre directeur à son resto si besoin (les directeurs voient tout ici, c'est un planning d'encadrement)
+  var people=PLAN.people.slice();
+  // grouper par catégorie
+  var html='<table class="pl-table"><thead><tr><th class="pl-name" style="background:#241400;"></th>';
+  days.forEach(function(d){
+    var dow=d.getDay();var we=(dow===0||dow===6);
+    html+='<th class="pl-dayhead'+(we?' we':'')+'">'+['D','L','M','M','J','V','S'][dow]+'<br>'+d.getDate()+'</th>';
+  });
+  html+='</tr></thead><tbody>';
+  CAT_ORDER.forEach(function(cat){
+    var grp=people.filter(function(p){return p.categorie===cat;});
+    if(!grp.length)return;
+    if(cat==='manager'||cat==='leader'){
+      // sous-groupé par resto
+      ['bk500','bk509','bk526'].forEach(function(r){
+        var sub=grp.filter(function(p){return p.resto_id===r;});
+        if(!sub.length)return;
+        html+='<tr class="pl-cat-row"><td colspan="'+(days.length+1)+'">'+CAT_LABELS[cat]+' — '+(RESTOS[r]?RESTOS[r].label:r)+'</td></tr>';
+        sub.forEach(function(p){html+=personRow(p,days);});
+      });
+    }else{
+      html+='<tr class="pl-cat-row"><td colspan="'+(days.length+1)+'">'+CAT_LABELS[cat]+'</td></tr>';
+      grp.forEach(function(p){html+=personRow(p,days);});
+    }
+  });
+  html+='</tbody></table>';
+  grid.innerHTML=html;
+}
+
+function personRow(p,days){
+  var r='<tr><td class="pl-name">'+p.nom+'</td>';
+  days.forEach(function(d){
+    var dow=d.getDay();var we=(dow===0||dow===6);
+    var key=cellKey(p.id,fmtDate(d));
+    var v=PLAN.cells[key]||'';
+    var co=codeByVal(v);
+    var bg=co?co.couleur:'';
+    var disp=v;
+    var style='background:'+(bg||(we?'#141414':'transparent'))+';'+(bg?'color:#fff;':'color:#bbb;');
+    r+='<td class="pl-cell'+(we?' we':'')+'" style="'+style+'" onclick="openCell(\''+p.id+'\',\''+fmtDate(d)+'\')" title="'+(co&&co.label?co.label:v)+'">'+disp+'</td>';
+  });
+  return r+'</tr>';
+}
+
+// ── Édition d'une case ────────────────────────────────────────────────────────
+var _cellPid=null,_cellDate=null;
+function openCell(pid,date){
+  _cellPid=pid;_cellDate=date;
+  var p=PLAN.people.find(function(x){return x.id===pid;});
+  var dObj=new Date(date+'T12:00:00');
+  document.getElementById('cell-title').textContent=(p?p.nom:'')+' · '+dObj.toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'short'});
+  var cur=PLAN.cells[cellKey(pid,date)]||'';
+  document.getElementById('cell-free').value=codeByVal(cur)?'':cur;
+  var box=document.getElementById('cell-codes');
+  box.innerHTML=PLAN.codes.map(function(c){
+    var sel=cur===c.code;
+    return '<button onclick="saveCellCode(\''+c.code+'\')" style="background:'+c.couleur+';color:#fff;border:'+(sel?'3px solid #fff':'1px solid rgba(255,255,255,.2)')+';border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:.82rem;">'+c.code+'</button>';
+  }).join('');
+  document.getElementById('modal-cell').classList.add('open');
+}
+
+async function _saveCell(val){
+  var key=cellKey(_cellPid,_cellDate);
+  try{
+    if(val===''){
+      await sb.del('bks_planning_cells','person_id=eq.'+_cellPid+'&jour=eq.'+_cellDate);
+      delete PLAN.cells[key];
+    }else{
+      // upsert
+      var existing=await sb.get('bks_planning_cells','select=id&person_id=eq.'+_cellPid+'&jour=eq.'+_cellDate);
+      if(existing&&existing.length){await sb.patch('bks_planning_cells','id=eq.'+existing[0].id,{valeur:val,updated_at:new Date().toISOString()});}
+      else{await sb.insert('bks_planning_cells',{person_id:_cellPid,jour:_cellDate,valeur:val});}
+      PLAN.cells[key]=val;
+    }
+    renderPlanning();closeModal('modal-cell');
+  }catch(e){toast('Erreur','error');console.error(e);}
+}
+function saveCellCode(code){_saveCell(code);}
+function saveCellFree(){_saveCell(document.getElementById('cell-free').value.trim());}
+function clearCell(){_saveCell('');}
+
+// ── Gestion des personnes ─────────────────────────────────────────────────────
+function managePeople(){renderPeopleList();document.getElementById('modal-people').classList.add('open');}
+function npCatChange(){
+  var cat=document.getElementById('np-cat').value;
+  document.getElementById('np-resto-row').style.display=(cat==='manager'||cat==='leader')?'block':'none';
+}
+async function addPerson(){
+  var nom=document.getElementById('np-nom').value.trim();
+  if(!nom){toast('Indiquez un nom','error');return;}
+  var cat=document.getElementById('np-cat').value;
+  var resto=(cat==='manager'||cat==='leader')?document.getElementById('np-resto').value:'';
+  try{
+    await sb.insert('bks_planning_people',{nom:nom,categorie:cat,resto_id:resto,ordre:PLAN.people.length+1,actif:true});
+    document.getElementById('np-nom').value='';
+    await loadPlanning();renderPeopleList();
+    toast('Personne ajoutée ✔','success');
+  }catch(e){toast('Erreur','error');}
+}
+function renderPeopleList(){
+  var box=document.getElementById('people-list');if(!box)return;
+  if(!PLAN.people.length){box.innerHTML='<p style="font-size:.8rem;color:#666;">Aucune personne.</p>';return;}
+  var h='';
+  CAT_ORDER.forEach(function(cat){
+    var grp=PLAN.people.filter(function(p){return p.categorie===cat;});
+    if(!grp.length)return;
+    h+='<div style="font-size:.72rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin:10px 0 4px;">'+CAT_LABELS[cat]+'</div>';
+    h+=grp.map(function(p){
+      var r=(p.resto_id&&RESTOS[p.resto_id])?' · '+RESTOS[p.resto_id].label:'';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:#141414;border-radius:6px;margin-bottom:4px;">'
+        +'<span style="font-size:.85rem;color:#eee;">'+p.nom+r+'</span>'
+        +'<button onclick="delPerson(\''+p.id+'\')" style="background:none;border:none;color:#cc5555;cursor:pointer;font-size:.9rem;">🗑️</button></div>';
+    }).join('');
+  });
+  box.innerHTML=h;
+}
+async function delPerson(id){
+  if(!confirm('Supprimer cette personne et tout son planning ?'))return;
+  try{await sb.del('bks_planning_people','id=eq.'+id);await loadPlanning();renderPeopleList();toast('Supprimé','');}
+  catch(e){toast('Erreur','error');}
+}
+
+// ── Gestion des codes ─────────────────────────────────────────────────────────
+function manageCodes(){renderCodesList();document.getElementById('modal-codes').classList.add('open');}
+async function addCode(){
+  var code=document.getElementById('nc-code').value.trim();
+  if(!code){toast('Indiquez un code','error');return;}
+  var label=document.getElementById('nc-label').value.trim();
+  var couleur=document.getElementById('nc-couleur').value;
+  try{
+    await sb.insert('bks_planning_codes',{code:code,label:label,couleur:couleur,ordre:PLAN.codes.length+1});
+    document.getElementById('nc-code').value='';document.getElementById('nc-label').value='';
+    await loadPlanning();renderCodesList();
+    toast('Code ajouté ✔','success');
+  }catch(e){toast('Erreur','error');}
+}
+function renderCodesList(){
+  var box=document.getElementById('codes-list');if(!box)return;
+  if(!PLAN.codes.length){box.innerHTML='<p style="font-size:.8rem;color:#666;">Aucun code.</p>';return;}
+  box.innerHTML=PLAN.codes.map(function(c){
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:#141414;border-radius:6px;margin-bottom:4px;">'
+      +'<span style="display:flex;align-items:center;gap:8px;"><span style="width:18px;height:18px;border-radius:4px;background:'+c.couleur+';"></span>'
+      +'<strong style="color:#fff;">'+c.code+'</strong><span style="color:#888;font-size:.82rem;">'+(c.label||'')+'</span></span>'
+      +'<button onclick="delCode(\''+c.id+'\')" style="background:none;border:none;color:#cc5555;cursor:pointer;">🗑️</button></div>';
+  }).join('');
+}
+async function delCode(id){
+  if(!confirm('Supprimer ce code ?'))return;
+  try{await sb.del('bks_planning_codes','id=eq.'+id);await loadPlanning();renderCodesList();toast('Supprimé','');}
+  catch(e){toast('Erreur','error');}
 }
 
 function showSignPage(lid){
