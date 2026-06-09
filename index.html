@@ -734,7 +734,7 @@ textarea.fi{resize:vertical;min-height:75px;}
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '2026-06-09 13:55';
+const APP_VERSION = '2026-06-09 14:15';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
@@ -746,6 +746,64 @@ function formatMajDate(v){
 
 const SUPA_URL = 'https://qggkbtzhkomhldhacohd.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZ2tidHpoa29taGxkaGFjb2hkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNzc0MzIsImV4cCI6MjA5NDc1MzQzMn0.l4W4rH4CFREugjImoRqN8hocmEXFcVqnN1-H78x3S-c';
+
+// ── DROPBOX (même app que BK Tech, dossier /BKRH) ─────────────────────────────
+var DBX_APP_KEY='hkbuv45rzip518q';
+var DBX_APP_SECRET='i06mqc9yesldxdg';
+var DBX_REFRESH='BOZv_k1ApvYAAAAAAAAAAfKomGfbn61U2demDycDNolWcOiNjre09bAajzErsGiy';
+var _dbxToken=null,_dbxTokenExp=0;
+async function dbxToken(){
+  if(_dbxToken&&Date.now()<_dbxTokenExp)return _dbxToken;
+  var body='grant_type=refresh_token&refresh_token='+encodeURIComponent(DBX_REFRESH)
+    +'&client_id='+encodeURIComponent(DBX_APP_KEY)+'&client_secret='+encodeURIComponent(DBX_APP_SECRET);
+  var r=await fetch('https://api.dropboxapi.com/oauth2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body});
+  if(!r.ok)throw new Error('Dropbox token '+r.status);
+  var d=await r.json();
+  _dbxToken=d.access_token;_dbxTokenExp=Date.now()+(d.expires_in?(d.expires_in-300)*1000:3600*1000);
+  return _dbxToken;
+}
+function dbxClean(s){return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9 _-]/g,'').trim().replace(/\s+/g,'_');}
+// dataURL -> Blob
+function _dataUrlToBlob(dataUrl){
+  var parts=dataUrl.split(',');var mime=(parts[0].match(/:(.*?);/)||[])[1]||'application/octet-stream';
+  var bin=atob(parts[1]);var n=bin.length;var u8=new Uint8Array(n);
+  while(n--)u8[n]=bin.charCodeAt(n);
+  return new Blob([u8],{type:mime});
+}
+// upload + lien partagé "raw"
+async function dbxUpload(path,blob){
+  var tok=await dbxToken();
+  var up=await fetch('https://content.dropboxapi.com/2/files/upload',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/octet-stream',
+      'Dropbox-API-Arg':JSON.stringify({path:path,mode:'overwrite',autorename:false,mute:true})},
+    body:blob
+  });
+  if(!up.ok)throw new Error('Dropbox upload '+up.status+' '+(await up.text()));
+  // créer (ou récupérer) un lien partagé
+  var sl=await fetch('https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings',{
+    method:'POST',headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+    body:JSON.stringify({path:path})
+  });
+  var link='';
+  if(sl.ok){var sd=await sl.json();link=sd.url||'';}
+  else{
+    // déjà partagé -> lister
+    var ls=await fetch('https://api.dropboxapi.com/2/sharing/list_shared_links',{
+      method:'POST',headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+      body:JSON.stringify({path:path,direct_only:true})
+    });
+    if(ls.ok){var ld=await ls.json();if(ld.links&&ld.links[0])link=ld.links[0].url;}
+  }
+  return link?link.replace('?dl=0','?raw=1').replace('&dl=0','&raw=1'):'';
+}
+// dossier d'un candidat : /BKRH/<Resto>/<Nom Prenom>
+function dbxCandFolder(c){
+  var rid=c.restoId||c.resto_id||'';
+  var resto=RESTOS[rid]?RESTOS[rid].label:(rid||'Autre');
+  return '/BKRH/'+dbxClean(resto)+'/'+dbxClean((c.nom||'')+' '+(c.prenom||''));
+}
+
 
 const sb = {
   async get(table, query) {
@@ -2032,7 +2090,6 @@ function renderCandActions(c){
       +'</div>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
       +'<button class="btn btn-red btn-sm" onclick="candConvoquer()">📅 Convoquer en entretien</button>'
-      +'<a class="btn btn-gray btn-sm" href="tel:'+c.phone+'" style="text-decoration:none;">📞 Appeler</a>'
       +'<button class="btn btn-gray btn-sm" style="color:#cc5555;border-color:#5a2020;" onclick="candRefuser()">❌ Refuser + mail</button>'
       +'</div></div>';
   }else if(st==='entretien'){
@@ -2235,12 +2292,12 @@ function renderDocsRecap(c){
     }
     if(d.sides){
       var sub=d.sides.map(function(s){
-        var k=d.id+'_'+s.toLowerCase();var has=docs[k]&&docs[k].data;
+        var k=d.id+'_'+s.toLowerCase();var has=docs[k]&&(docs[k].link||docs[k].data);
         return '<span style="margin-left:10px;color:'+(has?'#4CAF50':'#888')+';">'+(has?'✓':'○')+' '+s+(has?' <button class="btn btn-gray btn-sm" style="padding:1px 7px;font-size:.68rem;" onclick="downloadDoc(\''+c.id+'\',\''+k+'\')">Voir</button>':'')+'</span>';
       }).join('');
       return '<div style="padding:3px 0;font-size:.8rem;"><span style="color:#ccc;">'+d.label+'</span><div style="margin-top:2px;">'+sub+'</div></div>';
     }
-    var has=docs[d.id]&&docs[d.id].data;
+    var has=docs[d.id]&&(docs[d.id].link||docs[d.id].data);
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:.8rem;">'
       +'<span style="color:'+(has?'#4CAF50':'#888')+';">'+(has?'✓':'○')+' '+d.label+'</span>'
       +(has?'<button class="btn btn-gray btn-sm" style="padding:2px 8px;font-size:.7rem;" onclick="downloadDoc(\''+c.id+'\',\''+d.id+'\')">Voir</button>':'')
@@ -2256,8 +2313,8 @@ function downloadDoc(cid,docId){
   var c=DB.candidatures.find(function(x){return x.id===cid;});
   if(!c||!c.documents||!c.documents[docId])return;
   var d=c.documents[docId];
-  var a=document.createElement('a');a.href=d.data;a.download=d.name||docId;
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  if(d.link){window.open(d.link,'_blank');return;}
+  if(d.data){var a=document.createElement('a');a.href=d.data;a.download=d.name||docId;document.body.appendChild(a);a.click();document.body.removeChild(a);}
 }
 
 function showDocsQr(cid){
@@ -2435,7 +2492,7 @@ async function showDocsPage(cid){
   var cu=_docsCand.contact_urgence||{};
   // une "brique" upload (photo + fichier) pour une clé donnée
   function uploadBlock(key,sublabel){
-    var has=_docsData[key]&&_docsData[key].data;
+    var has=_docsData[key]&&(_docsData[key].link||_docsData[key].data);
     return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;">'
       +'<div id="doc-ic-'+key+'" style="width:22px;text-align:center;color:'+(has?'#4CAF50':'#666')+';">'+(has?'✓':'○')+'</div>'
       +'<div style="flex:1;min-width:0;"><div style="font-size:.8rem;color:#ccc;">'+(sublabel||'')+'</div><div id="doc-nm-'+key+'" style="font-size:.7rem;color:#4CAF50;">'+(has?(_docsData[key].name||'fichier'):'')+'</div></div>'
@@ -2523,15 +2580,30 @@ async function submitDocs(){
   if(th&&th!=='—')tailles.push('Haut: '+th);
   if(tp&&tp!=='—')tailles.push('Pantalon: '+tp);
   if(tc&&tc!=='—')tailles.push('Chaussures: '+tc);
-  var patch={
-    documents:_docsData,
-    contact_urgence:{nom:document.getElementById('doc-urg-nom').value.trim(),tel:document.getElementById('doc-urg-tel').value.trim()},
-    tailles_tenue:tailles.join(' · '),
-    docs_soumis:true,
-    updated_at:new Date().toISOString()
-  };
-  var btn=event&&event.target;if(btn){btn.disabled=true;btn.textContent='Envoi...';}
+  var btn=event&&event.target;if(btn){btn.disabled=true;btn.textContent='Envoi en cours...';}
   try{
+    // 1) Upload Dropbox des pièces qui ont un fichier (data) pas encore envoyé
+    var folder=dbxCandFolder(_docsCand);
+    var labelById={};DOC_TYPES.forEach(function(d){labelById[d.id]=d.label;});
+    for(var key in _docsData){
+      if(!_docsData.hasOwnProperty(key))continue;
+      var item=_docsData[key];
+      if(item&&item.data&&!item.link){
+        // nom de fichier : <cle>.<ext>
+        var ext=(item.name&&item.name.indexOf('.')>=0)?item.name.split('.').pop():'jpg';
+        var fname=dbxClean(key)+'.'+ext;
+        var blob=_dataUrlToBlob(item.data);
+        var link=await dbxUpload(folder+'/'+fname,blob);
+        _docsData[key]={link:link,name:item.name||fname};
+      }
+    }
+    var patch={
+      documents:_docsData,
+      contact_urgence:{nom:document.getElementById('doc-urg-nom').value.trim(),tel:document.getElementById('doc-urg-tel').value.trim()},
+      tailles_tenue:tailles.join(' · '),
+      docs_soumis:true,
+      updated_at:new Date().toISOString()
+    };
     await sb.patch('bks_candidatures','id=eq.'+_docsCand.id,patch);
     document.getElementById('docs-body').innerHTML='<div style="text-align:center;padding:60px 20px;">'
       +'<div style="font-size:3.5rem;">✅</div>'
@@ -2540,7 +2612,7 @@ async function submitDocs(){
     window.scrollTo(0,0);
   }catch(e){
     if(btn){btn.disabled=false;btn.textContent='📤 Envoyer mon dossier';}
-    alert('Une erreur est survenue. Merci de réessayer.');console.error(e);
+    alert('Une erreur est survenue lors de l\'envoi. Vérifiez votre connexion et réessayez.');console.error(e);
   }
 }
 
@@ -2600,12 +2672,12 @@ function showPostulerPage(presetResto){
     +'<p style="font-size:.8rem;color:#aaa;margin-bottom:12px;">Pour chaque jour, glissez sur la barre pour tracer vos disponibilités. Vous pouvez tracer une plage continue (ex. 8h30 → 2h) ou ajouter une 2ᵉ plage avec coupure (ex. 8h30 → 14h, puis 15h → 18h).</p>'
     +jourRows+'</div>'
     +'<div class="card"><div class="sec-title">💼 Votre parcours</div>'
-    +'<div style="margin-bottom:14px;"><label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Avez-vous déjà travaillé dans un Burger King ? Si oui, lequel ?</label>'
+    +'<div style="margin-bottom:14px;"><label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Avez-vous déjà travaillé dans un Burger King ? Si oui, lequel ? *</label>'
     +'<input type="text" id="p-dernier" class="fi" style="margin-top:5px;" placeholder="Ex : Oui, BK Montpellier / Non, première expérience"></div>'
     +'<div><label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Pourquoi voulez-vous travailler chez nous ? *</label>'
     +'<textarea id="p-motivation" class="fi" style="min-height:70px;margin-top:5px;" placeholder="Dites-nous en quelques mots ce qui vous motive..."></textarea></div></div>'
-    +'<div class="card"><div class="sec-title">📷 Votre photo</div>'
-    +'<p style="font-size:.8rem;color:#aaa;margin-bottom:10px;">Ajoutez une photo de vous : choisissez-en une, ou prenez-vous en photo maintenant (facultatif mais apprécié).</p>'
+    +'<div class="card"><div class="sec-title">📷 Votre photo *</div>'
+    +'<p style="font-size:.8rem;color:#aaa;margin-bottom:10px;">Une photo de vous est obligatoire : prenez-vous en photo maintenant, ou choisissez un fichier.</p>'
     +'<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">'
     +'<div id="p-photo-preview" style="width:90px;height:90px;border-radius:12px;background:#1A1A1A;border:2px dashed #444;display:flex;align-items:center;justify-content:center;font-size:2rem;color:#555;">📷</div>'
     +'<div style="flex:1;min-width:180px;">'
@@ -2780,8 +2852,14 @@ async function submitPostuler(){
   var niveau=document.getElementById('p-niveau')?document.getElementById('p-niveau').value:'';
   var rqth=document.getElementById('p-rqth')?document.getElementById('p-rqth').value:'';
   var motivation=document.getElementById('p-motivation').value.trim();
+  var dernier=document.getElementById('p-dernier').value.trim();
   if(!prenom||!nom){alert('Merci d\'indiquer votre prénom et nom.');return;}
   if(!naissance){alert('Merci d\'indiquer votre date de naissance.');return;}
+  var _bd=new Date(naissance);var _today=new Date();
+  var _age=_today.getFullYear()-_bd.getFullYear();
+  var _m=_today.getMonth()-_bd.getMonth();
+  if(_m<0||(_m===0&&_today.getDate()<_bd.getDate()))_age--;
+  if(_age<18){alert('Vous devez avoir au moins 18 ans pour postuler. Nous ne pouvons malheureusement pas retenir votre candidature.');return;}
   if(!phone){alert('Merci d\'indiquer votre téléphone.');return;}
   if(!email||email.indexOf('@')<0){alert('Merci d\'indiquer un email valide.');return;}
   if(!nationalite||nationalite==='— Choisir —'){alert('Merci d\'indiquer votre nationalité.');return;}
@@ -2790,13 +2868,18 @@ async function submitPostuler(){
   if(!transport){alert('Merci d\'indiquer votre moyen de transport.');return;}
   if(!trajet){alert('Merci d\'indiquer votre temps de trajet.');return;}
   if(!resto){alert('Merci de choisir le restaurant souhaité.');return;}
+  if(!dernier){alert('Merci de répondre à la question sur votre parcours (déjà travaillé dans un Burger King ?).');return;}
   if(!motivation){alert('Merci d\'expliquer pourquoi vous voulez travailler chez nous.');return;}
   var dispos={};
+  var nbJoursDispo=0;
   JOURS.forEach(function(j){
     var arr=(dispoState[j[0]]||[]).slice().sort(function(x,y){return x.from-y.from;});
     var creneaux=arr.map(function(c){return {from:c.from,to:c.to};});
+    if(creneaux.length)nbJoursDispo++;
     dispos[j[0]]={on:creneaux.length>0,creneaux:creneaux};
   });
+  if(nbJoursDispo===0){alert('Merci d\'indiquer vos disponibilités sur au moins un jour (glissez sur les barres).');return;}
+  if(!window._photoData){alert('Merci d\'ajouter une photo (prenez-vous en photo ou choisissez un fichier).');return;}
   var data={prenom:prenom,nom:nom,date_naissance:naissance,phone:phone,email:email,
     adresse:adresse,nationalite:nationalite,
     resto_id:resto,
