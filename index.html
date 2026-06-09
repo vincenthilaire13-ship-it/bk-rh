@@ -575,6 +575,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
         <button class="rtab" onclick="setMailTab(this,'documents')">📄 Documents</button>
         <button class="rtab" onclick="setMailTab(this,'entretien')">📅 Entretien</button>
         <button class="rtab" onclick="setMailTab(this,'refus')">❌ Refus</button>
+        <button class="rtab" onclick="setMailTab(this,'rupture')">🛑 Rupture essai</button>
       </div>
       <label class="flabel">Objet</label>
       <input type="text" id="mt-sujet" class="fi" style="margin-bottom:10px;">
@@ -737,7 +738,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '2026-06-09 15:42';
+const APP_VERSION = '2026-06-09 16:06';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
@@ -2207,6 +2208,10 @@ var MAIL_DEFAULTS={
   documents:{
     sujet:'Votre intégration chez {resto} — documents à fournir',
     corps:'Bonjour {prenom},\n\nFélicitations, nous sommes ravis de vous accueillir au sein de l\'équipe {resto} !\n\nAfin de préparer au mieux votre intégration, merci de déposer tous vos documents directement sur votre espace sécurisé personnel.\n\n➡️➡️➡️ CLIQUEZ SUR CE LIEN POUR DÉPOSER VOS DOCUMENTS :\n\n{lien_docs}\n\n(Si le lien ne s\'ouvre pas, copiez-le et collez-le dans votre navigateur.)\n\n━━━━━━━━━━━━━━━━━━━━━━\n\nDocuments à fournir (tous obligatoires) :\n- Carte d\'identité recto ET verso\n- Justificatif de domicile de -3 mois\n- Carte vitale recto ET verso\n- Attestation CPAM\n- Attestation de mutuelle / complémentaire Santé Solidaire (pour être dispensé de la mutuelle du restaurant) OU courrier signé d\'adhésion à la mutuelle obligatoire\n- RIB français\n- Si contrat inférieur à 24h/semaine : indiquez le motif directement sur votre espace\n\nÀ renseigner également sur votre espace :\n- Contact en cas d\'urgence (nom/prénom + téléphone)\n- Vos tailles de tenues\n\n━━━━━━━━━━━━━━━━━━━━━━\n\nAvant votre intégration, il est impératif d\'avoir réalisé les vidéos de formation réglementaires sur Burger King University :\n🎓 www.burgerkinguniversity.com\nIdentifiant : {bku_id}\nMot de passe : {bku_mdp}\n\nMerci de nous prévenir par mail une fois les vidéos terminées.\n\nVotre intégration est prévue le {date_integration}, à condition que les vidéos soient terminées la veille au soir.\n\nUne fois tous les documents reçus et les vidéos effectuées, vous recevrez un mail vous informant que votre contrat est disponible pour signature électronique.\n\nNous restons disponibles pour toute question,\n\nÀ très bientôt,\nL\'équipe {resto}'
+  },
+  rupture:{
+    sujet:'Fin de votre période d\'essai chez {resto}',
+    corps:'Bonjour {prenom},\n\nNous vous informons que nous avons décidé de mettre fin à votre période d\'essai au sein de l\'équipe {resto}, et ce conformément aux dispositions légales applicables.\n\nVotre dernier jour de travail est fixé au {date_fin}, en tenant compte du délai de prévenance.\n\nNous vous remercions pour votre implication durant cette période et vous souhaitons une pleine réussite dans la suite de votre parcours professionnel.\n\nNous restons à votre disposition pour toute information relative à vos documents de fin de contrat.\n\nCordialement,\nL\'équipe {resto}'
   }
 };
 function getMailTpl(){
@@ -2216,19 +2221,22 @@ function getMailTpl(){
     entretien:m.entretien||MAIL_DEFAULTS.entretien,
     retenu:m.retenu||MAIL_DEFAULTS.retenu,
     refus:m.refus||MAIL_DEFAULTS.refus,
-    documents:m.documents||MAIL_DEFAULTS.documents
+    documents:m.documents||MAIL_DEFAULTS.documents,
+    rupture:m.rupture||MAIL_DEFAULTS.rupture
   };
 }
 function _restoLabel(c){return RESTOS[c.restoId]?RESTOS[c.restoId].label:'Burger King';}
 function _fillTpl(txt,c,dateStr){
   var lienDocs=publicBaseUrl()+'#documents/'+c.id;
   var dInt=c.dateDebut?new Date(c.dateDebut+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}):'(à préciser)';
+  var dFin=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
   return (txt||'').replace(/{prenom}/g,c.prenom||'').replace(/{nom}/g,c.nom||'')
     .replace(/{resto}/g,_restoLabel(c)).replace(/{date}/g,dateStr||'')
     .replace(/{lien_docs}/g,lienDocs)
     .replace(/{bku_id}/g,c.bkuIdentifiant||'__________')
     .replace(/{bku_mdp}/g,c.bkuMotdepasse||'__________')
-    .replace(/{date_integration}/g,dInt);
+    .replace(/{date_integration}/g,dInt)
+    .replace(/{date_fin}/g,dFin);
 }
 function _mailto(c,subject,body){
   var tpl=getMailTpl();
@@ -2259,6 +2267,11 @@ function mailDocuments(){
   var c=curCand();if(!c)return;
   var tpl=getMailTpl();
   _mailto(c,_fillTpl(tpl.documents.sujet,c),_fillTpl(tpl.documents.corps,c));
+}
+function mailRupture(){
+  var c=curCand();if(!c)return;
+  var tpl=getMailTpl();
+  _mailto(c,_fillTpl(tpl.rupture.sujet,c),_fillTpl(tpl.rupture.corps,c));
 }
 
 // ── ACTIONS : RETENU (intégration) ────────────────────────────────────────────
@@ -2509,8 +2522,8 @@ async function addAvis(avis){
 function essaiDecision(d){
   if(d==='valide'){_candUpdate({statut:'retenu',onboarding:Object.assign({},curCand().onboarding,{essai_valide:true})},'Embauche confirmée ✅ — période d\'essai validée');}
   else{
-    if(!confirm('Confirmer la rupture de la période d\'essai ? Pensez à respecter le délai de prévenance légal.'))return;
-    _candUpdate({statut:'refuse',refus_motif:'Rupture période d\'essai'},'Période d\'essai rompue');
+    if(!confirm('Confirmer la rupture de la période d\'essai ?\n\nUn mail de notification va s\'ouvrir (modifiable avant envoi). Pensez à respecter le délai de prévenance légal.'))return;
+    _candUpdate({statut:'refuse',refus_motif:'Rupture période d\'essai'},'Période d\'essai rompue',function(){mailRupture();});
   }
 }
 
