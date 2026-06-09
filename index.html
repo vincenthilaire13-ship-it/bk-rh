@@ -561,6 +561,23 @@ textarea.fi{resize:vertical;min-height:75px;}
       </label>
       <button class="btn btn-red" onclick="saveAmplitude()">💾 Enregistrer l'amplitude</button>
     </div>
+    <div class="card">
+      <div class="sec-title">✉️ Modèles de mails</div>
+      <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Personnalisez les mails envoyés aux candidats et l'adresse expéditrice. Variables disponibles : <code style="color:var(--orange);">{prenom}</code>, <code style="color:var(--orange);">{nom}</code>, <code style="color:var(--orange);">{resto}</code>, <code style="color:var(--orange);">{date}</code> (date d'entretien). Les mails s'ouvrent dans votre messagerie, vous validez vous-même l'envoi.</p>
+      <label class="flabel">Adresse expéditrice (mise en copie pour partir du bon compte)</label>
+      <input type="email" id="mt-exp" class="fi" placeholder="recrutement@votredomaine.fr" style="margin-bottom:16px;">
+
+      <div id="mt-tabs" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+        <button class="rtab on" onclick="setMailTab(this,'retenu')">✅ Retenu</button>
+        <button class="rtab" onclick="setMailTab(this,'entretien')">📅 Entretien</button>
+        <button class="rtab" onclick="setMailTab(this,'refus')">❌ Refus</button>
+      </div>
+      <label class="flabel">Objet</label>
+      <input type="text" id="mt-sujet" class="fi" style="margin-bottom:10px;">
+      <label class="flabel">Message</label>
+      <textarea id="mt-corps" class="fi" style="min-height:200px;font-size:.85rem;"></textarea>
+      <button class="btn btn-red" style="margin-top:12px;" onclick="saveMailTpl()">💾 Enregistrer les modèles</button>
+    </div>
   </div>
 </div>
 
@@ -704,7 +721,7 @@ textarea.fi{resize:vertical;min-height:75px;}
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '2026-06-09 11:31';
+const APP_VERSION = '2026-06-09 11:42';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
@@ -1077,7 +1094,7 @@ function goPage(id, btn) {
   if (id==='planning'){openPlanning();}
   if (id==='validations') renderLetters();
   if (id==='rapports-auto'){loadMailSettings();renderRcpsList();renderApercuDestinataires();}
-  if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();var av=document.getElementById('app-version-badge');if(av)av.textContent=APP_VERSION;}
+  if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();loadMailTpl();var av=document.getElementById('app-version-badge');if(av)av.textContent=APP_VERSION;}
 }
 function setEqTab(btn,r){
   eqTab=r;
@@ -2041,46 +2058,60 @@ function candRefuser(){
 
 function candRemettreNouveau(){_candUpdate({statut:'nouveau'},'Remis en Nouveau ✔');}
 
-// ── MAILS (s'ouvrent prêts à envoyer via le client mail) ──────────────────────
-function _mailto(c,subject,body){
-  var url='mailto:'+encodeURIComponent(c.email||'')+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
-  window.location.href=url;
+// ── MAILS (modèles éditables + adresse expéditrice, s'ouvrent dans le client mail) ──
+var MAIL_DEFAULTS={
+  expediteur:'',
+  entretien:{
+    sujet:'Votre entretien chez {resto}',
+    corps:'Bonjour {prenom},\n\nNous avons bien reçu votre candidature et nous serions ravis de vous rencontrer.\n\nNous vous proposons un entretien le {date} au restaurant {resto}.\n\nMerci de nous confirmer votre présence en répondant à ce message.\n\nÀ très bientôt,\nL\'équipe {resto}'
+  },
+  retenu:{
+    sujet:'Bienvenue dans l\'équipe {resto} !',
+    corps:'Bonjour {prenom},\n\nBonne nouvelle : suite à notre entretien, nous souhaitons vous intégrer à notre équipe !\n\nPour préparer votre arrivée, merci de nous fournir les éléments suivants :\n- Pièce d\'identité (recto/verso)\n- Carte vitale ou attestation de sécurité sociale\n- RIB\n- Justificatif de domicile\n\nVous recevrez également un lien pour réaliser les vidéos de formation avant votre prise de poste.\n\nNous reviendrons vers vous avec votre date de démarrage et la suite des démarches.\n\nFélicitations et bienvenue,\nL\'équipe {resto}'
+  },
+  refus:{
+    sujet:'Votre candidature chez {resto}',
+    corps:'Bonjour {prenom},\n\nNous vous remercions pour l\'intérêt que vous portez à notre restaurant et pour le temps consacré à votre candidature.\n\nAprès étude, nous ne sommes pas en mesure de donner une suite favorable à votre candidature pour le moment.\n\nNous conservons vos coordonnées et nous nous permettrons de revenir vers vous si une opportunité correspondant à votre profil se présente.\n\nNous vous souhaitons une pleine réussite dans vos recherches.\n\nCordialement,\nL\'équipe {resto}'
+  }
+};
+function getMailTpl(){
+  var m=(DB.mailSettings&&DB.mailSettings.mailTpl)||{};
+  return {
+    expediteur:m.expediteur||MAIL_DEFAULTS.expediteur,
+    entretien:m.entretien||MAIL_DEFAULTS.entretien,
+    retenu:m.retenu||MAIL_DEFAULTS.retenu,
+    refus:m.refus||MAIL_DEFAULTS.refus
+  };
 }
 function _restoLabel(c){return RESTOS[c.restoId]?RESTOS[c.restoId].label:'Burger King';}
+function _fillTpl(txt,c,dateStr){
+  return (txt||'').replace(/{prenom}/g,c.prenom||'').replace(/{nom}/g,c.nom||'')
+    .replace(/{resto}/g,_restoLabel(c)).replace(/{date}/g,dateStr||'');
+}
+function _mailto(c,subject,body){
+  var tpl=getMailTpl();
+  // adresse expéditrice : si renseignée, on l'ajoute en copie (cc) pour que l'envoi parte du bon fil
+  var params='subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  if(tpl.expediteur)params+='&cc='+encodeURIComponent(tpl.expediteur);
+  var url='mailto:'+encodeURIComponent(c.email||'')+'?'+params;
+  window.location.href=url;
+}
 
 function mailConvocation(){
   var c=curCand();if(!c)return;
+  var tpl=getMailTpl();
   var dt=c.entretienDate?new Date(c.entretienDate).toLocaleString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'(à confirmer)';
-  var body='Bonjour '+c.prenom+',\n\n'
-    +'Nous avons bien reçu votre candidature et nous serions ravis de vous rencontrer.\n\n'
-    +'Nous vous proposons un entretien le '+dt+' au restaurant '+_restoLabel(c)+'.\n\n'
-    +'Merci de nous confirmer votre présence en répondant à ce message.\n\n'
-    +'À très bientôt,\nL\'équipe '+_restoLabel(c);
-  _mailto(c,'Votre entretien chez '+_restoLabel(c),body);
+  _mailto(c,_fillTpl(tpl.entretien.sujet,c,dt),_fillTpl(tpl.entretien.corps,c,dt));
 }
-
 function mailRetenu(){
   var c=curCand();if(!c)return;
-  var body='Bonjour '+c.prenom+',\n\n'
-    +'Bonne nouvelle : suite à notre entretien, nous souhaitons vous intégrer à notre équipe !\n\n'
-    +'Pour préparer votre arrivée, merci de nous fournir les éléments suivants :\n'
-    +'- Pièce d\'identité (recto/verso)\n- Carte vitale ou attestation de sécurité sociale\n- RIB\n- Justificatif de domicile\n\n'
-    +'Vous recevrez également un lien pour réaliser les vidéos de formation avant votre prise de poste.\n\n'
-    +'Nous reviendrons vers vous avec votre date de démarrage et la suite des démarches.\n\n'
-    +'Félicitations et bienvenue,\nL\'équipe '+_restoLabel(c);
-  _mailto(c,'Bienvenue dans l\'équipe '+_restoLabel(c)+' !',body);
+  var tpl=getMailTpl();
+  _mailto(c,_fillTpl(tpl.retenu.sujet,c),_fillTpl(tpl.retenu.corps,c));
 }
-
 function mailRefus(){
   var c=curCand();if(!c)return;
-  // Mail volontairement neutre et non discriminant
-  var body='Bonjour '+c.prenom+',\n\n'
-    +'Nous vous remercions pour l\'intérêt que vous portez à notre restaurant et pour le temps consacré à votre candidature.\n\n'
-    +'Après étude, nous ne sommes pas en mesure de donner une suite favorable à votre candidature pour le moment.\n\n'
-    +'Nous conservons vos coordonnées et nous nous permettrons de revenir vers vous si une opportunité correspondant à votre profil se présente.\n\n'
-    +'Nous vous souhaitons une pleine réussite dans vos recherches.\n\n'
-    +'Cordialement,\nL\'équipe '+_restoLabel(c);
-  _mailto(c,'Votre candidature chez '+_restoLabel(c),body);
+  var tpl=getMailTpl();
+  _mailto(c,_fillTpl(tpl.refus.sujet,c),_fillTpl(tpl.refus.corps,c));
 }
 
 // ── ACTIONS : RETENU (intégration) ────────────────────────────────────────────
@@ -2793,6 +2824,39 @@ async function saveAmplitude(){
   if(!DB.mailSettings)DB.mailSettings={};
   DB.mailSettings.dispoAmplitude={start:sm,end:em};
   await saveDB();toast('Amplitude enregistrée ✔','success');
+}
+
+var _mailTab='retenu';
+function loadMailTpl(){
+  var tpl=getMailTpl();
+  var exp=document.getElementById('mt-exp');if(exp)exp.value=tpl.expediteur||'';
+  _mailTab='retenu';
+  document.querySelectorAll('#mt-tabs .rtab').forEach(function(b,i){b.classList.toggle('on',i===0);});
+  fillMailFields();
+}
+function fillMailFields(){
+  var tpl=getMailTpl();var t=tpl[_mailTab];
+  var s=document.getElementById('mt-sujet'),co=document.getElementById('mt-corps');
+  if(s)s.value=t.sujet;if(co)co.value=t.corps;
+}
+function setMailTab(btn,tab){
+  // sauvegarder le champ courant en mémoire avant de switcher
+  _stashMailField();
+  _mailTab=tab;
+  document.querySelectorAll('#mt-tabs .rtab').forEach(function(b){b.classList.remove('on');});
+  btn.classList.add('on');
+  fillMailFields();
+}
+function _stashMailField(){
+  if(!DB.mailSettings)DB.mailSettings={};
+  if(!DB.mailSettings.mailTpl)DB.mailSettings.mailTpl=JSON.parse(JSON.stringify(getMailTpl()));
+  DB.mailSettings.mailTpl[_mailTab]={sujet:document.getElementById('mt-sujet').value,corps:document.getElementById('mt-corps').value};
+}
+async function saveMailTpl(){
+  _stashMailField();
+  DB.mailSettings.mailTpl.expediteur=document.getElementById('mt-exp').value.trim();
+  await saveDB();
+  toast('Modèles de mails enregistrés ✔','success');
 }
 
 function renderNamesSettings(){
