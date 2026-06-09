@@ -230,7 +230,7 @@ textarea.fi{resize:vertical;min-height:75px;}
   <nav id="main-nav">
     <button class="active" onclick="goPage('equipe',this)">👥 Équipe</button>
     <button onclick="goPage('recrutement',this)">🎯 Recrutement <span id="rbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
-    <button onclick="goPage('entretien',this)">📅 Entretien</button>
+    <button onclick="goPage('outils-qr',this)">📲 Outils QR</button>
     <button onclick="goPage('incidents',this)">📋 Incidents</button>
     <button onclick="goPage('rapports',this)">📊 Rapports</button>
     <button onclick="goPage('validations',this)">✉️ Validations <span id="vbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
@@ -241,8 +241,58 @@ textarea.fi{resize:vertical;min-height:75px;}
   <!-- RECRUTEMENT -->
   <div class="page" id="page-recrutement">
     <div class="card">
+      <div class="sec-title">👁️ Aperçu de la fiche de recrutement</div>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:12px;">Voici exactement ce que le candidat voit et remplit quand il scanne le QR code. Cet aperçu est en lecture seule.</p>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+        <span class="flabel" style="margin:0;">Restaurant de l'aperçu :</span>
+        <select id="apercu-resto" class="fi" style="width:auto;" onchange="renderApercuForm()">
+          <option value="bk500">BK 500</option><option value="bk509">BK 509</option><option value="bk526">BK 526</option>
+        </select>
+        <button class="btn btn-gray btn-sm" onclick="openApercuLive()">🔎 Ouvrir en plein écran</button>
+      </div>
+      <div id="apercu-form-wrap" style="border:1px solid #333;border-radius:12px;overflow:hidden;max-height:600px;overflow-y:auto;background:#1A1A1A;"></div>
+    </div>
+
+    <div class="card">
+      <div class="sec-title">📥 Suivi des candidatures</div>
+      <div id="rec-stat-tabs" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+        <button class="rtab on" id="cst-nouveau" onclick="setCandFilter('nouveau')">🆕 Nouveau</button>
+        <button class="rtab" id="cst-entretien" onclick="setCandFilter('entretien')">📅 Entretien</button>
+        <button class="rtab" id="cst-retenu" onclick="setCandFilter('retenu')">✅ Retenu</button>
+        <button class="rtab" id="cst-essai" onclick="setCandFilter('essai')">⏳ Période d'essai</button>
+        <button class="rtab" id="cst-refuse" onclick="setCandFilter('refuse')">❌ Refusé</button>
+      </div>
+
+      <!-- filtre restaurant (visible en Nouveau) -->
+      <div id="rec-resto-filter" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+        <button class="rtab rf on" onclick="setRestoFilter(this,'all')">Tous</button>
+        <button class="rtab rf" onclick="setRestoFilter(this,'bk500')">BK 500</button>
+        <button class="rtab rf" onclick="setRestoFilter(this,'bk509')">BK 509</button>
+        <button class="rtab rf" onclick="setRestoFilter(this,'bk526')">BK 526</button>
+      </div>
+
+      <!-- agenda (visible en Entretien) -->
+      <div id="rec-agenda-wrap" style="display:none;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <button class="btn btn-gray btn-sm" onclick="agendaNav(-1)">← Mois précédent</button>
+          <div id="agenda-month-label" style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.25rem;color:var(--yellow);text-transform:uppercase;letter-spacing:2px;"></div>
+          <button class="btn btn-gray btn-sm" onclick="agendaNav(1)">Mois suivant →</button>
+        </div>
+        <div id="agenda-grid"></div>
+        <div id="agenda-day-detail" style="margin-top:14px;"></div>
+        <div style="border-top:1px solid #2A2A2A;margin:16px 0 4px;"></div>
+        <div style="font-size:.8rem;color:#888;margin-bottom:8px;">Tous les candidats en entretien :</div>
+      </div>
+
+      <div id="rec-cand-list"></div>
+    </div>
+  </div>
+
+  <!-- OUTILS QR -->
+  <div class="page" id="page-outils-qr">
+    <div class="card">
       <div class="sec-title">📲 QR code de candidature</div>
-      <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">Affichez ou imprimez ce QR code. Le candidat le scanne, remplit ses informations et ses disponibilités. Vous recevez la candidature ici.</p>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">Affichez ou imprimez ce QR code. Le candidat le scanne et arrive directement sur la fiche de recrutement, sans code ni accès à l'application.</p>
       <div id="rec-qr-tabs" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
         <button class="rtab on" onclick="setQrResto(this,'bk500')">🍔 BK 500</button>
         <button class="rtab" onclick="setQrResto(this,'bk509')">🍔 BK 509</button>
@@ -260,49 +310,8 @@ textarea.fi{resize:vertical;min-height:75px;}
             <button class="btn btn-gray btn-sm" onclick="copyQrLink()">📋 Copier le lien</button>
             <button class="btn btn-gray btn-sm" onclick="printQr()">🖨️ Imprimer</button>
           </div>
-          <p style="font-size:.74rem;color:#666;margin-top:10px;">L'affiche PDF contient le QR code et votre phrase d'accroche, prête à imprimer ou envoyer (mail/WhatsApp). Le candidat scanne → son formulaire arrive directement ici.</p>
+          <p style="font-size:.74rem;color:#666;margin-top:10px;">L'affiche PDF contient le QR code et votre phrase d'accroche, prête à imprimer ou envoyer (mail/WhatsApp).</p>
         </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="sec-title">📥 Candidatures reçues</div>
-      <div id="rec-stat-tabs" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
-        <button class="rtab on" onclick="setCandFilter(this,'nouveau')">🆕 Nouvelles</button>
-        <button class="rtab" onclick="setCandFilter(this,'entretien')">📅 Entretien</button>
-        <button class="rtab" onclick="setCandFilter(this,'retenu')">✅ Retenues</button>
-        <button class="rtab" onclick="setCandFilter(this,'refuse')">❌ Refusées</button>
-        <button class="rtab" onclick="setCandFilter(this,'all')">📋 Toutes</button>
-      </div>
-      <div id="rec-cand-list"></div>
-    </div>
-  </div>
-
-  <!-- ENTRETIEN -->
-  <div class="page" id="page-entretien">
-    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-      <button class="rtab on" id="subent-agenda" onclick="setEntSub('agenda')">📅 Agenda des entretiens</button>
-      <button class="rtab" id="subent-essai" onclick="setEntSub('essai')">⏳ Fin de période d'essai</button>
-    </div>
-
-    <div id="entsub-agenda">
-      <div class="card">
-        <div class="sec-title">📅 Agenda des entretiens</div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-          <button class="btn btn-gray btn-sm" onclick="agendaNav(-1)">← Mois précédent</button>
-          <div id="agenda-month-label" style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.25rem;color:var(--yellow);text-transform:uppercase;letter-spacing:2px;"></div>
-          <button class="btn btn-gray btn-sm" onclick="agendaNav(1)">Mois suivant →</button>
-        </div>
-        <div id="agenda-grid"></div>
-        <div id="agenda-day-detail" style="margin-top:14px;"></div>
-      </div>
-    </div>
-
-    <div id="entsub-essai" style="display:none;">
-      <div class="card">
-        <div class="sec-title">⏳ Fin de période d'essai</div>
-        <p style="font-size:.83rem;color:#aaa;margin-bottom:8px;">Suivi des salariés arrivant en fin de période d'essai, avec alerte avant l'échéance pour décider à temps (en tenant compte du délai de prévenance légal).</p>
-        <div id="essai-list"></div>
       </div>
     </div>
   </div>
@@ -586,7 +595,7 @@ textarea.fi{resize:vertical;min-height:75px;}
 </div>
 
 <div class="modal-ov" id="modal-cand">
-  <div class="modal" style="width:560px;max-width:96vw;">
+  <div class="modal" style="width:580px;max-width:96vw;">
     <div class="modal-title" id="cand-title">🎯 Candidature</div>
     <input type="hidden" id="cand-id">
     <div id="cand-detail"></div>
@@ -594,21 +603,9 @@ textarea.fi{resize:vertical;min-height:75px;}
       <label class="flabel">Note interne RH</label>
       <textarea id="cand-note" class="fi" style="min-height:50px;" placeholder="Remarques internes..."></textarea>
     </div>
-    <div id="cand-entretien-row" style="display:none;margin-top:12px;">
-      <label class="flabel">📅 Date et heure de l'entretien</label>
-      <input type="datetime-local" id="cand-entretien-date" class="fi">
-      <p style="font-size:.74rem;color:#888;margin-top:5px;">L'entretien apparaîtra dans l'agenda ci-dessus.</p>
-    </div>
-    <div style="margin-top:12px;padding:10px 12px;background:#1A1A1A;border:1px dashed #444;border-radius:8px;">
-      <div style="font-size:.78rem;color:#888;">✉️ Email automatique au candidat</div>
-      <button class="btn btn-gray btn-sm" style="margin-top:6px;opacity:.55;cursor:not-allowed;" disabled>Préparer le mail (bientôt)</button>
-      <p style="font-size:.72rem;color:#666;margin-top:5px;">Modèles de mail (retenu / non retenu) à rédiger ensemble — formulation neutre et non discriminante.</p>
-    </div>
+    <div id="cand-actions" style="margin-top:14px;"></div>
     <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap;justify-content:flex-end;">
       <button class="btn btn-gray" onclick="closeModal('modal-cand')">Fermer</button>
-      <button class="btn btn-gray" style="background:#1A3A1A;border-color:#3A7A3A;color:#4CAF50;" onclick="candSetEntretien()">📅 Convoquer en entretien</button>
-      <button class="btn btn-gray" style="background:#1E3A1E;border-color:#4A8A4A;color:#7ACA7A;" onclick="candDecide('retenu')">✅ Retenir</button>
-      <button class="btn-danger" style="padding:10px 18px;" onclick="candDecide('refuse')">❌ Refuser</button>
     </div>
   </div>
 </div>
@@ -619,7 +616,7 @@ textarea.fi{resize:vertical;min-height:75px;}
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '2026-06-08 22:33';
+const APP_VERSION = '2026-06-09 08:06';
 
 const SUPA_URL = 'https://qggkbtzhkomhldhacohd.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZ2tidHpoa29taGxkaGFjb2hkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNzc0MzIsImV4cCI6MjA5NDc1MzQzMn0.l4W4rH4CFREugjImoRqN8hocmEXFcVqnN1-H78x3S-c';
@@ -748,11 +745,13 @@ async function loadAll() {
   });
   DB.candidatures = (cands||[]).map(function(c){
     return {id:c.id,prenom:c.prenom||'',nom:c.nom||'',email:c.email||'',phone:c.phone||'',
-      restoId:c.resto_id||'',poste:c.poste||'',dispos:c.dispos||{},questionnaire:c.questionnaire||{},
+      restoId:c.resto_id||'',poste:c.poste||'',niveauApprentissage:c.niveau_apprentissage||'',dispos:c.dispos||{},questionnaire:c.questionnaire||{},
       motivation:c.motivation||'',statut:c.statut||'nouveau',entretienDate:c.entretien_date||null,
       noteInterne:c.note_interne||'',createdAt:c.created_at,
       dateNaissance:c.date_naissance||'',etudiant:!!c.etudiant,dernierEmploi:c.dernier_emploi||'',
-      transport:c.transport||'',photo:c.photo||''};
+      transport:c.transport||'',trajet:c.trajet||'',adresse:c.adresse||'',photo:c.photo||'',
+      onboarding:c.onboarding||{},dateDebut:c.date_debut||'',essaiRappels:c.essai_rappels||{},
+      avisManagers:c.avis_managers||[],refusMotif:c.refus_motif||''};
   });
   const sett = settArr && settArr[0];
   if (sett) {
@@ -782,8 +781,7 @@ function startSync() {
       renderHistory();
       updateVBadge();
       updateRBadge();
-      if(document.getElementById('page-recrutement').classList.contains('active'))renderCandidatures();
-      if(document.getElementById('page-entretien').classList.contains('active')&&entSub==='agenda')renderAgenda();
+      if(document.getElementById('page-recrutement').classList.contains('active')){renderCandidatures();if(candFilter==='entretien')renderAgenda();}
     } catch(e) { console.warn('sync',e); }
   }, 5000);
 }
@@ -919,7 +917,7 @@ function checkPin() {
         // Rapports auto et Paramètres : uniquement Admin et Superviseure
         if (txt.indexOf('Rapports auto')>=0 || txt.indexOf('Paramètres')>=0) {
           b.style.display = isAdmin ? '' : 'none';
-        } else if (txt.indexOf('Recrutement')>=0 || txt.indexOf('Entretien')>=0) {
+        } else if (txt.indexOf('Recrutement')>=0 || txt.indexOf('Outils QR')>=0) {
           b.style.display = (isGlobal||isDir) ? '' : 'none';
         } else {
           b.style.display = '';
@@ -973,8 +971,8 @@ function goPage(id, btn) {
     fillRptPersons();genReport();
   }
   if (id==='equipe') renderEquipe();
-  if (id==='recrutement'){renderQr();renderCandidatures();}
-  if (id==='entretien'){setEntSub(entSub);}
+  if (id==='recrutement'){renderApercuForm();setCandFilter(candFilter||'nouveau');}
+  if (id==='outils-qr'){renderQr();}
   if (id==='validations') renderLetters();
   if (id==='rapports-auto'){loadMailSettings();renderRcpsList();renderApercuDestinataires();}
   if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();var av=document.getElementById('app-version-badge');if(av)av.textContent=APP_VERSION;}
@@ -1556,7 +1554,7 @@ async function delLetter(lid){
 // RECRUTEMENT — QR code, formulaire public, candidatures
 // ══════════════════════════════════════════════════════════════════════════════
 var JOURS = [['lun','Lundi'],['mar','Mardi'],['mer','Mercredi'],['jeu','Jeudi'],['ven','Vendredi'],['sam','Samedi'],['dim','Dimanche']];
-var POSTES = ['Équipier polyvalent','Équipier de cuisine','Équipier comptoir / drive','Leader / Formateur','Manager','Autre'];
+var POSTES = ['Équipier polyvalent','Équipier cuisine','Équipier comptoir / drive','Leader','Manager','Apprenti','Autre'];
 
 var qrResto = 'bk500';
 var candFilter = 'nouveau';
@@ -1728,45 +1726,100 @@ function renderAgendaDay(){
   box.innerHTML=h;
 }
 
-var entSub='agenda';
-function setEntSub(s){
-  entSub=s;
-  document.getElementById('subent-agenda').classList.toggle('on',s==='agenda');
-  document.getElementById('subent-essai').classList.toggle('on',s==='essai');
-  document.getElementById('entsub-agenda').style.display=s==='agenda'?'block':'none';
-  document.getElementById('entsub-essai').style.display=s==='essai'?'block':'none';
-  if(s==='agenda')renderAgenda();
-  if(s==='essai')renderEssai();
+// ── ÉTAPES D'INTÉGRATION (candidat retenu) ───────────────────────────────────
+var ONBOARD_STEPS=[
+  {id:'docs',label:'Documents fournis (CNI, carte vitale, RIB)'},
+  {id:'videos',label:'Vidéos de formation réalisées'},
+  {id:'visite',label:'Visite médicale programmée'},
+  {id:'contrat',label:'Contrat signé'}
+];
+function onboardDone(c){
+  var ob=c.onboarding||{};
+  var done=ONBOARD_STEPS.filter(function(s){return ob[s.id];}).length;
+  return {done:done,total:ONBOARD_STEPS.length,complete:done===ONBOARD_STEPS.length};
 }
 
-function renderEssai(){
-  var box=document.getElementById('essai-list');if(!box)return;
-  // Brique période d'essai : à brancher quand la date d'embauche + catégorie seront gérées sur la fiche salarié.
-  box.innerHTML='<div class="empty"><div class="ei">⏳</div><p>Le suivi des fins de période d\'essai sera activé avec la prochaine étape (dates d\'embauche & catégories sur les fiches salariés).</p></div>';
+// ── PÉRIODE D'ESSAI (rappels à J+7 et J+15, échéance 2 mois) ───────────────────
+function essaiInfo(c){
+  if(!c.dateDebut)return null;
+  var debut=new Date(c.dateDebut+'T12:00:00');
+  var now=new Date();
+  var jours=Math.floor((now-debut)/(24*3600*1000));
+  var fin=new Date(debut);fin.setMonth(fin.getMonth()+2); // période d'essai 2 mois
+  var joursRestants=Math.ceil((fin-now)/(24*3600*1000));
+  var label='J+'+jours+' · fin le '+fin.toLocaleDateString('fr-FR');
+  var alert='',alertCol='';
+  // rappels internes
+  if(jours>=7&&jours<9&&!(c.essaiRappels&&c.essaiRappels.j7)){alert='⏰ Point 1 semaine';alertCol='#F5A623';}
+  else if(jours>=15&&jours<18&&!(c.essaiRappels&&c.essaiRappels.j15)){alert='⏰ Point 15 jours';alertCol='#F5A623';}
+  else if(joursRestants<=14&&joursRestants>0){alert='⚠️ Fin dans '+joursRestants+'j';alertCol='#cc5555';}
+  else if(joursRestants<=0){alert='🔴 Échéance dépassée';alertCol='#cc5555';}
+  return {jours:jours,fin:fin,joursRestants:joursRestants,label:label,alert:alert,alertCol:alertCol};
 }
 
-function setCandFilter(btn,f){candFilter=f;document.querySelectorAll('#rec-stat-tabs .rtab').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');renderCandidatures();}
+function publicFormUrl(resto){return publicBaseUrl()+'#postuler/'+(resto||'bk500');}
+
+function renderApercuForm(){
+  var wrap=document.getElementById('apercu-form-wrap');if(!wrap)return;
+  var resto=document.getElementById('apercu-resto').value;
+  wrap.innerHTML='<iframe src="'+publicFormUrl(resto)+'" style="width:100%;height:560px;border:none;background:#1A1A1A;" title="Aperçu fiche de recrutement"></iframe>';
+}
+
+function openApercuLive(){
+  var resto=document.getElementById('apercu-resto').value;
+  window.open(publicFormUrl(resto),'_blank');
+}
+
+function setCandFilter(f){
+  candFilter=f;
+  ['nouveau','entretien','retenu','essai','refuse'].forEach(function(s){
+    var b=document.getElementById('cst-'+s);if(b)b.classList.toggle('on',s===f);
+  });
+  // filtre resto visible seulement en Nouveau
+  document.getElementById('rec-resto-filter').style.display=(f==='nouveau')?'flex':'none';
+  // agenda visible seulement en Entretien
+  document.getElementById('rec-agenda-wrap').style.display=(f==='entretien')?'block':'none';
+  if(f==='entretien')renderAgenda();
+  renderCandidatures();
+}
+
+var restoFilter='all';
+function setRestoFilter(btn,r){
+  restoFilter=r;
+  document.querySelectorAll('#rec-resto-filter .rf').forEach(function(b){b.classList.remove('on');});
+  btn.classList.add('on');
+  renderCandidatures();
+}
 
 function renderCandidatures(){
   var list=document.getElementById('rec-cand-list');if(!list)return;
   var cands=DB.candidatures.slice();
-  // Directeur : seulement son resto
   if(curUser&&curUser.role==='directeur')cands=cands.filter(function(c){return c.restoId===curUser.restoId;});
-  if(candFilter!=='all')cands=cands.filter(function(c){return c.statut===candFilter;});
-  if(!cands.length){list.innerHTML='<div class="empty"><div class="ei">🎯</div><p>Aucune candidature dans cette catégorie</p></div>';return;}
-  var stLbl={nouveau:'🆕 Nouvelle',entretien:'📅 Entretien',retenu:'✅ Retenue',refuse:'❌ Refusée'};
-  var stCol={nouveau:'#5BA3F5',entretien:'#F5A623',retenu:'#4CAF50',refuse:'#cc5555'};
+  cands=cands.filter(function(c){return (c.statut||'nouveau')===candFilter;});
+  // filtre resto en Nouveau
+  if(candFilter==='nouveau'&&restoFilter!=='all')cands=cands.filter(function(c){return c.restoId===restoFilter;});
+  if(!cands.length){
+    var msgs={nouveau:'Aucune nouvelle candidature',entretien:'Aucun entretien programmé',retenu:'Aucun candidat retenu',essai:'Aucun salarié en période d\'essai',refuse:'Aucune candidature refusée'};
+    list.innerHTML='<div class="empty"><div class="ei">🎯</div><p>'+(msgs[candFilter]||'Aucune candidature')+'</p></div>';return;
+  }
+  var stCol={nouveau:'#5BA3F5',entretien:'#F5A623',retenu:'#4CAF50',essai:'#B57EDC',refuse:'#cc5555'};
   list.innerHTML=cands.map(function(c){
     var resto=RESTOS[c.restoId]?RESTOS[c.restoId].label:c.restoId;
-    var dt=c.createdAt?new Date(c.createdAt).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}):'';
-    var ent=c.entretienDate?' · entretien '+new Date(c.entretienDate).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
-    var nbDispo=Object.keys(c.dispos||{}).filter(function(k){return c.dispos[k]&&c.dispos[k].on;}).length;
-    return '<div class="emp-card" style="border-left:4px solid '+stCol[c.statut]+';cursor:pointer;" onclick="openCand(\''+c.id+'\')">'
+    var col=stCol[c.statut]||'#888';
+    var meta='';
+    if(c.statut==='nouveau'){var dt=c.createdAt?new Date(c.createdAt).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}):'';meta=(c.poste||'—')+' · '+resto+' · reçu le '+dt;}
+    else if(c.statut==='entretien'){meta='Entretien : '+(c.entretienDate?new Date(c.entretienDate).toLocaleString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'à programmer')+' · '+resto;}
+    else if(c.statut==='retenu'){var done=onboardDone(c);meta='Retenu · '+resto+' · intégration '+done.done+'/'+done.total+(c.dateDebut?' · début '+new Date(c.dateDebut).toLocaleDateString('fr-FR'):'');}
+    else if(c.statut==='essai'){var ess=essaiInfo(c);meta='Début '+(c.dateDebut?new Date(c.dateDebut).toLocaleDateString('fr-FR'):'?')+' · '+(ess?ess.label:'')+' · '+resto;}
+    else if(c.statut==='refuse'){meta='Refusé · '+resto;}
+    var alert='';
+    if(c.statut==='essai'){var e=essaiInfo(c);if(e&&e.alert)alert='<span style="background:'+e.alertCol+';color:#fff;border-radius:10px;padding:2px 8px;font-size:.68rem;font-weight:700;margin-left:6px;">'+e.alert+'</span>';}
+    return '<div class="emp-card" style="border-left:4px solid '+col+';cursor:pointer;" onclick="openCand(\''+c.id+'\')">'
       +'<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
       +(c.photo?'<img src="'+c.photo+'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;">':'<div class="emp-av av-e">'+((c.prenom[0]||'')+(c.nom[0]||'')).toUpperCase()+'</div>')
-      +'<div style="min-width:0;"><div style="font-weight:600;font-size:.92rem;">'+c.prenom+' '+c.nom+'</div>'
-      +'<div style="font-size:.73rem;color:#888;">'+(c.poste||'—')+' · '+resto+' · '+nbDispo+' jour'+(nbDispo>1?'s':'')+' dispo · '+dt+ent+'</div></div></div>'
-      +'<span class="role-pill" style="background:'+stCol[c.statut]+'22;color:'+stCol[c.statut]+';">'+stLbl[c.statut]+'</span>'
+      +'<div style="min-width:0;"><div style="font-weight:600;font-size:.92rem;">'+c.prenom+' '+c.nom+alert+'</div>'
+      +'<div style="font-size:.73rem;color:#888;">'+meta+'</div></div></div>'
+      +'<span style="color:'+col+';font-size:1.3rem;">›</span>'
       +'</div>';
   }).join('');
 }
@@ -1778,7 +1831,6 @@ function openCand(id){
   document.getElementById('cand-id').value=id;
   document.getElementById('cand-title').textContent='🎯 '+c.prenom+' '+c.nom;
   document.getElementById('cand-note').value=c.noteInterne||'';
-  var entRow=document.getElementById('cand-entretien-row');entRow.style.display='none';
   // Âge
   var ageTxt='';
   if(c.dateNaissance){var bd=new Date(c.dateNaissance);var age=Math.floor((Date.now()-bd)/(365.25*24*3600*1000));ageTxt=new Date(c.dateNaissance).toLocaleDateString('fr-FR')+' ('+age+' ans)';}
@@ -1787,10 +1839,9 @@ function openCand(id){
     var d=(c.dispos||{})[j[0]];
     if(d&&d.on){
       var cr=(d.creneaux||[]).map(function(x){
-        var ic=x.type==='midi'?'🌞':'🌙';
         var fr=typeof x.from==='number'?minToLabel(x.from):x.from;
         var to=typeof x.to==='number'?minToLabel(x.to):x.to;
-        return ic+' '+fr+'→'+to;
+        return '🕐 '+fr+'→'+to;
       }).join('  ');
       // compat ancien format
       if(!cr&&d.from)cr=d.from+'→'+d.to;
@@ -1806,45 +1857,240 @@ function openCand(id){
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">'
     +'<div><div class="flabel">Téléphone</div><a href="tel:'+c.phone+'" style="color:var(--orange);">'+(c.phone||'—')+'</a></div>'
     +'<div><div class="flabel">Email</div><a href="mailto:'+c.email+'" style="color:var(--orange);font-size:.82rem;word-break:break-all;">'+(c.email||'—')+'</a></div>'
-    +'<div><div class="flabel">Poste souhaité</div><span style="color:#eee;">'+(c.poste||'—')+'</span></div>'
+    +'<div><div class="flabel">Poste souhaité</div><span style="color:#eee;">'+(c.poste||'—')+(c.niveauApprentissage?' · '+c.niveauApprentissage:'')+'</span></div>'
     +'<div><div class="flabel">Restaurant</div><span style="color:#eee;">'+(RESTOS[c.restoId]?RESTOS[c.restoId].label:c.restoId)+'</span></div>'
-    +'<div><div class="flabel">Transport</div><span style="color:#eee;font-size:.85rem;">'+(c.transport||'—')+'</span></div>'
+    +'<div><div class="flabel">Transport</div><span style="color:#eee;font-size:.85rem;">'+(c.transport||'—')+(c.trajet?' · '+c.trajet:'')+'</span></div>'
     +'<div><div class="flabel">Dernier emploi</div><span style="color:#eee;font-size:.85rem;">'+(c.dernierEmploi||'—')+'</span></div>'
+    +'<div style="grid-column:1/-1;"><div class="flabel">Adresse</div><span style="color:#eee;font-size:.85rem;">'+(c.adresse||'—')+'</span></div>'
     +'</div>'
     +'<div class="flabel" style="margin-top:6px;">📅 Disponibilités</div>'
     +'<div style="background:#1A1A1A;border-radius:8px;padding:10px 14px;margin-bottom:14px;">'+disposHtml+'</div>'
     +(c.motivation?'<div class="flabel">💬 Pourquoi nous rejoindre</div><div style="background:#1A1A1A;border-radius:8px;padding:10px 14px;margin-bottom:4px;color:#eee;font-size:.86rem;white-space:pre-wrap;">'+c.motivation+'</div>':'');
+  renderCandActions(c);
   document.getElementById('modal-cand').classList.add('open');
 }
 
-function candSetEntretien(){
-  var row=document.getElementById('cand-entretien-row');
-  if(row.style.display==='none'){
-    row.style.display='block';
-    var c=DB.candidatures.find(function(x){return x.id===_candId;});
-    if(c&&c.entretienDate){var d=new Date(c.entretienDate);d.setMinutes(d.getMinutes()-d.getTimezoneOffset());document.getElementById('cand-entretien-date').value=d.toISOString().slice(0,16);}
-    return;
+function renderCandActions(c){
+  var box=document.getElementById('cand-actions');if(!box)return;
+  var st=c.statut||'nouveau';
+  var h='';
+  if(st==='nouveau'){
+    h='<div style="background:#1A1A1A;border-radius:8px;padding:12px;">'
+      +'<div style="font-size:.82rem;color:#aaa;margin-bottom:10px;">Vous devez répondre à ce candidat : convoquez-le en entretien, ou refusez sa candidature (un mail sera préparé).</div>'
+      +'<label class="flabel">📅 Date et heure de l\'entretien</label>'
+      +'<input type="datetime-local" id="cand-ent-date" class="fi" style="margin-bottom:10px;">'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+      +'<button class="btn btn-red btn-sm" onclick="candConvoquer()">📅 Convoquer en entretien</button>'
+      +'<a class="btn btn-gray btn-sm" href="tel:'+c.phone+'" style="text-decoration:none;">📞 Appeler</a>'
+      +'<button class="btn btn-gray btn-sm" style="color:#cc5555;border-color:#5a2020;" onclick="candRefuser()">❌ Refuser + mail</button>'
+      +'</div></div>';
+  }else if(st==='entretien'){
+    var dt=c.entretienDate?new Date(c.entretienDate).toLocaleString('fr-FR',{weekday:'long',day:'2-digit',month:'long',hour:'2-digit',minute:'2-digit'}):'non programmé';
+    h='<div style="background:#1A1A1A;border-radius:8px;padding:12px;">'
+      +'<div style="font-size:.85rem;color:#F5A623;margin-bottom:6px;">📅 Entretien prévu : '+dt+'</div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">'
+      +'<button class="btn btn-gray btn-sm" onclick="mailConvocation()">✉️ Renvoyer le mail de convocation</button>'
+      +'<button class="btn btn-gray btn-sm" onclick="candReprogrammer()">🕐 Reprogrammer</button></div>'
+      +'<div id="cand-reprog" style="display:none;margin-bottom:10px;"><input type="datetime-local" id="cand-ent-date" class="fi"><button class="btn btn-red btn-sm" style="margin-top:6px;" onclick="candConvoquer()">Valider la date</button></div>'
+      +'<div style="font-size:.82rem;color:#aaa;margin:10px 0 8px;">Après l\'entretien :</div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+      +'<button class="btn btn-red btn-sm" style="background:#1E3A1E;border-color:#4A8A4A;color:#7ACA7A;" onclick="candRetenir()">✅ Retenir le candidat</button>'
+      +'<button class="btn btn-gray btn-sm" style="color:#cc5555;border-color:#5a2020;" onclick="candRefuser()">❌ Refuser + mail</button>'
+      +'</div></div>';
+  }else if(st==='retenu'){
+    h=candRetenuActionsHtml(c);
+  }else if(st==='essai'){
+    h=candEssaiActionsHtml(c);
+  }else if(st==='refuse'){
+    h='<div style="background:#1A1A1A;border-radius:8px;padding:12px;">'
+      +'<div style="font-size:.85rem;color:#cc5555;margin-bottom:8px;">❌ Candidature refusée'+(c.refusMotif?' — '+c.refusMotif:'')+'</div>'
+      +'<button class="btn btn-gray btn-sm" onclick="mailRefus()">✉️ Renvoyer le mail de refus</button>'
+      +'<button class="btn btn-gray btn-sm" style="margin-left:6px;" onclick="candRemettreNouveau()">↩️ Remettre en Nouveau</button>'
+      +'</div>';
   }
-  var dv=document.getElementById('cand-entretien-date').value;
-  if(!dv){toast('Choisissez une date','error');return;}
-  _candUpdate({statut:'entretien',entretien_date:new Date(dv).toISOString(),note_interne:document.getElementById('cand-note').value.trim()},'Candidat convoqué en entretien ✔');
+  box.innerHTML=h;
 }
 
-function candDecide(decision){
-  var label=decision==='retenu'?'Candidat retenu ✔':'Candidature refusée';
-  _candUpdate({statut:decision,note_interne:document.getElementById('cand-note').value.trim()},label);
+function curCand(){return DB.candidatures.find(function(x){return x.id===_candId;});}
+
+function candConvoquer(){
+  var dv=document.getElementById('cand-ent-date').value;
+  if(!dv){toast('Choisissez une date d\'entretien','error');return;}
+  _candUpdate({statut:'entretien',entretien_date:new Date(dv).toISOString(),note_interne:document.getElementById('cand-note').value.trim()},'Candidat convoqué ✔',function(){mailConvocation();});
+}
+function candReprogrammer(){var r=document.getElementById('cand-reprog');if(r)r.style.display='block';}
+
+function candRetenir(){
+  _candUpdate({statut:'retenu',note_interne:document.getElementById('cand-note').value.trim()},'Candidat retenu ✔',function(){mailRetenu();});
 }
 
-async function _candUpdate(patch,msg){
+function candRefuser(){
+  var motif=prompt('Motif interne du refus (non envoyé au candidat, sert juste à votre suivi) :','Profil ne correspondant pas aux besoins actuels');
+  if(motif===null)return;
+  _candUpdate({statut:'refuse',refus_motif:motif,note_interne:document.getElementById('cand-note').value.trim()},'Candidature refusée',function(){mailRefus();});
+}
+
+function candRemettreNouveau(){_candUpdate({statut:'nouveau'},'Remis en Nouveau ✔');}
+
+// ── MAILS (s'ouvrent prêts à envoyer via le client mail) ──────────────────────
+function _mailto(c,subject,body){
+  var url='mailto:'+encodeURIComponent(c.email||'')+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  window.location.href=url;
+}
+function _restoLabel(c){return RESTOS[c.restoId]?RESTOS[c.restoId].label:'Burger King';}
+
+function mailConvocation(){
+  var c=curCand();if(!c)return;
+  var dt=c.entretienDate?new Date(c.entretienDate).toLocaleString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'(à confirmer)';
+  var body='Bonjour '+c.prenom+',\n\n'
+    +'Nous avons bien reçu votre candidature et nous serions ravis de vous rencontrer.\n\n'
+    +'Nous vous proposons un entretien le '+dt+' au restaurant '+_restoLabel(c)+'.\n\n'
+    +'Merci de nous confirmer votre présence en répondant à ce message.\n\n'
+    +'À très bientôt,\nL\'équipe '+_restoLabel(c);
+  _mailto(c,'Votre entretien chez '+_restoLabel(c),body);
+}
+
+function mailRetenu(){
+  var c=curCand();if(!c)return;
+  var body='Bonjour '+c.prenom+',\n\n'
+    +'Bonne nouvelle : suite à notre entretien, nous souhaitons vous intégrer à notre équipe !\n\n'
+    +'Pour préparer votre arrivée, merci de nous fournir les éléments suivants :\n'
+    +'- Pièce d\'identité (recto/verso)\n- Carte vitale ou attestation de sécurité sociale\n- RIB\n- Justificatif de domicile\n\n'
+    +'Vous recevrez également un lien pour réaliser les vidéos de formation avant votre prise de poste.\n\n'
+    +'Nous reviendrons vers vous avec votre date de démarrage et la suite des démarches.\n\n'
+    +'Félicitations et bienvenue,\nL\'équipe '+_restoLabel(c);
+  _mailto(c,'Bienvenue dans l\'équipe '+_restoLabel(c)+' !',body);
+}
+
+function mailRefus(){
+  var c=curCand();if(!c)return;
+  // Mail volontairement neutre et non discriminant
+  var body='Bonjour '+c.prenom+',\n\n'
+    +'Nous vous remercions pour l\'intérêt que vous portez à notre restaurant et pour le temps consacré à votre candidature.\n\n'
+    +'Après étude, nous ne sommes pas en mesure de donner une suite favorable à votre candidature pour le moment.\n\n'
+    +'Nous conservons vos coordonnées et nous nous permettrons de revenir vers vous si une opportunité correspondant à votre profil se présente.\n\n'
+    +'Nous vous souhaitons une pleine réussite dans vos recherches.\n\n'
+    +'Cordialement,\nL\'équipe '+_restoLabel(c);
+  _mailto(c,'Votre candidature chez '+_restoLabel(c),body);
+}
+
+// ── ACTIONS : RETENU (intégration) ────────────────────────────────────────────
+async function _candUpdate(patch,msg,after){
   if(!_candId)return;
   patch.updated_at=new Date().toISOString();
   try{
     await sb.patch('bks_candidatures','id=eq.'+_candId,patch);
     await loadAll();
-    renderCandidatures();renderAgenda();updateRBadge();
+    renderCandidatures();if(candFilter==='entretien')renderAgenda();updateRBadge();
     closeModal('modal-cand');
     toast(msg,'success');
+    if(after)setTimeout(after,250);
   }catch(e){toast('Erreur','error');console.error(e);}
+}
+
+function candRetenuActionsHtml(c){
+  var ob=c.onboarding||{};
+  var steps=ONBOARD_STEPS.map(function(s){
+    return '<label style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;">'
+      +'<input type="checkbox" '+(ob[s.id]?'checked':'')+' onchange="toggleOnboard(\''+s.id+'\',this.checked)" style="width:17px;height:17px;accent-color:#4CAF50;">'
+      +'<span style="font-size:.86rem;color:'+(ob[s.id]?'#4CAF50':'#ccc')+';">'+s.label+'</span></label>';
+  }).join('');
+  var done=onboardDone(c);
+  var dateVal=c.dateDebut||'';
+  var canStart=done.complete&&c.dateDebut;
+  return '<div style="background:#1A1A1A;border-radius:8px;padding:12px;">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+    +'<span style="font-size:.85rem;color:#4CAF50;font-weight:600;">✅ Candidat retenu</span>'
+    +'<span style="font-size:.78rem;color:#888;">Intégration '+done.done+'/'+done.total+'</span></div>'
+    +'<button class="btn btn-gray btn-sm" onclick="mailRetenu()" style="margin-bottom:12px;">✉️ Renvoyer le mail (documents + vidéos)</button>'
+    +'<div class="flabel">Étapes d\'intégration</div>'
+    +'<div style="margin-bottom:12px;">'+steps+'</div>'
+    +'<div class="flabel">📆 Date de démarrage</div>'
+    +'<input type="date" id="cand-debut" class="fi" value="'+dateVal+'" onchange="setDateDebut(this.value)" style="margin-bottom:12px;">'
+    +'<button class="btn btn-red btn-sm" '+(canStart?'':'disabled style="opacity:.4;cursor:not-allowed;"')+' onclick="candDemarrer()">🚀 Démarrer la période d\'essai</button>'
+    +(canStart?'':'<p style="font-size:.74rem;color:#666;margin-top:6px;">Cochez toutes les étapes et fixez une date de démarrage pour activer.</p>')
+    +'<div style="margin-top:10px;"><button class="btn btn-gray btn-sm" style="color:#cc5555;border-color:#5a2020;" onclick="candRefuser()">❌ Finalement refuser</button></div>'
+    +'</div>';
+}
+
+async function toggleOnboard(stepId,val){
+  var c=curCand();if(!c)return;
+  var ob=Object.assign({},c.onboarding||{});ob[stepId]=val;
+  c.onboarding=ob; // maj locale immédiate
+  try{await sb.patch('bks_candidatures','id=eq.'+_candId,{onboarding:ob,updated_at:new Date().toISOString()});renderCandActions(c);renderCandidatures();}
+  catch(e){toast('Erreur','error');}
+}
+async function setDateDebut(v){
+  var c=curCand();if(!c)return;c.dateDebut=v;
+  try{await sb.patch('bks_candidatures','id=eq.'+_candId,{date_debut:v||null,updated_at:new Date().toISOString()});renderCandActions(c);}
+  catch(e){toast('Erreur','error');}
+}
+function candDemarrer(){
+  var c=curCand();if(!c)return;
+  if(!onboardDone(c).complete||!c.dateDebut){toast('Complétez l\'intégration et la date','error');return;}
+  _candUpdate({statut:'essai'},'Période d\'essai démarrée 🚀');
+}
+
+// ── ACTIONS : PÉRIODE D'ESSAI (avis managers + rappels + décision) ────────────
+function candEssaiActionsHtml(c){
+  var e=essaiInfo(c);
+  var avis=c.avisManagers||[];
+  var avisHtml=avis.length?avis.map(function(a){
+    var crits=(a.crits||[]).join(' · ');
+    return '<div style="background:#141414;border-radius:6px;padding:8px 10px;margin-bottom:6px;">'
+      +'<div style="font-size:.8rem;color:#eee;"><strong>'+(a.auteur||'Manager')+'</strong> — '+(a.avis==='garder'?'<span style="color:#4CAF50;">👍 Garder</span>':a.avis==='non'?'<span style="color:#cc5555;">👎 Ne pas garder</span>':'<span style="color:#F5A623;">🤔 Mitigé</span>')+'</div>'
+      +(crits?'<div style="font-size:.74rem;color:#888;margin-top:2px;">'+crits+'</div>':'')
+      +(a.comment?'<div style="font-size:.78rem;color:#bbb;margin-top:3px;font-style:italic;">"'+a.comment+'"</div>':'')
+      +'</div>';
+  }).join(''):'<p style="font-size:.78rem;color:#666;">Aucun avis pour l\'instant.</p>';
+  var crit=['Présent','Ponctuel','Sérieux','Bon esprit d\'équipe','Rapide','Propre/soigné'];
+  var critBtns=crit.map(function(k){return '<label style="display:inline-flex;align-items:center;gap:5px;background:#141414;border:1px solid #333;border-radius:14px;padding:4px 10px;font-size:.76rem;color:#ccc;cursor:pointer;"><input type="checkbox" class="essai-crit" value="'+k+'" style="accent-color:var(--orange);">'+k+'</label>';}).join(' ');
+  return '<div style="background:#1A1A1A;border-radius:8px;padding:12px;">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+    +'<span style="font-size:.85rem;color:#B57EDC;font-weight:600;">⏳ Période d\'essai (2 mois)</span>'
+    +(e&&e.alert?'<span style="background:'+e.alertCol+';color:#fff;border-radius:10px;padding:2px 8px;font-size:.7rem;font-weight:700;">'+e.alert+'</span>':'')+'</div>'
+    +(e?'<div style="font-size:.8rem;color:#aaa;margin-bottom:4px;">'+e.label+'</div>':'')
+    +'<div style="font-size:.74rem;color:#666;margin-bottom:12px;">Rappels internes : point à 1 semaine, point à 15 jours, puis décision avant la fin (préavis légal à respecter).</div>'
+
+    +'<div class="flabel">Avis de l\'équipe d\'encadrement</div>'
+    +'<div style="margin-bottom:10px;">'+avisHtml+'</div>'
+
+    +'<div style="background:#141414;border-radius:8px;padding:10px;margin-bottom:12px;">'
+    +'<div style="font-size:.8rem;color:#ddd;margin-bottom:6px;">Ajouter un avis :</div>'
+    +'<input type="text" id="essai-auteur" class="fi" placeholder="Votre nom / poste" style="margin-bottom:8px;">'
+    +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">'+critBtns+'</div>'
+    +'<textarea id="essai-comment" class="fi" placeholder="Commentaire (optionnel)" style="min-height:40px;margin-bottom:8px;"></textarea>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'
+    +'<button class="btn btn-gray btn-sm" style="background:#1E3A1E;border-color:#4A8A4A;color:#7ACA7A;" onclick="addAvis(\'garder\')">👍 Garder</button>'
+    +'<button class="btn btn-gray btn-sm" style="background:#3A2E00;border-color:#7A6A00;color:#F5A623;" onclick="addAvis(\'mitige\')">🤔 Mitigé</button>'
+    +'<button class="btn btn-gray btn-sm" style="background:#3A1A1A;border-color:#7A3A3A;color:#cc7777;" onclick="addAvis(\'non\')">👎 Ne pas garder</button>'
+    +'</div></div>'
+
+    +'<div class="flabel">Décision finale</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+    +'<button class="btn btn-red btn-sm" style="background:#1E3A1E;border-color:#4A8A4A;color:#7ACA7A;" onclick="essaiDecision(\'valide\')">✅ Confirmer l\'embauche</button>'
+    +'<button class="btn btn-gray btn-sm" style="color:#cc5555;border-color:#5a2020;" onclick="essaiDecision(\'rupture\')">🛑 Rompre la période d\'essai</button>'
+    +'</div></div>';
+}
+
+async function addAvis(avis){
+  var c=curCand();if(!c)return;
+  var auteur=document.getElementById('essai-auteur').value.trim()||(curUser&&curUser.role)||'Manager';
+  var crits=[].slice.call(document.querySelectorAll('.essai-crit:checked')).map(function(x){return x.value;});
+  var comment=document.getElementById('essai-comment').value.trim();
+  var arr=(c.avisManagers||[]).slice();
+  arr.push({auteur:auteur,avis:avis,crits:crits,comment:comment,date:new Date().toISOString()});
+  c.avisManagers=arr;
+  try{await sb.patch('bks_candidatures','id=eq.'+_candId,{avis_managers:arr,updated_at:new Date().toISOString()});renderCandActions(c);toast('Avis ajouté ✔','success');}
+  catch(e){toast('Erreur','error');}
+}
+
+function essaiDecision(d){
+  if(d==='valide'){_candUpdate({statut:'retenu',onboarding:Object.assign({},curCand().onboarding,{essai_valide:true})},'Embauche confirmée ✅ — période d\'essai validée');}
+  else{
+    if(!confirm('Confirmer la rupture de la période d\'essai ? Pensez à respecter le délai de prévenance légal.'))return;
+    _candUpdate({statut:'refuse',refus_motif:'Rupture période d\'essai'},'Période d\'essai rompue');
+  }
 }
 
 // ── PAGE PUBLIQUE DE CANDIDATURE (hors login) ─────────────────────────────────
@@ -1860,7 +2106,7 @@ function minToLabel(m){
   return String(h).padStart(2,'0')+'h'+(mi?String(mi).padStart(2,'0'):'');
 }
 
-var dispoState={}; // {lun:{midi:{on,from,to},soir:{on,from,to}},...}
+var dispoState={}; // {lun:[{from,to},...], ...} — liste de créneaux par jour
 
 function showPostulerPage(presetResto){
   document.getElementById('loading-screen').style.display='none';
@@ -1870,16 +2116,11 @@ function showPostulerPage(presetResto){
   var sp=document.createElement('div');sp.style.cssText='min-height:100vh;background:#1A1A1A;';
   var restoOpts=Object.keys(PUBLIC_RESTOS).map(function(k){return '<option value="'+k+'"'+(k===presetResto?' selected':'')+'>'+PUBLIC_RESTOS[k]+'</option>';}).join('');
   var posteOpts=POSTES.map(function(p){return '<option value="'+p+'">'+p+'</option>';}).join('');
-  // init state
+  // init state : chaque jour démarre sans créneau
   dispoState={};
-  var midDefault=Math.round((amp.start+ (amp.end-amp.start)/2)/30)*30;
   var jourRows=JOURS.map(function(j){
-    dispoState[j[0]]={midi:{on:false,from:amp.start,to:Math.min(amp.start+330,midDefault)},soir:{on:false,from:midDefault,to:amp.end}};
-    return '<div style="padding:10px 0;border-bottom:1px solid #2A2A2A;">'
-      +'<div style="font-weight:700;color:#ddd;margin-bottom:6px;">'+j[1]+'</div>'
-      +creneauHtml(j[0],'midi','🌞 Midi')
-      +creneauHtml(j[0],'soir','🌙 Soir')
-      +'</div>';
+    dispoState[j[0]]=[];
+    return jourBlockHtml(j[0],j[1],amp);
   }).join('');
 
   sp.innerHTML='<div style="background:linear-gradient(135deg,#D62300,#8B1500);padding:18px 24px;text-align:center;">'
@@ -1894,21 +2135,28 @@ function showPostulerPage(presetResto){
     +'<div><label class="flabel">Téléphone *</label><input type="tel" id="p-phone" class="fi" placeholder="06 00 00 00 00"></div></div>'
     +'<div class="form-row"><div><label class="flabel">Email *</label><input type="email" id="p-email" class="fi" placeholder="vous@email.com"></div>'
     +'<div><label class="flabel">Restaurant souhaité *</label><select id="p-resto" class="fi">'+restoOpts+'</select></div></div>'
-    +'<div class="form-row"><div><label class="flabel">Poste souhaité *</label><select id="p-poste" class="fi">'+posteOpts+'</select></div>'
+    +'<div style="margin-bottom:14px;"><label class="flabel">Adresse postale *</label><input type="text" id="p-adresse" class="fi" placeholder="N°, rue, code postal, ville"></div>'
+    +'<div class="form-row"><div><label class="flabel">Poste souhaité *</label><select id="p-poste" class="fi" onchange="togglePosteApprenti()">'+posteOpts+'</select></div>'
     +'<div><label class="flabel">Êtes-vous étudiant(e) ? *</label><select id="p-etudiant" class="fi"><option value="non">Non</option><option value="oui">Oui</option></select></div></div>'
+    +'<div id="p-niveau-row" style="display:none;margin-top:4px;"><label class="flabel">Niveau d\'apprentissage *</label><select id="p-niveau" class="fi"><option value="">— Choisir —</option><option>Niveau CAP</option><option>Niveau Bac</option><option>Niveau Bac+2</option></select></div>'
     +'</div>'
     +'<div class="card"><div class="sec-title">🚗 Comment venez-vous ?</div>'
     +'<label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Votre moyen de transport pour venir travailler *</label>'
     +'<select id="p-transport" class="fi" style="margin-top:5px;"><option value="">— Choisir —</option>'
     +'<option>🚗 Voiture</option><option>🏍️ Deux-roues motorisé (scooter/moto)</option><option>🚲 Vélo</option>'
-    +'<option>🛴 Trottinette</option><option>🚌 Transports en commun</option><option>🚶 À pied</option></select></div>'
+    +'<option>🛴 Trottinette</option><option>🚌 Transports en commun</option><option>🚶 À pied</option></select>'
+    +'<div style="margin-top:12px;"><label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Combien de temps mettez-vous pour venir travailler ? *</label>'
+    +'<select id="p-trajet" class="fi" style="margin-top:5px;"><option value="">— Choisir —</option>'
+    +'<option>Moins de 10 min</option><option>10 à 20 min</option><option>20 à 30 min</option><option>30 à 45 min</option><option>Plus de 45 min</option></select></div></div>'
     +'<div class="card"><div class="sec-title">📅 Vos disponibilités</div>'
-    +'<p style="font-size:.8rem;color:#aaa;margin-bottom:6px;">Activez les créneaux où vous pouvez travailler et ajustez les plages horaires. Vous pouvez cocher midi, soir, ou les deux.</p>'
-    +'<p style="font-size:.74rem;color:#666;margin-bottom:10px;">Plage possible : '+minToLabel(amp.start)+' → '+minToLabel(amp.end)+'</p>'
+    +'<div style="background:#1A1208;border:1px solid #4A3000;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:.8rem;color:#ddd;line-height:1.5;">'
+    +'🍔 Le restaurant accueille la clientèle de <strong style="color:var(--orange);">11h à minuit</strong>.<br>'
+    +'👥 Nous avons besoin d\'équipiers de <strong style="color:var(--orange);">'+minToLabel(amp.start)+' à '+minToLabel(amp.end)+'</strong> (ouverture et fermeture incluses).</div>'
+    +'<p style="font-size:.8rem;color:#aaa;margin-bottom:12px;">Pour chaque jour, glissez sur la barre pour tracer vos disponibilités. Vous pouvez tracer une plage continue (ex. 8h30 → 2h) ou ajouter une 2ᵉ plage avec coupure (ex. 8h30 → 14h, puis 15h → 18h).</p>'
     +jourRows+'</div>'
     +'<div class="card"><div class="sec-title">💼 Votre parcours</div>'
-    +'<div style="margin-bottom:14px;"><label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Quel est votre dernier emploi ? (ou « première expérience »)</label>'
-    +'<input type="text" id="p-dernier" class="fi" style="margin-top:5px;" placeholder="Ex : Équipier McDonald\'s, vendeur, étudiant..."></div>'
+    +'<div style="margin-bottom:14px;"><label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Avez-vous déjà travaillé ? Si oui, où et à quel poste ?</label>'
+    +'<input type="text" id="p-dernier" class="fi" style="margin-top:5px;" placeholder="Votre expérience (ou « première expérience »)"></div>'
     +'<div><label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Pourquoi voulez-vous travailler chez nous ? *</label>'
     +'<textarea id="p-motivation" class="fi" style="min-height:70px;margin-top:5px;" placeholder="Dites-nous en quelques mots ce qui vous motive..."></textarea></div></div>'
     +'<div class="card"><div class="sec-title">📷 Votre photo</div>'
@@ -1922,69 +2170,120 @@ function showPostulerPage(presetResto){
     +'<p style="font-size:.72rem;color:#666;text-align:center;margin-top:12px;">Vos données sont transmises au service RH pour le traitement de votre candidature.</p>'
     +'</div>';
   document.body.prepend(sp);
-  // init sliders
-  JOURS.forEach(function(j){initCreneauSlider(j[0],'midi');initCreneauSlider(j[0],'soir');});
+  // init barres de traçage
+  JOURS.forEach(function(j){initJourBar(j[0]);});
 }
 
-function creneauHtml(jour,type,label){
-  var id=jour+'-'+type;
-  return '<div style="margin:6px 0 4px;">'
-    +'<label style="display:flex;align-items:center;gap:7px;cursor:pointer;">'
-    +'<input type="checkbox" id="cb-'+id+'" onchange="toggleCreneau(\''+jour+'\',\''+type+'\')" style="width:16px;height:16px;accent-color:var(--orange);">'
-    +'<span style="font-size:.85rem;color:#bbb;">'+label+'</span>'
-    +'<span id="lbl-'+id+'" style="margin-left:auto;font-size:.8rem;color:#666;font-weight:600;"></span></label>'
-    +'<div id="sld-'+id+'" style="display:none;padding:10px 4px 2px;">'
-    +'<div style="position:relative;height:30px;" id="track-'+id+'">'
-    +'<div style="position:absolute;top:13px;left:0;right:0;height:4px;background:#333;border-radius:2px;"></div>'
-    +'<div id="fill-'+id+'" style="position:absolute;top:13px;height:4px;background:var(--orange);border-radius:2px;"></div>'
-    +'<div id="h1-'+id+'" class="sld-handle" data-h="from" style="position:absolute;top:6px;width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid var(--orange);cursor:pointer;transform:translateX(-9px);touch-action:none;"></div>'
-    +'<div id="h2-'+id+'" class="sld-handle" data-h="to" style="position:absolute;top:6px;width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid var(--orange);cursor:pointer;transform:translateX(-9px);touch-action:none;"></div>'
-    +'</div></div></div>';
+// ── BARRE DE TRAÇAGE PAR JOUR ─────────────────────────────────────────────────
+function jourBlockHtml(jour,label,amp){
+  // graduations horaires (toutes les ~2h)
+  var range=amp.end-amp.start;
+  var grads='';
+  var step=120; // 2h
+  for(var m=Math.ceil(amp.start/step)*step;m<=amp.end;m+=step){
+    var pct=(m-amp.start)/range*100;
+    grads+='<div style="position:absolute;left:'+pct+'%;top:0;bottom:0;width:1px;background:#333;pointer-events:none;"></div>'
+      +'<div style="position:absolute;left:'+pct+'%;top:-14px;transform:translateX(-50%);font-size:.6rem;color:#666;white-space:nowrap;pointer-events:none;">'+minToLabel(m)+'</div>';
+  }
+  return '<div style="padding:14px 0 10px;border-bottom:1px solid #2A2A2A;">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">'
+    +'<span style="font-weight:700;color:#ddd;">'+label+'</span>'
+    +'<button type="button" id="addbtn-'+jour+'" onclick="addCreneauJour(\''+jour+'\')" style="background:#2A1800;border:1px solid var(--orange);color:var(--orange);padding:3px 12px;border-radius:14px;font-size:.78rem;cursor:pointer;">+ Ajouter une plage</button></div>'
+    +'<div style="position:relative;margin-top:4px;">'+grads
+    +'<div id="bar-'+jour+'" style="position:relative;height:40px;background:#141414;border:1px solid #333;border-radius:6px;overflow:hidden;cursor:crosshair;touch-action:none;"></div>'
+    +'</div>'
+    +'<div id="lbls-'+jour+'" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;"></div>'
+    +'</div>';
 }
 
-function toggleCreneau(jour,type){
-  var on=document.getElementById('cb-'+jour+'-'+type).checked;
-  dispoState[jour][type].on=on;
-  document.getElementById('sld-'+jour+'-'+type).style.display=on?'block':'none';
-  updateCreneauLabel(jour,type);
-}
-
-function initCreneauSlider(jour,type){
-  var id=jour+'-'+type;
-  var track=document.getElementById('track-'+id);if(!track)return;
+function initJourBar(jour){
+  var bar=document.getElementById('bar-'+jour);if(!bar)return;
   var amp=getAmplitude();var range=amp.end-amp.start;
-  function pctOf(min){return (min-amp.start)/range*100;}
-  function minOf(pct){var m=amp.start+pct/100*range;return Math.round(m/15)*15;} // pas 15 min
-  function refresh(){
-    var st=dispoState[jour][type];
-    document.getElementById('h1-'+id).style.left=pctOf(st.from)+'%';
-    document.getElementById('h2-'+id).style.left=pctOf(st.to)+'%';
-    var fill=document.getElementById('fill-'+id);
-    fill.style.left=pctOf(st.from)+'%';fill.style.width=(pctOf(st.to)-pctOf(st.from))+'%';
-    updateCreneauLabel(jour,type);
+  function minOf(clientX){
+    var rect=bar.getBoundingClientRect();
+    var pct=Math.max(0,Math.min(1,(clientX-rect.left)/rect.width));
+    return Math.round((amp.start+pct*range)/15)*15;
   }
-  function drag(handle,which){
-    function move(clientX){
-      var rect=track.getBoundingClientRect();
-      var pct=Math.max(0,Math.min(100,(clientX-rect.left)/rect.width*100));
-      var min=minOf(pct);var st=dispoState[jour][type];
-      if(which==='from')st.from=Math.min(min,st.to-15);
-      else st.to=Math.max(min,st.from+15);
-      st.from=Math.max(amp.start,st.from);st.to=Math.min(amp.end,st.to);
-      refresh();
-    }
-    handle.addEventListener('mousedown',function(e){e.preventDefault();function mm(ev){move(ev.clientX);}function mu(){document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);}document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);});
-    handle.addEventListener('touchstart',function(e){e.preventDefault();function tm(ev){move(ev.touches[0].clientX);}function te(){document.removeEventListener('touchmove',tm);document.removeEventListener('touchend',te);}document.addEventListener('touchmove',tm,{passive:false});document.addEventListener('touchend',te);},{passive:false});
+  var dragging=null; // {start}
+  function down(clientX){
+    if(dispoState[jour].length>=2)return; // max 2 plages
+    dragging={start:minOf(clientX),end:minOf(clientX)};
   }
-  drag(document.getElementById('h1-'+id),'from');
-  drag(document.getElementById('h2-'+id),'to');
-  refresh();
+  function move(clientX){ if(!dragging)return; dragging.end=minOf(clientX); previewJourBar(jour,dragging); }
+  function up(){
+    if(!dragging)return;
+    var a=Math.min(dragging.start,dragging.end),b=Math.max(dragging.start,dragging.end);
+    if(b-a>=30){ dispoState[jour].push({from:a,to:b}); }
+    dragging=null;
+    renderJourBar(jour);
+  }
+  bar.addEventListener('mousedown',function(e){down(e.clientX);});
+  document.addEventListener('mousemove',function(e){if(dragging)move(e.clientX);});
+  document.addEventListener('mouseup',function(){if(dragging)up();});
+  bar.addEventListener('touchstart',function(e){e.preventDefault();down(e.touches[0].clientX);},{passive:false});
+  bar.addEventListener('touchmove',function(e){if(dragging){e.preventDefault();move(e.touches[0].clientX);}},{passive:false});
+  bar.addEventListener('touchend',function(e){if(dragging){e.preventDefault();up();}},{passive:false});
+  renderJourBar(jour);
 }
 
-function updateCreneauLabel(jour,type){
-  var st=dispoState[jour][type];
-  var lbl=document.getElementById('lbl-'+jour+'-'+type);if(!lbl)return;
-  lbl.textContent=st.on?(minToLabel(st.from)+' → '+minToLabel(st.to)):'';
+function _segHtml(amp,from,to,preview){
+  var range=amp.end-amp.start;
+  var l=(from-amp.start)/range*100, w=(to-from)/range*100;
+  var bg=preview?'rgba(255,135,50,.45)':'var(--orange)';
+  return '<div style="position:absolute;top:4px;bottom:4px;left:'+l+'%;width:'+w+'%;background:'+bg+';border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.62rem;color:#fff;font-weight:700;overflow:hidden;">'+(w>14?minToLabel(from)+'-'+minToLabel(to):'')+'</div>';
+}
+
+function previewJourBar(jour,drag){
+  var bar=document.getElementById('bar-'+jour);if(!bar)return;
+  var amp=getAmplitude();
+  var a=Math.min(drag.start,drag.end),b=Math.max(drag.start,drag.end);
+  var html=dispoState[jour].map(function(c){return _segHtml(amp,c.from,c.to,false);}).join('');
+  html+=_segHtml(amp,a,b,true);
+  bar.innerHTML=html;
+}
+
+function renderJourBar(jour){
+  var bar=document.getElementById('bar-'+jour);if(!bar)return;
+  var amp=getAmplitude();
+  bar.innerHTML=dispoState[jour].map(function(c){return _segHtml(amp,c.from,c.to,false);}).join('');
+  // étiquettes + suppression
+  var lbls=document.getElementById('lbls-'+jour);
+  if(lbls){
+    if(!dispoState[jour].length){lbls.innerHTML='<span style="font-size:.74rem;color:#666;">Aucune plage — glissez sur la barre pour en tracer une.</span>';}
+    else{
+      lbls.innerHTML=dispoState[jour].sort(function(x,y){return x.from-y.from;}).map(function(c,i){
+        return '<span style="background:#2A1800;border:1px solid var(--orange);color:var(--orange);padding:3px 9px;border-radius:12px;font-size:.76rem;display:inline-flex;align-items:center;gap:6px;">'
+          +minToLabel(c.from)+' → '+minToLabel(c.to)
+          +'<button type="button" onclick="removeCreneauJour(\''+jour+'\','+i+')" style="background:none;border:none;color:#cc5555;cursor:pointer;font-size:.85rem;line-height:1;padding:0;">✕</button></span>';
+      }).join('');
+    }
+  }
+  // bouton ajouter : désactivé si 2 plages
+  var addb=document.getElementById('addbtn-'+jour);
+  if(addb){var full=dispoState[jour].length>=2;addb.style.opacity=full?'.4':'1';addb.style.pointerEvents=full?'none':'auto';}
+}
+
+function addCreneauJour(jour){
+  if(dispoState[jour].length>=2){return;}
+  var amp=getAmplitude();
+  // proposer une plage par défaut qui ne chevauche pas
+  var def=dispoState[jour].length===0?{from:amp.start,to:Math.min(amp.start+330,amp.end)}:{from:Math.max.apply(null,dispoState[jour].map(function(c){return c.to;}))+60,to:amp.end};
+  if(def.from>=def.to)def.from=def.to-60;
+  if(def.from<amp.start)def.from=amp.start;
+  dispoState[jour].push(def);
+  renderJourBar(jour);
+}
+
+function removeCreneauJour(jour,i){
+  dispoState[jour].sort(function(x,y){return x.from-y.from;});
+  dispoState[jour].splice(i,1);
+  renderJourBar(jour);
+}
+
+function togglePosteApprenti(){
+  var poste=document.getElementById('p-poste').value;
+  var row=document.getElementById('p-niveau-row');
+  if(row)row.style.display=(poste==='Apprenti')?'block':'none';
 }
 
 function handlePhoto(input){
@@ -2014,27 +2313,33 @@ async function submitPostuler(){
   var phone=document.getElementById('p-phone').value.trim();
   var email=document.getElementById('p-email').value.trim();
   var transport=document.getElementById('p-transport').value;
+  var trajet=document.getElementById('p-trajet').value;
+  var adresse=document.getElementById('p-adresse').value.trim();
+  var poste=document.getElementById('p-poste').value;
+  var niveau=document.getElementById('p-niveau')?document.getElementById('p-niveau').value:'';
   var motivation=document.getElementById('p-motivation').value.trim();
   if(!prenom||!nom){alert('Merci d\'indiquer votre prénom et nom.');return;}
   if(!naissance){alert('Merci d\'indiquer votre date de naissance.');return;}
   if(!phone){alert('Merci d\'indiquer votre téléphone.');return;}
   if(!email||email.indexOf('@')<0){alert('Merci d\'indiquer un email valide.');return;}
+  if(!adresse){alert('Merci d\'indiquer votre adresse postale.');return;}
+  if(poste==='Apprenti'&&!niveau){alert('Merci d\'indiquer votre niveau d\'apprentissage.');return;}
   if(!transport){alert('Merci d\'indiquer votre moyen de transport.');return;}
+  if(!trajet){alert('Merci d\'indiquer votre temps de trajet.');return;}
   if(!motivation){alert('Merci d\'expliquer pourquoi vous voulez travailler chez nous.');return;}
   var dispos={};
   JOURS.forEach(function(j){
-    var st=dispoState[j[0]];
-    var creneaux=[];
-    if(st.midi.on)creneaux.push({type:'midi',from:st.midi.from,to:st.midi.to});
-    if(st.soir.on)creneaux.push({type:'soir',from:st.soir.from,to:st.soir.to});
+    var arr=(dispoState[j[0]]||[]).slice().sort(function(x,y){return x.from-y.from;});
+    var creneaux=arr.map(function(c){return {from:c.from,to:c.to};});
     dispos[j[0]]={on:creneaux.length>0,creneaux:creneaux};
   });
   var data={prenom:prenom,nom:nom,date_naissance:naissance,phone:phone,email:email,
+    adresse:adresse,
     resto_id:document.getElementById('p-resto').value,
-    poste:document.getElementById('p-poste').value,
+    poste:poste,niveau_apprentissage:(poste==='Apprenti'?niveau:''),
     etudiant:document.getElementById('p-etudiant').value==='oui',
     dernier_emploi:document.getElementById('p-dernier').value.trim(),
-    transport:transport,
+    transport:transport,trajet:trajet,
     dispos:dispos,motivation:motivation,
     photo:window._photoData||'',
     statut:'nouveau',created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
