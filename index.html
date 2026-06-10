@@ -246,11 +246,8 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
   <nav id="main-nav">
     <button class="active" onclick="goPage('equipe',this)">👥 Équipe</button>
     <button onclick="goPage('recrutement',this)">🎯 Recrutement <span id="rbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
-    <button onclick="goPage('outils-qr',this)">📲 Outils QR</button>
     <button onclick="goPage('incidents',this)">📋 Incidents</button>
     <button onclick="goPage('rapports',this)">📊 Rapports</button>
-    <button onclick="goPage('validations',this)">✉️ Validations <span id="vbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
-    <button onclick="goPage('rapports-auto',this)">📬 Rapports auto</button>
     <button onclick="goPage('planning',this)">🗓️ Planning</button>
     <button onclick="goPage('parametres',this)">⚙️ Paramètres</button>
   </nav>
@@ -258,25 +255,13 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
   <!-- RECRUTEMENT -->
   <div class="page" id="page-recrutement">
     <div class="card">
-      <div class="sec-title">👁️ Aperçu de la fiche de recrutement</div>
-      <p style="font-size:.83rem;color:#aaa;margin-bottom:12px;">Voici exactement ce que le candidat voit et remplit quand il scanne le QR code. Cet aperçu est en lecture seule.</p>
-      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
-        <span class="flabel" style="margin:0;">Restaurant de l'aperçu :</span>
-        <select id="apercu-resto" class="fi" style="width:auto;" onchange="renderApercuForm()">
-          <option value="bk500">BK 500</option><option value="bk509">BK 509</option><option value="bk526">BK 526</option>
-        </select>
-        <button class="btn btn-gray btn-sm" onclick="openApercuLive()">🔎 Ouvrir en plein écran</button>
-      </div>
-      <div id="apercu-form-wrap" style="border:1px solid #333;border-radius:12px;overflow:hidden;max-height:600px;overflow-y:auto;background:#1A1A1A;"></div>
-    </div>
-
-    <div class="card">
       <div class="sec-title">📥 Suivi des candidatures</div>
       <div id="rec-stat-tabs" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
         <button class="rtab on" id="cst-nouveau" onclick="setCandFilter('nouveau')">🆕 Nouveau</button>
         <button class="rtab" id="cst-entretien" onclick="setCandFilter('entretien')">📅 Entretien</button>
         <button class="rtab" id="cst-retenu" onclick="setCandFilter('retenu')">✅ Retenu</button>
         <button class="rtab" id="cst-essai" onclick="setCandFilter('essai')">⏳ Période d'essai</button>
+        <button class="rtab" id="cst-visite" onclick="setCandFilter('visite')">🩺 Visite médicale</button>
         <button class="rtab" id="cst-refuse" onclick="setCandFilter('refuse')">❌ Refusé</button>
       </div>
 
@@ -306,27 +291,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
   </div>
 
   <!-- OUTILS QR -->
-  <div class="page" id="page-outils-qr">
-    <div class="card">
-      <div class="sec-title">📲 QR code de candidature</div>
-      <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">Un seul QR code pour les trois restaurants. Le candidat le scanne, arrive directement sur la fiche de recrutement et choisit lui-même le restaurant souhaité — sans code ni accès à l'application.</p>
-      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;">
-        <div style="background:#fff;padding:14px;border-radius:12px;" id="rec-qr-box"></div>
-        <div style="flex:1;min-width:220px;">
-          <label class="flabel">Phrase d'accroche (sur l'affiche)</label>
-          <input type="text" id="rec-qr-slogan" class="fi" value="On recrute ! Rejoins notre équipe 🍔" style="margin-bottom:10px;">
-          <label class="flabel">Lien direct</label>
-          <input type="text" id="rec-qr-link" class="fi" readonly style="font-size:.78rem;margin-bottom:10px;">
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-red btn-sm" onclick="downloadAffichePdf()">📄 Télécharger l'affiche PDF</button>
-            <button class="btn btn-gray btn-sm" onclick="copyQrLink()">📋 Copier le lien</button>
-            <button class="btn btn-gray btn-sm" onclick="printQr()">🖨️ Imprimer</button>
-          </div>
-          <p style="font-size:.74rem;color:#666;margin-top:10px;">L'affiche PDF contient le QR code et votre phrase d'accroche, prête à imprimer ou envoyer (mail/WhatsApp).</p>
-        </div>
-      </div>
-    </div>
-  </div>
+  <div class="page" id="page-outils-qr"></div>
 
   <!-- INCIDENTS -->
   <div class="page" id="page-incidents">
@@ -342,18 +307,20 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
             <button onclick="clearEmpSel()" style="float:right;background:none;border:none;color:#cc5555;cursor:pointer;">✕</button>
           </div>
           <input type="hidden" id="sel-emp">
+          <div id="oral-rappel" style="display:none;margin-top:8px;"></div>
         </div>
         <div><label class="flabel">Date et heure</label><input type="datetime-local" id="inc-dt" class="fi"></div>
       </div>
       <label class="flabel">Type(s) d'incident</label>
       <div class="prob-grid" id="prob-grid"></div>
-      <label class="flabel" style="margin-top:12px;">Type de sanction</label>
-      <div class="sev-row">
+      <label class="flabel" style="margin-top:12px;" id="sanction-label">Type de sanction</label>
+      <div class="sev-row" id="sanction-row">
         <button class="sev-btn" data-sanc="verbal" onclick="setSanction(this)" style="color:#F5A623;border-color:#F5A623;">📝 Observation orale</button>
         <button class="sev-btn" data-sanc="ecrit" onclick="setSanction(this)" style="color:#5BA3F5;border-color:#5BA3F5;">📄 Observation écrite</button>
         <button class="sev-btn" data-sanc="avert" onclick="setSanction(this)" style="color:#FF8732;border-color:#FF8732;">⚠️ Avertissement</button>
         <button class="sev-btn" data-sanc="mise" onclick="setSanction(this)" style="color:#D62300;border-color:#D62300;">🔴 Mise en demeure</button>
       </div>
+      <div id="sanction-mgr-note" style="display:none;background:#1A1A1A;border:1px solid #333;border-radius:8px;padding:10px 12px;margin-top:8px;font-size:.82rem;color:#F5A623;">📝 Cet incident sera enregistré comme une <strong>observation orale</strong>.</div>
       <label class="flabel" style="margin-top:12px;">Commentaire</label>
       <textarea id="inc-note" class="fi" placeholder="Détails..."></textarea>
       <div style="margin-top:13px;display:flex;gap:9px;">
@@ -398,7 +365,9 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
           <select id="rpt-person" class="fi" style="width:auto;"><option value="all">Toute l'équipe</option></select>
         </div>
         <button class="btn btn-red" onclick="genReport()">📊 Générer</button>
+        <button class="btn btn-gray" onclick="pdfEquipierFromRpt()">📄 PDF de l'équipier</button>
       </div>
+      <p style="font-size:.74rem;color:#666;margin-top:8px;">Le PDF par équipier reprend tous ses incidents et courriers. Sélectionnez un membre dans la liste ci-dessus.</p>
     </div>
     <div id="rpt-out"></div>
   </div>
@@ -455,66 +424,6 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
     <div id="eq-list"></div>
   </div>
 
-  <!-- VALIDATIONS -->
-  <div class="page" id="page-validations">
-    <div class="card">
-      <div class="sec-title">✉️ Courriers en attente</div>
-      <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">Relisez, modifiez si besoin, puis validez pour envoyer.</p>
-      <div id="letters-list"></div>
-    </div>
-  </div>
-
-  <!-- RAPPORTS AUTO -->
-  <div class="page" id="page-rapports-auto">
-
-    <!-- BLOC 1 : QUI REÇOIT QUOI -->
-    <div class="card">
-      <div class="sec-title">📬 Qui reçoit quoi</div>
-      <div id="apercu-destinataires"></div>
-      <div style="margin-top:16px;padding-top:14px;border-top:1px solid #333;">
-        <label class="flabel">🌐 Emails — Rapport complet (3 restaurants)</label>
-        <div id="rcps-list" style="margin-top:8px;"></div>
-        <div style="display:flex;gap:8px;margin-top:8px;">
-          <input type="email" id="new-mail" class="fi" placeholder="email@exemple.com">
-          <button class="btn btn-red" onclick="addMailRcp()">➕</button>
-        </div>
-      </div>
-      <button class="btn btn-red" style="margin-top:14px;" onclick="saveMailSettings();renderApercuDestinataires();">💾 Enregistrer</button>
-    </div>
-
-    <!-- BLOC 2 : PLANIFICATION -->
-    <div class="card">
-      <div class="sec-title">⏰ Planification</div>
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        <label style="display:flex;align-items:center;gap:10px;font-size:.9rem;color:#ccc;cursor:pointer;">
-          <input type="checkbox" id="sch-daily" checked style="accent-color:var(--orange);width:16px;height:16px;">
-          <span>Tous les jours à <strong style="color:var(--orange);">22h00</strong></span>
-        </label>
-        <label style="display:flex;align-items:center;gap:10px;font-size:.9rem;color:#ccc;cursor:pointer;">
-          <input type="checkbox" id="sch-weekly" checked style="accent-color:var(--orange);width:16px;height:16px;">
-          <span>Chaque <strong style="color:var(--orange);">lundi à 9h00</strong></span>
-        </label>
-        <label style="display:flex;align-items:center;gap:10px;font-size:.9rem;color:#ccc;cursor:pointer;">
-          <input type="checkbox" id="sch-monthly" checked style="accent-color:var(--orange);width:16px;height:16px;">
-          <span>Le <strong style="color:var(--orange);">1er du mois à 9h00</strong></span>
-        </label>
-      </div>
-      <input type="hidden" id="rpt-time" value="22:00">
-      <button class="btn btn-red" style="margin-top:14px;" onclick="saveMailSettings()">💾 Enregistrer</button>
-    </div>
-
-    <!-- BLOC 3 : TEST -->
-    <div class="card">
-      <div class="sec-title">📤 Tester l'envoi</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-gray" onclick="sendNow('today')">📊 Rapport du jour</button>
-        <button class="btn btn-gray" onclick="sendNow('week')">📊 Rapport semaine</button>
-        <button class="btn btn-gray" onclick="sendNow('month')">📊 Rapport mois</button>
-      </div>
-    </div>
-
-  </div>
-
   <!-- PLANNING -->
   <div class="page" id="page-planning">
     <div class="card">
@@ -547,6 +456,25 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
       <span id="app-version-badge" style="background:#1A1A1A;border:1px solid #444;color:var(--orange);padding:5px 14px;border-radius:20px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px;"></span>
     </div>
     <div class="card">
+      <div class="sec-title">📲 QR code de candidature</div>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">Un seul QR code pour les trois restaurants. Le candidat le scanne, arrive directement sur la fiche de recrutement et choisit lui-même le restaurant souhaité — sans code ni accès à l'application.</p>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;">
+        <div style="background:#fff;padding:14px;border-radius:12px;" id="rec-qr-box"></div>
+        <div style="flex:1;min-width:220px;">
+          <label class="flabel">Phrase d'accroche (sur l'affiche)</label>
+          <input type="text" id="rec-qr-slogan" class="fi" value="On recrute ! Rejoins notre équipe 🍔" style="margin-bottom:10px;">
+          <label class="flabel">Lien direct</label>
+          <input type="text" id="rec-qr-link" class="fi" readonly style="font-size:.78rem;margin-bottom:10px;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-red btn-sm" onclick="downloadAffichePdf()">📄 Télécharger l'affiche PDF</button>
+            <button class="btn btn-gray btn-sm" onclick="copyQrLink()">📋 Copier le lien</button>
+            <button class="btn btn-gray btn-sm" onclick="printQr()">🖨️ Imprimer</button>
+          </div>
+          <p style="font-size:.74rem;color:#666;margin-top:10px;">L'affiche PDF contient le QR code et votre phrase d'accroche, prête à imprimer ou envoyer (mail/WhatsApp).</p>
+        </div>
+      </div>
+    </div>
+    <div class="card">
       <div class="sec-title">🔑 Codes PIN</div>
       <div id="pin-settings" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:11px;"></div>
       <button class="btn btn-red" style="margin-top:14px;" onclick="savePins()">💾 Enregistrer les PIN</button>
@@ -565,17 +493,39 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
       <button class="btn btn-red" onclick="saveAmplitude()">💾 Enregistrer l'amplitude</button>
     </div>
     <div class="card">
+      <div class="sec-title">⚠️ Rappel observations orales</div>
+      <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Quand un salarié atteint ce nombre d'observations orales, un rappel s'affiche dans Incidents (pour les directeurs et l'admin) suggérant de passer à une observation écrite.</p>
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+        <div><label class="flabel">Seuil (nombre d'observations orales)</label>
+          <input type="number" id="seuil-oral" class="fi" min="1" max="20" style="width:120px;" value="3"></div>
+        <button class="btn btn-red" onclick="saveSeuilOral()">💾 Enregistrer le seuil</button>
+      </div>
+    </div>
+    <div class="card" id="rec-apercu-card">
+      <div class="sec-title">👁️ Aperçu de la fiche de recrutement</div>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:12px;">Voici exactement ce que le candidat voit et remplit quand il scanne le QR code. Cet aperçu est en lecture seule.</p>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+        <span class="flabel" style="margin:0;">Restaurant de l'aperçu :</span>
+        <select id="apercu-resto" class="fi" style="width:auto;" onchange="renderApercuForm()">
+          <option value="bk500">BK 500</option><option value="bk509">BK 509</option><option value="bk526">BK 526</option>
+        </select>
+        <button class="btn btn-gray btn-sm" onclick="openApercuLive()">🔎 Ouvrir en plein écran</button>
+      </div>
+      <div id="apercu-form-wrap" style="border:1px solid #333;border-radius:12px;overflow:hidden;max-height:600px;overflow-y:auto;background:#1A1A1A;"></div>
+    </div>
+    <div class="card">
       <div class="sec-title">✉️ Modèles de mails</div>
       <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Personnalisez les mails envoyés aux candidats et l'adresse expéditrice. Variables disponibles : <code style="color:var(--orange);">{prenom}</code>, <code style="color:var(--orange);">{nom}</code>, <code style="color:var(--orange);">{resto}</code>, <code style="color:var(--orange);">{date}</code> (date d'entretien). Les mails s'ouvrent dans votre messagerie, vous validez vous-même l'envoi.</p>
       <label class="flabel">Adresse expéditrice (mise en copie pour partir du bon compte)</label>
       <input type="email" id="mt-exp" class="fi" placeholder="recrutement@votredomaine.fr" style="margin-bottom:16px;">
 
       <div id="mt-tabs" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
-        <button class="rtab on" onclick="setMailTab(this,'retenu')">✅ Retenu</button>
-        <button class="rtab" onclick="setMailTab(this,'documents')">📄 Documents</button>
-        <button class="rtab" onclick="setMailTab(this,'entretien')">📅 Entretien</button>
-        <button class="rtab" onclick="setMailTab(this,'refus')">❌ Refus</button>
-        <button class="rtab" onclick="setMailTab(this,'rupture')">🛑 Rupture essai</button>
+        <button class="rtab on" onclick="setMailTab(this,'entretien')">📅 Entretien</button>
+        <button class="rtab" onclick="setMailTab(this,'retenu')">✅ Retenu</button>
+        <button class="rtab" onclick="setMailTab(this,'refus')">❌ Refus candidature</button>
+        <button class="rtab" onclick="setMailTab(this,'rupture')">🛑 Rupture FPE</button>
+        <button class="rtab" onclick="setMailTab(this,'demission')">📤 Démission</button>
+        <button class="rtab" onclick="setMailTab(this,'renvoi')">⛔ Renvoi</button>
       </div>
       <label class="flabel">Objet</label>
       <input type="text" id="mt-sujet" class="fi" style="margin-bottom:10px;">
@@ -646,7 +596,16 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
   <div class="modal" style="width:500px;max-width:96vw;">
     <div class="modal-title" id="histo-title">📋 Historique</div>
     <div id="histo-content"></div>
-    <button class="btn btn-gray" style="margin-top:16px;width:100%;" onclick="closeModal('modal-historique')">Fermer</button>
+    <button class="btn btn-red" id="histo-pdf-btn" style="margin-top:16px;width:100%;" onclick="pdfEquipier(_histoEmpId)">📄 Télécharger le rapport PDF de cet équipier</button>
+    <button class="btn btn-gray" style="margin-top:8px;width:100%;" onclick="closeModal('modal-historique')">Fermer</button>
+  </div>
+</div>
+
+<div class="modal-ov" id="modal-sortie">
+  <div class="modal" style="width:560px;max-width:96vw;">
+    <div class="modal-title" id="sortie-title">🚪 Sortie du salarié</div>
+    <div id="sortie-content"></div>
+    <button class="btn btn-gray" style="margin-top:14px;width:100%;" onclick="closeModal('modal-sortie')">Fermer</button>
   </div>
 </div>
 
@@ -738,7 +697,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '2026-06-09 16:06';
+const APP_VERSION = '2026-06-10 08:34';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
@@ -916,7 +875,9 @@ async function loadAll() {
   DB.employees = (emps||[]).map(function(e){
     return {id:e.id,name:e.name,role:e.role,restoId:e.resto_id,tileKey:e.tile_key||'',
       email:e.email||'',phone:e.phone||'',archived:!!e.archived,
-      exitDate:e.exit_date||'',exitMotif:e.exit_motif||'',exitNote:e.exit_note||''};
+      exitDate:e.exit_date||'',exitMotif:e.exit_motif||'',exitNote:e.exit_note||'',
+      sortieStatut:e.sortie_statut||'',sortieMotif:e.sortie_motif||'',sortieDate:e.sortie_date||'',
+      sortieDocs:e.sortie_docs||{},sortieValidee:!!e.sortie_validee,fromCandId:e.from_cand_id||''};
   });
   DB.incidents = (incs||[]).map(function(i){
     return {id:i.id,empId:i.emp_id,restoId:i.resto_id,reporterId:i.reporter_id||'',
@@ -943,7 +904,8 @@ async function loadAll() {
       avisManagers:c.avis_managers||[],refusMotif:c.refus_motif||'',
       documents:c.documents||{},contactUrgence:c.contact_urgence||{},taillesTenue:c.tailles_tenue||'',
       bkuIdentifiant:c.bku_identifiant||'',bkuMotdepasse:c.bku_motdepasse||'',docsSoumis:!!c.docs_soumis,
-      videosFaites:!!c.videos_faites,essaiAlerte:c.essai_alerte||'15j',contratSigne:!!c.contrat_signe};
+      videosFaites:!!c.videos_faites,essaiAlerte:c.essai_alerte||'15j',contratSigne:!!c.contrat_signe,
+      visiteFaite:!!c.visite_faite,visiteDate:c.visite_date||''};
   });
   const sett = settArr && settArr[0];
   if (sett) {
@@ -1110,27 +1072,25 @@ function checkPin() {
     var navBtns = document.querySelectorAll('#main-nav button');
     navBtns.forEach(function(b){
       var txt = b.textContent.trim();
+      var show;
       if (isMgr) {
-        // Manager : uniquement Incidents
-        b.style.display = (txt.indexOf('Incidents')>=0) ? '' : 'none';
+        // Manager : Équipe + Incidents uniquement
+        show = (txt.indexOf('Équipe')>=0 || txt.indexOf('Equipe')>=0 || txt.indexOf('Incidents')>=0);
+      } else if (isDir) {
+        // Directeur : tout sauf Paramètres
+        show = (txt.indexOf('Paramètres')<0 && txt.indexOf('Parametres')<0);
       } else {
-        // Rapports auto et Paramètres : uniquement Admin et Superviseure
-        if (txt.indexOf('Rapports auto')>=0 || txt.indexOf('Paramètres')>=0) {
-          b.style.display = isAdmin ? '' : 'none';
-        } else if (txt.indexOf('Planning')>=0) {
-          b.style.display = (isGlobal||isDir) ? '' : 'none';
-        } else if (txt.indexOf('Recrutement')>=0 || txt.indexOf('Outils QR')>=0) {
-          b.style.display = (isGlobal||isDir) ? '' : 'none';
-        } else {
-          b.style.display = '';
-        }
+        // Admin / franchise : tout
+        show = true;
       }
+      b.style.display = show ? '' : 'none';
     });
     if (isGlobal) document.getElementById('new-resto-row').style.display = 'block';
     if (isMgr) {
-      // Manager démarre sur Incidents
+      // Manager démarre sur Équipe
       document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
-      document.getElementById('page-incidents').classList.add('active');
+      document.getElementById('page-equipe').classList.add('active');
+      navBtns.forEach(function(b){b.classList.remove('active');if(b.textContent.indexOf('Équipe')>=0||b.textContent.indexOf('Equipe')>=0)b.classList.add('active');});
     }
     initForm();
     renderEquipe();
@@ -1173,12 +1133,9 @@ function goPage(id, btn) {
     fillRptPersons();genReport();
   }
   if (id==='equipe') renderEquipe();
-  if (id==='recrutement'){renderApercuForm();setCandFilter(candFilter||'nouveau');}
-  if (id==='outils-qr'){renderQr();}
+  if (id==='recrutement'){setCandFilter(candFilter||'nouveau');}
   if (id==='planning'){openPlanning();}
-  if (id==='validations') renderLetters();
-  if (id==='rapports-auto'){loadMailSettings();renderRcpsList();renderApercuDestinataires();}
-  if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();loadMailTpl();var av=document.getElementById('app-version-badge');if(av)av.textContent=APP_VERSION;}
+  if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();loadSeuilOral();loadMailTpl();renderQr();renderApercuForm();var av=document.getElementById('app-version-badge');if(av)av.textContent=APP_VERSION;}
 }
 function setEqTab(btn,r){
   eqTab=r;
@@ -1235,6 +1192,13 @@ function initForm(){
     grid.appendChild(wrap);
   });
   fillFilters();
+  // Manager : pas de choix de sanction, toujours "observation orale"
+  var isMgr=(curUser&&curUser.role==='manager');
+  var lbl=document.getElementById('sanction-label'),row=document.getElementById('sanction-row'),mgrNote=document.getElementById('sanction-mgr-note');
+  if(lbl)lbl.style.display=isMgr?'none':'';
+  if(row)row.style.display=isMgr?'none':'flex';
+  if(mgrNote)mgrNote.style.display=isMgr?'block':'none';
+  if(isMgr){selSanction='verbal';selSev='2';}
 }
 
 function toggleProb(div,p){
@@ -1295,6 +1259,7 @@ async function submitInc(){
   var dt=document.getElementById('inc-dt').value;
   if(!empId){toast("Choisissez un équipier",'error');return;}
   if(selProbs.size===0){toast("Sélectionnez un motif",'error');return;}
+  if(curUser&&curUser.role==='manager'){selSanction='verbal';}
   if(!selSanction){toast("Choisissez un type de sanction",'error');return;}
   selSev={verbal:'2',ecrit:'2',avert:'3',mise:'4'}[selSanction]||'2';
   var emp=DB.employees.find(function(e){return e.id===empId;});
@@ -1460,16 +1425,18 @@ function renderEquipe(){
         var init=e.name.split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);
         var myInc=DB.incidents.filter(function(i){return i.empId===e.id;}).length;
         var arch=!!e.archived;
-        h+='<div class="emp-card" style="'+(arch?'opacity:.6;border-color:#553300;':'')+'">'
+        var enSortie=(e.sortieStatut&&!e.sortieValidee);
+        var sortieBadge=enSortie?' <span style="font-size:.66rem;color:#fff;background:#a8460f;padding:1px 7px;border-radius:9px;">🚪 sortie '+_motifLbl(e.sortieMotif)+(e.sortieDate?' '+new Date(e.sortieDate+'T12:00:00').toLocaleDateString('fr-FR'):'')+'</span>':'';
+        h+='<div class="emp-card" style="'+(arch?'opacity:.6;border-color:#553300;':(enSortie?'border-color:#a8460f;':''))+'">'
           +'<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
           +'<div class="emp-av av-'+ro[0]+'" style="'+(arch?'filter:grayscale(1);':'')+'">'+init+'</div>'
-          +'<div style="min-width:0;"><div style="font-weight:600;font-size:.9rem;">'+e.name+(arch?' <span style="font-size:.68rem;color:#888;background:#2A1A00;padding:1px 6px;border-radius:9px;">📁</span>':'')+'</div>'
+          +'<div style="min-width:0;"><div style="font-weight:600;font-size:.9rem;">'+e.name+(arch?' <span style="font-size:.68rem;color:#888;background:#2A1A00;padding:1px 6px;border-radius:9px;">📁</span>':'')+sortieBadge+'</div>'
           +'<div style="font-size:.73rem;color:#888;">'+cap(e.role)+' · '+myInc+' incident'+(myInc!==1?'s':'')+(e.email?' · '+e.email:'')+'</div></div></div>'
           +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">'
           +'<span class="role-pill rp-'+ro[0]+'">'+cap(ro)+'</span>'
           +(canManage&&!arch?'<button class="btn btn-gray btn-sm" onclick="openEdit(\''+e.id+'\')">✏️</button>':'')
           +(canManage&&!arch?'<button class="btn btn-gray btn-sm" onclick="openHistorique(\''+e.id+'\')">📋 Historique</button>':'')
-          +(canManage&&!arch&&(ro==='equipier'||ro==='leader')?'<button class="btn-danger" onclick="openExit(\''+e.id+'\')">📤</button>':'')
+          +(canManage&&!arch?'<button class="btn-danger" onclick="openSortie(\''+e.id+'\')" title="Gérer la sortie">'+(enSortie?'🚪':'📤')+'</button>':'')
           +(canManage&&!arch?'<button class="btn-danger" onclick="delEmp(\''+e.id+'\')">🗑️</button>':'')
           +(canManage&&arch?'<button class="btn btn-gray btn-sm" onclick="openEdit(\''+e.id+'\')">✏️</button>':'')
           +(canManage&&arch?'<button class="btn btn-gray btn-sm" onclick="openHistorique(\''+e.id+'\')">📋 Historique</button>':'')
@@ -1570,8 +1537,225 @@ async function saveEdit(){
   catch(e2){toast('Erreur','error');}
 }
 
+var _histoEmpId=null;
+
+// ── SORTIE D'UN SALARIÉ ───────────────────────────────────────────────────────
+var SORTIE_DOCS=[
+  {id:'solde',label:'Solde de tout compte',obligatoire:true},
+  {id:'certificat',label:'Certificat de travail'},
+  {id:'attestation',label:'Attestation France Travail'},
+  {id:'autre',label:'Autre document'}
+];
+function _motifLbl(m){return {fpe:'Fin période d\'essai',demission:'Démission',renvoi:'Renvoi'}[m]||m||'';}
+var _sortieEmpId=null,_sortieDocs={};
+
+function openSortie(id){
+  var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
+  _sortieEmpId=id;
+  _sortieDocs=JSON.parse(JSON.stringify(e.sortieDocs||{}));
+  document.getElementById('sortie-title').textContent='🚪 Sortie — '+e.name;
+  renderSortie();
+  document.getElementById('modal-sortie').classList.add('open');
+}
+
+function renderSortie(){
+  var e=DB.employees.find(function(x){return x.id===_sortieEmpId;});if(!e)return;
+  var enSortie=!!e.sortieStatut;
+  var h='';
+  // étape 1 : déclarer la sortie
+  h+='<div style="background:#1A1A1A;border-radius:8px;padding:12px;margin-bottom:12px;">'
+    +'<div class="flabel">Motif de la sortie</div>'
+    +'<select id="sortie-motif" class="fi" style="margin-bottom:8px;">'
+    +['','fpe','demission','renvoi'].map(function(m){var lbl=m===''?'— Choisir —':_motifLbl(m);return '<option value="'+m+'"'+(e.sortieMotif===m?' selected':'')+'>'+lbl+'</option>';}).join('')
+    +'</select>'
+    +'<div class="flabel">Date de sortie (dernier jour)</div>'
+    +'<input type="date" id="sortie-date" class="fi" value="'+(e.sortieDate||'')+'" style="margin-bottom:10px;">'
+    +'<button class="btn btn-red btn-sm" onclick="setSortie()">'+(enSortie?'Mettre à jour':'Déclarer la sortie')+'</button>';
+  if(enSortie){h+='<button class="btn btn-gray btn-sm" style="margin-left:6px;color:#cc7777;" onclick="annulerSortie()">↩️ Annuler la sortie</button>';}
+  h+='</div>';
+  if(enSortie){
+    // mails
+    h+='<div style="background:#1A1A1A;border-radius:8px;padding:12px;margin-bottom:12px;">'
+      +'<div class="flabel">✉️ Courrier au salarié</div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;">';
+    if(e.sortieMotif==='fpe')h+='<button class="btn btn-gray btn-sm" onclick="mailSortie(\'rupture\')">🛑 Mail rupture FPE</button>';
+    if(e.sortieMotif==='demission')h+='<button class="btn btn-gray btn-sm" onclick="mailSortie(\'demission\')">📤 Mail démission</button>';
+    if(e.sortieMotif==='renvoi')h+='<button class="btn btn-gray btn-sm" onclick="mailSortie(\'renvoi\')">⛔ Mail fin de contrat</button>';
+    h+='</div></div>';
+    // étape 2 : documents de fin
+    h+='<div style="background:#1A1A1A;border-radius:8px;padding:12px;margin-bottom:12px;">'
+      +'<div class="flabel">📎 Documents de fin de contrat</div>'
+      +'<p style="font-size:.74rem;color:#888;margin-bottom:10px;">Le <strong>solde de tout compte</strong> est obligatoire pour valider la sortie. Les autres sont conseillés.</p>';
+    SORTIE_DOCS.forEach(function(d){
+      var has=_sortieDocs[d.id]&&(_sortieDocs[d.id].data||_sortieDocs[d.id].link);
+      h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap;">'
+        +'<span style="flex:1;min-width:150px;font-size:.83rem;color:'+(has?'#4CAF50':'#ccc')+';">'+(has?'✅':'⬜')+' '+d.label+(d.obligatoire?' *':'')+'</span>'
+        +'<input type="file" id="sdoc-'+d.id+'" accept="application/pdf,image/*" style="display:none;" onchange="handleSortieDoc(\''+d.id+'\',this)">'
+        +'<button class="btn btn-gray btn-sm" onclick="document.getElementById(\'sdoc-'+d.id+'\').click()">📎 '+(has?'Remplacer':'Joindre')+'</button>'
+        +(has&&_sortieDocs[d.id].link?'<button class="btn btn-gray btn-sm" onclick="window.open(\''+_sortieDocs[d.id].link+'\')">Voir</button>':'')
+        +'</div>';
+    });
+    h+='</div>';
+    // étape 3 : valider
+    var soldeOk=_sortieDocs['solde']&&(_sortieDocs['solde'].data||_sortieDocs['solde'].link);
+    h+='<div style="background:'+(soldeOk?'#0d2818':'#2A1A1A')+';border:1px solid '+(soldeOk?'#1f6e3f':'#5a3a3a')+';border-radius:8px;padding:12px;">'
+      +'<div style="font-size:.8rem;color:'+(soldeOk?'#9fcfae':'#cc9999')+';margin-bottom:8px;">'
+      +(soldeOk?'Tout est prêt. La validation archive tous les documents dans Dropbox (dossier de sortie daté) et sort le salarié de l\'équipe active.':'Joignez d\'abord le solde de tout compte pour pouvoir valider la sortie.')+'</div>'
+      +'<button class="btn btn-red" style="width:100%;" '+(soldeOk?'':'disabled style="opacity:.4;cursor:not-allowed;width:100%;"')+' onclick="validerSortie()">✅ Valider la sortie définitive & archiver</button>'
+      +'</div>';
+  }
+  document.getElementById('sortie-content').innerHTML=h;
+}
+
+async function setSortie(){
+  var e=DB.employees.find(function(x){return x.id===_sortieEmpId;});if(!e)return;
+  var motif=document.getElementById('sortie-motif').value;
+  var date=document.getElementById('sortie-date').value;
+  if(!motif){alert('Choisissez le motif de la sortie.');return;}
+  if(!date){alert('Indiquez la date de sortie.');return;}
+  e.sortieStatut='en_cours';e.sortieMotif=motif;e.sortieDate=date;
+  try{
+    await sb.patch('bks_employees','id=eq.'+_sortieEmpId,{sortie_statut:'en_cours',sortie_motif:motif,sortie_date:date});
+    renderSortie();renderEquipe();toast('Sortie déclarée — à finaliser avec les documents','success');
+  }catch(err){toast('Erreur','error');}
+}
+async function annulerSortie(){
+  var e=DB.employees.find(function(x){return x.id===_sortieEmpId;});if(!e)return;
+  if(!confirm('Annuler la sortie de '+e.name+' ? Il restera dans l\'équipe active.'))return;
+  e.sortieStatut='';e.sortieMotif='';e.sortieDate='';
+  try{
+    await sb.patch('bks_employees','id=eq.'+_sortieEmpId,{sortie_statut:'',sortie_motif:'',sortie_date:''});
+    renderSortie();renderEquipe();toast('Sortie annulée','');
+  }catch(err){toast('Erreur','error');}
+}
+function mailSortie(type){
+  var e=DB.employees.find(function(x){return x.id===_sortieEmpId;});if(!e)return;
+  var tpl=getMailTpl();var t=tpl[type];if(!t)return;
+  var fake={prenom:e.name.split(' ')[0]||e.name,nom:e.name.split(' ').slice(1).join(' '),restoId:e.restoId,dateDebut:''};
+  var sujet=_fillTpl(t.sujet,fake),corps=_fillTpl(t.corps,fake);
+  var mailto='mailto:'+(e.email||'')+'?subject='+encodeURIComponent(sujet)+'&body='+encodeURIComponent(corps);
+  window.location.href=mailto;
+}
+function handleSortieDoc(key,input){
+  var file=input.files[0];if(!file)return;
+  if(file.size>6*1024*1024){alert('Fichier trop volumineux (max 6 Mo).');return;}
+  var reader=new FileReader();
+  reader.onload=function(ev){_sortieDocs[key]={data:ev.target.result,name:file.name};renderSortie();};
+  reader.readAsDataURL(file);
+}
+async function validerSortie(){
+  var e=DB.employees.find(function(x){return x.id===_sortieEmpId;});if(!e)return;
+  if(!(_sortieDocs['solde']&&(_sortieDocs['solde'].data||_sortieDocs['solde'].link))){alert('Le solde de tout compte est obligatoire.');return;}
+  if(!confirm('Valider la sortie définitive de '+e.name+' ?\n\nLes documents seront archivés dans Dropbox et le salarié quittera l\'équipe active (historique conservé).'))return;
+  // upload Dropbox dans dossier de sortie daté
+  var dbxReady=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
+  var rid=e.restoId||'';
+  var restoCode=({bk500:'BK500',bk509:'BK509',bk526:'BK526'})[rid]||dbxClean(rid).toUpperCase();
+  var dateStr=(e.sortieDate||new Date().toISOString().slice(0,10));
+  var folder='/'+restoCode+'_OUT/'+dbxClean(e.name)+'_'+dateStr;
+  if(dbxReady){
+    for(var key in _sortieDocs){
+      if(!_sortieDocs.hasOwnProperty(key))continue;
+      var it=_sortieDocs[key];
+      if(it&&it.data&&!it.link){
+        try{
+          var ext=(it.name&&it.name.indexOf('.')>=0)?it.name.split('.').pop():'pdf';
+          var lbl=(SORTIE_DOCS.find(function(d){return d.id===key;})||{}).label||key;
+          var fname=dbxClean(lbl)+'.'+ext;
+          var blob=_dataUrlToBlob(it.data);
+          var link=await dbxUpload(folder+'/'+fname,blob);
+          _sortieDocs[key]={link:link,name:it.name||fname};
+        }catch(upErr){console.error('Dropbox sortie échec',upErr);}
+      }
+    }
+  }
+  try{
+    await sb.patch('bks_employees','id=eq.'+_sortieEmpId,{
+      sortie_statut:'validee',sortie_validee:true,sortie_docs:_sortieDocs,
+      archived:true,exit_date:e.sortieDate,exit_motif:e.sortieMotif
+    });
+    await loadAll();closeModal('modal-sortie');renderEquipe();
+    toast(e.name+' sorti(e) et archivé(e) ✔','success');
+  }catch(err){toast('Erreur','error');console.error(err);}
+}
+
+function pdfEquipierFromRpt(){
+  var sel=document.getElementById('rpt-person');
+  var id=sel?sel.value:'';
+  if(!id||id==='all'){alert('Choisissez d\'abord un équipier précis dans le menu « Membre » (pas « Toute l\'équipe »).');return;}
+  pdfEquipier(id);
+}
+function pdfEquipier(id){
+  var e=DB.employees.find(function(x){return x.id===id;});if(!e){toast('Équipier introuvable','error');return;}
+  var incs=DB.incidents.filter(function(i){return i.empId===id;}).sort(function(a,b){return new Date(b.datetime||b.createdAt)-new Date(a.datetime||a.createdAt);});
+  var lets=DB.letters.filter(function(l){return l.empId===id;}).sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);});
+  try{
+    var JS=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF;
+    var doc=new JS({unit:'mm',format:'a4'});
+    var W=210,H=297,M=15,y=0;
+    function strip(s){return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+    doc.setFillColor(214,35,0);doc.rect(0,0,W,28,'F');
+    doc.setFillColor(245,166,35);doc.rect(0,28,W,2.5,'F');
+    doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(20);
+    doc.text('RAPPORT EQUIPIER',M,18);
+    doc.setFontSize(10);doc.setFont('helvetica','normal');
+    doc.text('Genere le '+new Date().toLocaleDateString('fr-FR'),W-M,18,{align:'right'});
+    y=40;
+    doc.setTextColor(30,30,30);doc.setFont('helvetica','bold');doc.setFontSize(15);
+    doc.text(strip(e.name),M,y);y+=7;
+    doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(90,90,90);
+    var resto=RESTOS[e.restoId]?strip(RESTOS[e.restoId].label):(e.restoId||'');
+    var infos=[];if(resto)infos.push(resto);if(e.poste)infos.push(strip(e.poste));if(e.email)infos.push(e.email);
+    doc.text(infos.join('  |  '),M,y);y+=6;
+    doc.setDrawColor(220,220,220);doc.line(M,y,W-M,y);y+=8;
+    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(214,35,0);
+    doc.text(incs.length+' incident(s)   -   '+lets.length+' courrier(s)',M,y);y+=9;
+    if(incs.length){
+      doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(30,30,30);
+      doc.text('Incidents',M,y);y+=6;
+      doc.setFontSize(9.5);
+      incs.forEach(function(i){
+        if(y>H-25){doc.addPage();y=20;}
+        var dt=i.datetime?new Date(i.datetime).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'-';
+        var sanc=SANCTIONS[i.sanctionType];
+        doc.setFont('helvetica','bold');doc.setTextColor(50,50,50);
+        doc.text(dt+(sanc?'  ['+strip(sanc.label)+']':''),M,y);y+=5;
+        doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+        var tags=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});return p?strip(p.label):'';}).filter(Boolean).join(', ');
+        if(tags){var tl=doc.splitTextToSize('- '+tags,W-2*M);doc.text(tl,M,y);y+=tl.length*4.5;}
+        if(i.note){var nl=doc.splitTextToSize('  "'+strip(i.note)+'"',W-2*M);doc.setTextColor(120,120,120);doc.text(nl,M,y);y+=nl.length*4.5;}
+        y+=2;
+      });
+      y+=3;
+    }
+    if(lets.length){
+      if(y>H-25){doc.addPage();y=20;}
+      doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(30,30,30);
+      doc.text('Courriers / sanctions',M,y);y+=6;
+      doc.setFontSize(9.5);
+      lets.forEach(function(l){
+        if(y>H-20){doc.addPage();y=20;}
+        var st=SANCTIONS[l.sanctionType]||{label:l.type};
+        var dt=new Date(l.createdAt).toLocaleDateString('fr-FR');
+        var ss=l.sigStatus==='signed'?'Signe':l.sigStatus==='refused'?'Refuse':'En attente';
+        doc.setFont('helvetica','bold');doc.setTextColor(50,50,50);
+        doc.text(strip(st.label)+'  -  '+dt,M,y);y+=4.5;
+        doc.setFont('helvetica','normal');doc.setTextColor(100,100,100);
+        doc.text('Statut : '+ss+'  -  Redige par '+strip(l.createdBy||''),M,y);y+=7;
+      });
+    }
+    if(!incs.length&&!lets.length){
+      doc.setFont('helvetica','italic');doc.setTextColor(120,120,120);doc.setFontSize(11);
+      doc.text('Aucun incident ni courrier enregistre pour cet equipier.',M,y);
+    }
+    doc.save('Rapport_'+strip(e.name).replace(/\s+/g,'_')+'.pdf');
+    toast('Rapport PDF généré ✔','success');
+  }catch(err){toast('Erreur génération PDF','error');console.error(err);}
+}
+
 function openHistorique(id){
   var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
+  _histoEmpId=id;
   document.getElementById('histo-title').textContent='📋 Historique — '+e.name;
   var incs=DB.incidents.filter(function(i){return i.empId===id;})
     .sort(function(a,b){return new Date(b.datetime||b.createdAt)-new Date(a.datetime||a.createdAt);});
@@ -1764,6 +1948,7 @@ var candFilter = 'nouveau';
 var restoFilterQr = null;
 
 function publicBaseUrl(){return window.location.origin+window.location.pathname;}
+function publicFormUrl(resto){return publicBaseUrl()+'#postuler'+(resto?'/'+resto:'');}
 
 function renderQr(){
   var box=document.getElementById('rec-qr-box');if(!box)return;
@@ -1945,19 +2130,41 @@ function essaiInfo(c){
   var debut=new Date(c.dateDebut+'T12:00:00');
   var now=new Date();
   var jours=Math.floor((now-debut)/(24*3600*1000));
-  var fin=new Date(debut);fin.setMonth(fin.getMonth()+2); // période d'essai 2 mois
+  var estApprenti=(c.poste==='Apprenti');
+  var fin=new Date(debut);
+  if(estApprenti){fin.setDate(fin.getDate()+45);} // apprentissage : 45 jours
+  else{fin.setMonth(fin.getMonth()+2);} // autres : 2 mois
   var joursRestants=Math.ceil((fin-now)/(24*3600*1000));
-  var label='J+'+jours+' · fin le '+fin.toLocaleDateString('fr-FR');
-  // seuil d'alerte choisi par l'utilisateur
+  var dureeLbl=estApprenti?'45 jours (apprentissage)':'2 mois';
+  var label='J+'+jours+' · fin le '+fin.toLocaleDateString('fr-FR')+' ('+dureeLbl+')';
   var seuilMap={'1sem':7,'10j':10,'15j':15,'1mois':30};
   var seuil=seuilMap[c.essaiAlerte||'15j']||15;
   var alert='',alertCol='';
   if(joursRestants<=0){alert='🔴 Période d\'essai terminée';alertCol='#cc5555';}
   else if(joursRestants<=seuil){alert='⚠️ Fin de période d\'essai dans '+joursRestants+'j — décision à prendre';alertCol='#cc5555';}
-  return {jours:jours,fin:fin,joursRestants:joursRestants,label:label,alert:alert,alertCol:alertCol,seuil:seuil};
+  return {jours:jours,fin:fin,joursRestants:joursRestants,label:label,alert:alert,alertCol:alertCol,seuil:seuil,apprenti:estApprenti};
 }
 
-function publicFormUrl(resto){return publicBaseUrl()+'#postuler/'+(resto||'bk500');}
+// Visite médicale : feu tricolore basé sur la date d'entrée (date de démarrage)
+// < 2 mois : vert clair · 2-4 mois : orange · > 4 mois : rouge · doit être faite avant 6 mois
+function visiteInfo(c){
+  if(c.visiteFaite){
+    return {fait:true,col:'#4CAF50',badge:'✅ Visite faite'+(c.visiteDate?' le '+new Date(c.visiteDate+'T12:00:00').toLocaleDateString('fr-FR'):''),etat:'fait'};
+  }
+  if(!c.dateDebut)return {fait:false,col:'#888',badge:'🩺 À planifier (date d\'entrée manquante)',etat:'inconnu'};
+  var entree=new Date(c.dateDebut+'T12:00:00');
+  var now=new Date();
+  var mois=(now-entree)/(30.44*24*3600*1000);
+  var limite=new Date(entree);limite.setMonth(limite.getMonth()+6); // au plus tard 6 mois
+  var limiteStr=limite.toLocaleDateString('fr-FR');
+  var col,badge,etat;
+  if(mois<2){col='#4CAF50';badge='🟢 OK — à prévoir (avant le '+limiteStr+')';etat='ok';}
+  else if(mois<4){col='#F5A623';badge='🟠 À planifier (avant le '+limiteStr+')';etat='orange';}
+  else if(mois<6){col='#cc5555';badge='🔴 Urgent — avant le '+limiteStr+' !';etat='rouge';}
+  else{col='#cc5555';badge='⛔ DÉPASSÉ (limite '+limiteStr+')';etat='depasse';}
+  return {fait:false,col:col,badge:badge,etat:etat,entree:entree,limite:limite,limiteStr:limiteStr};
+}
+
 
 function renderApercuForm(){
   var wrap=document.getElementById('apercu-form-wrap');if(!wrap)return;
@@ -1972,7 +2179,7 @@ function openApercuLive(){
 
 function setCandFilter(f){
   candFilter=f;
-  ['nouveau','entretien','retenu','essai','refuse'].forEach(function(s){
+  ['nouveau','entretien','retenu','essai','visite','refuse'].forEach(function(s){
     var b=document.getElementById('cst-'+s);if(b)b.classList.toggle('on',s===f);
   });
   // filtre resto visible seulement en Nouveau
@@ -1995,24 +2202,41 @@ function renderCandidatures(){
   var list=document.getElementById('rec-cand-list');if(!list)return;
   var cands=DB.candidatures.slice();
   if(curUser&&curUser.role==='directeur')cands=cands.filter(function(c){return c.restoId===curUser.restoId;});
-  cands=cands.filter(function(c){return (c.statut||'nouveau')===candFilter;});
+  if(candFilter==='visite'){
+    cands=cands.filter(function(c){return (c.statut||'')==='essai';});
+  }else{
+    cands=cands.filter(function(c){return (c.statut||'nouveau')===candFilter;});
+  }
   // filtre resto en Nouveau
   if(candFilter==='nouveau'&&restoFilter!=='all')cands=cands.filter(function(c){return c.restoId===restoFilter;});
   if(!cands.length){
-    var msgs={nouveau:'Aucune nouvelle candidature',entretien:'Aucun entretien programmé',retenu:'Aucun candidat retenu',essai:'Aucun salarié en période d\'essai',refuse:'Aucune candidature refusée'};
-    list.innerHTML='<div class="empty"><div class="ei">🎯</div><p>'+(msgs[candFilter]||'Aucune candidature')+'</p></div>';return;
+    var msgs={nouveau:'Aucune nouvelle candidature',entretien:'Aucun entretien programmé',retenu:'Aucun candidat retenu',essai:'Aucun salarié en période d\'essai',visite:'Aucun salarié à suivre pour la visite médicale',refuse:'Aucune candidature refusée'};
+    list.innerHTML='<div class="empty"><div class="ei">'+(candFilter==='visite'?'🩺':'🎯')+'</div><p>'+(msgs[candFilter]||'Aucune candidature')+'</p></div>';return;
   }
   var stCol={nouveau:'#5BA3F5',entretien:'#F5A623',retenu:'#4CAF50',essai:'#B57EDC',refuse:'#cc5555'};
   list.innerHTML=cands.map(function(c){
     var resto=RESTOS[c.restoId]?RESTOS[c.restoId].label:c.restoId;
     var col=stCol[c.statut]||'#888';
     var meta='';
+    var alert='';
+    if(candFilter==='visite'){
+      var v=visiteInfo(c);col=v.col;
+      meta='Entrée le '+(c.dateDebut?new Date(c.dateDebut+'T12:00:00').toLocaleDateString('fr-FR'):'?')+' · '+resto;
+      alert='<span style="background:'+v.col+';color:#fff;border-radius:10px;padding:2px 8px;font-size:.68rem;font-weight:700;margin-left:6px;">'+v.badge+'</span>';
+      return '<div class="emp-card" style="border-left:4px solid '+col+';cursor:pointer;" onclick="openCand(\''+c.id+'\')">'
+        +'<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
+        +(c.photo?'<img src="'+c.photo+'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;">':'<div class="emp-av av-e">'+((c.prenom[0]||'')+(c.nom[0]||'')).toUpperCase()+'</div>')
+        +'<div style="min-width:0;"><div style="font-weight:600;font-size:.92rem;">'+c.prenom+' '+c.nom+'</div>'
+        +'<div style="font-size:.73rem;color:#888;">'+meta+'</div>'
+        +'<div style="margin-top:3px;">'+alert+'</div></div></div>'
+        +'<span style="color:'+col+';font-size:1.3rem;">›</span>'
+        +'</div>';
+    }
     if(c.statut==='nouveau'){var dt=c.createdAt?new Date(c.createdAt).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}):'';meta=(c.poste||'—')+' · '+resto+' · reçu le '+dt;}
     else if(c.statut==='entretien'){meta='Entretien : '+(c.entretienDate?new Date(c.entretienDate).toLocaleString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'à programmer')+' · '+resto;}
     else if(c.statut==='retenu'){var dok=docsComplets(c)&&c.docsSoumis;var vok=!!c.videosFaites;var st=(dok&&vok)?'✅ dossier validé':((dok?'📎 docs ok':'📎 docs en attente')+' · '+(vok?'🎓 vidéos ok':'🎓 vidéos en attente'));meta='Retenu · '+resto+' · '+st+(c.dateDebut?' · début '+new Date(c.dateDebut).toLocaleDateString('fr-FR'):'');}
     else if(c.statut==='essai'){var ess=essaiInfo(c);meta='Début '+(c.dateDebut?new Date(c.dateDebut).toLocaleDateString('fr-FR'):'?')+' · '+(ess?ess.label:'')+' · '+resto;}
     else if(c.statut==='refuse'){meta='Refusé · '+resto;}
-    var alert='';
     if(c.statut==='essai'){var e=essaiInfo(c);if(e&&e.alert)alert='<span style="background:'+e.alertCol+';color:#fff;border-radius:10px;padding:2px 8px;font-size:.68rem;font-weight:700;margin-left:6px;">'+e.alert+'</span>';}
     return '<div class="emp-card" style="border-left:4px solid '+col+';cursor:pointer;" onclick="openCand(\''+c.id+'\')">'
       +'<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
@@ -2114,7 +2338,7 @@ function renderCandActions(c){
   }else if(st==='retenu'){
     h=candRetenuActionsHtml(c);
   }else if(st==='essai'){
-    h=candEssaiActionsHtml(c);
+    h=(candFilter==='visite')?candVisiteActionsHtml(c):candEssaiActionsHtml(c);
   }else if(st==='refuse'){
     h='<div style="background:#1A1A1A;border-radius:8px;padding:12px;">'
       +'<div style="font-size:.85rem;color:#cc5555;margin-bottom:8px;">❌ Candidature refusée'+(c.refusMotif?' — '+c.refusMotif:'')+'</div>'
@@ -2174,7 +2398,7 @@ function candRetenir(){
 function confirmRetenir(){
   var dispos={};
   JOURS.forEach(function(j){
-    var arr=(dispoState[j[0]]||[]).slice().sort(function(x,y){return x.from-y.from;});
+    var arr=(dispoState[j[0]]||[]).filter(function(c){return c.from!==''&&c.to!==''&&c.from!=null&&c.to!=null;}).sort(function(x,y){return x.from-y.from;});
     var creneaux=arr.map(function(c){return {from:c.from,to:c.to};});
     dispos[j[0]]={on:creneaux.length>0,creneaux:creneaux};
   });
@@ -2198,20 +2422,24 @@ var MAIL_DEFAULTS={
     corps:'Bonjour {prenom},\n\nNous avons bien reçu votre candidature et nous serions ravis de vous rencontrer.\n\nNous vous proposons un entretien le {date} au restaurant {resto}.\n\nMerci de nous confirmer votre présence en répondant à ce message.\n\nÀ très bientôt,\nL\'équipe {resto}'
   },
   retenu:{
-    sujet:'Bienvenue dans l\'équipe {resto} !',
-    corps:'Bonjour {prenom},\n\nBonne nouvelle : suite à notre entretien, nous souhaitons vous intégrer à notre équipe !\n\nPour préparer votre arrivée, merci de nous fournir les éléments suivants :\n- Pièce d\'identité (recto/verso)\n- Carte vitale ou attestation de sécurité sociale\n- RIB\n- Justificatif de domicile\n\nVous recevrez également un lien pour réaliser les vidéos de formation avant votre prise de poste.\n\nNous reviendrons vers vous avec votre date de démarrage et la suite des démarches.\n\nFélicitations et bienvenue,\nL\'équipe {resto}'
+    sujet:'Votre intégration chez {resto} — documents à fournir',
+    corps:'Bonjour {prenom},\n\nFélicitations, nous sommes ravis de vous accueillir au sein de l\'équipe {resto} !\n\nAfin de préparer au mieux votre intégration, merci de déposer tous vos documents directement sur votre espace sécurisé personnel.\n\n➡️➡️➡️ CLIQUEZ SUR CE LIEN POUR DÉPOSER VOS DOCUMENTS :\n\n{lien_docs}\n\n(Si le lien ne s\'ouvre pas, copiez-le et collez-le dans votre navigateur.)\n\n━━━━━━━━━━━━━━━━━━━━━━\n\nDocuments à fournir (tous obligatoires) :\n- Carte d\'identité recto ET verso\n- Justificatif de domicile de -3 mois\n- Carte vitale recto ET verso\n- Attestation CPAM\n- Attestation de mutuelle / complémentaire Santé Solidaire (pour être dispensé de la mutuelle du restaurant) OU courrier signé d\'adhésion à la mutuelle obligatoire\n- RIB français\n- Si contrat inférieur à 24h/semaine : indiquez le motif directement sur votre espace\n\nÀ renseigner également sur votre espace :\n- Contact en cas d\'urgence (nom/prénom + téléphone)\n- Vos tailles de tenues\n\n━━━━━━━━━━━━━━━━━━━━━━\n\nAvant votre intégration, il est impératif d\'avoir réalisé les vidéos de formation réglementaires sur Burger King University :\n🎓 www.burgerkinguniversity.com\nIdentifiant : {bku_id}\nMot de passe : {bku_mdp}\n\nMerci de nous prévenir par mail une fois les vidéos terminées.\n\nVotre intégration est prévue le {date_integration}, à condition que les vidéos soient terminées la veille au soir.\n\nUne fois tous les documents reçus et les vidéos effectuées, vous recevrez un mail vous informant que votre contrat est disponible pour signature électronique.\n\nNous restons disponibles pour toute question,\n\nÀ très bientôt,\nL\'équipe {resto}'
   },
   refus:{
     sujet:'Votre candidature chez {resto}',
     corps:'Bonjour {prenom},\n\nNous vous remercions pour l\'intérêt que vous portez à notre restaurant et pour le temps consacré à votre candidature.\n\nAprès étude, nous ne sommes pas en mesure de donner une suite favorable à votre candidature pour le moment.\n\nNous conservons vos coordonnées et nous nous permettrons de revenir vers vous si une opportunité correspondant à votre profil se présente.\n\nNous vous souhaitons une pleine réussite dans vos recherches.\n\nCordialement,\nL\'équipe {resto}'
   },
-  documents:{
-    sujet:'Votre intégration chez {resto} — documents à fournir',
-    corps:'Bonjour {prenom},\n\nFélicitations, nous sommes ravis de vous accueillir au sein de l\'équipe {resto} !\n\nAfin de préparer au mieux votre intégration, merci de déposer tous vos documents directement sur votre espace sécurisé personnel.\n\n➡️➡️➡️ CLIQUEZ SUR CE LIEN POUR DÉPOSER VOS DOCUMENTS :\n\n{lien_docs}\n\n(Si le lien ne s\'ouvre pas, copiez-le et collez-le dans votre navigateur.)\n\n━━━━━━━━━━━━━━━━━━━━━━\n\nDocuments à fournir (tous obligatoires) :\n- Carte d\'identité recto ET verso\n- Justificatif de domicile de -3 mois\n- Carte vitale recto ET verso\n- Attestation CPAM\n- Attestation de mutuelle / complémentaire Santé Solidaire (pour être dispensé de la mutuelle du restaurant) OU courrier signé d\'adhésion à la mutuelle obligatoire\n- RIB français\n- Si contrat inférieur à 24h/semaine : indiquez le motif directement sur votre espace\n\nÀ renseigner également sur votre espace :\n- Contact en cas d\'urgence (nom/prénom + téléphone)\n- Vos tailles de tenues\n\n━━━━━━━━━━━━━━━━━━━━━━\n\nAvant votre intégration, il est impératif d\'avoir réalisé les vidéos de formation réglementaires sur Burger King University :\n🎓 www.burgerkinguniversity.com\nIdentifiant : {bku_id}\nMot de passe : {bku_mdp}\n\nMerci de nous prévenir par mail une fois les vidéos terminées.\n\nVotre intégration est prévue le {date_integration}, à condition que les vidéos soient terminées la veille au soir.\n\nUne fois tous les documents reçus et les vidéos effectuées, vous recevrez un mail vous informant que votre contrat est disponible pour signature électronique.\n\nNous restons disponibles pour toute question,\n\nÀ très bientôt,\nL\'équipe {resto}'
-  },
   rupture:{
     sujet:'Fin de votre période d\'essai chez {resto}',
     corps:'Bonjour {prenom},\n\nNous vous informons que nous avons décidé de mettre fin à votre période d\'essai au sein de l\'équipe {resto}, et ce conformément aux dispositions légales applicables.\n\nVotre dernier jour de travail est fixé au {date_fin}, en tenant compte du délai de prévenance.\n\nNous vous remercions pour votre implication durant cette période et vous souhaitons une pleine réussite dans la suite de votre parcours professionnel.\n\nNous restons à votre disposition pour toute information relative à vos documents de fin de contrat.\n\nCordialement,\nL\'équipe {resto}'
+  },
+  demission:{
+    sujet:'Votre démission — {resto}',
+    corps:'Bonjour {prenom},\n\nNous accusons réception de votre démission de votre poste au sein de l\'équipe {resto}.\n\nVotre dernier jour de travail est fixé au {date_fin}, sous réserve du préavis applicable.\n\nNous vous remercions pour votre collaboration et vous souhaitons une bonne continuation.\n\nVos documents de fin de contrat (solde de tout compte, certificat de travail, attestation France Travail) vous seront remis dans les délais légaux.\n\nCordialement,\nL\'équipe {resto}'
+  },
+  renvoi:{
+    sujet:'Fin de votre contrat — {resto}',
+    corps:'Bonjour {prenom},\n\nNous vous confirmons la fin de votre contrat de travail au sein de l\'équipe {resto}.\n\nVotre dernier jour de travail est fixé au {date_fin}.\n\nVos documents de fin de contrat (solde de tout compte, certificat de travail, attestation France Travail) vous seront remis dans les délais légaux.\n\nCordialement,\nL\'équipe {resto}'
   }
 };
 function getMailTpl(){
@@ -2221,8 +2449,9 @@ function getMailTpl(){
     entretien:m.entretien||MAIL_DEFAULTS.entretien,
     retenu:m.retenu||MAIL_DEFAULTS.retenu,
     refus:m.refus||MAIL_DEFAULTS.refus,
-    documents:m.documents||MAIL_DEFAULTS.documents,
-    rupture:m.rupture||MAIL_DEFAULTS.rupture
+    rupture:m.rupture||MAIL_DEFAULTS.rupture,
+    demission:m.demission||MAIL_DEFAULTS.demission,
+    renvoi:m.renvoi||MAIL_DEFAULTS.renvoi
   };
 }
 function _restoLabel(c){return RESTOS[c.restoId]?RESTOS[c.restoId].label:'Burger King';}
@@ -2266,7 +2495,7 @@ function mailRefus(){
 function mailDocuments(){
   var c=curCand();if(!c)return;
   var tpl=getMailTpl();
-  _mailto(c,_fillTpl(tpl.documents.sujet,c),_fillTpl(tpl.documents.corps,c));
+  _mailto(c,_fillTpl(tpl.retenu.sujet,c),_fillTpl(tpl.retenu.corps,c));
 }
 function mailRupture(){
   var c=curCand();if(!c)return;
@@ -2298,6 +2527,16 @@ var DOC_TYPES=[
   {id:'rib',label:'RIB français'},
   {id:'moins24h',label:'Demande de contrat < 24h (si concerné)',type:'text',placeholder:'Ex : Je suis étudiant(e), je souhaite un contrat de moins de 24h/semaine car je suis à l\'école...'}
 ];
+
+// Nom de fichier clair pour Dropbox à partir de la clé (ex. "cni_recto" -> "Carte_identite_recto")
+function docFileName(key){
+  var base={cni:'Carte_identite',domicile:'Justificatif_domicile',vitale:'Carte_vitale',cpam:'Attestation_CPAM',mutuelle:'Attestation_mutuelle',rib:'RIB',moins24h:'Demande_contrat_-24h'};
+  var parts=key.split('_'); // ex: ["cni","recto"]
+  var id=parts[0];
+  var side=parts[1]?('_'+parts[1].charAt(0).toUpperCase()+parts[1].slice(1)):''; // _Recto / _Verso
+  var dateRecu='_'+new Date().toISOString().slice(0,10); // date de réception AAAA-MM-JJ
+  return (base[id]||dbxClean(id))+side+dateRecu;
+}
 
 function renderDocsRecap(c){
   var docs=c.documents||{};
@@ -2349,6 +2588,8 @@ async function prepareMailDocs(){
   var c=curCand();if(!c)return;
   var id=document.getElementById('cand-bku-id').value.trim();
   var mdp=document.getElementById('cand-bku-mdp').value.trim();
+  if(!id||!mdp){alert('Avant d\'envoyer le mail, vous devez renseigner l\'identifiant ET le mot de passe Burger King University du candidat.');return;}
+  if(!c.dateDebut){alert('Merci d\'indiquer la date de démarrage avant d\'envoyer le mail.');return;}
   c.bkuIdentifiant=id;c.bkuMotdepasse=mdp;
   try{
     await sb.patch('bks_candidatures','id=eq.'+_candId,{bku_identifiant:id,bku_motdepasse:mdp,updated_at:new Date().toISOString()});
@@ -2379,8 +2620,8 @@ function candRetenuActionsHtml(c){
   var dateVal=c.dateDebut||'';
   var docsOk=docsComplets(c)&&c.docsSoumis;
   var vidsOk=!!c.videosFaites;
-  var complet=docsOk&&vidsOk;
-  var retard=echeanceDepassee(c)&&!complet;
+  var complet=docsOk; // la validation ne dépend QUE des documents
+  var retard=echeanceDepassee(c)&&!docsOk;
   var voyant=function(ok,txt){return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:.86rem;color:'+(ok?'#4CAF50':'#999')+';"><span style="font-size:1.1rem;">'+(ok?'✅':'⬜')+'</span>'+txt+'</div>';};
 
   var h='<div style="background:#1A1A1A;border-radius:8px;padding:12px;">'
@@ -2393,7 +2634,7 @@ function candRetenuActionsHtml(c){
   if(retard){
     h+='<div style="background:#3a0d0d;border:2px solid #cc3333;border-radius:8px;padding:10px 12px;margin-bottom:12px;">'
       +'<div style="color:#ff6b6b;font-weight:700;font-size:.88rem;">⛔ Dossier incomplet — échéance dépassée</div>'
-      +'<div style="color:#dd9999;font-size:.78rem;margin-top:4px;">La date limite (2 jours avant le démarrage) est passée et le dossier n\'est pas complet. À vous de décider : relancer le candidat ou abandonner la candidature.</div></div>';
+      +'<div style="color:#dd9999;font-size:.78rem;margin-top:4px;">La date limite (2 jours avant le démarrage) est passée et les documents ne sont pas complets. À vous de décider : relancer le candidat ou abandonner la candidature.</div></div>';
   }
 
   // Bloc identifiants + date + mail
@@ -2409,23 +2650,24 @@ function candRetenuActionsHtml(c){
     +'<div id="docs-qr-box" style="display:none;background:#fff;padding:12px;border-radius:10px;width:max-content;margin:6px 0 10px;"></div>'
     +'<p style="font-size:.72rem;color:#666;margin-bottom:12px;">Renseignez l\'identifiant, le mot de passe et la date, puis envoyez le mail. Le candidat dépose ses pièces et confirme ses vidéos via le lien.</p>';
 
-  // Suivi : voyants automatiques
-  h+='<div class="flabel">📋 Suivi du dossier (rempli par le candidat)</div>'
+  // Suivi : documents (auto) + vidéos (coché par le RH)
+  h+='<div class="flabel">📋 Suivi du dossier</div>'
     +'<div style="background:#141414;border-radius:6px;padding:8px 12px;margin-bottom:8px;">'
     +voyant(docsOk,'Documents reçus'+(c.docsSoumis&&!docsComplets(c)?' <span style="color:#F5A623;">(incomplets)</span>':''))
-    +voyant(vidsOk,'Vidéos de formation réalisées')
+    +'<label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:.86rem;cursor:pointer;color:'+(vidsOk?'#4CAF50':'#999')+';">'
+    +'<input type="checkbox" '+(vidsOk?'checked':'')+' onchange="toggleVideos(this.checked)" style="width:17px;height:17px;accent-color:#4CAF50;"> Vidéos de formation réalisées</label>'
     +'</div>'
     +'<div class="flabel">📎 Pièces déposées</div>'
     +'<div style="background:#141414;border-radius:6px;padding:10px;margin-bottom:12px;">'+renderDocsRecap(c)+'</div>';
 
-  // Validation -> contrat à signer -> période d'essai
+  // Validation (documents) -> contrat à signer -> période d'essai
   if(!complet){
-    h+='<button class="btn btn-red btn-sm" disabled style="opacity:.4;cursor:not-allowed;">⏳ En attente du dossier complet</button>'
-      +'<p style="font-size:.74rem;color:#666;margin-top:6px;">Le candidat doit déposer toutes ses pièces ET confirmer ses vidéos. La validation se fera alors automatiquement.</p>';
+    h+='<button class="btn btn-red btn-sm" disabled style="opacity:.4;cursor:not-allowed;">⏳ En attente des documents complets</button>'
+      +'<p style="font-size:.74rem;color:#666;margin-top:6px;">Le candidat doit déposer toutes ses pièces. La validation du dossier se fait alors automatiquement.</p>';
   }else{
     h+='<div style="background:#0d2818;border:1px solid #1f6e3f;border-radius:8px;padding:10px 12px;margin-bottom:10px;">'
       +'<div style="color:#7CFFA0;font-weight:700;font-size:.88rem;">📄 Contrat à signer</div>'
-      +'<div style="color:#9fcfae;font-size:.78rem;margin-top:4px;">Dossier complet (documents + vidéos). Vous pouvez établir le contrat. La signature lance la période d\'essai.</div></div>'
+      +'<div style="color:#9fcfae;font-size:.78rem;margin-top:4px;">Documents complets. Vous pouvez établir le contrat. La signature lance la période d\'essai.'+(vidsOk?'':' (Pensez à vérifier les vidéos de formation.)')+'</div></div>'
       +'<button class="btn btn-red" style="width:100%;" onclick="candContratSigne()">✍️ Contrat signé → démarrer la période d\'essai</button>';
   }
   h+='<div style="margin-top:10px;"><button class="btn btn-gray btn-sm" style="color:#cc5555;border-color:#5a2020;" onclick="candRefuser()">❌ Abandonner cette candidature</button></div>'
@@ -2435,8 +2677,17 @@ function candRetenuActionsHtml(c){
 
 async function candContratSigne(){
   var c=curCand();if(!c)return;
-  if(!confirm('Confirmer la signature du contrat de '+c.prenom+' '+c.nom+' ?\n\nLa période d\'essai démarrera à la date de démarrage prévue.'))return;
-  _candUpdate({statut:'essai',contrat_signe:true},'Contrat signé — période d\'essai lancée 🚀');
+  if(!confirm('Confirmer la signature du contrat de '+c.prenom+' '+c.nom+' ?\n\nLe salarié sera ajouté à l\'équipe et la période d\'essai démarrera à la date de démarrage prévue.'))return;
+  // Créer le salarié dans l'équipe (s'il n'existe pas déjà via ce candidat)
+  try{
+    var nom=((c.prenom||'')+' '+(c.nom||'')).trim();
+    var deja=DB.employees.find(function(e){return e.fromCandId===c.id;});
+    if(!deja){
+      var eid='u'+Date.now();
+      await sb.insert('bks_employees',{id:eid,name:nom,role:'equipier',resto_id:c.restoId,archived:false,email:c.email||'',phone:c.phone||'',from_cand_id:c.id});
+    }
+  }catch(e){console.error('Création employé échec',e);}
+  _candUpdate({statut:'essai',contrat_signe:true},'Contrat signé — salarié ajouté à l\'équipe 🚀',function(){loadAll();});
 }
 
 async function toggleOnboard(stepId,val){
@@ -2454,6 +2705,11 @@ async function setDateDebut(v){
 async function setEssaiAlerte(v){
   var c=curCand();if(!c)return;c.essaiAlerte=v;
   try{await sb.patch('bks_candidatures','id=eq.'+_candId,{essai_alerte:v,updated_at:new Date().toISOString()});renderCandActions(c);}
+  catch(e){toast('Erreur','error');}
+}
+async function toggleVideos(val){
+  var c=curCand();if(!c)return;c.videosFaites=val;
+  try{await sb.patch('bks_candidatures','id=eq.'+_candId,{videos_faites:val,updated_at:new Date().toISOString()});renderCandActions(c);renderCandidatures();}
   catch(e){toast('Erreur','error');}
 }
 function candDemarrer(){
@@ -2478,7 +2734,7 @@ function candEssaiActionsHtml(c){
   var critBtns=crit.map(function(k){return '<label style="display:inline-flex;align-items:center;gap:5px;background:#141414;border:1px solid #333;border-radius:14px;padding:4px 10px;font-size:.76rem;color:#ccc;cursor:pointer;"><input type="checkbox" class="essai-crit" value="'+k+'" style="accent-color:var(--orange);">'+k+'</label>';}).join(' ');
   return '<div style="background:#1A1A1A;border-radius:8px;padding:12px;">'
     +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
-    +'<span style="font-size:.85rem;color:#B57EDC;font-weight:600;">⏳ Période d\'essai (2 mois)</span>'
+    +'<span style="font-size:.85rem;color:#B57EDC;font-weight:600;">⏳ Période d\'essai ('+(e&&e.apprenti?'45 jours':'2 mois')+')</span>'
     +(e&&e.alert?'<span style="background:'+e.alertCol+';color:#fff;border-radius:10px;padding:2px 8px;font-size:.7rem;font-weight:700;">'+e.alert+'</span>':'')+'</div>'
     +(e?'<div style="font-size:.8rem;color:#aaa;margin-bottom:4px;">'+e.label+'</div>':'')
     +'<div class="flabel" style="margin-top:8px;">⏰ M\'alerter avant la fin de la période d\'essai</div>'
@@ -2505,6 +2761,46 @@ function candEssaiActionsHtml(c){
     +'<button class="btn btn-red btn-sm" style="background:#1E3A1E;border-color:#4A8A4A;color:#7ACA7A;" onclick="essaiDecision(\'valide\')">✅ Confirmer l\'embauche</button>'
     +'<button class="btn btn-gray btn-sm" style="color:#cc5555;border-color:#5a2020;" onclick="essaiDecision(\'rupture\')">🛑 Rompre la période d\'essai</button>'
     +'</div></div>';
+}
+
+function candVisiteActionsHtml(c){
+  var v=visiteInfo(c);
+  var h='<div style="background:#1A1A1A;border-radius:8px;padding:12px;">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
+    +'<span style="font-size:.85rem;color:#5BB8C4;font-weight:600;">🩺 Visite médicale</span>'
+    +'<span style="background:'+v.col+';color:#fff;border-radius:10px;padding:3px 10px;font-size:.72rem;font-weight:700;">'+v.badge+'</span></div>'
+    +'<div style="font-size:.8rem;color:#aaa;margin-bottom:4px;">Date d\'entrée : <strong style="color:#eee;">'+(c.dateDebut?new Date(c.dateDebut+'T12:00:00').toLocaleDateString('fr-FR'):'non renseignée')+'</strong></div>';
+  if(!c.dateDebut){
+    h+='<p style="font-size:.78rem;color:#cc7777;margin-bottom:10px;">⚠️ Renseignez la date de démarrage (onglet « Retenu ») pour activer le suivi.</p>';
+  }else if(!v.fait){
+    h+='<p style="font-size:.78rem;color:#aaa;margin:8px 0;">La visite médicale d\'embauche doit être réalisée <strong>au plus tard le '+v.limiteStr+'</strong> (dans les 6 mois suivant l\'entrée). Voyant : 🟢 ok → 🟠 à 2 mois → 🔴 à 4 mois.</p>';
+  }
+  // marquer comme faite
+  h+='<div style="background:#141414;border-radius:8px;padding:10px;margin-top:8px;">'
+    +'<div class="flabel">✅ Visite médicale réalisée</div>'
+    +'<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">'
+    +'<div style="flex:1;min-width:150px;"><div style="font-size:.7rem;color:#888;margin-bottom:3px;">Date de la visite</div>'
+    +'<input type="date" id="visite-date" class="fi" value="'+(c.visiteDate||'')+'"></div>'
+    +'<button class="btn btn-red btn-sm" onclick="setVisiteFaite()">'+(v.fait?'Mettre à jour':'Marquer comme faite')+'</button>'
+    +'</div>';
+  if(v.fait){h+='<button class="btn btn-gray btn-sm" style="margin-top:8px;color:#cc7777;" onclick="annulerVisite()">↩️ Annuler (pas encore faite)</button>';}
+  h+='</div></div>';
+  return h;
+}
+
+async function setVisiteFaite(){
+  var c=curCand();if(!c)return;
+  var d=document.getElementById('visite-date').value;
+  if(!d){alert('Merci d\'indiquer la date de la visite médicale.');return;}
+  c.visiteFaite=true;c.visiteDate=d;
+  try{await sb.patch('bks_candidatures','id=eq.'+_candId,{visite_faite:true,visite_date:d,updated_at:new Date().toISOString()});renderCandActions(c);renderCandidatures();toast('Visite médicale enregistrée ✅');}
+  catch(e){toast('Erreur','error');}
+}
+async function annulerVisite(){
+  var c=curCand();if(!c)return;
+  c.visiteFaite=false;c.visiteDate='';
+  try{await sb.patch('bks_candidatures','id=eq.'+_candId,{visite_faite:false,visite_date:null,updated_at:new Date().toISOString()});renderCandActions(c);renderCandidatures();}
+  catch(e){toast('Erreur','error');}
 }
 
 async function addAvis(avis){
@@ -2606,11 +2902,6 @@ async function showDocsPage(cid){
     +'<div class="form-row"><div><label class="flabel">Haut</label><select id="doc-t-haut" class="fi">'+optsHaut+'</select></div>'
     +'<div><label class="flabel">Pantalon</label><select id="doc-t-pant" class="fi">'+optsPant+'</select></div></div>'
     +'<div style="margin-top:6px;"><label class="flabel">Chaussures (pointure)</label><select id="doc-t-ch" class="fi">'+optsCh+'</select></div></div>'
-    +'<div class="card"><div class="sec-title">🎓 Vidéos de formation</div>'
-    +'<p style="font-size:.78rem;color:#aaa;margin-bottom:10px;">Avant votre intégration, vous devez réaliser toutes les vidéos de formation sur Burger King University.</p>'
-    +'<label style="display:flex;align-items:flex-start;gap:10px;background:#1A1A1A;border:2px solid '+(_docsCand.videos_faites?'#4CAF50':'#444')+';border-radius:10px;padding:12px 14px;cursor:pointer;" id="doc-vid-label">'
-    +'<input type="checkbox" id="doc-videos" '+(_docsCand.videos_faites?'checked':'')+' style="width:20px;height:20px;accent-color:#4CAF50;margin-top:1px;" onchange="document.getElementById(\'doc-vid-label\').style.borderColor=this.checked?\'#4CAF50\':\'#444\';">'
-    +'<span style="font-size:.9rem;color:#eee;font-weight:600;">J\'ai réalisé <u>toutes</u> les vidéos de formation sur Burger King University</span></label></div>'
     +'<button class="btn btn-red" style="width:100%;padding:14px;font-size:1.05rem;" onclick="submitDocs()">📤 Envoyer mon dossier</button>'
     +'<p style="font-size:.72rem;color:#666;text-align:center;margin-top:12px;">Vos documents sont transmis de façon sécurisée au service RH.</p>'
     +'</div>';
@@ -2678,7 +2969,7 @@ async function submitDocs(){
       if(item&&item.data&&!item.link&&dbxReady){
         try{
           var ext=(item.name&&item.name.indexOf('.')>=0)?item.name.split('.').pop():'jpg';
-          var fname=dbxClean(key)+'.'+ext;
+          var fname=docFileName(key)+'.'+ext;
           var blob=_dataUrlToBlob(item.data);
           var link=await dbxUpload(folder+'/'+fname,blob);
           _docsData[key]={link:link,name:item.name||fname};
@@ -2689,7 +2980,6 @@ async function submitDocs(){
       documents:_docsData,
       contact_urgence:{nom:document.getElementById('doc-urg-nom').value.trim(),tel:document.getElementById('doc-urg-tel').value.trim()},
       tailles_tenue:tailles.join(' · '),
-      videos_faites:document.getElementById('doc-videos')?document.getElementById('doc-videos').checked:false,
       docs_soumis:true,
       updated_at:new Date().toISOString()
     };
@@ -2732,8 +3022,8 @@ function showPostulerPage(presetResto){
     +'<div><label class="flabel">Date de naissance *</label><input type="date" id="p-naissance" class="fi"></div></div>'
     +'<div class="form-row"><div><label class="flabel">Téléphone *</label><input type="tel" id="p-phone" class="fi" placeholder="06 00 00 00 00"></div>'
     +'<div><label class="flabel">Email *</label><input type="email" id="p-email" class="fi" placeholder="vous@email.com"></div></div>'
-    +'<div class="form-row"><div><label class="flabel">Nationalité *</label><select id="p-nationalite" class="fi">'+NATIONALITES.map(function(n){return '<option value="'+n+'">'+n+'</option>';}).join('')+'</select></div>'
-    +'<div></div></div>'
+    +'<div class="form-row"><div><label class="flabel">Nationalité *</label><select id="p-nationalite" class="fi" onchange="toggleNatAutre()"><option value="">— Choisir —</option><option value="Française">Française</option><option value="Autre">Autre</option></select></div>'
+    +'<div id="p-nat-autre-wrap" style="display:none;"><label class="flabel">Précisez *</label><input type="text" id="p-nat-autre" class="fi" placeholder="Votre nationalité"></div></div>'
     +'<div style="margin-bottom:14px;"><label class="flabel">Adresse postale *</label><input type="text" id="p-adresse" class="fi" placeholder="N°, rue, code postal, ville"></div>'
     +'<div class="form-row"><div><label class="flabel">Poste souhaité *</label><select id="p-poste" class="fi" onchange="togglePosteApprenti()">'+posteOpts+'</select></div>'
     +'<div><label class="flabel">Êtes-vous étudiant(e) ? *</label><select id="p-etudiant" class="fi"><option value="non">Non</option><option value="oui">Oui</option></select></div></div>'
@@ -2760,11 +3050,12 @@ function showPostulerPage(presetResto){
     +'<div style="background:#1A1208;border:1px solid #4A3000;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:.8rem;color:#ddd;line-height:1.5;">'
     +'🍔 Le restaurant accueille la clientèle de <strong style="color:var(--orange);">11h à minuit</strong>.<br>'
     +'👥 Nous avons besoin d\'équipiers de <strong style="color:var(--orange);">'+minToLabel(amp.start)+' à '+minToLabel(amp.end)+'</strong> (ouverture et fermeture incluses).</div>'
-    +'<p style="font-size:.8rem;color:#aaa;margin-bottom:12px;">Pour chaque jour, glissez sur la barre pour tracer vos disponibilités. Vous pouvez tracer une plage continue (ex. 8h30 → 2h) ou ajouter une 2ᵉ plage avec coupure (ex. 8h30 → 14h, puis 15h → 18h).</p>'
+    +'<p style="font-size:.8rem;color:#aaa;margin-bottom:12px;">Cochez les jours où vous êtes disponible, puis indiquez vos horaires (de quelle heure à quelle heure). Vous pouvez ajouter une 2ᵉ plage si vous avez une coupure.</p>'
     +jourRows+'</div>'
     +'<div class="card"><div class="sec-title">💼 Votre parcours</div>'
-    +'<div style="margin-bottom:14px;"><label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Avez-vous déjà travaillé dans un Burger King ? Si oui, lequel ? *</label>'
-    +'<input type="text" id="p-dernier" class="fi" style="margin-top:5px;" placeholder="Ex : Oui, BK Montpellier / Non, première expérience"></div>'
+    +'<div style="margin-bottom:14px;"><label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Avez-vous déjà travaillé dans un Burger King ? *</label>'
+    +'<select id="p-dejabk" class="fi" style="margin-top:5px;" onchange="toggleDejaBk()"><option value="">— Choisir —</option><option value="non">Non, première expérience</option><option value="oui">Oui</option></select>'
+    +'<div id="p-dejabk-wrap" style="display:none;margin-top:8px;"><label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Lequel ? *</label><input type="text" id="p-dernier" class="fi" style="margin-top:5px;" placeholder="Ex : BK Montpellier Près d\'Arènes"></div></div>'
     +'<div><label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Pourquoi voulez-vous travailler chez nous ? *</label>'
     +'<textarea id="p-motivation" class="fi" style="min-height:70px;margin-top:5px;" placeholder="Dites-nous en quelques mots ce qui vous motive..."></textarea></div></div>'
     +'<div class="card"><div class="sec-title">📷 Votre photo *</div>'
@@ -2779,8 +3070,8 @@ function showPostulerPage(presetResto){
     +'<button type="button" class="btn btn-gray btn-sm" onclick="document.getElementById(\'p-photo-input\').click()">🖼️ Choisir une photo</button>'
     +'</div>'
     +'<p style="font-size:.72rem;color:#666;margin-top:6px;">La photo est réduite automatiquement.</p></div></div></div>'
-    +'<div class="card"><div class="sec-title">📄 Votre CV</div>'
-    +'<p style="font-size:.8rem;color:#aaa;margin-bottom:10px;">Joignez votre CV (PDF ou image, facultatif).</p>'
+    +'<div class="card"><div class="sec-title">📄 Votre CV *</div>'
+    +'<p style="font-size:.8rem;color:#aaa;margin-bottom:10px;">Joignez votre CV (PDF ou image). Obligatoire.</p>'
     +'<input type="file" id="p-cv-input" accept="application/pdf,image/*" style="display:none;" onchange="handleCV(this)">'
     +'<button type="button" class="btn btn-gray btn-sm" onclick="document.getElementById(\'p-cv-input\').click()">📎 Joindre mon CV</button>'
     +'<div id="p-cv-name" style="font-size:.8rem;color:#4CAF50;margin-top:8px;"></div></div>'
@@ -2793,100 +3084,86 @@ function showPostulerPage(presetResto){
 }
 
 // ── BARRE DE TRAÇAGE PAR JOUR ─────────────────────────────────────────────────
-function jourBlockHtml(jour,label,amp){
-  // graduations horaires (toutes les ~2h)
-  var range=amp.end-amp.start;
-  var grads='';
-  var step=120; // 2h
-  for(var m=Math.ceil(amp.start/step)*step;m<=amp.end;m+=step){
-    var pct=(m-amp.start)/range*100;
-    grads+='<div style="position:absolute;left:'+pct+'%;top:0;bottom:0;width:1px;background:#333;pointer-events:none;"></div>'
-      +'<div style="position:absolute;left:'+pct+'%;top:-14px;transform:translateX(-50%);font-size:.6rem;color:#666;white-space:nowrap;pointer-events:none;">'+minToLabel(m)+'</div>';
+// ── DISPONIBILITÉS PAR MENUS HORAIRES (de ... à ...) ──────────────────────────
+function _heureOptions(amp,selected){
+  var opts='<option value="">—</option>';
+  for(var m=amp.start;m<=amp.end;m+=30){
+    opts+='<option value="'+m+'"'+(selected===m?' selected':'')+'>'+minToLabel(m)+'</option>';
   }
-  return '<div style="padding:14px 0 10px;border-bottom:1px solid #2A2A2A;">'
-    +'<div style="margin-bottom:18px;">'
-    +'<span style="font-weight:700;color:#ddd;">'+label+'</span></div>'
-    +'<div style="position:relative;margin-top:4px;">'+grads
-    +'<div id="bar-'+jour+'" style="position:relative;height:40px;background:#141414;border:1px solid #333;border-radius:6px;overflow:hidden;cursor:crosshair;touch-action:none;"></div>'
-    +'</div>'
-    +'<div id="lbls-'+jour+'" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;"></div>'
+  return opts;
+}
+function jourBlockHtml(jour,label,amp){
+  var actif=(dispoState[jour]&&dispoState[jour].length>0);
+  return '<div style="padding:12px 0;border-bottom:1px solid #2A2A2A;">'
+    +'<label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:'+(actif?'10px':'0')+';">'
+    +'<input type="checkbox" id="day-on-'+jour+'" '+(actif?'checked':'')+' onchange="toggleJour(\''+jour+'\',this.checked)" style="width:18px;height:18px;accent-color:var(--orange);">'
+    +'<span style="font-weight:700;color:#ddd;">'+label+'</span></label>'
+    +'<div id="day-slots-'+jour+'" style="display:'+(actif?'block':'none')+';padding-left:28px;"></div>'
     +'</div>';
 }
-
-function initJourBar(jour){
-  var bar=document.getElementById('bar-'+jour);if(!bar)return;
-  var amp=getAmplitude();var range=amp.end-amp.start;
-  function minOf(clientX){
-    var rect=bar.getBoundingClientRect();
-    var pct=Math.max(0,Math.min(1,(clientX-rect.left)/rect.width));
-    return Math.round((amp.start+pct*range)/15)*15;
-  }
-  var dragging=null; // {start}
-  function down(clientX){
-    if(dispoState[jour].length>=2)return; // max 2 plages
-    dragging={start:minOf(clientX),end:minOf(clientX)};
-  }
-  function move(clientX){ if(!dragging)return; dragging.end=minOf(clientX); previewJourBar(jour,dragging); }
-  function up(){
-    if(!dragging)return;
-    var a=Math.min(dragging.start,dragging.end),b=Math.max(dragging.start,dragging.end);
-    if(b-a>=30){ dispoState[jour].push({from:a,to:b}); }
-    dragging=null;
-    renderJourBar(jour);
-  }
-  bar.addEventListener('mousedown',function(e){down(e.clientX);});
-  document.addEventListener('mousemove',function(e){if(dragging)move(e.clientX);});
-  document.addEventListener('mouseup',function(){if(dragging)up();});
-  bar.addEventListener('touchstart',function(e){e.preventDefault();down(e.touches[0].clientX);},{passive:false});
-  bar.addEventListener('touchmove',function(e){if(dragging){e.preventDefault();move(e.touches[0].clientX);}},{passive:false});
-  bar.addEventListener('touchend',function(e){if(dragging){e.preventDefault();up();}},{passive:false});
-  renderJourBar(jour);
+function toggleJour(jour,on){
+  if(on){ if(!dispoState[jour]||!dispoState[jour].length)dispoState[jour]=[{from:'',to:''}]; }
+  else { dispoState[jour]=[]; }
+  document.getElementById('day-slots-'+jour).style.display=on?'block':'none';
+  renderJourSlots(jour);
 }
-
-function _segHtml(amp,from,to,preview){
-  var range=amp.end-amp.start;
-  var l=(from-amp.start)/range*100, w=(to-from)/range*100;
-  var bg=preview?'rgba(255,135,50,.45)':'var(--orange)';
-  return '<div style="position:absolute;top:4px;bottom:4px;left:'+l+'%;width:'+w+'%;background:'+bg+';border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.62rem;color:#fff;font-weight:700;overflow:hidden;">'+(w>14?minToLabel(from)+'-'+minToLabel(to):'')+'</div>';
-}
-
-function previewJourBar(jour,drag){
-  var bar=document.getElementById('bar-'+jour);if(!bar)return;
+function renderJourSlots(jour){
+  var box=document.getElementById('day-slots-'+jour);if(!box)return;
   var amp=getAmplitude();
-  var a=Math.min(drag.start,drag.end),b=Math.max(drag.start,drag.end);
-  var html=dispoState[jour].map(function(c){return _segHtml(amp,c.from,c.to,false);}).join('');
-  html+=_segHtml(amp,a,b,true);
-  bar.innerHTML=html;
-}
-
-function renderJourBar(jour){
-  var bar=document.getElementById('bar-'+jour);if(!bar)return;
-  var amp=getAmplitude();
-  bar.innerHTML=dispoState[jour].map(function(c){return _segHtml(amp,c.from,c.to,false);}).join('');
-  // étiquettes + suppression
-  var lbls=document.getElementById('lbls-'+jour);
-  if(lbls){
-    if(!dispoState[jour].length){lbls.innerHTML='<span style="font-size:.74rem;color:#666;">Aucune plage — glissez sur la barre pour en tracer une.</span>';}
-    else{
-      lbls.innerHTML=dispoState[jour].sort(function(x,y){return x.from-y.from;}).map(function(c,i){
-        return '<span style="background:#2A1800;border:1px solid var(--orange);color:var(--orange);padding:3px 9px;border-radius:12px;font-size:.76rem;display:inline-flex;align-items:center;gap:6px;">'
-          +minToLabel(c.from)+' → '+minToLabel(c.to)
-          +'<button type="button" onclick="removeCreneauJour(\''+jour+'\','+i+')" style="background:none;border:none;color:#cc5555;cursor:pointer;font-size:.85rem;line-height:1;padding:0;">✕</button></span>';
-      }).join('');
-    }
+  var slots=dispoState[jour]||[];
+  var h=slots.map(function(s,i){
+    return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;">'
+      +'<span style="font-size:.78rem;color:#aaa;">De</span>'
+      +'<select class="fi" style="width:auto;padding:7px 8px;" onchange="setSlot(\''+jour+'\','+i+',\'from\',this.value)">'+_heureOptions(amp,s.from)+'</select>'
+      +'<span style="font-size:.78rem;color:#aaa;">à</span>'
+      +'<select class="fi" style="width:auto;padding:7px 8px;" onchange="setSlot(\''+jour+'\','+i+',\'to\',this.value)">'+_heureOptions(amp,s.to)+'</select>'
+      +(slots.length>1?'<button type="button" onclick="removeCreneauJour(\''+jour+'\','+i+')" style="background:none;border:none;color:#cc5555;cursor:pointer;font-size:1rem;">✕</button>':'')
+      +'</div>';
+  }).join('');
+  if(slots.length<2){
+    h+='<button type="button" class="btn btn-gray btn-sm" style="padding:4px 10px;font-size:.74rem;" onclick="addCreneauJour(\''+jour+'\')">+ Ajouter une 2ᵉ plage (coupure)</button>';
   }
+  box.innerHTML=h;
 }
-
+function setSlot(jour,i,field,val){
+  if(!dispoState[jour]||!dispoState[jour][i])return;
+  dispoState[jour][i][field]=val?parseInt(val):'';
+}
+function addCreneauJour(jour){
+  if(!dispoState[jour])dispoState[jour]=[];
+  if(dispoState[jour].length<2){dispoState[jour].push({from:'',to:''});renderJourSlots(jour);}
+}
 function removeCreneauJour(jour,i){
-  dispoState[jour].sort(function(x,y){return x.from-y.from;});
   dispoState[jour].splice(i,1);
-  renderJourBar(jour);
+  if(!dispoState[jour].length){document.getElementById('day-on-'+jour).checked=false;document.getElementById('day-slots-'+jour).style.display='none';}
+  renderJourSlots(jour);
 }
+function initJourBar(jour){ renderJourSlots(jour); }
 
 function togglePosteApprenti(){
   var poste=document.getElementById('p-poste').value;
   var row=document.getElementById('p-niveau-row');
   if(row)row.style.display=(poste==='Apprenti')?'block':'none';
+}
+function toggleNatAutre(){
+  var v=document.getElementById('p-nationalite').value;
+  var w=document.getElementById('p-nat-autre-wrap');
+  if(w)w.style.display=(v==='Autre')?'block':'none';
+}
+function toggleDejaBk(){
+  var v=document.getElementById('p-dejabk').value;
+  var w=document.getElementById('p-dejabk-wrap');
+  if(w)w.style.display=(v==='Oui')?'block':'none';
+}
+function toggleNatAutre(){
+  var v=document.getElementById('p-nationalite').value;
+  var w=document.getElementById('p-nat-autre-wrap');
+  if(w)w.style.display=(v==='Autre')?'block':'none';
+}
+function toggleDejaBk(){
+  var v=document.getElementById('p-dejabk').value;
+  var w=document.getElementById('p-dejabk-wrap');
+  if(w)w.style.display=(v==='oui')?'block':'none';
 }
 
 function pickRestoChoice(el,resto){
@@ -2939,12 +3216,16 @@ async function submitPostuler(){
   var trajet=document.getElementById('p-trajet').value;
   var adresse=document.getElementById('p-adresse').value.trim();
   var nationalite=document.getElementById('p-nationalite').value.trim();
+  if(nationalite==='Autre'){var na=document.getElementById('p-nat-autre');nationalite=na&&na.value.trim()?na.value.trim():'';}
+  if(nationalite==='Autre'){var na=document.getElementById('p-nat-autre');nationalite=na?na.value.trim():'';}
   var poste=document.getElementById('p-poste').value;
   var resto=document.getElementById('p-resto').value;
   var niveau=document.getElementById('p-niveau')?document.getElementById('p-niveau').value:'';
   var rqth=document.getElementById('p-rqth')?document.getElementById('p-rqth').value:'';
   var motivation=document.getElementById('p-motivation').value.trim();
-  var dernier=document.getElementById('p-dernier').value.trim();
+  var dejaBk=document.getElementById('p-dejabk')?document.getElementById('p-dejabk').value:'';
+  var dejaBkOu=document.getElementById('p-dernier')?document.getElementById('p-dernier').value.trim():'';
+  var dernier=dejaBk==='oui'?('Oui — '+dejaBkOu):(dejaBk==='non'?'Non, première expérience':'');
   if(!prenom||!nom){alert('Merci d\'indiquer votre prénom et nom.');return;}
   if(!sexe){alert('Merci d\'indiquer votre sexe.');return;}
   if(!naissance){alert('Merci d\'indiquer votre date de naissance.');return;}
@@ -2955,31 +3236,38 @@ async function submitPostuler(){
   if(_age<18){alert('Vous devez avoir au moins 18 ans pour postuler. Nous ne pouvons malheureusement pas retenir votre candidature.');return;}
   if(!phone){alert('Merci d\'indiquer votre téléphone.');return;}
   if(!email||email.indexOf('@')<0){alert('Merci d\'indiquer un email valide.');return;}
-  if(!nationalite||nationalite==='— Choisir —'){alert('Merci d\'indiquer votre nationalité.');return;}
+  if(!nationalite){alert('Merci d\'indiquer votre nationalité.');return;}
   if(!adresse){alert('Merci d\'indiquer votre adresse postale.');return;}
   if(poste==='Apprenti'&&!niveau){alert('Merci d\'indiquer votre niveau d\'apprentissage.');return;}
   if(!transport){alert('Merci d\'indiquer votre moyen de transport.');return;}
   if(!trajet){alert('Merci d\'indiquer votre temps de trajet.');return;}
   if(!resto){alert('Merci de choisir le restaurant souhaité.');return;}
-  if(!dernier){alert('Merci de répondre à la question sur votre parcours (déjà travaillé dans un Burger King ?).');return;}
+  if(!dejaBk){alert('Merci d\'indiquer si vous avez déjà travaillé dans un Burger King.');return;}
+  if(dejaBk==='oui'&&!dejaBkOu){alert('Merci d\'indiquer dans quel Burger King vous avez travaillé.');return;}
   if(!motivation){alert('Merci d\'expliquer pourquoi vous voulez travailler chez nous.');return;}
   var dispos={};
   var nbJoursDispo=0;
+  var dispoErreur=null;
   JOURS.forEach(function(j){
-    var arr=(dispoState[j[0]]||[]).slice().sort(function(x,y){return x.from-y.from;});
+    var arr=(dispoState[j[0]]||[]).filter(function(c){return c.from!==''&&c.to!==''&&c.from!=null&&c.to!=null;});
+    // vérifier cohérence heure début < heure fin
+    arr.forEach(function(c){ if(c.to<=c.from)dispoErreur=j[1]; });
+    arr.sort(function(x,y){return x.from-y.from;});
     var creneaux=arr.map(function(c){return {from:c.from,to:c.to};});
     if(creneaux.length)nbJoursDispo++;
     dispos[j[0]]={on:creneaux.length>0,creneaux:creneaux};
   });
-  if(nbJoursDispo===0){alert('Merci d\'indiquer vos disponibilités sur au moins un jour (glissez sur les barres).');return;}
+  if(dispoErreur){alert('Vérifiez vos horaires de '+dispoErreur+' : l\'heure de fin doit être après l\'heure de début.');return;}
+  if(nbJoursDispo===0){alert('Merci d\'indiquer vos disponibilités sur au moins un jour (cochez un jour et renseignez les horaires).');return;}
   if(!window._photoData){alert('Merci d\'ajouter une photo (prenez-vous en photo ou choisissez un fichier).');return;}
+  if(!window._cvData){alert('Merci de joindre votre CV (PDF ou image).');return;}
   var data={prenom:prenom,nom:nom,date_naissance:naissance,phone:phone,email:email,
     adresse:adresse,nationalite:nationalite,sexe:sexe,
     resto_id:resto,
     poste:poste,niveau_apprentissage:(poste==='Apprenti'?niveau:''),
     etudiant:document.getElementById('p-etudiant').value==='oui',
     rqth:rqth,
-    dernier_emploi:document.getElementById('p-dernier').value.trim(),
+    dernier_emploi:dernier,
     transport:transport,trajet:trajet,
     dispos:dispos,motivation:motivation,
     photo:window._photoData||'',
@@ -3298,11 +3586,21 @@ async function saveAmplitude(){
   await saveDB();toast('Amplitude enregistrée ✔','success');
 }
 
-var _mailTab='retenu';
+function getSeuilOral(){var v=DB.mailSettings&&DB.mailSettings.seuilOral;return v?parseInt(v):3;}
+function loadSeuilOral(){var el=document.getElementById('seuil-oral');if(el)el.value=getSeuilOral();}
+async function saveSeuilOral(){
+  var v=parseInt(document.getElementById('seuil-oral').value);
+  if(!v||v<1){toast('Entrez un nombre valide','error');return;}
+  if(!DB.mailSettings)DB.mailSettings={};
+  DB.mailSettings.seuilOral=v;
+  await saveDB();toast('Seuil enregistré ✔','success');
+}
+
+var _mailTab='entretien';
 function loadMailTpl(){
   var tpl=getMailTpl();
   var exp=document.getElementById('mt-exp');if(exp)exp.value=tpl.expediteur||'';
-  _mailTab='retenu';
+  _mailTab='entretien';
   document.querySelectorAll('#mt-tabs .rtab').forEach(function(b,i){b.classList.toggle('on',i===0);});
   fillMailFields();
 }
@@ -3542,6 +3840,17 @@ function selectEmp(id){
   document.getElementById('sel-emp-name').textContent=e.name;
   var rLbl=RESTOS[e.restoId]?' · '+RESTOS[e.restoId].label:'';
   document.getElementById('sel-emp-info').textContent=(e.email||'')+(e.phone?' · '+e.phone:'')+rLbl;
+  // Rappel observations orales (directeurs + admin)
+  var rap=document.getElementById('oral-rappel');
+  if(rap){
+    var canSee=curUser&&(curUser.role==='franchise'||curUser.role==='directeur');
+    var nbOral=DB.incidents.filter(function(i){return i.empId===id&&i.sanctionType==='verbal';}).length;
+    var seuil=getSeuilOral();
+    if(canSee&&nbOral>=seuil){
+      rap.style.display='block';
+      rap.innerHTML='<div style="background:#3A2E00;border:1px solid #7A6A00;border-radius:8px;padding:10px 12px;font-size:.83rem;color:#F5A623;">⚠️ <strong>'+e.name+'</strong> a déjà <strong>'+nbOral+' observation'+(nbOral>1?'s':'')+' orale'+(nbOral>1?'s':'')+'</strong> (seuil : '+seuil+'). Vous pouvez envisager une <strong>observation écrite</strong>.</div>';
+    }else{rap.style.display='none';rap.innerHTML='';}
+  }
 }
 function clearEmpSel(){
   document.getElementById('sel-emp').value='';
