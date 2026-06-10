@@ -697,7 +697,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '2026-06-10 08:34';
+const APP_VERSION = '2026-06-10 08:47';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
@@ -905,7 +905,7 @@ async function loadAll() {
       documents:c.documents||{},contactUrgence:c.contact_urgence||{},taillesTenue:c.tailles_tenue||'',
       bkuIdentifiant:c.bku_identifiant||'',bkuMotdepasse:c.bku_motdepasse||'',docsSoumis:!!c.docs_soumis,
       videosFaites:!!c.videos_faites,essaiAlerte:c.essai_alerte||'15j',contratSigne:!!c.contrat_signe,
-      visiteFaite:!!c.visite_faite,visiteDate:c.visite_date||''};
+      visiteFaite:!!c.visite_faite,visiteDate:c.visite_date||'',contratSigneDoc:c.contrat_signe_doc||{}};
   });
   const sett = settArr && settArr[0];
   if (sett) {
@@ -2665,20 +2665,56 @@ function candRetenuActionsHtml(c){
     h+='<button class="btn btn-red btn-sm" disabled style="opacity:.4;cursor:not-allowed;">⏳ En attente des documents complets</button>'
       +'<p style="font-size:.74rem;color:#666;margin-top:6px;">Le candidat doit déposer toutes ses pièces. La validation du dossier se fait alors automatiquement.</p>';
   }else{
+    var contratData=c.contratSigneDoc&&(c.contratSigneDoc.data||c.contratSigneDoc.link);
     h+='<div style="background:#0d2818;border:1px solid #1f6e3f;border-radius:8px;padding:10px 12px;margin-bottom:10px;">'
-      +'<div style="color:#7CFFA0;font-weight:700;font-size:.88rem;">📄 Contrat à signer</div>'
-      +'<div style="color:#9fcfae;font-size:.78rem;margin-top:4px;">Documents complets. Vous pouvez établir le contrat. La signature lance la période d\'essai.'+(vidsOk?'':' (Pensez à vérifier les vidéos de formation.)')+'</div></div>'
-      +'<button class="btn btn-red" style="width:100%;" onclick="candContratSigne()">✍️ Contrat signé → démarrer la période d\'essai</button>';
+      +'<div style="color:#7CFFA0;font-weight:700;font-size:.88rem;">📄 Finalisation</div>'
+      +'<div style="color:#9fcfae;font-size:.78rem;margin-top:4px;">Documents complets. Cochez les vidéos si réalisées, importez le contrat signé, puis lancez la période d\'essai.</div></div>'
+      +'<div class="flabel">📎 Contrat signé (PDF, obligatoire)</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">'
+      +'<span style="flex:1;min-width:130px;font-size:.83rem;color:'+(contratData?'#4CAF50':'#999')+';">'+(contratData?'✅ Contrat importé':'⬜ Aucun contrat importé')+'</span>'
+      +'<input type="file" id="cand-contrat-file" accept="application/pdf,image/*" style="display:none;" onchange="handleContratSigne(this)">'
+      +'<button class="btn btn-gray btn-sm" onclick="document.getElementById(\'cand-contrat-file\').click()">📎 '+(contratData?'Remplacer':'Importer le contrat')+'</button>'
+      +'</div>'
+      +'<button class="btn btn-red" style="width:100%;'+(contratData?'':'opacity:.4;cursor:not-allowed;')+'" '+(contratData?'':'disabled')+' onclick="candContratSigne()">🚀 Démarrer la période d\'essai</button>'
+      +(contratData?'':'<p style="font-size:.74rem;color:#666;margin-top:6px;">Importez d\'abord le contrat signé pour pouvoir démarrer.</p>');
   }
   h+='<div style="margin-top:10px;"><button class="btn btn-gray btn-sm" style="color:#cc5555;border-color:#5a2020;" onclick="candRefuser()">❌ Abandonner cette candidature</button></div>'
     +'</div>';
   return h;
 }
 
+function handleContratSigne(input){
+  var file=input.files[0];if(!file)return;
+  if(file.size>6*1024*1024){alert('Fichier trop volumineux (max 6 Mo).');return;}
+  var c=curCand();if(!c)return;
+  var reader=new FileReader();
+  reader.onload=async function(ev){
+    c.contratSigneDoc={data:ev.target.result,name:file.name};
+    try{await sb.patch('bks_candidatures','id=eq.'+_candId,{contrat_signe_doc:c.contratSigneDoc,updated_at:new Date().toISOString()});}catch(e){}
+    renderCandActions(c);
+    toast('Contrat importé ✔','success');
+  };
+  reader.readAsDataURL(file);
+}
+
 async function candContratSigne(){
   var c=curCand();if(!c)return;
-  if(!confirm('Confirmer la signature du contrat de '+c.prenom+' '+c.nom+' ?\n\nLe salarié sera ajouté à l\'équipe et la période d\'essai démarrera à la date de démarrage prévue.'))return;
-  // Créer le salarié dans l'équipe (s'il n'existe pas déjà via ce candidat)
+  if(!(c.contratSigneDoc&&(c.contratSigneDoc.data||c.contratSigneDoc.link))){alert('Importez d\'abord le contrat signé.');return;}
+  if(!confirm('Démarrer la période d\'essai de '+c.prenom+' '+c.nom+' ?\n\nLe salarié sera ajouté à l\'équipe et le contrat archivé dans Dropbox.'))return;
+  // Upload du contrat signé dans Dropbox (dossier du candidat)
+  var dbxReady=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
+  if(dbxReady&&c.contratSigneDoc&&c.contratSigneDoc.data&&!c.contratSigneDoc.link){
+    try{
+      var folder=dbxCandFolder(c);
+      var ext=(c.contratSigneDoc.name&&c.contratSigneDoc.name.indexOf('.')>=0)?c.contratSigneDoc.name.split('.').pop():'pdf';
+      var fname='Contrat_signe_'+new Date().toISOString().slice(0,10)+'.'+ext;
+      var blob=_dataUrlToBlob(c.contratSigneDoc.data);
+      var link=await dbxUpload(folder+'/'+fname,blob);
+      c.contratSigneDoc={link:link,name:c.contratSigneDoc.name||fname};
+      await sb.patch('bks_candidatures','id=eq.'+_candId,{contrat_signe_doc:c.contratSigneDoc});
+    }catch(e){console.error('Dropbox contrat échec',e);}
+  }
+  // Créer le salarié dans l'équipe
   try{
     var nom=((c.prenom||'')+' '+(c.nom||'')).trim();
     var deja=DB.employees.find(function(e){return e.fromCandId===c.id;});
