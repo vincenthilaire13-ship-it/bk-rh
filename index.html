@@ -256,6 +256,13 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
   <div class="page" id="page-recrutement">
     <div class="card">
       <div class="sec-title">📥 Suivi des candidatures</div>
+      <!-- onglets restaurants (toujours visibles, au-dessus) -->
+      <div id="rec-resto-filter" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+        <button class="rtab rf on" onclick="setRestoFilter(this,'all')">Tous</button>
+        <button class="rtab rf" onclick="setRestoFilter(this,'bk500')">BK 500</button>
+        <button class="rtab rf" onclick="setRestoFilter(this,'bk509')">BK 509</button>
+        <button class="rtab rf" onclick="setRestoFilter(this,'bk526')">BK 526</button>
+      </div>
       <div id="rec-stat-tabs" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
         <button class="rtab on" id="cst-nouveau" onclick="setCandFilter('nouveau')">🆕 Nouveau</button>
         <button class="rtab" id="cst-entretien" onclick="setCandFilter('entretien')">📅 Entretien</button>
@@ -263,14 +270,6 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
         <button class="rtab" id="cst-essai" onclick="setCandFilter('essai')">⏳ Période d'essai</button>
         <button class="rtab" id="cst-visite" onclick="setCandFilter('visite')">🩺 Visite médicale</button>
         <button class="rtab" id="cst-refuse" onclick="setCandFilter('refuse')">❌ Refusé</button>
-      </div>
-
-      <!-- filtre restaurant (visible en Nouveau) -->
-      <div id="rec-resto-filter" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
-        <button class="rtab rf on" onclick="setRestoFilter(this,'all')">Tous</button>
-        <button class="rtab rf" onclick="setRestoFilter(this,'bk500')">BK 500</button>
-        <button class="rtab rf" onclick="setRestoFilter(this,'bk509')">BK 509</button>
-        <button class="rtab rf" onclick="setRestoFilter(this,'bk526')">BK 526</button>
       </div>
 
       <!-- agenda (visible en Entretien) -->
@@ -655,6 +654,17 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
   </div>
 </div>
 
+<div class="modal-ov" id="modal-editcand">
+  <div class="modal" style="width:600px;max-width:96vw;">
+    <div class="modal-title">✏️ Modifier le candidat</div>
+    <div id="editcand-body"></div>
+    <div style="display:flex;gap:8px;margin-top:18px;">
+      <button class="btn btn-gray" style="flex:1;" onclick="closeModal('modal-editcand')">Annuler</button>
+      <button class="btn btn-red" style="flex:1;" onclick="saveEditCand()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-ov" id="modal-people">
   <div class="modal" style="width:560px;max-width:96vw;">
     <div class="modal-title">👥 Gérer les personnes</div>
@@ -727,7 +737,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '2026-06-10 09:08';
+const APP_VERSION = '2026-06-10 14:59';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
@@ -2274,8 +2284,9 @@ var agendaMonth=new Date();agendaMonth.setDate(1);
 var agendaSelDay=null;
 
 function entretiensVisibles(){
-  var cands=DB.candidatures.filter(function(c){return c.entretienDate&&(c.statut==='entretien'||c.statut==='retenu'||c.statut==='refuse');});
+  var cands=DB.candidatures.filter(function(c){return c.entretienDate&&c.statut==='entretien';});
   if(curUser&&curUser.role==='directeur')cands=cands.filter(function(c){return c.restoId===curUser.restoId;});
+  if(restoFilter!=='all')cands=cands.filter(function(c){return c.restoId===restoFilter;});
   return cands;
 }
 
@@ -2406,8 +2417,9 @@ function setCandFilter(f){
   ['nouveau','entretien','retenu','essai','visite','refuse'].forEach(function(s){
     var b=document.getElementById('cst-'+s);if(b)b.classList.toggle('on',s===f);
   });
-  // filtre resto visible seulement en Nouveau
-  document.getElementById('rec-resto-filter').style.display=(f==='nouveau')?'flex':'none';
+  // filtre resto toujours visible (s'applique à tous les sous-onglets) — sauf directeur (un seul resto)
+  var isDir=(curUser&&curUser.role==='directeur');
+  document.getElementById('rec-resto-filter').style.display=isDir?'none':'flex';
   // agenda visible seulement en Entretien
   document.getElementById('rec-agenda-wrap').style.display=(f==='entretien')?'block':'none';
   if(f==='entretien')renderAgenda();
@@ -2431,8 +2443,8 @@ function renderCandidatures(){
   }else{
     cands=cands.filter(function(c){return (c.statut||'nouveau')===candFilter;});
   }
-  // filtre resto en Nouveau
-  if(candFilter==='nouveau'&&restoFilter!=='all')cands=cands.filter(function(c){return c.restoId===restoFilter;});
+  // filtre resto sur tous les sous-onglets
+  if(restoFilter!=='all')cands=cands.filter(function(c){return c.restoId===restoFilter;});
   if(!cands.length){
     var msgs={nouveau:'Aucune nouvelle candidature',entretien:'Aucun entretien programmé',retenu:'Aucun candidat retenu',essai:'Aucun salarié en période d\'essai',visite:'Aucun salarié à suivre pour la visite médicale',refuse:'Aucune candidature refusée'};
     list.innerHTML='<div class="empty"><div class="ei">'+(candFilter==='visite'?'🩺':'🎯')+'</div><p>'+(msgs[candFilter]||'Aucune candidature')+'</p></div>';return;
@@ -2554,6 +2566,7 @@ function renderCandActions(c){
       +'<button class="btn btn-gray btn-sm" onclick="mailConvocation()">✉️ Renvoyer le mail de convocation</button>'
       +'<button class="btn btn-gray btn-sm" onclick="candReprogrammer()">🕐 Reprogrammer</button></div>'
       +'<div id="cand-reprog" style="display:none;margin-bottom:10px;"><div style="display:flex;gap:8px;"><input type="date" id="cand-ent-date" class="fi" style="flex:2;"><input type="time" id="cand-ent-heure" class="fi" style="flex:1;" value="10:00"></div><button class="btn btn-red btn-sm" style="margin-top:6px;" onclick="candConvoquer()">Valider la date</button></div>'
+      +'<button class="btn btn-gray btn-sm" style="width:100%;margin-bottom:10px;" onclick="openEditCand()">✏️ Modifier les infos / disponibilités (pendant l\'entretien)</button>'
       +'<div style="font-size:.82rem;color:#aaa;margin:10px 0 8px;">Après l\'entretien :</div>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
       +'<button class="btn btn-red btn-sm" style="background:#1E3A1E;border-color:#4A8A4A;color:#7ACA7A;" onclick="candRetenir()">✅ Retenir le candidat</button>'
@@ -2637,6 +2650,56 @@ function candRefuser(){
 }
 
 function candRemettreNouveau(){_candUpdate({statut:'nouveau'},'Remis en Nouveau ✔');}
+
+// ── MODIFIER LE CANDIDAT (pendant l'entretien) ───────────────────────────────
+function openEditCand(){
+  var c=curCand();if(!c)return;
+  var amp=getAmplitude();
+  dispoState={};
+  var joursHtml=JOURS.map(function(j){
+    var d=(c.dispos||{})[j[0]];
+    dispoState[j[0]]=(d&&d.creneaux)?d.creneaux.map(function(x){return {from:x.from,to:x.to};}):[];
+    return jourBlockHtml(j[0],j[1],amp);
+  }).join('');
+  var h='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'
+    +'<div><label class="flabel">Téléphone</label><input type="tel" id="ec-phone" class="fi" value="'+(c.phone||'')+'"></div>'
+    +'<div><label class="flabel">Email</label><input type="email" id="ec-email" class="fi" value="'+(c.email||'')+'"></div>'
+    +'</div>'
+    +'<label class="flabel" style="margin-top:10px;">Adresse</label><input type="text" id="ec-adresse" class="fi" value="'+((c.adresse||'').replace(/"/g,'&quot;'))+'">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">'
+    +'<div><label class="flabel">Poste souhaité</label><input type="text" id="ec-poste" class="fi" value="'+((c.poste||'').replace(/"/g,'&quot;'))+'"></div>'
+    +'<div><label class="flabel">Transport</label><input type="text" id="ec-transport" class="fi" value="'+((c.transport||'').replace(/"/g,'&quot;'))+'"></div>'
+    +'</div>'
+    +'<label class="flabel" style="margin-top:10px;">Type de contrat</label>'
+    +'<select id="ec-apprentissage" class="fi">'
+    +['','Apprentissage','CDI'].map(function(o){var lbl=o===''?'— Non précisé —':o;return '<option value="'+o+'"'+(((c.niveauApprentissage||'')===o)?' selected':'')+'>'+lbl+'</option>';}).join('')
+    +'</select>'
+    +'<div style="border-top:1px solid #333;margin-top:14px;padding-top:10px;"><div class="flabel">📅 Disponibilités</div>'
+    +'<div style="font-size:.76rem;color:#888;margin-bottom:8px;">Ajustez les créneaux discutés pendant l\'entretien.</div>'
+    +joursHtml+'</div>';
+  document.getElementById('editcand-body').innerHTML=h;
+  document.getElementById('modal-editcand').classList.add('open');
+  JOURS.forEach(function(j){initJourBar(j[0]);});
+}
+function saveEditCand(){
+  var c=curCand();if(!c)return;
+  var dispos={};
+  JOURS.forEach(function(j){
+    var arr=(dispoState[j[0]]||[]).filter(function(x){return x.from!==''&&x.to!==''&&x.from!=null&&x.to!=null;}).sort(function(x,y){return x.from-y.from;});
+    dispos[j[0]]={on:arr.length>0,creneaux:arr.map(function(x){return {from:x.from,to:x.to};})};
+  });
+  var patch={
+    phone:document.getElementById('ec-phone').value.trim(),
+    email:document.getElementById('ec-email').value.trim(),
+    adresse:document.getElementById('ec-adresse').value.trim(),
+    poste:document.getElementById('ec-poste').value.trim(),
+    transport:document.getElementById('ec-transport').value.trim(),
+    niveau_apprentissage:document.getElementById('ec-apprentissage').value,
+    dispos:dispos
+  };
+  closeModal('modal-editcand');
+  _candUpdate(patch,'Candidat mis à jour ✔',function(){openCand(_candId);});
+}
 
 // ── MAILS (modèles éditables + adresse expéditrice, s'ouvrent dans le client mail) ──
 var MAIL_DEFAULTS={
@@ -2738,8 +2801,9 @@ async function _candUpdate(patch,msg,after){
 
 // ── DOCUMENTS D'INTÉGRATION ───────────────────────────────────────────────────
 var DOC_TYPES=[
-  {id:'cni',label:'Carte d\'identité',sides:['Recto','Verso']},
+  {id:'cni',label:'Carte d\'identité ou passeport',sides:['Recto','Verso']},
   {id:'domicile',label:'Justificatif de domicile (-3 mois)'},
+  {id:'hebergement',label:'Attestation d\'hébergement (si le justificatif n\'est pas à votre nom)',optionnel:true},
   {id:'vitale',label:'Carte vitale',sides:['Recto','Verso']},
   {id:'cpam',label:'Attestation CPAM'},
   {id:'mutuelle',label:'Attestation mutuelle OU courrier d\'adhésion'},
@@ -2749,7 +2813,7 @@ var DOC_TYPES=[
 
 // Nom de fichier clair pour Dropbox à partir de la clé (ex. "cni_recto" -> "Carte_identite_recto")
 function docFileName(key){
-  var base={cni:'Carte_identite',domicile:'Justificatif_domicile',vitale:'Carte_vitale',cpam:'Attestation_CPAM',mutuelle:'Attestation_mutuelle',rib:'RIB',moins24h:'Demande_contrat_-24h'};
+  var base={cni:'Piece_identite',domicile:'Justificatif_domicile',hebergement:'Attestation_hebergement',vitale:'Carte_vitale',cpam:'Attestation_CPAM',mutuelle:'Attestation_mutuelle',rib:'RIB',moins24h:'Demande_contrat_-24h'};
   var parts=key.split('_'); // ex: ["cni","recto"]
   var id=parts[0];
   var side=parts[1]?('_'+parts[1].charAt(0).toUpperCase()+parts[1].slice(1)):''; // _Recto / _Verso
@@ -2823,6 +2887,7 @@ function docsComplets(c){
   var ok=true;
   DOC_TYPES.forEach(function(d){
     if(d.type==='text')return;
+    if(d.optionnel)return;
     if(d.sides){d.sides.forEach(function(s){if(!aP(d.id+'_'+s.toLowerCase()))ok=false;});}
     else{if(!aP(d.id))ok=false;}
   });
@@ -3124,7 +3189,7 @@ async function showDocsPage(cid){
       inner=uploadBlock(d.id,'Photo ou fichier');
     }
     return '<div style="padding:10px 0;border-bottom:1px solid #2A2A2A;">'
-      +'<div style="font-size:.85rem;color:#ddd;margin-bottom:4px;">'+d.label+'</div>'+inner+'</div>';
+      +'<div style="font-size:.85rem;color:#ddd;margin-bottom:4px;">'+d.label+(d.optionnel?' <span style="font-size:.7rem;color:#888;background:#222;padding:1px 6px;border-radius:8px;">optionnel</span>':'')+'</div>'+inner+'</div>';
   }).join('');
   // tailles
   var tail=parseTailles(_docsCand.tailles_tenue||'');
@@ -3193,6 +3258,7 @@ async function submitDocs(){
   var manquants=[];
   DOC_TYPES.forEach(function(d){
     if(d.type==='text')return;
+    if(d.optionnel)return;
     if(d.sides){d.sides.forEach(function(s){if(!_aPiece(d.id+'_'+s.toLowerCase()))manquants.push(d.label+' ('+s+')');});}
     else{if(!_aPiece(d.id))manquants.push(d.label);}
   });
@@ -3366,7 +3432,27 @@ function renderJourSlots(jour){
   if(slots.length<2){
     h+='<button type="button" class="btn btn-gray btn-sm" style="padding:4px 10px;font-size:.74rem;" onclick="addCreneauJour(\''+jour+'\')">+ Ajouter une 2ᵉ plage (coupure)</button>';
   }
+  // Bouton copier sur tous les jours (si au moins un créneau complet)
+  var hasFull=slots.some(function(s){return s.from!==''&&s.to!=='';});
+  if(hasFull){
+    h+='<button type="button" class="btn btn-gray btn-sm" style="padding:4px 10px;font-size:.74rem;margin-left:6px;color:var(--orange);border-color:var(--orange);" onclick="copyDispoToAll(\''+jour+'\')">📋 Copier ces horaires sur tous les jours</button>';
+  }
   box.innerHTML=h;
+}
+function copyDispoToAll(jour){
+  var src=dispoState[jour]||[];
+  var full=src.filter(function(s){return s.from!==''&&s.to!=='';});
+  if(!full.length){return;}
+  if(!confirm('Appliquer les horaires du '+(JOURS.find(function(j){return j[0]===jour;})||['',jour])[1]+' à TOUS les jours de la semaine ?\n\n(Vous pourrez ensuite modifier ou décocher les jours que vous ne voulez pas.)'))return;
+  JOURS.forEach(function(j){
+    var jr=j[0];
+    // copie profonde des créneaux complets
+    dispoState[jr]=full.map(function(s){return {from:s.from,to:s.to};});
+    var cb=document.getElementById('day-on-'+jr);if(cb)cb.checked=true;
+    var box=document.getElementById('day-slots-'+jr);if(box)box.style.display='block';
+    renderJourSlots(jr);
+  });
+  toast&&toast('Horaires copiés sur tous les jours ✔','success');
 }
 function setSlot(jour,i,field,val){
   if(!dispoState[jour]||!dispoState[jour][i])return;
