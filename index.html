@@ -323,6 +323,15 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
       <div id="sanction-mgr-note" style="display:none;background:#1A1A1A;border:1px solid #333;border-radius:8px;padding:10px 12px;margin-top:8px;font-size:.82rem;color:#F5A623;">📝 Cet incident sera enregistré comme une <strong>observation orale</strong>.</div>
       <label class="flabel" style="margin-top:12px;">Commentaire</label>
       <textarea id="inc-note" class="fi" placeholder="Détails..."></textarea>
+      <div id="inc-sanction-doc-wrap" style="margin-top:12px;display:none;">
+        <label class="flabel">📎 Document de la sanction signé (optionnel)</label>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span id="inc-sanction-doc-name" style="flex:1;min-width:130px;font-size:.82rem;color:#999;">Aucun fichier</span>
+          <input type="file" id="inc-sanction-doc" accept="application/pdf,image/*" style="display:none;" onchange="incSanctionDocPick(this)">
+          <button type="button" class="btn btn-gray btn-sm" onclick="document.getElementById('inc-sanction-doc').click()">📎 Joindre</button>
+        </div>
+        <p style="font-size:.72rem;color:#666;margin-top:5px;">Le document sera rangé dans Dropbox (daté) et lisible sur la fiche du salarié.</p>
+      </div>
       <div style="margin-top:13px;display:flex;gap:9px;">
         <button class="btn btn-red" onclick="submitInc()">✔ Enregistrer</button>
         <button class="btn btn-gray" onclick="resetForm()">✕ Réinitialiser</button>
@@ -593,11 +602,32 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 </div>
 
 <div class="modal-ov" id="modal-historique">
-  <div class="modal" style="width:500px;max-width:96vw;">
-    <div class="modal-title" id="histo-title">📋 Historique</div>
+  <div class="modal" style="width:560px;max-width:96vw;">
+    <div class="modal-title" id="histo-title">📋 Fiche salarié</div>
     <div id="histo-content"></div>
-    <button class="btn btn-red" id="histo-pdf-btn" style="margin-top:16px;width:100%;" onclick="pdfEquipier(_histoEmpId)">📄 Télécharger le rapport PDF de cet équipier</button>
+    <div id="histo-docs" style="margin-top:16px;"></div>
+    <button class="btn btn-red" id="histo-pdf-btn" style="margin-top:16px;width:100%;" onclick="openPdfConfig(_histoEmpId)">📄 Générer un rapport PDF…</button>
     <button class="btn btn-gray" style="margin-top:8px;width:100%;" onclick="closeModal('modal-historique')">Fermer</button>
+  </div>
+</div>
+
+<div class="modal-ov" id="modal-docview">
+  <div class="modal" style="width:90vw;max-width:1000px;height:88vh;display:flex;flex-direction:column;">
+    <div class="modal-title" id="docview-title" style="flex-shrink:0;">📄 Document</div>
+    <div id="docview-body" style="flex:1;min-height:0;border-radius:10px;overflow:hidden;background:#0e0e0e;"></div>
+    <button class="btn btn-gray" style="margin-top:12px;flex-shrink:0;" onclick="closeModal('modal-docview')">Fermer</button>
+  </div>
+</div>
+
+<div class="modal-ov" id="modal-pdfconfig">
+  <div class="modal" style="width:440px;max-width:96vw;">
+    <div class="modal-title">📄 Contenu du rapport</div>
+    <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Choisissez ce que vous voulez inclure dans le PDF de cet équipier.</p>
+    <div id="pdfconfig-opts" style="display:flex;flex-direction:column;gap:8px;"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-gray" style="flex:1;" onclick="closeModal('modal-pdfconfig')">Annuler</button>
+      <button class="btn btn-red" style="flex:1;" onclick="genPdfConfigured()">📄 Générer le PDF</button>
+    </div>
   </div>
 </div>
 
@@ -697,7 +727,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '2026-06-10 08:47';
+const APP_VERSION = '2026-06-10 09:08';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
@@ -808,6 +838,7 @@ var DB = {
   incidents: [],
   letters: [],
   candidatures: [],
+  empDocs: [],
   globalPins: { admin: '0000', rh: '0000' },
   restoPins: {
     bk500:{directeur:'0000',manager1:'0000',manager2:'0000',manager3:'0000',manager4:'0000'},
@@ -865,13 +896,17 @@ function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):'';}
 
 // ── CHARGEMENT SUPABASE ───────────────────────────────────────────────────────
 async function loadAll() {
-  const [emps, incs, lets, settArr, cands] = await Promise.all([
+  const [emps, incs, lets, settArr, cands, empDocs] = await Promise.all([
     sb.get('bks_employees','select=*&order=name.asc'),
     sb.get('bks_incidents','select=*&order=created_at.desc'),
     sb.get('bks_letters','select=*&order=created_at.desc'),
     sb.get('bks_settings','select=*&id=eq.main'),
     sb.get('bks_candidatures','select=*&order=created_at.desc').catch(function(){return [];}),
+    sb.get('bks_emp_docs','select=*&order=created_at.desc').catch(function(){return [];}),
   ]);
+  DB.empDocs = (empDocs||[]).map(function(d){
+    return {id:d.id,empId:d.emp_id,categorie:d.categorie||'autre',label:d.label||'',link:d.link||'',name:d.name||'',createdAt:d.created_at};
+  });
   DB.employees = (emps||[]).map(function(e){
     return {id:e.id,name:e.name,role:e.role,restoId:e.resto_id,tileKey:e.tile_key||'',
       email:e.email||'',phone:e.phone||'',archived:!!e.archived,
@@ -1223,6 +1258,17 @@ function setSanction(btn){
   btn.style.boxShadow='0 4px 16px '+c+'88';
   selSanction=btn.dataset.sanc;
   selSev={verbal:'2',ecrit:'2',avert:'3',mise:'4'}[selSanction]||'2';
+  // Document de sanction : proposé pour les sanctions écrites/avertissement/mise en demeure
+  var w=document.getElementById('inc-sanction-doc-wrap');
+  if(w)w.style.display=(selSanction&&selSanction!=='verbal')?'block':'none';
+}
+var _incSanctionDoc=null;
+function incSanctionDocPick(input){
+  var f=input.files[0];if(!f){_incSanctionDoc=null;return;}
+  if(f.size>8*1024*1024){alert('Fichier trop volumineux (max 8 Mo).');input.value='';return;}
+  var reader=new FileReader();
+  reader.onload=function(ev){_incSanctionDoc={data:ev.target.result,name:f.name};document.getElementById('inc-sanction-doc-name').textContent=f.name;document.getElementById('inc-sanction-doc-name').style.color='#4CAF50';};
+  reader.readAsDataURL(f);
 }
 
 function resetForm(){
@@ -1240,6 +1286,10 @@ function resetForm(){
   var ainp=document.getElementById('ex-absence-input');if(ainp)ainp.value='';
   ['arret_maladie-from','arret_maladie-to','arret_maladie-result'].forEach(function(s){var el=document.getElementById('ex-'+s);if(el)el.value!==undefined?el.value='':el.textContent='';});
   document.getElementById('inc-note').value='';clearEmpSel();
+  _incSanctionDoc=null;
+  var sdw=document.getElementById('inc-sanction-doc-wrap');if(sdw)sdw.style.display='none';
+  var sdn=document.getElementById('inc-sanction-doc-name');if(sdn){sdn.textContent='Aucun fichier';sdn.style.color='#999';}
+  var sdf=document.getElementById('inc-sanction-doc');if(sdf)sdf.value='';
   var now=new Date();now.setMinutes(now.getMinutes()-now.getTimezoneOffset());
   document.getElementById('inc-dt').value=now.toISOString().slice(0,16);
 }
@@ -1279,8 +1329,24 @@ async function submitInc(){
       var inc = Object.assign({},incData,{id:savedInc.id,empId:empId,datetime:incData.inc_datetime,extraData:extraData,sanctionType:selSanction});
       DB.incidents.unshift(inc);
       var lid = await createLetterNew(inc);
+      // Document de sanction joint -> Dropbox + fiche salarié
+      if(_incSanctionDoc&&_incSanctionDoc.data&&emp){
+        try{
+          var dbxReady=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
+          var link='';var dateStr=new Date().toISOString().slice(0,10);
+          var ext=(_incSanctionDoc.name&&_incSanctionDoc.name.indexOf('.')>=0)?_incSanctionDoc.name.split('.').pop():'pdf';
+          var sLbl=(SANCTIONS[selSanction]?SANCTIONS[selSanction].label:'Sanction');
+          if(dbxReady){
+            var folder=dbxEmpFolder(emp);
+            var blob=_dataUrlToBlob(_incSanctionDoc.data);
+            link=await dbxUpload(folder+'/Sanction_'+dbxClean(sLbl)+'_'+dateStr+'.'+ext,blob);
+          }
+          await sb.insert('bks_emp_docs',{id:'d'+Date.now(),emp_id:emp.id,categorie:'sanction',label:sLbl+' du '+new Date().toLocaleDateString('fr-FR'),link:link,name:_incSanctionDoc.name});
+        }catch(docErr){console.error('Doc sanction échec',docErr);}
+      }
+      _incSanctionDoc=null;
       toast('Signalement enregistré ✔','success');
-      resetForm();renderHistory();updateVBadge();
+      resetForm();renderHistory();updateVBadge();await loadAll();
       if(emp&&emp.email&&lid) setTimeout(function(){sendLetterEmail(lid);},700);
     }
   } catch(e) { toast('Erreur sauvegarde','error'); console.error(e); }
@@ -1539,6 +1605,140 @@ async function saveEdit(){
 
 var _histoEmpId=null;
 
+// ── DOCUMENTS DU SALARIÉ (contrats/avenants, sanctions, autres) ───────────────
+var EMPDOC_CATS=[
+  {id:'contrat',label:'Contrat',icon:'📄'},
+  {id:'avenant',label:'Avenant',icon:'📝'},
+  {id:'sanction',label:'Sanction',icon:'⚠️'},
+  {id:'autre',label:'Autre document',icon:'📎'}
+];
+function _empDocCatLbl(id){var c=EMPDOC_CATS.find(function(x){return x.id===id;});return c?c.label:id;}
+function _empDocCatIcon(id){var c=EMPDOC_CATS.find(function(x){return x.id===id;});return c?c.icon:'📎';}
+
+// dossier Dropbox d'un salarié : /<Resto>/<Nom>
+function dbxEmpFolder(e){
+  var resto=RESTOS[e.restoId]?RESTOS[e.restoId].label:(e.restoId||'Autre');
+  return '/'+dbxClean(resto)+'/'+dbxClean(e.name);
+}
+
+function renderEmpDocs(empId){
+  var box=document.getElementById('histo-docs');if(!box)return;
+  var docs=(DB.empDocs||[]).filter(function(d){return d.empId===empId;})
+    .sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);});
+  var h='<div style="border-top:1px solid #333;padding-top:14px;">'
+    +'<div style="font-size:.78rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:700;">📁 Documents (lecture seule)</div>';
+  // liste groupée par catégorie
+  if(!docs.length){
+    h+='<p style="font-size:.78rem;color:#666;margin-bottom:10px;">Aucun document pour l\'instant.</p>';
+  }else{
+    EMPDOC_CATS.forEach(function(cat){
+      var grp=docs.filter(function(d){return d.categorie===cat.id;});
+      if(!grp.length)return;
+      h+='<div style="font-size:.74rem;color:#888;margin:8px 0 4px;">'+cat.icon+' '+cat.label+'</div>';
+      grp.forEach(function(d){
+        var dt=d.createdAt?new Date(d.createdAt).toLocaleDateString('fr-FR'):'';
+        h+='<div style="display:flex;align-items:center;gap:8px;background:#141414;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
+          +'<span style="flex:1;min-width:0;font-size:.82rem;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(d.label||d.name||'Document')+(dt?' <span style="color:#666;font-size:.72rem;">· '+dt+'</span>':'')+'</span>'
+          +(d.link?'<button class="btn btn-gray btn-sm" onclick="viewDoc(\''+d.id+'\')">👁️ Lire</button>':'<span style="font-size:.72rem;color:#a8460f;">non lisible</span>')
+          +'<button class="btn-danger" style="padding:3px 8px;" onclick="delEmpDoc(\''+d.id+'\')">🗑️</button>'
+          +'</div>';
+      });
+    });
+  }
+  // ajout d'un document
+  h+='<div style="background:#141414;border-radius:8px;padding:10px;margin-top:10px;">'
+    +'<div style="font-size:.8rem;color:#ddd;margin-bottom:7px;">➕ Ajouter un document</div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end;">'
+    +'<div style="flex:1;min-width:110px;"><div style="font-size:.7rem;color:#888;margin-bottom:3px;">Type</div>'
+    +'<select id="empdoc-cat" class="fi">'+EMPDOC_CATS.map(function(c){return '<option value="'+c.id+'">'+c.icon+' '+c.label+'</option>';}).join('')+'</select></div>'
+    +'<div style="flex:2;min-width:130px;"><div style="font-size:.7rem;color:#888;margin-bottom:3px;">Libellé (optionnel)</div>'
+    +'<input type="text" id="empdoc-label" class="fi" placeholder="Ex : CDI, Avenant horaires…"></div>'
+    +'</div>'
+    +'<input type="file" id="empdoc-file" accept="application/pdf,image/*" style="display:none;" onchange="handleEmpDocUpload(this)">'
+    +'<button class="btn btn-red btn-sm" style="margin-top:8px;" onclick="document.getElementById(\'empdoc-file\').click()">📎 Choisir le fichier et importer</button>'
+    +'<div id="empdoc-status" style="font-size:.74rem;color:#888;margin-top:6px;"></div>'
+    +'</div></div>';
+  box.innerHTML=h;
+}
+
+function viewDoc(docId){
+  var d=(DB.empDocs||[]).find(function(x){return x.id===docId;});if(!d||!d.link)return;
+  document.getElementById('docview-title').textContent='📄 '+(d.label||d.name||'Document');
+  // visionneuse intégrée : iframe en lecture (pas de bouton télécharger)
+  document.getElementById('docview-body').innerHTML='<iframe src="'+d.link+'" style="width:100%;height:100%;border:none;" title="Document"></iframe>';
+  document.getElementById('modal-docview').classList.add('open');
+}
+
+async function handleEmpDocUpload(input){
+  var file=input.files[0];if(!file)return;
+  if(file.size>8*1024*1024){alert('Fichier trop volumineux (max 8 Mo).');return;}
+  var e=DB.employees.find(function(x){return x.id===_histoEmpId;});if(!e)return;
+  var cat=document.getElementById('empdoc-cat').value;
+  var label=document.getElementById('empdoc-label').value.trim();
+  var status=document.getElementById('empdoc-status');
+  status.textContent='⏳ Import en cours…';
+  var reader=new FileReader();
+  reader.onload=async function(ev){
+    var dataUrl=ev.target.result;
+    var dbxReady=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
+    var link='';
+    var dateStr=new Date().toISOString().slice(0,10);
+    var ext=(file.name&&file.name.indexOf('.')>=0)?file.name.split('.').pop():'pdf';
+    // nom de fichier clair + daté
+    var baseName=_empDocCatLbl(cat).replace(/\s+/g,'_')+(label?'_'+dbxClean(label):'')+'_'+dateStr;
+    if(dbxReady){
+      try{
+        var folder=dbxEmpFolder(e);
+        var blob=_dataUrlToBlob(dataUrl);
+        link=await dbxUpload(folder+'/'+baseName+'.'+ext,blob);
+      }catch(err){console.error('Dropbox empdoc échec',err);}
+    }
+    var id='d'+Date.now();
+    try{
+      await sb.insert('bks_emp_docs',{id:id,emp_id:e.id,categorie:cat,label:label||_empDocCatLbl(cat),link:link,name:file.name});
+      await loadAll();
+      status.textContent= link?'✅ Document importé et rangé dans Dropbox':'✅ Document enregistré (Dropbox non configuré)';
+      document.getElementById('empdoc-label').value='';
+      renderEmpDocs(e.id);
+    }catch(err){status.textContent='❌ Erreur';console.error(err);}
+  };
+  reader.readAsDataURL(file);
+}
+
+async function delEmpDoc(docId){
+  var d=(DB.empDocs||[]).find(function(x){return x.id===docId;});if(!d)return;
+  if(!confirm('Supprimer ce document de la fiche ?\n('+(d.label||d.name)+')\n\nLe fichier reste dans Dropbox.'))return;
+  try{
+    await sb.del('bks_emp_docs','id=eq.'+docId);
+    await loadAll();renderEmpDocs(d.empId);
+  }catch(e){toast('Erreur','error');}
+}
+
+// ── PDF CONFIGURABLE ──────────────────────────────────────────────────────────
+var _pdfCfgEmpId=null;
+function openPdfConfig(empId){
+  _pdfCfgEmpId=empId;
+  var opts=[
+    {id:'identite',label:'Identité & infos',def:true},
+    {id:'incidents',label:'Incidents',def:true},
+    {id:'sanctions',label:'Sanctions / courriers',def:true},
+    {id:'documents',label:'Liste des documents (contrats, avenants…)',def:true},
+    {id:'visite',label:'Visite médicale',def:false}
+  ];
+  document.getElementById('pdfconfig-opts').innerHTML=opts.map(function(o){
+    return '<label style="display:flex;align-items:center;gap:9px;background:#141414;border-radius:8px;padding:9px 11px;cursor:pointer;font-size:.86rem;color:#ddd;">'
+      +'<input type="checkbox" class="pdfcfg-opt" value="'+o.id+'" '+(o.def?'checked':'')+' style="width:17px;height:17px;accent-color:var(--orange);">'+o.label+'</label>';
+  }).join('');
+  document.getElementById('modal-pdfconfig').classList.add('open');
+}
+function genPdfConfigured(){
+  var sel=[].slice.call(document.querySelectorAll('.pdfcfg-opt:checked')).map(function(x){return x.value;});
+  if(!sel.length){alert('Choisissez au moins une section.');return;}
+  closeModal('modal-pdfconfig');
+  pdfEquipier(_pdfCfgEmpId,sel);
+}
+
+
 // ── SORTIE D'UN SALARIÉ ───────────────────────────────────────────────────────
 var SORTIE_DOCS=[
   {id:'solde',label:'Solde de tout compte',obligatoire:true},
@@ -1683,17 +1883,23 @@ function pdfEquipierFromRpt(){
   var sel=document.getElementById('rpt-person');
   var id=sel?sel.value:'';
   if(!id||id==='all'){alert('Choisissez d\'abord un équipier précis dans le menu « Membre » (pas « Toute l\'équipe »).');return;}
-  pdfEquipier(id);
+  openPdfConfig(id);
 }
-function pdfEquipier(id){
+function pdfEquipier(id,sections){
   var e=DB.employees.find(function(x){return x.id===id;});if(!e){toast('Équipier introuvable','error');return;}
+  var sec=sections&&sections.length?sections:['identite','incidents','sanctions','documents','visite'];
+  function want(s){return sec.indexOf(s)>=0;}
   var incs=DB.incidents.filter(function(i){return i.empId===id;}).sort(function(a,b){return new Date(b.datetime||b.createdAt)-new Date(a.datetime||a.createdAt);});
   var lets=DB.letters.filter(function(l){return l.empId===id;}).sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);});
+  var docs=(DB.empDocs||[]).filter(function(d){return d.empId===id;}).sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);});
+  // candidature liée (pour visite médicale)
+  var cand=(DB.candidatures||[]).find(function(c){return DB.employees.find(function(x){return x.fromCandId===c.id&&x.id===id;});});
   try{
     var JS=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF;
     var doc=new JS({unit:'mm',format:'a4'});
     var W=210,H=297,M=15,y=0;
     function strip(s){return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+    function brk(extra){if(y>H-(extra||25)){doc.addPage();y=20;}}
     doc.setFillColor(214,35,0);doc.rect(0,0,W,28,'F');
     doc.setFillColor(245,166,35);doc.rect(0,28,W,2.5,'F');
     doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(20);
@@ -1701,21 +1907,26 @@ function pdfEquipier(id){
     doc.setFontSize(10);doc.setFont('helvetica','normal');
     doc.text('Genere le '+new Date().toLocaleDateString('fr-FR'),W-M,18,{align:'right'});
     y=40;
+    // Identité (toujours le nom en tête)
     doc.setTextColor(30,30,30);doc.setFont('helvetica','bold');doc.setFontSize(15);
     doc.text(strip(e.name),M,y);y+=7;
-    doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(90,90,90);
-    var resto=RESTOS[e.restoId]?strip(RESTOS[e.restoId].label):(e.restoId||'');
-    var infos=[];if(resto)infos.push(resto);if(e.poste)infos.push(strip(e.poste));if(e.email)infos.push(e.email);
-    doc.text(infos.join('  |  '),M,y);y+=6;
+    if(want('identite')){
+      doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(90,90,90);
+      var resto=RESTOS[e.restoId]?strip(RESTOS[e.restoId].label):(e.restoId||'');
+      var infos=[];if(resto)infos.push(resto);infos.push('Role : '+strip(cap(e.role)));if(e.email)infos.push(e.email);if(e.phone)infos.push(e.phone);
+      var il=doc.splitTextToSize(infos.join('  |  '),W-2*M);doc.text(il,M,y);y+=il.length*5+1;
+      if(e.sortieStatut&&e.sortieMotif){doc.text('Sortie : '+strip(_motifLbl(e.sortieMotif))+(e.sortieDate?' le '+new Date(e.sortieDate+'T12:00:00').toLocaleDateString('fr-FR'):''),M,y);y+=5;}
+    }
     doc.setDrawColor(220,220,220);doc.line(M,y,W-M,y);y+=8;
-    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(214,35,0);
-    doc.text(incs.length+' incident(s)   -   '+lets.length+' courrier(s)',M,y);y+=9;
-    if(incs.length){
+    // Incidents
+    if(want('incidents')){
+      brk();
       doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(30,30,30);
-      doc.text('Incidents',M,y);y+=6;
+      doc.text('Incidents ('+incs.length+')',M,y);y+=6;
       doc.setFontSize(9.5);
+      if(!incs.length){doc.setFont('helvetica','italic');doc.setTextColor(120,120,120);doc.text('Aucun incident.',M,y);y+=6;doc.setFont('helvetica','normal');}
       incs.forEach(function(i){
-        if(y>H-25){doc.addPage();y=20;}
+        brk();
         var dt=i.datetime?new Date(i.datetime).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'-';
         var sanc=SANCTIONS[i.sanctionType];
         doc.setFont('helvetica','bold');doc.setTextColor(50,50,50);
@@ -1728,13 +1939,15 @@ function pdfEquipier(id){
       });
       y+=3;
     }
-    if(lets.length){
-      if(y>H-25){doc.addPage();y=20;}
+    // Sanctions / courriers
+    if(want('sanctions')){
+      brk();
       doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(30,30,30);
-      doc.text('Courriers / sanctions',M,y);y+=6;
+      doc.text('Sanctions / courriers ('+lets.length+')',M,y);y+=6;
       doc.setFontSize(9.5);
+      if(!lets.length){doc.setFont('helvetica','italic');doc.setTextColor(120,120,120);doc.text('Aucun courrier.',M,y);y+=6;doc.setFont('helvetica','normal');}
       lets.forEach(function(l){
-        if(y>H-20){doc.addPage();y=20;}
+        brk(20);
         var st=SANCTIONS[l.sanctionType]||{label:l.type};
         var dt=new Date(l.createdAt).toLocaleDateString('fr-FR');
         var ss=l.sigStatus==='signed'?'Signe':l.sigStatus==='refused'?'Refuse':'En attente';
@@ -1743,10 +1956,33 @@ function pdfEquipier(id){
         doc.setFont('helvetica','normal');doc.setTextColor(100,100,100);
         doc.text('Statut : '+ss+'  -  Redige par '+strip(l.createdBy||''),M,y);y+=7;
       });
+      y+=3;
     }
-    if(!incs.length&&!lets.length){
-      doc.setFont('helvetica','italic');doc.setTextColor(120,120,120);doc.setFontSize(11);
-      doc.text('Aucun incident ni courrier enregistre pour cet equipier.',M,y);
+    // Documents
+    if(want('documents')){
+      brk();
+      doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(30,30,30);
+      doc.text('Documents ('+docs.length+')',M,y);y+=6;
+      doc.setFontSize(9.5);
+      if(!docs.length){doc.setFont('helvetica','italic');doc.setTextColor(120,120,120);doc.text('Aucun document.',M,y);y+=6;doc.setFont('helvetica','normal');}
+      docs.forEach(function(d){
+        brk(15);
+        var dt=d.createdAt?new Date(d.createdAt).toLocaleDateString('fr-FR'):'';
+        doc.setFont('helvetica','normal');doc.setTextColor(70,70,70);
+        doc.text('- ['+strip(_empDocCatLbl(d.categorie))+'] '+strip(d.label||d.name||'Document')+(dt?'  ('+dt+')':''),M,y);y+=5;
+      });
+      y+=3;
+    }
+    // Visite médicale
+    if(want('visite')){
+      brk();
+      doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(30,30,30);
+      doc.text('Visite medicale',M,y);y+=6;
+      doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(80,80,80);
+      if(cand){
+        var v=visiteInfo(cand);
+        doc.text(strip(v.badge.replace(/[🟢🟠🔴⛔✅]/g,'').trim())||'-',M,y);y+=5;
+      }else{doc.setFont('helvetica','italic');doc.setTextColor(120,120,120);doc.text('Information non disponible.',M,y);y+=5;}
     }
     doc.save('Rapport_'+strip(e.name).replace(/\s+/g,'_')+'.pdf');
     toast('Rapport PDF généré ✔','success');
@@ -1756,7 +1992,7 @@ function pdfEquipier(id){
 function openHistorique(id){
   var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
   _histoEmpId=id;
-  document.getElementById('histo-title').textContent='📋 Historique — '+e.name;
+  document.getElementById('histo-title').textContent='📋 Fiche — '+e.name;
   var incs=DB.incidents.filter(function(i){return i.empId===id;})
     .sort(function(a,b){return new Date(b.datetime||b.createdAt)-new Date(a.datetime||a.createdAt);});
   var lets=DB.letters.filter(function(l){return l.empId===id;})
@@ -1808,6 +2044,7 @@ function openHistorique(id){
     }
   }
   document.getElementById('histo-content').innerHTML=h;
+  renderEmpDocs(id);
   document.getElementById('modal-historique').classList.add('open');
 }
 
@@ -2109,19 +2346,6 @@ function renderAgendaDay(){
       +'</div>';
   }).join('');
   box.innerHTML=h;
-}
-
-// ── ÉTAPES D'INTÉGRATION (candidat retenu) ───────────────────────────────────
-var ONBOARD_STEPS=[
-  {id:'docs',label:'Documents fournis (CNI, carte vitale, RIB)'},
-  {id:'videos',label:'Vidéos de formation réalisées'},
-  {id:'visite',label:'Visite médicale programmée'},
-  {id:'contrat',label:'Contrat signé'}
-];
-function onboardDone(c){
-  var ob=c.onboarding||{};
-  var done=ONBOARD_STEPS.filter(function(s){return ob[s.id];}).length;
-  return {done:done,total:ONBOARD_STEPS.length,complete:done===ONBOARD_STEPS.length};
 }
 
 // ── PÉRIODE D'ESSAI (rappels à J+7 et J+15, échéance 2 mois) ───────────────────
@@ -2482,11 +2706,6 @@ function mailConvocation(){
   var dt=c.entretienDate?new Date(c.entretienDate).toLocaleString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'(à confirmer)';
   _mailto(c,_fillTpl(tpl.entretien.sujet,c,dt),_fillTpl(tpl.entretien.corps,c,dt));
 }
-function mailRetenu(){
-  var c=curCand();if(!c)return;
-  var tpl=getMailTpl();
-  _mailto(c,_fillTpl(tpl.retenu.sujet,c),_fillTpl(tpl.retenu.corps,c));
-}
 function mailRefus(){
   var c=curCand();if(!c)return;
   var tpl=getMailTpl();
@@ -2726,13 +2945,6 @@ async function candContratSigne(){
   _candUpdate({statut:'essai',contrat_signe:true},'Contrat signé — salarié ajouté à l\'équipe 🚀',function(){loadAll();});
 }
 
-async function toggleOnboard(stepId,val){
-  var c=curCand();if(!c)return;
-  var ob=Object.assign({},c.onboarding||{});ob[stepId]=val;
-  c.onboarding=ob; // maj locale immédiate
-  try{await sb.patch('bks_candidatures','id=eq.'+_candId,{onboarding:ob,updated_at:new Date().toISOString()});renderCandActions(c);renderCandidatures();}
-  catch(e){toast('Erreur','error');}
-}
 async function setDateDebut(v){
   var c=curCand();if(!c)return;c.dateDebut=v;
   try{await sb.patch('bks_candidatures','id=eq.'+_candId,{date_debut:v||null,updated_at:new Date().toISOString()});renderCandActions(c);}
@@ -2747,11 +2959,6 @@ async function toggleVideos(val){
   var c=curCand();if(!c)return;c.videosFaites=val;
   try{await sb.patch('bks_candidatures','id=eq.'+_candId,{videos_faites:val,updated_at:new Date().toISOString()});renderCandActions(c);renderCandidatures();}
   catch(e){toast('Erreur','error');}
-}
-function candDemarrer(){
-  var c=curCand();if(!c)return;
-  if(!onboardDone(c).complete||!c.dateDebut){toast('Complétez l\'intégration et la date','error');return;}
-  _candUpdate({statut:'essai'},'Période d\'essai démarrée 🚀');
 }
 
 // ── ACTIONS : PÉRIODE D'ESSAI (avis managers + rappels + décision) ────────────
@@ -3180,16 +3387,6 @@ function togglePosteApprenti(){
   var poste=document.getElementById('p-poste').value;
   var row=document.getElementById('p-niveau-row');
   if(row)row.style.display=(poste==='Apprenti')?'block':'none';
-}
-function toggleNatAutre(){
-  var v=document.getElementById('p-nationalite').value;
-  var w=document.getElementById('p-nat-autre-wrap');
-  if(w)w.style.display=(v==='Autre')?'block':'none';
-}
-function toggleDejaBk(){
-  var v=document.getElementById('p-dejabk').value;
-  var w=document.getElementById('p-dejabk-wrap');
-  if(w)w.style.display=(v==='Oui')?'block':'none';
 }
 function toggleNatAutre(){
   var v=document.getElementById('p-nationalite').value;
