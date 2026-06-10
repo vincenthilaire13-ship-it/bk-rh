@@ -246,6 +246,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
   <nav id="main-nav">
     <button class="active" onclick="goPage('equipe',this)">👥 Équipe</button>
     <button onclick="goPage('recrutement',this)">🎯 Recrutement <span id="rbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
+    <button onclick="goPage('visite',this)">🩺 Visite médicale</button>
     <button onclick="goPage('incidents',this)">📋 Incidents</button>
     <button onclick="goPage('rapports',this)">📊 Rapports</button>
     <button onclick="goPage('planning',this)">🗓️ Planning</button>
@@ -268,12 +269,12 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
         <button class="rtab" id="cst-entretien" onclick="setCandFilter('entretien')">📅 Entretien</button>
         <button class="rtab" id="cst-retenu" onclick="setCandFilter('retenu')">✅ Retenu</button>
         <button class="rtab" id="cst-essai" onclick="setCandFilter('essai')">⏳ Période d'essai</button>
-        <button class="rtab" id="cst-visite" onclick="setCandFilter('visite')">🩺 Visite médicale</button>
         <button class="rtab" id="cst-refuse" onclick="setCandFilter('refuse')">❌ Refusé</button>
       </div>
 
       <!-- agenda (visible en Entretien) -->
       <div id="rec-agenda-wrap" style="display:none;margin-bottom:16px;">
+        <div id="rappel-demain"></div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
           <button class="btn btn-gray btn-sm" onclick="agendaNav(-1)">← Mois précédent</button>
           <div id="agenda-month-label" style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.25rem;color:var(--yellow);text-transform:uppercase;letter-spacing:2px;"></div>
@@ -291,6 +292,21 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 
   <!-- OUTILS QR -->
   <div class="page" id="page-outils-qr"></div>
+
+  <!-- VISITE MÉDICALE -->
+  <div class="page" id="page-visite">
+    <div class="card">
+      <div class="sec-title">🩺 Visites médicales</div>
+      <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Suivi des visites médicales d'embauche. Chaque salarié doit la passer dans les 6 mois suivant son entrée. 🟢 OK · 🟠 à planifier (2 mois) · 🔴 urgent (4 mois).</p>
+      <div id="visite-resto-filter" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+        <button class="rtab rf on" onclick="setVisiteResto(this,'all')">Tous</button>
+        <button class="rtab rf" onclick="setVisiteResto(this,'bk500')">BK 500</button>
+        <button class="rtab rf" onclick="setVisiteResto(this,'bk509')">BK 509</button>
+        <button class="rtab rf" onclick="setVisiteResto(this,'bk526')">BK 526</button>
+      </div>
+      <div id="visite-list"></div>
+    </div>
+  </div>
 
   <!-- INCIDENTS -->
   <div class="page" id="page-incidents">
@@ -522,13 +538,30 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
       <div id="apercu-form-wrap" style="border:1px solid #333;border-radius:12px;overflow:hidden;max-height:600px;overflow-y:auto;background:#1A1A1A;"></div>
     </div>
     <div class="card">
-      <div class="sec-title">✉️ Modèles de mails</div>
-      <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Personnalisez les mails envoyés aux candidats et l'adresse expéditrice. Variables disponibles : <code style="color:var(--orange);">{prenom}</code>, <code style="color:var(--orange);">{nom}</code>, <code style="color:var(--orange);">{resto}</code>, <code style="color:var(--orange);">{date}</code> (date d'entretien). Les mails s'ouvrent dans votre messagerie, vous validez vous-même l'envoi.</p>
-      <label class="flabel">Adresse expéditrice (mise en copie pour partir du bon compte)</label>
+      <div class="sec-title">📧 Adresses d'expédition</div>
+      <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Le destinataire est toujours le candidat. L'<strong>adresse principale RH</strong> (commune à tous) est mise en copie de chaque mail. Vous pouvez aussi ajouter des adresses en <strong>copie cachée</strong> (le candidat ne les voit pas), chacune rattachée à un restaurant ou à « tous ».</p>
+      <label class="flabel">Adresse principale RH</label>
       <input type="email" id="mt-exp" class="fi" placeholder="recrutement@votredomaine.fr" style="margin-bottom:16px;">
+      <div class="flabel">Adresses en copie cachée (directeurs / superviseurs)</div>
+      <div id="cc-list" style="margin-bottom:10px;"></div>
+      <div style="background:#141414;border-radius:8px;padding:10px;">
+        <div style="font-size:.8rem;color:#ddd;margin-bottom:8px;">➕ Ajouter une adresse en copie cachée</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end;">
+          <div style="flex:2;min-width:160px;"><div style="font-size:.7rem;color:#888;margin-bottom:3px;">Email</div><input type="email" id="cc-new-email" class="fi" placeholder="directeur@domaine.fr"></div>
+          <div style="flex:1;min-width:120px;"><div style="font-size:.7rem;color:#888;margin-bottom:3px;">Restaurant</div>
+            <select id="cc-new-resto" class="fi"><option value="all">Tous</option><option value="bk500">BK 500</option><option value="bk509">BK 509</option><option value="bk526">BK 526</option></select></div>
+        </div>
+        <button class="btn btn-red btn-sm" style="margin-top:8px;" onclick="addCcAddress()">➕ Ajouter</button>
+      </div>
+      <button class="btn btn-red" style="margin-top:14px;" onclick="saveMailAddresses()">💾 Enregistrer les adresses</button>
+    </div>
+    <div class="card">
+      <div class="sec-title">✉️ Modèles de mails</div>
+      <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Personnalisez les mails envoyés aux candidats. Variables disponibles : <code style="color:var(--orange);">{prenom}</code>, <code style="color:var(--orange);">{nom}</code>, <code style="color:var(--orange);">{resto}</code>, <code style="color:var(--orange);">{date}</code> (date d'entretien). Les mails s'ouvrent dans votre messagerie, vous validez vous-même l'envoi.</p>
 
       <div id="mt-tabs" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
         <button class="rtab on" onclick="setMailTab(this,'entretien')">📅 Entretien</button>
+        <button class="rtab" onclick="setMailTab(this,'rappel')">🔔 Rappel entretien</button>
         <button class="rtab" onclick="setMailTab(this,'retenu')">✅ Retenu</button>
         <button class="rtab" onclick="setMailTab(this,'refus')">❌ Refus candidature</button>
         <button class="rtab" onclick="setMailTab(this,'rupture')">🛑 Rupture FPE</button>
@@ -552,6 +585,9 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
     <div style="margin-bottom:11px;"><label class="flabel">Prénom Nom</label><input type="text" id="edit-name" class="fi"></div>
     <div style="margin-bottom:11px;"><label class="flabel">Rôle</label><select id="edit-role" class="fi"><option value="equipier">Équipier</option><option value="leader">Leader</option><option value="manager">Manager</option><option value="directeur">Directeur</option></select></div>
     <div style="margin-bottom:11px;"><label class="flabel">E-mail</label><input type="email" id="edit-email" class="fi" placeholder="email@exemple.com"></div>
+    <div style="margin-bottom:11px;"><label class="flabel">Téléphone</label><input type="tel" id="edit-phone" class="fi" placeholder="06 12 34 56 78"></div>
+    <div style="margin-bottom:11px;"><label class="flabel">Transport / véhicule</label><input type="text" id="edit-transport" class="fi" placeholder="Ex : Voiture, scooter, transports en commun…"></div>
+    <div style="margin-bottom:11px;"><label class="flabel">Restaurant</label><select id="edit-resto" class="fi"><option value="bk500">BK 500</option><option value="bk509">BK 509</option><option value="bk526">BK 526</option></select></div>
     <div id="edit-pin-row" style="display:none;margin-bottom:11px;">
       <label class="flabel">🔑 Code PIN (4 chiffres)</label>
       <input type="text" id="edit-pin" class="fi" maxlength="4" inputmode="numeric" placeholder="0000" style="text-align:center;font-size:1.3rem;letter-spacing:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">
@@ -737,7 +773,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '2026-06-10 14:59';
+const APP_VERSION = '2026-06-10 15:30';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
@@ -922,7 +958,7 @@ async function loadAll() {
       email:e.email||'',phone:e.phone||'',archived:!!e.archived,
       exitDate:e.exit_date||'',exitMotif:e.exit_motif||'',exitNote:e.exit_note||'',
       sortieStatut:e.sortie_statut||'',sortieMotif:e.sortie_motif||'',sortieDate:e.sortie_date||'',
-      sortieDocs:e.sortie_docs||{},sortieValidee:!!e.sortie_validee,fromCandId:e.from_cand_id||''};
+      sortieDocs:e.sortie_docs||{},sortieValidee:!!e.sortie_validee,fromCandId:e.from_cand_id||'',transport:e.transport||''};
   });
   DB.incidents = (incs||[]).map(function(i){
     return {id:i.id,empId:i.emp_id,restoId:i.resto_id,reporterId:i.reporter_id||'',
@@ -939,11 +975,12 @@ async function loadAll() {
   });
   DB.candidatures = (cands||[]).map(function(c){
     return {id:c.id,prenom:c.prenom||'',nom:c.nom||'',email:c.email||'',phone:c.phone||'',
-      restoId:c.resto_id||'',poste:c.poste||'',niveauApprentissage:c.niveau_apprentissage||'',dispos:c.dispos||{},questionnaire:c.questionnaire||{},
+      restoId:c.resto_id||'',restos:c.restos||'',poste:c.poste||'',niveauApprentissage:c.niveau_apprentissage||'',dispos:c.dispos||{},questionnaire:c.questionnaire||{},
       motivation:c.motivation||'',statut:c.statut||'nouveau',entretienDate:c.entretien_date||null,
       noteInterne:c.note_interne||'',createdAt:c.created_at,
       dateNaissance:c.date_naissance||'',etudiant:!!c.etudiant,rqth:c.rqth||'',dernierEmploi:c.dernier_emploi||'',
-      transport:c.transport||'',trajet:c.trajet||'',adresse:c.adresse||'',nationalite:c.nationalite||'',sexe:c.sexe||'',photo:c.photo||'',
+      transport:c.transport||'',trajet:c.trajet||'',adresse:c.adresse||'',codePostal:c.code_postal||'',ville:c.ville||'',nationalite:c.nationalite||'',sexe:c.sexe||'',photo:c.photo||'',
+      contratType:c.contrat_type||'',contratLabel:c.contrat_label||'',contratHeures:c.contrat_heures||0,
       cvData:c.cv_data||'',cvName:c.cv_name||'',
       onboarding:c.onboarding||{},dateDebut:c.date_debut||'',essaiRappels:c.essai_rappels||{},
       avisManagers:c.avis_managers||[],refusMotif:c.refus_motif||'',
@@ -1179,6 +1216,7 @@ function goPage(id, btn) {
   }
   if (id==='equipe') renderEquipe();
   if (id==='recrutement'){setCandFilter(candFilter||'nouveau');}
+  if (id==='visite'){renderVisiteList();}
   if (id==='planning'){openPlanning();}
   if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();loadSeuilOral();loadMailTpl();renderQr();renderApercuForm();var av=document.getElementById('app-version-badge');if(av)av.textContent=APP_VERSION;}
 }
@@ -1326,8 +1364,9 @@ async function submitInc(){
   var reporterName=pinProf?pinProf.title:curUser.name;
   try {
     var incData = {
+      id:'inc_'+Date.now()+'_'+Math.floor(Math.random()*1000),
       emp_id:empId, resto_id:emp?emp.restoId:curUser.restoId,
-      reporter_id:curUser.id, reporter_name:reporterName,
+      reporter_id:curUser.id||'', reporter_name:reporterName,
       inc_datetime:dt?new Date(dt).toISOString():new Date().toISOString(),
       problems:Array.from(selProbs), extra:Object.assign({},extraData),
       severity:selSev, sanction_type:selSanction,
@@ -1570,6 +1609,9 @@ function openEdit(id){
   document.getElementById('edit-name').value=e.name;
   document.getElementById('edit-role').value=e.role;
   document.getElementById('edit-email').value=e.email||'';
+  var ph=document.getElementById('edit-phone');if(ph)ph.value=e.phone||'';
+  var tr=document.getElementById('edit-transport');if(tr)tr.value=e.transport||'';
+  var rs=document.getElementById('edit-resto');if(rs)rs.value=e.restoId||'bk500';
   var row=document.getElementById('edit-exit-date-row');
   if(e.archived){row.style.display='block';document.getElementById('edit-exit-def').value=e.exitDateDefinitive||e.exitDate||'';}
   else row.style.display='none';
@@ -1594,6 +1636,9 @@ async function saveEdit(){
   var id=document.getElementById('edit-id').value;
   var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
   var data={name:document.getElementById('edit-name').value.trim()||e.name,role:document.getElementById('edit-role').value,email:document.getElementById('edit-email').value.trim()};
+  var ph=document.getElementById('edit-phone');if(ph)data.phone=ph.value.trim();
+  var tr=document.getElementById('edit-transport');if(tr)data.transport=tr.value.trim();
+  var rs=document.getElementById('edit-resto');if(rs)data.resto_id=rs.value;
   try {
     await sb.patch('bks_employees','id=eq.'+id,data);
     // Sauvegarder le PIN si directeur/manager
@@ -2330,6 +2375,29 @@ function renderAgenda(){
   h+='</div>';
   grid.innerHTML=h;
   renderAgendaDay();
+  renderRappelDemain();
+}
+
+function renderRappelDemain(){
+  var box=document.getElementById('rappel-demain');if(!box)return;
+  var demain=new Date();demain.setDate(demain.getDate()+1);
+  var dk=demain.getFullYear()+'-'+String(demain.getMonth()+1).padStart(2,'0')+'-'+String(demain.getDate()).padStart(2,'0');
+  var list=entretiensVisibles().filter(function(c){
+    var d=new Date(c.entretienDate);
+    var key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    return key===dk;
+  });
+  if(!list.length){box.innerHTML='';return;}
+  var rows=list.map(function(c){
+    var hh=new Date(c.entretienDate).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    return '<div style="display:flex;align-items:center;gap:8px;justify-content:space-between;background:#141414;border-radius:6px;padding:7px 10px;margin-bottom:5px;flex-wrap:wrap;">'
+      +'<span style="font-size:.83rem;color:#eee;">'+c.prenom+' '+c.nom+' <span style="color:#888;">· '+hh+'</span></span>'
+      +'<button class="btn btn-gray btn-sm" onclick="openCand(\''+c.id+'\')">🔔 Envoyer le rappel</button>'
+      +'</div>';
+  }).join('');
+  box.innerHTML='<div style="background:#3A2E00;border:1px solid #7A6A00;border-radius:10px;padding:12px;margin-bottom:14px;">'
+    +'<div style="font-size:.85rem;color:#F5A623;font-weight:700;margin-bottom:8px;">🔔 Entretien'+(list.length>1?'s':'')+' demain — pensez à confirmer la présence</div>'
+    +rows+'</div>';
 }
 
 function agendaSelectDay(key){agendaSelDay=(agendaSelDay===key?null:key);renderAgenda();}
@@ -2365,19 +2433,34 @@ function essaiInfo(c){
   var debut=new Date(c.dateDebut+'T12:00:00');
   var now=new Date();
   var jours=Math.floor((now-debut)/(24*3600*1000));
-  var estApprenti=(c.poste==='Apprenti');
+  var estApprenti=(c.poste==='Apprenti'||c.niveauApprentissage==='Apprentissage'||(c.contratType||'').indexOf('appr')===0);
   var fin=new Date(debut);
   if(estApprenti){fin.setDate(fin.getDate()+45);} // apprentissage : 45 jours
-  else{fin.setMonth(fin.getMonth()+2);} // autres : 2 mois
+  else{fin.setMonth(fin.getMonth()+2);} // CDI : 2 mois
   var joursRestants=Math.ceil((fin-now)/(24*3600*1000));
-  var dureeLbl=estApprenti?'45 jours (apprentissage)':'2 mois';
+  var dureeLbl=estApprenti?'45 jours (apprentissage)':'2 mois (CDI)';
   var label='J+'+jours+' · fin le '+fin.toLocaleDateString('fr-FR')+' ('+dureeLbl+')';
-  var seuilMap={'1sem':7,'10j':10,'15j':15,'1mois':30};
-  var seuil=seuilMap[c.essaiAlerte||'15j']||15;
-  var alert='',alertCol='';
-  if(joursRestants<=0){alert='🔴 Période d\'essai terminée';alertCol='#cc5555';}
-  else if(joursRestants<=seuil){alert='⚠️ Fin de période d\'essai dans '+joursRestants+'j — décision à prendre';alertCol='#cc5555';}
-  return {jours:jours,fin:fin,joursRestants:joursRestants,label:label,alert:alert,alertCol:alertCol,seuil:seuil,apprenti:estApprenti};
+  var alert='',alertCol='',niveau=0;
+  if(estApprenti){
+    // Apprentissage : rupture libre les 45 premiers jours, pas de préavis
+    if(joursRestants<=0){alert='🔴 Fin des 45 jours — rupture libre terminée';alertCol='#cc5555';niveau=3;}
+    else if(joursRestants<=10){alert='⚠️ Plus que '+joursRestants+'j de rupture libre (45j d\'apprentissage)';alertCol='#F5A623';niveau=2;}
+  }else{
+    // CDI : 3 alertes de préavis (délai de prévenance employeur)
+    // J+8 : 48h de préavis · avant 1 mois · ~3 semaines avant la fin (2 semaines de préavis = dernière limite)
+    var limiteFinale=new Date(fin);limiteFinale.setDate(limiteFinale.getDate()-21); // ~3 sem avant la fin
+    var joursAvantLimite=Math.ceil((limiteFinale-now)/(24*3600*1000));
+    if(now>=fin){
+      alert='🔒 Période d\'essai terminée — le salarié ne peut plus être rompu en essai';alertCol='#888';niveau=4;
+    }else if(now>=limiteFinale){
+      alert='🔴 DERNIÈRE LIMITE pour rompre (2 semaines de préavis requises avant le '+fin.toLocaleDateString('fr-FR')+')';alertCol='#cc5555';niveau=3;
+    }else if(jours>=30){
+      alert='🟠 1 mois passé — pour rompre, comptez 2 semaines de préavis (limite ~'+limiteFinale.toLocaleDateString('fr-FR')+')';alertCol='#F5A623';niveau=2;
+    }else if(jours>=8){
+      alert='🟡 8 jours passés — 48h de préavis désormais nécessaires pour une rupture';alertCol='#E0C040';niveau=1;
+    }
+  }
+  return {jours:jours,fin:fin,joursRestants:joursRestants,label:label,alert:alert,alertCol:alertCol,apprenti:estApprenti,niveau:niveau};
 }
 
 // Visite médicale : feu tricolore basé sur la date d'entrée (date de démarrage)
@@ -2400,6 +2483,40 @@ function visiteInfo(c){
   return {fait:false,col:col,badge:badge,etat:etat,entree:entree,limite:limite,limiteStr:limiteStr};
 }
 
+var visiteRestoFilter='all';
+function setVisiteResto(btn,r){
+  visiteRestoFilter=r;
+  document.querySelectorAll('#visite-resto-filter .rf').forEach(function(b){b.classList.remove('on');});
+  btn.classList.add('on');
+  renderVisiteList();
+}
+function renderVisiteList(){
+  var list=document.getElementById('visite-list');if(!list)return;
+  var isDir=(curUser&&curUser.role==='directeur');
+  document.getElementById('visite-resto-filter').style.display=isDir?'none':'flex';
+  var cands=DB.candidatures.filter(function(c){return (c.statut||'')==='essai';});
+  if(isDir)cands=cands.filter(function(c){return c.restoId===curUser.restoId;});
+  if(!isDir&&visiteRestoFilter!=='all')cands=cands.filter(function(c){return c.restoId===visiteRestoFilter;});
+  // tri : les plus urgents d'abord (rouge > orange > vert > fait)
+  var ordre={depasse:0,rouge:1,orange:2,ok:3,inconnu:4,fait:5};
+  cands.sort(function(a,b){return (ordre[visiteInfo(a).etat]||9)-(ordre[visiteInfo(b).etat]||9);});
+  if(!cands.length){
+    list.innerHTML='<div class="empty"><div class="ei">🩺</div><p>Aucun salarié à suivre pour la visite médicale</p></div>';return;
+  }
+  list.innerHTML=cands.map(function(c){
+    var v=visiteInfo(c);
+    var resto=RESTOS[c.restoId]?RESTOS[c.restoId].label:c.restoId;
+    var meta='Entrée le '+(c.dateDebut?new Date(c.dateDebut+'T12:00:00').toLocaleDateString('fr-FR'):'?')+' · '+resto;
+    return '<div class="emp-card" style="border-left:4px solid '+v.col+';cursor:pointer;" onclick="openCand(\''+c.id+'\')">'
+      +'<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
+      +(c.photo?'<img src="'+c.photo+'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;">':'<div class="emp-av av-e">'+((c.prenom[0]||'')+(c.nom[0]||'')).toUpperCase()+'</div>')
+      +'<div style="min-width:0;"><div style="font-weight:600;font-size:.92rem;">'+c.prenom+' '+c.nom+'</div>'
+      +'<div style="font-size:.73rem;color:#888;">'+meta+'</div>'
+      +'<div style="margin-top:3px;"><span style="background:'+v.col+';color:#fff;border-radius:10px;padding:2px 8px;font-size:.68rem;font-weight:700;">'+v.badge+'</span></div></div></div>'
+      +'<span style="color:'+v.col+';font-size:1.3rem;">›</span>'
+      +'</div>';
+  }).join('');
+}
 
 function renderApercuForm(){
   var wrap=document.getElementById('apercu-form-wrap');if(!wrap)return;
@@ -2414,7 +2531,7 @@ function openApercuLive(){
 
 function setCandFilter(f){
   candFilter=f;
-  ['nouveau','entretien','retenu','essai','visite','refuse'].forEach(function(s){
+  ['nouveau','entretien','retenu','essai','refuse'].forEach(function(s){
     var b=document.getElementById('cst-'+s);if(b)b.classList.toggle('on',s===f);
   });
   // filtre resto toujours visible (s'applique à tous les sous-onglets) — sauf directeur (un seul resto)
@@ -2517,14 +2634,14 @@ function openCand(id){
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">'
     +'<div><div class="flabel">Téléphone</div><a href="tel:'+c.phone+'" style="color:var(--orange);">'+(c.phone||'—')+'</a></div>'
     +'<div><div class="flabel">Email</div><a href="mailto:'+c.email+'" style="color:var(--orange);font-size:.82rem;word-break:break-all;">'+(c.email||'—')+'</a></div>'
-    +'<div><div class="flabel">Poste souhaité</div><span style="color:#eee;">'+(c.poste||'—')+(c.niveauApprentissage?' · '+c.niveauApprentissage:'')+'</span></div>'
-    +'<div><div class="flabel">Restaurant</div><span style="color:#eee;">'+(RESTOS[c.restoId]?RESTOS[c.restoId].label:c.restoId)+'</span></div>'
+    +'<div><div class="flabel">Type de contrat</div><span style="color:#eee;font-size:.85rem;">'+(c.contratLabel||c.poste||'—')+(c.niveauApprentissage&&!c.contratLabel?' · '+c.niveauApprentissage:'')+'</span></div>'
+    +'<div><div class="flabel">Restaurant'+((c.restos&&c.restos.indexOf(',')>=0)?'s':'')+'</div><span style="color:#eee;">'+((c.restos?c.restos.split(',').filter(Boolean):[c.restoId]).map(function(r){return RESTOS[r]?RESTOS[r].label:r;}).join(', '))+'</span></div>'
     +'<div><div class="flabel">Transport</div><span style="color:#eee;font-size:.85rem;">'+(c.transport||'—')+(c.trajet?' · '+c.trajet:'')+'</span></div>'
     +'<div><div class="flabel">Dernier emploi</div><span style="color:#eee;font-size:.85rem;">'+(c.dernierEmploi||'—')+'</span></div>'
     +'<div><div class="flabel">Nationalité</div><span style="color:#eee;font-size:.85rem;">'+(c.nationalite||'—')+'</span></div>'
     +'<div><div class="flabel">Sexe</div><span style="color:#eee;font-size:.85rem;">'+(c.sexe||'—')+'</span></div>'
-    +'<div style="grid-column:1/-1;"><div class="flabel">Adresse</div><span style="color:#eee;font-size:.85rem;">'+(c.adresse||'—')+'</span></div>'
-    +(c.cvData?'<div style="grid-column:1/-1;"><div class="flabel">CV</div><button class="btn btn-gray btn-sm" onclick="downloadCV(\''+c.id+'\')">📄 Télécharger le CV'+(c.cvName?' ('+c.cvName+')':'')+'</button></div>':'')
+    +'<div style="grid-column:1/-1;"><div class="flabel">Adresse</div><span style="color:#eee;font-size:.85rem;">'+(c.adresse||'—')+((c.codePostal||c.ville)?', '+(c.codePostal||'')+' '+(c.ville||''):'')+'</span></div>'
+    +(c.cvData?'<div style="grid-column:1/-1;"><div class="flabel">CV</div><button class="btn btn-gray btn-sm" onclick="viewCV(\''+c.id+'\')">👁️ Lire le CV'+(c.cvName?' ('+c.cvName+')':'')+'</button></div>':'')
     +'</div>'
     +'<div class="flabel" style="margin-top:6px;">📅 Disponibilités</div>'
     +'<div style="background:#1A1A1A;border-radius:8px;padding:10px 14px;margin-bottom:14px;">'+disposHtml+'</div>'
@@ -2533,13 +2650,12 @@ function openCand(id){
   document.getElementById('modal-cand').classList.add('open');
 }
 
-function downloadCV(id){
+function viewCV(id){
   var c=DB.candidatures.find(function(x){return x.id===id;});
   if(!c||!c.cvData)return;
-  var a=document.createElement('a');
-  a.href=c.cvData;
-  a.download=c.cvName||('CV_'+c.prenom+'_'+c.nom);
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  document.getElementById('docview-title').textContent='📄 CV — '+c.prenom+' '+c.nom;
+  document.getElementById('docview-body').innerHTML='<iframe src="'+c.cvData+'" style="width:100%;height:100%;border:none;" title="CV"></iframe>';
+  document.getElementById('modal-docview').classList.add('open');
 }
 
 function renderCandActions(c){
@@ -2564,6 +2680,7 @@ function renderCandActions(c){
       +'<div style="font-size:.85rem;color:#F5A623;margin-bottom:6px;">📅 Entretien prévu : '+dt+'</div>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">'
       +'<button class="btn btn-gray btn-sm" onclick="mailConvocation()">✉️ Renvoyer le mail de convocation</button>'
+      +'<button class="btn btn-gray btn-sm" onclick="mailRappelEntretien()">🔔 Envoyer le rappel (veille)</button>'
       +'<button class="btn btn-gray btn-sm" onclick="candReprogrammer()">🕐 Reprogrammer</button></div>'
       +'<div id="cand-reprog" style="display:none;margin-bottom:10px;"><div style="display:flex;gap:8px;"><input type="date" id="cand-ent-date" class="fi" style="flex:2;"><input type="time" id="cand-ent-heure" class="fi" style="flex:1;" value="10:00"></div><button class="btn btn-red btn-sm" style="margin-top:6px;" onclick="candConvoquer()">Valider la date</button></div>'
       +'<button class="btn btn-gray btn-sm" style="width:100%;margin-bottom:10px;" onclick="openEditCand()">✏️ Modifier les infos / disponibilités (pendant l\'entretien)</button>'
@@ -2575,7 +2692,8 @@ function renderCandActions(c){
   }else if(st==='retenu'){
     h=candRetenuActionsHtml(c);
   }else if(st==='essai'){
-    h=(candFilter==='visite')?candVisiteActionsHtml(c):candEssaiActionsHtml(c);
+    var onVisitePage=document.getElementById('page-visite')&&document.getElementById('page-visite').classList.contains('active');
+    h=onVisitePage?candVisiteActionsHtml(c):candEssaiActionsHtml(c);
   }else if(st==='refuse'){
     h='<div style="background:#1A1A1A;border-radius:8px;padding:12px;">'
       +'<div style="font-size:.85rem;color:#cc5555;margin-bottom:8px;">❌ Candidature refusée'+(c.refusMotif?' — '+c.refusMotif:'')+'</div>'
@@ -2708,6 +2826,10 @@ var MAIL_DEFAULTS={
     sujet:'Votre entretien chez {resto}',
     corps:'Bonjour {prenom},\n\nNous avons bien reçu votre candidature et nous serions ravis de vous rencontrer.\n\nNous vous proposons un entretien le {date} au restaurant {resto}.\n\nMerci de nous confirmer votre présence en répondant à ce message.\n\nÀ très bientôt,\nL\'équipe {resto}'
   },
+  rappel:{
+    sujet:'Rappel : votre entretien demain chez {resto}',
+    corps:'Bonjour {prenom},\n\nNous vous rappelons que votre entretien est prévu {date} au restaurant {resto}.\n\nMerci de bien vouloir nous confirmer votre présence en répondant à ce message.\n\nEn cas d\'empêchement, prévenez-nous au plus tôt afin que nous puissions convenir d\'une autre date.\n\nÀ très bientôt,\nL\'équipe {resto}'
+  },
   retenu:{
     sujet:'Votre intégration chez {resto} — documents à fournir',
     corps:'Bonjour {prenom},\n\nFélicitations, nous sommes ravis de vous accueillir au sein de l\'équipe {resto} !\n\nAfin de préparer au mieux votre intégration, merci de déposer tous vos documents directement sur votre espace sécurisé personnel.\n\n➡️➡️➡️ CLIQUEZ SUR CE LIEN POUR DÉPOSER VOS DOCUMENTS :\n\n{lien_docs}\n\n(Si le lien ne s\'ouvre pas, copiez-le et collez-le dans votre navigateur.)\n\n━━━━━━━━━━━━━━━━━━━━━━\n\nDocuments à fournir (tous obligatoires) :\n- Carte d\'identité recto ET verso\n- Justificatif de domicile de -3 mois\n- Carte vitale recto ET verso\n- Attestation CPAM\n- Attestation de mutuelle / complémentaire Santé Solidaire (pour être dispensé de la mutuelle du restaurant) OU courrier signé d\'adhésion à la mutuelle obligatoire\n- RIB français\n- Si contrat inférieur à 24h/semaine : indiquez le motif directement sur votre espace\n\nÀ renseigner également sur votre espace :\n- Contact en cas d\'urgence (nom/prénom + téléphone)\n- Vos tailles de tenues\n\n━━━━━━━━━━━━━━━━━━━━━━\n\nAvant votre intégration, il est impératif d\'avoir réalisé les vidéos de formation réglementaires sur Burger King University :\n🎓 www.burgerkinguniversity.com\nIdentifiant : {bku_id}\nMot de passe : {bku_mdp}\n\nMerci de nous prévenir par mail une fois les vidéos terminées.\n\nVotre intégration est prévue le {date_integration}, à condition que les vidéos soient terminées la veille au soir.\n\nUne fois tous les documents reçus et les vidéos effectuées, vous recevrez un mail vous informant que votre contrat est disponible pour signature électronique.\n\nNous restons disponibles pour toute question,\n\nÀ très bientôt,\nL\'équipe {resto}'
@@ -2734,6 +2856,7 @@ function getMailTpl(){
   return {
     expediteur:m.expediteur||MAIL_DEFAULTS.expediteur,
     entretien:m.entretien||MAIL_DEFAULTS.entretien,
+    rappel:m.rappel||MAIL_DEFAULTS.rappel,
     retenu:m.retenu||MAIL_DEFAULTS.retenu,
     refus:m.refus||MAIL_DEFAULTS.refus,
     rupture:m.rupture||MAIL_DEFAULTS.rupture,
@@ -2756,10 +2879,17 @@ function _fillTpl(txt,c,dateStr){
 }
 function _mailto(c,subject,body){
   var tpl=getMailTpl();
-  // adresse expéditrice : si renseignée, on l'ajoute en copie (cc) pour que l'envoi parte du bon fil
+  var dest=(c.email||'').trim();
+  if(!dest){toast('Ce candidat n\'a pas d\'adresse email renseignée.','error');return;}
   var params='subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  // CC : adresse principale RH (commune à tous)
   if(tpl.expediteur)params+='&cc='+encodeURIComponent(tpl.expediteur);
-  var url='mailto:'+encodeURIComponent(c.email||'')+'?'+params;
+  // BCC (copie cachée) : adresses liées au restaurant du candidat, ou "tous"
+  var cclist=(DB.mailSettings&&DB.mailSettings.ccAddresses)||[];
+  var bcc=cclist.filter(function(a){return a.resto==='all'||!a.resto||a.resto===c.restoId;}).map(function(a){return a.email;}).filter(Boolean);
+  if(bcc.length)params+='&bcc='+encodeURIComponent(bcc.join(','));
+  // l'adresse destinataire ne doit PAS être encodée (sinon le @ devient %40 et le client mail ne reconnaît pas le destinataire)
+  var url='mailto:'+dest+'?'+params;
   window.location.href=url;
 }
 
@@ -2768,6 +2898,12 @@ function mailConvocation(){
   var tpl=getMailTpl();
   var dt=c.entretienDate?new Date(c.entretienDate).toLocaleString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'(à confirmer)';
   _mailto(c,_fillTpl(tpl.entretien.sujet,c,dt),_fillTpl(tpl.entretien.corps,c,dt));
+}
+function mailRappelEntretien(){
+  var c=curCand();if(!c)return;
+  var tpl=getMailTpl();
+  var dt=c.entretienDate?new Date(c.entretienDate).toLocaleString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'(à confirmer)';
+  _mailto(c,_fillTpl(tpl.rappel.sujet,c,dt),_fillTpl(tpl.rappel.corps,c,dt));
 }
 function mailRefus(){
   var c=curCand();if(!c)return;
@@ -2806,14 +2942,14 @@ var DOC_TYPES=[
   {id:'hebergement',label:'Attestation d\'hébergement (si le justificatif n\'est pas à votre nom)',optionnel:true},
   {id:'vitale',label:'Carte vitale',sides:['Recto','Verso']},
   {id:'cpam',label:'Attestation CPAM'},
-  {id:'mutuelle',label:'Attestation mutuelle OU courrier d\'adhésion'},
+  {id:'mutuelle',label:'Carte de tiers payant 2026'},
   {id:'rib',label:'RIB français'},
   {id:'moins24h',label:'Demande de contrat < 24h (si concerné)',type:'text',placeholder:'Ex : Je suis étudiant(e), je souhaite un contrat de moins de 24h/semaine car je suis à l\'école...'}
 ];
 
 // Nom de fichier clair pour Dropbox à partir de la clé (ex. "cni_recto" -> "Carte_identite_recto")
 function docFileName(key){
-  var base={cni:'Piece_identite',domicile:'Justificatif_domicile',hebergement:'Attestation_hebergement',vitale:'Carte_vitale',cpam:'Attestation_CPAM',mutuelle:'Attestation_mutuelle',rib:'RIB',moins24h:'Demande_contrat_-24h'};
+  var base={cni:'Piece_identite',domicile:'Justificatif_domicile',hebergement:'Attestation_hebergement',vitale:'Carte_vitale',cpam:'Attestation_CPAM',mutuelle:'Carte_tiers_payant_2026',rib:'RIB',moins24h:'Demande_contrat_-24h'};
   var parts=key.split('_'); // ex: ["cni","recto"]
   var id=parts[0];
   var side=parts[1]?('_'+parts[1].charAt(0).toUpperCase()+parts[1].slice(1)):''; // _Recto / _Verso
@@ -3015,11 +3151,6 @@ async function setDateDebut(v){
   try{await sb.patch('bks_candidatures','id=eq.'+_candId,{date_debut:v||null,updated_at:new Date().toISOString()});renderCandActions(c);}
   catch(e){toast('Erreur','error');}
 }
-async function setEssaiAlerte(v){
-  var c=curCand();if(!c)return;c.essaiAlerte=v;
-  try{await sb.patch('bks_candidatures','id=eq.'+_candId,{essai_alerte:v,updated_at:new Date().toISOString()});renderCandActions(c);}
-  catch(e){toast('Erreur','error');}
-}
 async function toggleVideos(val){
   var c=curCand();if(!c)return;c.videosFaites=val;
   try{await sb.patch('bks_candidatures','id=eq.'+_candId,{videos_faites:val,updated_at:new Date().toISOString()});renderCandActions(c);renderCandidatures();}
@@ -3045,10 +3176,11 @@ function candEssaiActionsHtml(c){
     +'<span style="font-size:.85rem;color:#B57EDC;font-weight:600;">⏳ Période d\'essai ('+(e&&e.apprenti?'45 jours':'2 mois')+')</span>'
     +(e&&e.alert?'<span style="background:'+e.alertCol+';color:#fff;border-radius:10px;padding:2px 8px;font-size:.7rem;font-weight:700;">'+e.alert+'</span>':'')+'</div>'
     +(e?'<div style="font-size:.8rem;color:#aaa;margin-bottom:4px;">'+e.label+'</div>':'')
-    +'<div class="flabel" style="margin-top:8px;">⏰ M\'alerter avant la fin de la période d\'essai</div>'
-    +'<select id="essai-alerte-sel" class="fi" onchange="setEssaiAlerte(this.value)" style="margin-bottom:12px;">'
-    +['1sem','10j','15j','1mois'].map(function(v){var lbl={'1sem':'1 semaine avant','10j':'10 jours avant','15j':'15 jours avant','1mois':'1 mois avant'}[v];return '<option value="'+v+'"'+((c.essaiAlerte||'15j')===v?' selected':'')+'>'+lbl+'</option>';}).join('')
-    +'</select>'
+    +(e?'<div style="background:#141414;border-radius:8px;padding:10px;margin:8px 0 12px;font-size:.76rem;color:#bbb;line-height:1.5;">'
+      +(e.apprenti
+        ? '🎓 <strong style="color:#ddd;">Apprentissage</strong> : rupture libre pendant les 45 premiers jours, <strong>sans préavis</strong>. Au-delà, la rupture suit les règles du contrat d\'apprentissage.'
+        : '⚖️ <strong style="color:#ddd;">CDI — délai de prévenance employeur :</strong><br>• Après <strong>8 jours</strong> de présence : 48h de préavis<br>• Entre 1 et 2 mois : <strong>2 semaines</strong> de préavis<br>👉 Pour rompre dans les règles, décidez <strong>au plus tard ~3 semaines avant la fin</strong> (le '+new Date(e.fin.getTime()-21*24*3600*1000).toLocaleDateString('fr-FR')+'). Après, la rupture en période d\'essai n\'est plus possible.')
+      +'</div>':'')
 
     +'<div class="flabel">Avis de l\'équipe d\'encadrement</div>'
     +'<div style="margin-bottom:10px;">'+avisHtml+'</div>'
@@ -3101,13 +3233,13 @@ async function setVisiteFaite(){
   var d=document.getElementById('visite-date').value;
   if(!d){alert('Merci d\'indiquer la date de la visite médicale.');return;}
   c.visiteFaite=true;c.visiteDate=d;
-  try{await sb.patch('bks_candidatures','id=eq.'+_candId,{visite_faite:true,visite_date:d,updated_at:new Date().toISOString()});renderCandActions(c);renderCandidatures();toast('Visite médicale enregistrée ✅');}
+  try{await sb.patch('bks_candidatures','id=eq.'+_candId,{visite_faite:true,visite_date:d,updated_at:new Date().toISOString()});renderCandActions(c);renderCandidatures();renderVisiteList();toast('Visite médicale enregistrée ✅');}
   catch(e){toast('Erreur','error');}
 }
 async function annulerVisite(){
   var c=curCand();if(!c)return;
   c.visiteFaite=false;c.visiteDate='';
-  try{await sb.patch('bks_candidatures','id=eq.'+_candId,{visite_faite:false,visite_date:null,updated_at:new Date().toISOString()});renderCandActions(c);renderCandidatures();}
+  try{await sb.patch('bks_candidatures','id=eq.'+_candId,{visite_faite:false,visite_date:null,updated_at:new Date().toISOString()});renderCandActions(c);renderCandidatures();renderVisiteList();}
   catch(e){toast('Erreur','error');}
 }
 
@@ -3333,14 +3465,23 @@ function showPostulerPage(presetResto){
     +'<div><label class="flabel">Email *</label><input type="email" id="p-email" class="fi" placeholder="vous@email.com"></div></div>'
     +'<div class="form-row"><div><label class="flabel">Nationalité *</label><select id="p-nationalite" class="fi" onchange="toggleNatAutre()"><option value="">— Choisir —</option><option value="Française">Française</option><option value="Autre">Autre</option></select></div>'
     +'<div id="p-nat-autre-wrap" style="display:none;"><label class="flabel">Précisez *</label><input type="text" id="p-nat-autre" class="fi" placeholder="Votre nationalité"></div></div>'
-    +'<div style="margin-bottom:14px;"><label class="flabel">Adresse postale *</label><input type="text" id="p-adresse" class="fi" placeholder="N°, rue, code postal, ville"></div>'
-    +'<div class="form-row"><div><label class="flabel">Poste souhaité *</label><select id="p-poste" class="fi" onchange="togglePosteApprenti()">'+posteOpts+'</select></div>'
-    +'<div><label class="flabel">Êtes-vous étudiant(e) ? *</label><select id="p-etudiant" class="fi"><option value="non">Non</option><option value="oui">Oui</option></select></div></div>'
-    +'<div style="background:#0E1A22;border:1px solid #1E3A4A;border-radius:8px;padding:10px 12px;margin-top:4px;">'
+    +'<div style="margin-bottom:14px;"><label class="flabel">Adresse postale *</label><input type="text" id="p-adresse" class="fi" placeholder="N°, rue"></div>'
+    +'<div class="form-row"><div><label class="flabel">Code postal *</label><input type="text" id="p-cp" class="fi" inputmode="numeric" maxlength="5" placeholder="34000"></div>'
+    +'<div><label class="flabel">Ville *</label><input type="text" id="p-ville" class="fi" placeholder="Montpellier"></div></div>'
+    +'<div style="margin-bottom:4px;"><label class="flabel">Type de contrat souhaité *</label>'
+    +'<select id="p-contrat" class="fi">'
+    +'<option value="">— Choisir —</option>'
+    +'<option value="etudiant15">Étudiant 15h — disponible tout le week-end</option>'
+    +'<option value="etudiant20">Étudiant 20h — week-end + en soirée</option>'
+    +'<option value="temps24">24h — disponible tout le temps</option>'
+    +'<option value="appr_cap">Apprenti 35h — CAP</option>'
+    +'<option value="appr_bac">Apprenti 35h — niveau Bac</option>'
+    +'<option value="appr_bac2">Apprenti 35h — Bac+2</option>'
+    +'</select></div>'
+    +'<div style="background:#0E1A22;border:1px solid #1E3A4A;border-radius:8px;padding:10px 12px;margin-top:10px;">'
     +'<label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;display:flex;align-items:center;gap:6px;">♿ Bénéficiez-vous d\'une RQTH ? <span style="font-size:.72rem;color:#888;">(facultatif)</span></label>'
     +'<p style="font-size:.74rem;color:#7AB8D8;margin:4px 0 8px;">Reconnaissance de la Qualité de Travailleur Handicapé. Cette information reste confidentielle et nous aide à adapter votre accueil. Vous n\'êtes pas obligé(e) de répondre.</p>'
     +'<select id="p-rqth" class="fi"><option value="">Je préfère ne pas répondre</option><option value="oui">Oui</option><option value="non">Non</option></select></div>'
-    +'<div id="p-niveau-row" style="display:none;margin-top:10px;"><label class="flabel">Niveau d\'apprentissage *</label><select id="p-niveau" class="fi"><option value="">— Choisir —</option><option>Niveau CAP</option><option>Niveau Bac</option><option>Niveau Bac+2</option></select></div>'
     +'</div>'
     +'<div class="card"><div class="sec-title">🚗 Comment venez-vous ?</div>'
     +'<label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Votre moyen de transport pour venir travailler *</label>'
@@ -3350,10 +3491,10 @@ function showPostulerPage(presetResto){
     +'<div style="margin-top:12px;"><label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Combien de temps mettez-vous pour venir travailler ? *</label>'
     +'<select id="p-trajet" class="fi" style="margin-top:5px;"><option value="">— Choisir —</option>'
     +'<option>Moins de 10 min</option><option>10 à 20 min</option><option>20 à 30 min</option><option>30 à 45 min</option><option>Plus de 45 min</option></select></div></div>'
-    +'<div class="card"><div class="sec-title">🍔 Dans quel restaurant ?</div>'
-    +'<p style="font-size:.8rem;color:#aaa;margin-bottom:10px;">Nous avons trois restaurants. Choisissez celui où vous souhaitez travailler :</p>'
+    +'<div class="card"><div class="sec-title">🍔 Dans quel(s) restaurant(s) ?</div>'
+    +'<p style="font-size:.8rem;color:#aaa;margin-bottom:10px;">Nous avons trois restaurants. Choisissez un ou plusieurs restaurants où vous souhaitez travailler :</p>'
     +'<div id="p-resto-choice" style="display:flex;flex-direction:column;gap:8px;">'
-    +Object.keys(PUBLIC_RESTOS).map(function(k){return '<label style="display:flex;align-items:center;gap:10px;background:#1A1A1A;border:2px solid #333;border-radius:10px;padding:12px 14px;cursor:pointer;" onclick="pickRestoChoice(this,\''+k+'\')"><span style="font-size:1.4rem;">🍔</span><span style="font-weight:600;color:#eee;">'+PUBLIC_RESTOS[k]+'</span></label>';}).join('')
+    +Object.keys(PUBLIC_RESTOS).map(function(k){return '<label data-resto="'+k+'" style="display:flex;align-items:center;gap:10px;background:#1A1A1A;border:2px solid #333;border-radius:10px;padding:12px 14px;cursor:pointer;" onclick="pickRestoChoice(this,\''+k+'\')"><span class="resto-check" style="font-size:1.2rem;width:22px;">⬜</span><span style="font-weight:600;color:#eee;">'+PUBLIC_RESTOS[k]+'</span></label>';}).join('')
     +'</div><input type="hidden" id="p-resto" value=""></div>'
     +'<div class="card"><div class="sec-title">📅 Vos disponibilités</div>'
     +'<div style="background:#1A1208;border:1px solid #4A3000;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:.8rem;color:#ddd;line-height:1.5;">'
@@ -3469,11 +3610,6 @@ function removeCreneauJour(jour,i){
 }
 function initJourBar(jour){ renderJourSlots(jour); }
 
-function togglePosteApprenti(){
-  var poste=document.getElementById('p-poste').value;
-  var row=document.getElementById('p-niveau-row');
-  if(row)row.style.display=(poste==='Apprenti')?'block':'none';
-}
 function toggleNatAutre(){
   var v=document.getElementById('p-nationalite').value;
   var w=document.getElementById('p-nat-autre-wrap');
@@ -3486,9 +3622,17 @@ function toggleDejaBk(){
 }
 
 function pickRestoChoice(el,resto){
-  document.querySelectorAll('#p-resto-choice label').forEach(function(l){l.style.border='2px solid #333';l.style.background='#1A1A1A';});
-  el.style.border='2px solid var(--orange)';el.style.background='#2A1800';
-  document.getElementById('p-resto').value=resto;
+  // toggle : on peut sélectionner plusieurs restaurants
+  var on=el.getAttribute('data-on')==='1';
+  on=!on;
+  el.setAttribute('data-on',on?'1':'0');
+  el.style.border=on?'2px solid var(--orange)':'2px solid #333';
+  el.style.background=on?'#2A1800':'#1A1A1A';
+  var chk=el.querySelector('.resto-check');if(chk)chk.textContent=on?'✅':'⬜';
+  // reconstruire la liste des restaurants sélectionnés
+  var sel=[];
+  document.querySelectorAll('#p-resto-choice label[data-on="1"]').forEach(function(l){sel.push(l.getAttribute('data-resto'));});
+  document.getElementById('p-resto').value=sel.join(',');
 }
 
 function handleCV(input){
@@ -3534,13 +3678,27 @@ async function submitPostuler(){
   var transport=document.getElementById('p-transport').value;
   var trajet=document.getElementById('p-trajet').value;
   var adresse=document.getElementById('p-adresse').value.trim();
+  var cp=document.getElementById('p-cp')?document.getElementById('p-cp').value.trim():'';
+  var ville=document.getElementById('p-ville')?document.getElementById('p-ville').value.trim():'';
   var nationalite=document.getElementById('p-nationalite').value.trim();
   if(nationalite==='Autre'){var na=document.getElementById('p-nat-autre');nationalite=na&&na.value.trim()?na.value.trim():'';}
-  if(nationalite==='Autre'){var na=document.getElementById('p-nat-autre');nationalite=na?na.value.trim():'';}
-  var poste=document.getElementById('p-poste').value;
-  var resto=document.getElementById('p-resto').value;
-  var niveau=document.getElementById('p-niveau')?document.getElementById('p-niveau').value:'';
+  var contratVal=document.getElementById('p-contrat')?document.getElementById('p-contrat').value:'';
+  // correspondance type de contrat -> poste / niveau / étudiant / heures
+  var CONTRATS={
+    etudiant15:{label:'Étudiant 15h — week-end',poste:'Équipier',etudiant:true,heures:15,niveau:'',type:'cdi'},
+    etudiant20:{label:'Étudiant 20h — week-end + soir',poste:'Équipier',etudiant:true,heures:20,niveau:'',type:'cdi'},
+    temps24:{label:'24h — disponible tout le temps',poste:'Équipier',etudiant:false,heures:24,niveau:'',type:'cdi'},
+    appr_cap:{label:'Apprenti 35h — CAP',poste:'Apprenti',etudiant:false,heures:35,niveau:'Niveau CAP',type:'apprentissage'},
+    appr_bac:{label:'Apprenti 35h — niveau Bac',poste:'Apprenti',etudiant:false,heures:35,niveau:'Niveau Bac',type:'apprentissage'},
+    appr_bac2:{label:'Apprenti 35h — Bac+2',poste:'Apprenti',etudiant:false,heures:35,niveau:'Niveau Bac+2',type:'apprentissage'}
+  };
+  var ct=CONTRATS[contratVal]||null;
+  var poste=ct?ct.poste:'';
+  var niveau=ct?ct.niveau:'';
   var rqth=document.getElementById('p-rqth')?document.getElementById('p-rqth').value:'';
+  var restosVal=document.getElementById('p-resto').value;
+  var restosArr=restosVal?restosVal.split(',').filter(Boolean):[];
+  var resto=restosArr[0]||'';
   var motivation=document.getElementById('p-motivation').value.trim();
   var dejaBk=document.getElementById('p-dejabk')?document.getElementById('p-dejabk').value:'';
   var dejaBkOu=document.getElementById('p-dernier')?document.getElementById('p-dernier').value.trim():'';
@@ -3557,10 +3715,12 @@ async function submitPostuler(){
   if(!email||email.indexOf('@')<0){alert('Merci d\'indiquer un email valide.');return;}
   if(!nationalite){alert('Merci d\'indiquer votre nationalité.');return;}
   if(!adresse){alert('Merci d\'indiquer votre adresse postale.');return;}
-  if(poste==='Apprenti'&&!niveau){alert('Merci d\'indiquer votre niveau d\'apprentissage.');return;}
+  if(!cp){alert('Merci d\'indiquer votre code postal.');return;}
+  if(!ville){alert('Merci d\'indiquer votre ville.');return;}
+  if(!contratVal||!ct){alert('Merci de choisir le type de contrat souhaité.');return;}
   if(!transport){alert('Merci d\'indiquer votre moyen de transport.');return;}
   if(!trajet){alert('Merci d\'indiquer votre temps de trajet.');return;}
-  if(!resto){alert('Merci de choisir le restaurant souhaité.');return;}
+  if(!restosArr.length){alert('Merci de choisir au moins un restaurant.');return;}
   if(!dejaBk){alert('Merci d\'indiquer si vous avez déjà travaillé dans un Burger King.');return;}
   if(dejaBk==='oui'&&!dejaBkOu){alert('Merci d\'indiquer dans quel Burger King vous avez travaillé.');return;}
   if(!motivation){alert('Merci d\'expliquer pourquoi vous voulez travailler chez nous.');return;}
@@ -3581,10 +3741,11 @@ async function submitPostuler(){
   if(!window._photoData){alert('Merci d\'ajouter une photo (prenez-vous en photo ou choisissez un fichier).');return;}
   if(!window._cvData){alert('Merci de joindre votre CV (PDF ou image).');return;}
   var data={prenom:prenom,nom:nom,date_naissance:naissance,phone:phone,email:email,
-    adresse:adresse,nationalite:nationalite,sexe:sexe,
-    resto_id:resto,
-    poste:poste,niveau_apprentissage:(poste==='Apprenti'?niveau:''),
-    etudiant:document.getElementById('p-etudiant').value==='oui',
+    adresse:adresse,code_postal:cp,ville:ville,nationalite:nationalite,sexe:sexe,
+    resto_id:resto,restos:restosArr.join(','),
+    poste:poste,niveau_apprentissage:niveau,
+    etudiant:ct.etudiant,
+    contrat_type:contratVal,contrat_label:ct.label,contrat_heures:ct.heures,
     rqth:rqth,
     dernier_emploi:dernier,
     transport:transport,trajet:trajet,
@@ -3919,9 +4080,45 @@ var _mailTab='entretien';
 function loadMailTpl(){
   var tpl=getMailTpl();
   var exp=document.getElementById('mt-exp');if(exp)exp.value=tpl.expediteur||'';
+  renderCcList();
   _mailTab='entretien';
   document.querySelectorAll('#mt-tabs .rtab').forEach(function(b,i){b.classList.toggle('on',i===0);});
   fillMailFields();
+}
+function renderCcList(){
+  var box=document.getElementById('cc-list');if(!box)return;
+  var list=(DB.mailSettings&&DB.mailSettings.ccAddresses)||[];
+  if(!list.length){box.innerHTML='<p style="font-size:.76rem;color:#666;margin-bottom:6px;">Aucune adresse en copie cachée pour l\'instant.</p>';return;}
+  box.innerHTML=list.map(function(a,i){
+    var rlbl=a.resto==='all'||!a.resto?'Tous les restaurants':(RESTOS[a.resto]?RESTOS[a.resto].label:a.resto);
+    return '<div style="display:flex;align-items:center;gap:8px;background:#141414;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
+      +'<span style="flex:1;min-width:0;font-size:.82rem;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+a.email+'</span>'
+      +'<span style="font-size:.7rem;color:#888;background:#222;padding:2px 7px;border-radius:8px;">'+rlbl+'</span>'
+      +'<button class="btn-danger" style="padding:3px 8px;" onclick="delCcAddress('+i+')">🗑️</button>'
+      +'</div>';
+  }).join('');
+}
+function addCcAddress(){
+  var email=document.getElementById('cc-new-email').value.trim();
+  var resto=document.getElementById('cc-new-resto').value;
+  if(!email||email.indexOf('@')<0){toast('Entrez une adresse email valide','error');return;}
+  if(!DB.mailSettings)DB.mailSettings={};
+  if(!DB.mailSettings.ccAddresses)DB.mailSettings.ccAddresses=[];
+  DB.mailSettings.ccAddresses.push({email:email,resto:resto});
+  document.getElementById('cc-new-email').value='';
+  renderCcList();
+}
+function delCcAddress(i){
+  if(!DB.mailSettings||!DB.mailSettings.ccAddresses)return;
+  DB.mailSettings.ccAddresses.splice(i,1);
+  renderCcList();
+}
+async function saveMailAddresses(){
+  if(!DB.mailSettings)DB.mailSettings={};
+  if(!DB.mailSettings.mailTpl)DB.mailSettings.mailTpl=JSON.parse(JSON.stringify(getMailTpl()));
+  DB.mailSettings.mailTpl.expediteur=document.getElementById('mt-exp').value.trim();
+  await saveDB();
+  toast('Adresses enregistrées ✔','success');
 }
 function fillMailFields(){
   var tpl=getMailTpl();var t=tpl[_mailTab];
