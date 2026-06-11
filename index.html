@@ -8,7 +8,7 @@
 <script>
 (function(){
   // Version embarquée dans CE fichier (doit rester identique à APP_VERSION plus bas)
-  var EMBEDDED_VERSION = '2026-06-11 17:45';
+  var EMBEDDED_VERSION = '2026-06-11 18:01';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -318,7 +318,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
   <nav id="main-nav">
     <button class="active" onclick="goPage('equipe',this)">👥 Équipe</button>
     <button onclick="goPage('recrutement',this)">🎯 Recrutement <span id="rbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
-    <button onclick="goPage('visite',this)">🩺 Visite médicale</button>
+    <button onclick="goPage('visite',this)">🩺 Visite médicale <span id="vbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
     <button onclick="goPage('incidents',this)">📋 Incidents</button>
     <button onclick="goPage('rapports',this)">📊 Rapports</button>
     <button onclick="goPage('planning',this)">🗓️ Planning</button>
@@ -369,7 +369,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
   <div class="page" id="page-visite">
     <div class="card">
       <div class="sec-title">🩺 Visites médicales</div>
-      <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Suivi des visites médicales d'embauche. Chaque salarié doit la passer dans les 6 mois suivant son entrée. 🟢 OK · 🟠 à planifier (2 mois) · 🔴 urgent (4 mois).</p>
+      <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Suivi des visites médicales. <strong>Visite d'embauche</strong> : à passer dans les 6 mois suivant l'entrée. <strong>Visites périodiques</strong> : validez-les depuis la fiche du salarié (Équipe → Historique) en insérant l'avis médical et en indiquant la date de la prochaine visite. 🟢 OK · 🟠 à planifier · 🔴 dépassé.</p>
       <div id="visite-resto-filter" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
         <button class="rtab rf on" onclick="setVisiteResto(this,'all')">Tous</button>
         <button class="rtab rf" onclick="setVisiteResto(this,'bk500')">BK 500</button>
@@ -712,17 +712,45 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
   <div class="modal" style="width:560px;max-width:96vw;">
     <div class="modal-title" id="histo-title">📋 Fiche salarié</div>
     <div id="histo-content"></div>
+    <div id="histo-visite" style="margin-top:16px;"></div>
     <div id="histo-docs" style="margin-top:16px;"></div>
     <button class="btn btn-red" id="histo-pdf-btn" style="margin-top:16px;width:100%;" onclick="openPdfConfig(_histoEmpId)">📄 Générer un rapport PDF…</button>
     <button class="btn btn-gray" style="margin-top:8px;width:100%;" onclick="closeModal('modal-historique')">Fermer</button>
   </div>
 </div>
 
-<div class="modal-ov" id="modal-docview">
-  <div class="modal" style="width:90vw;max-width:1000px;height:88vh;display:flex;flex-direction:column;">
-    <div class="modal-title" id="docview-title" style="flex-shrink:0;">📄 Document</div>
-    <div id="docview-body" style="flex:1;min-height:0;border-radius:10px;overflow:hidden;background:#0e0e0e;"></div>
-    <button class="btn btn-gray" style="margin-top:12px;flex-shrink:0;" onclick="closeModal('modal-docview')">Fermer</button>
+<div class="modal-ov" id="modal-visite-valider">
+  <div class="modal" style="width:440px;max-width:96vw;">
+    <div class="modal-title">🩺 Valider une visite médicale</div>
+    <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Salarié : <strong id="visite-emp-nom" style="color:#ddd;"></strong></p>
+    <label class="flabel">Date de la visite *</label>
+    <input type="date" id="visite-date-input" class="fi" style="margin-bottom:14px;">
+    <label class="flabel">Date de la prochaine visite * <span style="text-transform:none;color:#888;font-size:.72rem;">(crée le rappel)</span></label>
+    <input type="date" id="visite-proch-input" class="fi" style="margin-bottom:6px;">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+      <span style="font-size:.72rem;color:#888;align-self:center;">Calcul rapide :</span>
+      <button type="button" class="btn btn-gray btn-sm" style="padding:3px 9px;" onclick="setVisiteDelai(1)">+1 an</button>
+      <button type="button" class="btn btn-gray btn-sm" style="padding:3px 9px;" onclick="setVisiteDelai(2)">+2 ans</button>
+      <button type="button" class="btn btn-gray btn-sm" style="padding:3px 9px;" onclick="setVisiteDelai(3)">+3 ans</button>
+      <button type="button" class="btn btn-gray btn-sm" style="padding:3px 9px;" onclick="setVisiteDelai(5)">+5 ans</button>
+    </div>
+    <label class="flabel">Avis médical (fichier) *</label>
+    <input type="file" id="visite-file-input" accept="application/pdf,image/*" style="display:none;" onchange="handleVisiteFile(this)">
+    <button type="button" class="btn btn-gray btn-sm" style="margin-bottom:4px;" onclick="document.getElementById('visite-file-input').click()">📎 Insérer l'avis médical</button>
+    <div id="visite-file-name" style="font-size:.78rem;color:#4CAF50;margin-bottom:6px;"></div>
+    <div id="visite-status" style="font-size:.74rem;color:#888;margin-bottom:10px;"></div>
+    <button class="btn btn-red" style="width:100%;" onclick="confirmValiderVisite()">✅ Valider la visite</button>
+    <button class="btn btn-gray" style="width:100%;margin-top:8px;" onclick="closeModal('modal-visite-valider')">Annuler</button>
+  </div>
+</div>
+
+<div class="modal-ov" id="modal-docview" style="z-index:500;background:rgba(0,0,0,.92);">
+  <div class="modal" style="width:96vw;max-width:1100px;height:94vh;display:flex;flex-direction:column;padding:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0;margin-bottom:12px;">
+      <div class="modal-title" id="docview-title" style="margin-bottom:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📄 Document</div>
+      <button class="btn btn-red" style="flex-shrink:0;padding:8px 18px;" onclick="closeModal('modal-docview')">✕ Fermer</button>
+    </div>
+    <div id="docview-body" style="flex:1;min-height:0;border-radius:10px;overflow:auto;background:#0e0e0e;"></div>
   </div>
 </div>
 
@@ -833,7 +861,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-11 17:45';
+const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-11 18:01';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
@@ -1044,7 +1072,8 @@ async function loadAll() {
       email:e.email||'',phone:e.phone||'',archived:!!e.archived,
       exitDate:e.exit_date||'',exitMotif:e.exit_motif||'',exitNote:e.exit_note||'',
       sortieStatut:e.sortie_statut||'',sortieMotif:e.sortie_motif||'',sortieDate:e.sortie_date||'',
-      sortieDocs:e.sortie_docs||{},sortieValidee:!!e.sortie_validee,fromCandId:e.from_cand_id||'',transport:e.transport||''};
+      sortieDocs:e.sortie_docs||{},sortieValidee:!!e.sortie_validee,fromCandId:e.from_cand_id||'',transport:e.transport||'',
+      visiteDate:e.visite_date||'',visiteProchaine:e.visite_prochaine||''};
   });
   DB.incidents = (incs||[]).map(function(i){
     return {id:i.id,empId:i.emp_id,restoId:i.resto_id,reporterId:i.reporter_id||'',
@@ -1755,6 +1784,7 @@ var EMPDOC_CATS=[
   {id:'contrat',label:'Contrat',icon:'📄'},
   {id:'avenant',label:'Avenant',icon:'📝'},
   {id:'sanction',label:'Sanction',icon:'⚠️'},
+  {id:'visite_medicale',label:'Avis médical',icon:'🩺'},
   {id:'autre',label:'Autre document',icon:'📎'}
 ];
 function _empDocCatLbl(id){var c=EMPDOC_CATS.find(function(x){return x.id===id;});return c?c.label:id;}
@@ -1768,6 +1798,7 @@ function dbxEmpFolder(e){
 
 function renderEmpDocs(empId){
   var box=document.getElementById('histo-docs');if(!box)return;
+  renderVisiteMedicalePanel(empId);
   var docs=(DB.empDocs||[]).filter(function(d){return d.empId===empId;})
     .sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);});
   var h='<div style="border-top:1px solid #333;padding-top:14px;">'
@@ -1809,10 +1840,103 @@ function renderEmpDocs(empId){
 function viewDoc(docId){
   var d=(DB.empDocs||[]).find(function(x){return x.id===docId;});if(!d||!d.link)return;
   document.getElementById('docview-title').textContent='📄 '+(d.label||d.name||'Document');
-  // visionneuse intégrée : iframe en lecture (pas de bouton télécharger)
-  document.getElementById('docview-body').innerHTML='<iframe src="'+d.link+'" style="width:100%;height:100%;border:none;" title="Document"></iframe>';
+  document.getElementById('docview-body').innerHTML=docViewerHtml(d.link,d.name);
   document.getElementById('modal-docview').classList.add('open');
 }
+// Visionneuse robuste : image -> <img>, sinon iframe + lien de secours (utile sur mobile/Safari pour les PDF)
+function docViewerHtml(link,name){
+  var low=((name||'')+' '+(link||'')).toLowerCase();
+  var isImg=/\.(jpg|jpeg|png|gif|webp|heic)(\?|$)/.test(low)||low.indexOf('image/')>=0;
+  var secours='<div style="text-align:center;padding:10px;"><a href="'+link+'" target="_blank" rel="noopener" style="color:var(--orange);font-size:.82rem;">↗ Ouvrir dans un nouvel onglet</a></div>';
+  if(isImg){
+    return '<div style="width:100%;height:100%;overflow:auto;text-align:center;">'
+      +'<img src="'+link+'" style="max-width:100%;height:auto;display:inline-block;" alt="Document">'
+      +secours+'</div>';
+  }
+  return '<iframe src="'+link+'" style="width:100%;height:calc(100% - 38px);border:none;" title="Document"></iframe>'+secours;
+}
+
+// ── VISITE MÉDICALE PÉRIODIQUE (fiche salarié) ───────────────────────────────
+function renderVisiteMedicalePanel(empId){
+  var box=document.getElementById('histo-visite');if(!box)return;
+  var e=DB.employees.find(function(x){return x.id===empId;});if(!e){box.innerHTML='';return;}
+  var v=visiteEmpInfo(e);
+  box.innerHTML='<div style="border-top:1px solid #333;padding-top:14px;">'
+    +'<div style="font-size:.78rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:700;">🩺 Visite médicale</div>'
+    +'<div style="background:#141414;border-left:4px solid '+v.col+';border-radius:0 8px 8px 0;padding:10px 12px;">'
+    +'<div style="font-weight:700;font-size:.9rem;color:#fff;">'+v.badge+'</div>'
+    +(v.sub?'<div style="font-size:.74rem;color:#999;margin-top:3px;">'+v.sub+'</div>':'')
+    +'</div>'
+    +'<button class="btn btn-red btn-sm" style="margin-top:10px;width:100%;" onclick="openValiderVisite(\''+empId+'\')">✅ Valider une visite médicale</button>'
+    +'</div>';
+}
+
+var _visiteEmpId=null,_visiteFileData=null,_visiteFileName=null;
+function openValiderVisite(empId){
+  var e=DB.employees.find(function(x){return x.id===empId;});if(!e)return;
+  _visiteEmpId=empId;_visiteFileData=null;_visiteFileName=null;
+  var today=new Date();today.setMinutes(today.getMinutes()-today.getTimezoneOffset());
+  document.getElementById('visite-emp-nom').textContent=e.name;
+  document.getElementById('visite-date-input').value=e.visiteDate||today.toISOString().slice(0,10);
+  document.getElementById('visite-proch-input').value=e.visiteProchaine||'';
+  document.getElementById('visite-file-name').textContent='';
+  document.getElementById('visite-file-input').value='';
+  document.getElementById('visite-status').textContent='';
+  document.getElementById('modal-visite-valider').classList.add('open');
+}
+function handleVisiteFile(input){
+  var file=input.files&&input.files[0];if(!file)return;
+  if(file.size>8*1024*1024){alert('Fichier trop volumineux (max 8 Mo).');input.value='';return;}
+  var reader=new FileReader();
+  reader.onload=function(ev){_visiteFileData=ev.target.result;_visiteFileName=file.name;
+    document.getElementById('visite-file-name').textContent='✓ '+file.name;};
+  reader.readAsDataURL(file);
+}
+function setVisiteDelai(ans){
+  var di=document.getElementById('visite-date-input').value;
+  if(!di){alert('Indiquez d\'abord la date de la visite.');return;}
+  var base=new Date(di+'T12:00:00');
+  base.setFullYear(base.getFullYear()+ans);
+  base.setMinutes(base.getMinutes()-base.getTimezoneOffset());
+  document.getElementById('visite-proch-input').value=base.toISOString().slice(0,10);
+}
+async function confirmValiderVisite(){
+  var e=DB.employees.find(function(x){return x.id===_visiteEmpId;});if(!e)return;
+  var dVisite=document.getElementById('visite-date-input').value;
+  var dProch=document.getElementById('visite-proch-input').value;
+  if(!dVisite){alert('Indiquez la date de la visite médicale.');return;}
+  if(!dProch){alert('Indiquez la date de la prochaine visite (c\'est elle qui crée le rappel).');return;}
+  if(!_visiteFileData){alert('Merci d\'insérer le fichier de l\'avis médical pour valider la visite.');return;}
+  var btn=event&&event.target;if(btn){btn.disabled=true;btn.textContent='Enregistrement...';}
+  var st=document.getElementById('visite-status');if(st)st.textContent='Enregistrement en cours…';
+  try{
+    // 1) document avis médical -> Dropbox + bks_emp_docs
+    var link=_visiteFileData; // secours : base64 si Dropbox indispo
+    try{
+      var dbxReady=(typeof DBX_APP_KEY!=='undefined')&&DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0;
+      if(dbxReady){
+        var ext=(_visiteFileName&&_visiteFileName.indexOf('.')>=0)?_visiteFileName.split('.').pop():'jpg';
+        var fname='Avis_medical_'+dVisite+'.'+ext;
+        var folder=dbxEmpFolder(e);
+        var blob=_dataUrlToBlob(_visiteFileData);
+        link=await dbxUpload(folder+'/'+fname,blob);
+      }
+    }catch(upErr){console.error('Dropbox échec avis médical, conservation locale',upErr);}
+    var docId='d'+Date.now();
+    await sb.insert('bks_emp_docs',{id:docId,emp_id:e.id,categorie:'visite_medicale',
+      label:'Avis médical du '+new Date(dVisite+'T12:00:00').toLocaleDateString('fr-FR'),link:link,name:_visiteFileName||'avis_medical'});
+    // 2) mise à jour des dates de visite sur le salarié
+    await sb.patch('bks_employees','id=eq.'+e.id,{visite_date:dVisite,visite_prochaine:dProch});
+    await loadAll();
+    closeModal('modal-visite-valider');
+    renderVisiteMedicalePanel(e.id);renderEmpDocs(e.id);
+    if(typeof renderVisiteList==='function')renderVisiteList();
+    if(typeof updateRBadge==='function')updateRBadge();
+    toast('Visite médicale validée ✔ Rappel créé pour le '+new Date(dProch+'T12:00:00').toLocaleDateString('fr-FR'),'success');
+  }catch(err){console.error(err);if(st)st.textContent='Erreur lors de l\'enregistrement.';toast('Erreur','error');
+    if(btn){btn.disabled=false;btn.textContent='✅ Valider la visite';}}
+}
+
 
 async function handleEmpDocUpload(input){
   var file=input.files[0];if(!file)return;
@@ -2410,8 +2534,16 @@ function downloadAffichePdf(){
 
 function updateRBadge(){
   var n=(DB.candidatures||[]).filter(function(c){return c.statut==='nouveau';}).length;
-  var b=document.getElementById('rbadge');if(!b)return;
-  if(n>0){b.textContent=n;b.style.display='inline-flex';}else{b.style.display='none';}
+  var b=document.getElementById('rbadge');if(b){if(n>0){b.textContent=n;b.style.display='inline-flex';}else{b.style.display='none';}}
+  // badge visites médicales : embauches urgentes/dépassées + périodiques orange/dépassées
+  var vn=0;
+  (DB.candidatures||[]).filter(function(c){return (c.statut||'')==='essai';}).forEach(function(c){
+    var et=visiteInfo(c).etat;if(et==='rouge'||et==='depasse')vn++;
+  });
+  (DB.employees||[]).filter(function(e){return !e.archived;}).forEach(function(e){
+    var et=visiteEmpInfo(e).etat;if(et==='orange'||et==='depasse')vn++;
+  });
+  var vb=document.getElementById('vbadge');if(vb){if(vn>0){vb.textContent=vn;vb.style.display='inline-flex';}else{vb.style.display='none';}}
 }
 
 // ── AGENDA DES ENTRETIENS ─────────────────────────────────────────────────────
@@ -2553,7 +2685,28 @@ function essaiInfo(c){
   return {jours:jours,fin:fin,joursRestants:joursRestants,label:label,alert:alert,alertCol:alertCol,apprenti:estApprenti,niveau:niveau};
 }
 
-// Visite médicale : feu tricolore basé sur la date d'entrée (date de démarrage)
+// Visite médicale périodique d'un SALARIÉ (basée sur la date de prochaine visite saisie)
+// 🟢 OK · 🟠 à planifier (< 2 mois) · 🔴 dépassé
+function visiteEmpInfo(e){
+  if(!e.visiteProchaine){
+    if(e.visiteDate){
+      return {col:'#888',badge:'⚪ Prochaine visite à définir',etat:'adefinir',
+        sub:'Dernière visite le '+new Date(e.visiteDate+'T12:00:00').toLocaleDateString('fr-FR')};
+    }
+    return {col:'#888',badge:'⚪ Aucune visite enregistrée',etat:'aucune',sub:''};
+  }
+  var proch=new Date(e.visiteProchaine+'T12:00:00');
+  var now=new Date();
+  var jours=Math.round((proch-now)/(24*3600*1000));
+  var prochStr=proch.toLocaleDateString('fr-FR');
+  var sub=(e.visiteDate?'Dernière le '+new Date(e.visiteDate+'T12:00:00').toLocaleDateString('fr-FR')+' · ':'')+'Prochaine le '+prochStr;
+  var col,badge,etat;
+  if(jours<0){col='#cc5555';badge='🔴 Visite dépassée ('+prochStr+')';etat='depasse';}
+  else if(jours<=60){col='#F5A623';badge='🟠 À planifier — avant le '+prochStr;etat='orange';}
+  else{col='#4CAF50';badge='🟢 OK — prochaine le '+prochStr;etat='ok';}
+  return {col:col,badge:badge,etat:etat,sub:sub,jours:jours,prochStr:prochStr};
+}
+
 // < 2 mois : vert clair · 2-4 mois : orange · > 4 mois : rouge · doit être faite avant 6 mois
 function visiteInfo(c){
   if(c.visiteFaite){
@@ -2584,16 +2737,13 @@ function renderVisiteList(){
   var list=document.getElementById('visite-list');if(!list)return;
   var isDir=(curUser&&curUser.role==='directeur');
   document.getElementById('visite-resto-filter').style.display=isDir?'none':'flex';
+  // ── SECTION 1 : visite d'embauche (candidats en période d'essai) ──
   var cands=DB.candidatures.filter(function(c){return (c.statut||'')==='essai';});
   if(isDir)cands=cands.filter(function(c){return c.restoId===curUser.restoId;});
   if(!isDir&&visiteRestoFilter!=='all')cands=cands.filter(function(c){return c.restoId===visiteRestoFilter;});
-  // tri : les plus urgents d'abord (rouge > orange > vert > fait)
   var ordre={depasse:0,rouge:1,orange:2,ok:3,inconnu:4,fait:5};
   cands.sort(function(a,b){return (ordre[visiteInfo(a).etat]||9)-(ordre[visiteInfo(b).etat]||9);});
-  if(!cands.length){
-    list.innerHTML='<div class="empty"><div class="ei">🩺</div><p>Aucun salarié à suivre pour la visite médicale</p></div>';return;
-  }
-  list.innerHTML=cands.map(function(c){
+  var embaucheHtml=cands.map(function(c){
     var v=visiteInfo(c);
     var resto=RESTOS[c.restoId]?RESTOS[c.restoId].label:c.restoId;
     var meta='Entrée le '+(c.dateDebut?new Date(c.dateDebut+'T12:00:00').toLocaleDateString('fr-FR'):'?')+' · '+resto;
@@ -2606,6 +2756,31 @@ function renderVisiteList(){
       +'<span style="color:'+v.col+';font-size:1.3rem;">›</span>'
       +'</div>';
   }).join('');
+  // ── SECTION 2 : visites périodiques (salariés actifs) ──
+  var emps=DB.employees.filter(function(e){return !e.archived;});
+  if(isDir)emps=emps.filter(function(e){return e.restoId===curUser.restoId;});
+  if(!isDir&&visiteRestoFilter!=='all')emps=emps.filter(function(e){return e.restoId===visiteRestoFilter;});
+  var ordreE={depasse:0,orange:1,ok:2,adefinir:3,aucune:4};
+  emps.sort(function(a,b){return (ordreE[visiteEmpInfo(a).etat]||9)-(ordreE[visiteEmpInfo(b).etat]||9);});
+  var periodiqueHtml=emps.map(function(e){
+    var v=visiteEmpInfo(e);
+    var resto=RESTOS[e.restoId]?RESTOS[e.restoId].label:e.restoId;
+    var ini=(e.name||'').split(' ').map(function(x){return x[0]||'';}).join('').slice(0,2).toUpperCase();
+    return '<div class="emp-card" style="border-left:4px solid '+v.col+';cursor:pointer;" onclick="openHistorique(\''+e.id+'\')">'
+      +'<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
+      +'<div class="emp-av av-e">'+ini+'</div>'
+      +'<div style="min-width:0;"><div style="font-weight:600;font-size:.92rem;">'+e.name+'</div>'
+      +'<div style="font-size:.73rem;color:#888;">'+(v.sub||resto)+'</div>'
+      +'<div style="margin-top:3px;"><span style="background:'+v.col+';color:#fff;border-radius:10px;padding:2px 8px;font-size:.68rem;font-weight:700;">'+v.badge+'</span></div></div></div>'
+      +'<span style="color:'+v.col+';font-size:1.3rem;">›</span>'
+      +'</div>';
+  }).join('');
+  var html='';
+  html+='<div style="font-size:.78rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin:4px 0 8px;font-weight:700;">🆕 Visite d\'embauche (période d\'essai)</div>';
+  html+=embaucheHtml||'<div style="font-size:.8rem;color:#666;padding:8px 2px 16px;">Aucun salarié en période d\'essai.</div>';
+  html+='<div style="font-size:.78rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin:18px 0 8px;font-weight:700;border-top:1px solid #2A2A2A;padding-top:16px;">🔁 Visites périodiques (équipe)</div>';
+  html+=periodiqueHtml||'<div style="font-size:.8rem;color:#666;padding:8px 2px;">Aucun salarié actif.</div>';
+  list.innerHTML=html;
 }
 
 function renderApercuForm(){
@@ -2744,7 +2919,7 @@ function viewCV(id){
   var c=DB.candidatures.find(function(x){return x.id===id;});
   if(!c||!c.cvData)return;
   document.getElementById('docview-title').textContent='📄 CV — '+c.prenom+' '+c.nom;
-  document.getElementById('docview-body').innerHTML='<iframe src="'+c.cvData+'" style="width:100%;height:100%;border:none;" title="CV"></iframe>';
+  document.getElementById('docview-body').innerHTML=docViewerHtml(c.cvData,c.cvName||'CV');
   document.getElementById('modal-docview').classList.add('open');
 }
 
@@ -3610,7 +3785,7 @@ function showPostulerPage(presetResto){
     +'<p style="font-size:.8rem;color:#aaa;margin-bottom:12px;">Cochez les jours où vous êtes disponible, puis indiquez vos horaires (de quelle heure à quelle heure). Vous pouvez ajouter une 2ᵉ plage si vous avez une coupure.</p>'
     +'<div style="background:#0E1A22;border:1px solid #1E3A4A;border-radius:8px;padding:12px 14px;margin-bottom:16px;">'
     +'<div style="font-weight:700;color:var(--orange);font-size:.86rem;margin-bottom:4px;">⚡ Disponible tout le temps ?</div>'
-    +'<p style="font-size:.76rem;color:#9FC4D8;margin-bottom:10px;line-height:1.4;">Si vous avez les mêmes horaires tous les jours (du lundi au dimanche), indiquez-les ici une seule fois.</p>'
+    +'<p style="font-size:.76rem;color:#9FC4D8;margin-bottom:10px;line-height:1.4;">Les horaires sont déjà pré-remplis ('+minToLabel(amp.start)+' → '+minToLabel(amp.end)+'). Si c\'est pareil tous les jours, cliquez simplement sur le bouton ci-dessous. Vous pourrez ensuite ajuster chaque jour.</p>'
     +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px;">'
     +'<span style="font-size:.78rem;color:#aaa;">De</span>'
     +'<select id="quick-from" class="fi" style="width:auto;padding:7px 8px;">'+_heureOptions(amp,amp.start)+'</select>'
@@ -3692,27 +3867,7 @@ function renderJourSlots(jour){
   if(slots.length<2){
     h+='<button type="button" class="btn btn-gray btn-sm" style="padding:4px 10px;font-size:.74rem;" onclick="addCreneauJour(\''+jour+'\')">+ Ajouter une 2ᵉ plage (coupure)</button>';
   }
-  // Bouton copier sur tous les jours (si au moins un créneau complet)
-  var hasFull=slots.some(function(s){return s.from!==''&&s.to!=='';});
-  if(hasFull){
-    h+='<button type="button" class="btn btn-gray btn-sm" style="padding:4px 10px;font-size:.74rem;margin-left:6px;color:var(--orange);border-color:var(--orange);" onclick="copyDispoToAll(\''+jour+'\')">📋 Copier ces horaires sur tous les jours</button>';
-  }
   box.innerHTML=h;
-}
-function copyDispoToAll(jour){
-  var src=dispoState[jour]||[];
-  var full=src.filter(function(s){return s.from!==''&&s.to!=='';});
-  if(!full.length){return;}
-  if(!confirm('Appliquer les horaires du '+(JOURS.find(function(j){return j[0]===jour;})||['',jour])[1]+' à TOUS les jours de la semaine ?\n\n(Vous pourrez ensuite modifier ou décocher les jours que vous ne voulez pas.)'))return;
-  JOURS.forEach(function(j){
-    var jr=j[0];
-    // copie profonde des créneaux complets
-    dispoState[jr]=full.map(function(s){return {from:s.from,to:s.to};});
-    var cb=document.getElementById('day-on-'+jr);if(cb)cb.checked=true;
-    var box=document.getElementById('day-slots-'+jr);if(box)box.style.display='block';
-    renderJourSlots(jr);
-  });
-  toast&&toast('Horaires copiés sur tous les jours ✔','success');
 }
 function applyDispoSemaine(){
   var fromEl=document.getElementById('quick-from'),toEl=document.getElementById('quick-to');
