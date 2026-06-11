@@ -195,6 +195,9 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
       <div class="tile tile-bk" onclick="pickResto('bk509')" style="border-color:#FF6B35;"><div class="tile-icon">🍔</div><div class="tile-label">BK 509</div><div class="tile-sub">Sélectionner</div></div>
       <div class="tile tile-bk" onclick="pickResto('bk526')" style="border-color:#FFB347;"><div class="tile-icon">🍔</div><div class="tile-label">BK 526</div><div class="tile-sub">Sélectionner</div></div>
     </div>
+    <div style="margin-top:24px;">
+      <button onclick="openFeedback()" style="background:rgba(245,166,35,.10);color:#F5A623;border:1px solid rgba(245,166,35,.4);padding:11px 22px;border-radius:24px;cursor:pointer;font-size:.85rem;font-weight:700;font-family:inherit;">💡 Correctifs &amp; demandes</button>
+    </div>
   </div>
 
   <div class="login-step" id="step-profiles" style="display:none;">
@@ -232,6 +235,44 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
     </div>
   </div>
   <div id="login-version" style="position:fixed;bottom:10px;left:0;right:0;text-align:center;font-size:.7rem;color:#555;"></div>
+</div>
+
+<!-- Modal Correctifs & demandes (accessible dès l'écran d'entrée) -->
+<div id="feedback-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);align-items:center;justify-content:center;padding:16px;">
+  <div style="background:var(--gray);border:1px solid #444;border-radius:14px;padding:24px;width:430px;max-width:95vw;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.3rem;color:var(--yellow);text-transform:uppercase;letter-spacing:1px;">💡 Correctifs &amp; demandes</div>
+      <button onclick="closeFeedback()" style="background:none;border:none;color:#888;font-size:1.3rem;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <p style="color:#888;font-size:.78rem;margin-bottom:18px;">Signale un bug, propose une amélioration ou pose une question.</p>
+
+    <label class="flabel">Restaurant concerné</label>
+    <select id="fb-resto" class="fi"><option value="">— Général / tous —</option><option value="bk500">BK 500</option><option value="bk509">BK 509</option><option value="bk526">BK 526</option></select>
+
+    <label class="flabel" style="margin-top:11px;">Votre nom</label>
+    <input id="fb-auteur" class="fi" placeholder="Qui fait la demande ?">
+
+    <div style="display:flex;gap:10px;margin-top:11px;">
+      <div style="flex:1;">
+        <label class="flabel">Type</label>
+        <select id="fb-type" class="fi"><option value="bug">🐞 Bug</option><option value="amelioration" selected>✨ Amélioration</option><option value="question">❓ Question</option></select>
+      </div>
+      <div style="flex:1;">
+        <label class="flabel">Priorité</label>
+        <select id="fb-priorite" class="fi"><option value="basse">Basse</option><option value="normale" selected>Normale</option><option value="haute">🔴 Haute</option></select>
+      </div>
+    </div>
+
+    <label class="flabel" style="margin-top:11px;">Titre (optionnel)</label>
+    <input id="fb-titre" class="fi" placeholder="Résumé court">
+
+    <label class="flabel" style="margin-top:11px;">Description</label>
+    <textarea id="fb-message" class="fi" rows="4" style="resize:vertical;font-family:inherit;" placeholder="Décris le problème ou la demande…"></textarea>
+
+    <div id="fb-msg" style="display:none;font-size:.82rem;margin:10px 0;"></div>
+
+    <button onclick="envoyerFeedback()" style="width:100%;margin-top:14px;background:var(--yellow);color:var(--dark);border:none;padding:13px;border-radius:8px;font-weight:700;font-size:.92rem;cursor:pointer;font-family:inherit;">Envoyer</button>
+  </div>
 </div>
 
 <div id="app">
@@ -761,7 +802,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '2026-06-10 16:35';
+const APP_VERSION = '2026-06-11 14:42';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
@@ -901,6 +942,32 @@ var eqTab = 'all';
 var rptTab = 'all';
 
 const RESTOS = {bk500:{id:'bk500',label:'BK 500'},bk509:{id:'bk509',label:'BK 509'},bk526:{id:'bk526',label:'BK 526'}};
+
+// ── CORRECTIFS & DEMANDES (accessible dès l'écran d'entrée) ──
+function openFeedback(){ var m=document.getElementById('feedback-modal'); if(m) m.style.display='flex'; }
+function closeFeedback(){ var m=document.getElementById('feedback-modal'); if(m) m.style.display='none'; }
+async function envoyerFeedback(){
+  var msgEl=document.getElementById('fb-msg');
+  function show(txt,color){ if(msgEl){ msgEl.textContent=txt; msgEl.style.color=color; msgEl.style.display='block'; } }
+  var message=(document.getElementById('fb-message')?document.getElementById('fb-message').value:'').trim();
+  if(!message){ show('⚠️ Décris au moins le problème ou la demande.','#D62300'); return; }
+  var ligne={
+    restaurant: (document.getElementById('fb-resto')||{}).value || null,
+    auteur: ((document.getElementById('fb-auteur')||{}).value||'').trim() || 'anonyme',
+    type: (document.getElementById('fb-type')||{}).value || 'amelioration',
+    priorite: (document.getElementById('fb-priorite')||{}).value || 'normale',
+    titre: ((document.getElementById('fb-titre')||{}).value||'').trim() || null,
+    message: message,
+    statut: 'nouveau'
+  };
+  try{
+    var res = await sb.insert('retours_app', ligne);
+    if(!res){ show('❌ Erreur d\'envoi. Réessaie.','#D62300'); return; }
+    show('✅ Envoyé, merci !','#4CAF50');
+    ['fb-titre','fb-message','fb-auteur'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+    setTimeout(closeFeedback, 1400);
+  }catch(e){ show('❌ Erreur : '+(e.message||e),'#D62300'); }
+}
 const GLOBALS = {admin:{key:'admin',icon:'🛡️',title:'Admin',sub:'Accès total',role:'franchise'},rh:{key:'rh',icon:'👩‍💼',title:'Superviseure',sub:'RH / Supervision',role:'franchise'}};
 const PROFILES = {directeur:{key:'directeur',icon:'👔',title:'Directeur',role:'directeur'},manager1:{key:'manager1',icon:'⭐',title:'Manager 1',role:'manager'},manager2:{key:'manager2',icon:'⭐',title:'Manager 2',role:'manager'},manager3:{key:'manager3',icon:'⭐',title:'Manager 3',role:'manager'},manager4:{key:'manager4',icon:'⭐',title:'Manager 4',role:'manager'}};
 const PROBS = [
