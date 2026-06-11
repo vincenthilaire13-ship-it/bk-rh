@@ -3540,6 +3540,18 @@ function showPostulerPage(presetResto){
     +'🍔 Le restaurant accueille la clientèle de <strong style="color:var(--orange);">11h à minuit</strong>.<br>'
     +'👥 Nous avons besoin d\'équipiers de <strong style="color:var(--orange);">'+minToLabel(amp.start)+' à '+minToLabel(amp.end)+'</strong> (ouverture et fermeture incluses).</div>'
     +'<p style="font-size:.8rem;color:#aaa;margin-bottom:12px;">Cochez les jours où vous êtes disponible, puis indiquez vos horaires (de quelle heure à quelle heure). Vous pouvez ajouter une 2ᵉ plage si vous avez une coupure.</p>'
+    +'<div style="background:#0E1A22;border:1px solid #1E3A4A;border-radius:8px;padding:12px 14px;margin-bottom:16px;">'
+    +'<div style="font-weight:700;color:var(--orange);font-size:.86rem;margin-bottom:4px;">⚡ Disponible tout le temps ?</div>'
+    +'<p style="font-size:.76rem;color:#9FC4D8;margin-bottom:10px;line-height:1.4;">Si vous avez les mêmes horaires tous les jours (du lundi au dimanche), indiquez-les ici une seule fois.</p>'
+    +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px;">'
+    +'<span style="font-size:.78rem;color:#aaa;">De</span>'
+    +'<select id="quick-from" class="fi" style="width:auto;padding:7px 8px;">'+_heureOptions(amp,amp.start)+'</select>'
+    +'<span style="font-size:.78rem;color:#aaa;">à</span>'
+    +'<select id="quick-to" class="fi" style="width:auto;padding:7px 8px;">'+_heureOptions(amp,amp.end)+'</select>'
+    +'</div>'
+    +'<button type="button" class="btn btn-red btn-sm" style="width:100%;padding:9px;" onclick="applyDispoSemaine()">✅ Appliquer à toute la semaine (Lun → Dim)</button>'
+    +'<p style="font-size:.7rem;color:#666;margin-top:7px;">Vous pourrez ensuite décocher ou ajuster les jours que vous souhaitez ci-dessous.</p>'
+    +'</div>'
     +jourRows+'</div>'
     +'<div class="card"><div class="sec-title">💼 Votre parcours</div>'
     +'<div style="margin-bottom:14px;"><label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Avez-vous déjà travaillé dans un Burger King ? *</label>'
@@ -3633,6 +3645,22 @@ function copyDispoToAll(jour){
     renderJourSlots(jr);
   });
   toast&&toast('Horaires copiés sur tous les jours ✔','success');
+}
+function applyDispoSemaine(){
+  var fromEl=document.getElementById('quick-from'),toEl=document.getElementById('quick-to');
+  if(!fromEl||!toEl)return;
+  var from=fromEl.value?parseInt(fromEl.value):'';
+  var to=toEl.value?parseInt(toEl.value):'';
+  if(from===''||to===''){alert('Choisissez une heure de début et de fin.');return;}
+  if(to<=from){alert('L\'heure de fin doit être après l\'heure de début.');return;}
+  JOURS.forEach(function(j){
+    var jr=j[0];
+    dispoState[jr]=[{from:from,to:to}];
+    var cb=document.getElementById('day-on-'+jr);if(cb)cb.checked=true;
+    var box=document.getElementById('day-slots-'+jr);if(box)box.style.display='block';
+    renderJourSlots(jr);
+  });
+  toast&&toast('Disponibilités appliquées sur toute la semaine ✔','success');
 }
 function setSlot(jour,i,field,val){
   if(!dispoState[jour]||!dispoState[jour][i])return;
