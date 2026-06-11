@@ -4,6 +4,37 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<!-- ══ AUTO-MAJ : vérifie s'il existe une version plus récente sur le serveur et recharge sans cache (une seule fois) ══ -->
+<script>
+(function(){
+  // Version embarquée dans CE fichier (doit rester identique à APP_VERSION plus bas)
+  var EMBEDDED_VERSION = '2026-06-11 17:45';
+  window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
+  // Si on vient juste de se recharger pour cette version, on ne reboucle pas
+  try{
+    if(sessionStorage.getItem('bkrh_reloaded_for') === EMBEDDED_VERSION){
+      sessionStorage.removeItem('bkrh_reloaded_for');
+      return;
+    }
+  }catch(e){}
+  // On télécharge à nouveau le HTML en contournant le cache, et on lit la version serveur
+  try{
+    fetch(location.pathname + '?_v=' + Date.now(), {cache:'no-store'})
+      .then(function(r){ return r.ok ? r.text() : null; })
+      .then(function(html){
+        if(!html) return;
+        var m = html.match(/EMBEDDED_VERSION\s*=\s*'([^']+)'/);
+        var serverVer = m ? m[1] : null;
+        if(serverVer && serverVer !== EMBEDDED_VERSION){
+          // Une version plus récente existe : on recharge une seule fois, proprement
+          try{ sessionStorage.setItem('bkrh_reloaded_for', serverVer); }catch(e){}
+          location.reload();
+        }
+      })
+      .catch(function(){});
+  }catch(e){}
+})();
+</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%91%91%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%91%91%3C/text%3E%3C/svg%3E">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
@@ -802,7 +833,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '2026-06-11 14:42';
+const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-11 17:45';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
@@ -1277,7 +1308,7 @@ function goPage(id, btn) {
   if (id==='recrutement'){setCandFilter(candFilter||'nouveau');}
   if (id==='visite'){renderVisiteList();}
   if (id==='planning'){openPlanning();}
-  if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();loadSeuilOral();loadMailTpl();renderQr();renderApercuForm();var av=document.getElementById('app-version-badge');if(av)av.textContent=APP_VERSION;}
+  if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();loadSeuilOral();loadMailTpl();renderQr();renderApercuForm();var av=document.getElementById('app-version-badge');if(av){av.textContent='✓ À jour — '+formatMajDate(APP_VERSION);av.style.color='#4CAF50';av.style.borderColor='#2E5E33';}}
 }
 function setEqTab(btn,r){
   eqTab=r;
@@ -2871,7 +2902,7 @@ var MAIL_DEFAULTS={
   },
   retenu:{
     sujet:'Votre intégration chez {resto} — documents à fournir',
-    corps:'Bonjour {prenom},\n\nFélicitations, nous sommes ravis de vous accueillir au sein de l\'équipe {resto} !\n\nAfin de préparer au mieux votre intégration, merci de déposer tous vos documents directement sur votre espace sécurisé personnel.\n\n➡️➡️➡️ CLIQUEZ SUR CE LIEN POUR DÉPOSER VOS DOCUMENTS :\n\n{lien_docs}\n\n(Si le lien ne s\'ouvre pas, copiez-le et collez-le dans votre navigateur.)\n\n━━━━━━━━━━━━━━━━━━━━━━\n\nDocuments à fournir (tous obligatoires) :\n- Carte d\'identité recto ET verso\n- Justificatif de domicile de -3 mois\n- Carte vitale recto ET verso\n- Attestation CPAM\n- Attestation de mutuelle / complémentaire Santé Solidaire (pour être dispensé de la mutuelle du restaurant) OU courrier signé d\'adhésion à la mutuelle obligatoire\n- RIB français\n- Si contrat inférieur à 24h/semaine : indiquez le motif directement sur votre espace\n\nÀ renseigner également sur votre espace :\n- Contact en cas d\'urgence (nom/prénom + téléphone)\n- Vos tailles de tenues\n\n━━━━━━━━━━━━━━━━━━━━━━\n\nAvant votre intégration, il est impératif d\'avoir réalisé les vidéos de formation réglementaires sur Burger King University :\n🎓 www.burgerkinguniversity.com\nIdentifiant : {bku_id}\nMot de passe : {bku_mdp}\n\nMerci de nous prévenir par mail une fois les vidéos terminées.\n\nVotre intégration est prévue le {date_integration}, à condition que les vidéos soient terminées la veille au soir.\n\nUne fois tous les documents reçus et les vidéos effectuées, vous recevrez un mail vous informant que votre contrat est disponible pour signature électronique.\n\nNous restons disponibles pour toute question,\n\nÀ très bientôt,\nL\'équipe {resto}'
+    corps:'Bonjour {prenom},\n\nFélicitations, nous sommes ravis de vous accueillir au sein de l\'équipe {resto} !\n\nAfin de préparer au mieux votre intégration, merci de déposer tous vos documents directement sur votre espace sécurisé personnel.\n\n➡️➡️➡️ CLIQUEZ SUR CE LIEN POUR DÉPOSER VOS DOCUMENTS :\n\n{lien_docs}\n\n(Si le lien ne s\'ouvre pas, copiez-le et collez-le dans votre navigateur.)\n\n━━━━━━━━━━━━━━━━━━━━━━\n\nDocuments à fournir (tous obligatoires) :\n- Carte d\'identité recto ET verso\n- Justificatif de domicile de -3 mois\n- Carte vitale recto ET verso\n- Attestation CPAM\n- Attestation de mutuelle / complémentaire Santé Solidaire (pour être dispensé de la mutuelle du restaurant) OU courrier signé d\'adhésion à la mutuelle obligatoire\n- RIB français\n- Si contrat inférieur à 24h/semaine : déposez votre attestation de demande de contrat < 24h, datée et signée (un modèle pré-rempli est téléchargeable sur votre espace)\n\nÀ renseigner également sur votre espace :\n- Contact en cas d\'urgence (nom/prénom + téléphone)\n- Vos tailles de tenues\n\n━━━━━━━━━━━━━━━━━━━━━━\n\nAvant votre intégration, il est impératif d\'avoir réalisé les vidéos de formation réglementaires sur Burger King University :\n🎓 www.burgerkinguniversity.com\nIdentifiant : {bku_id}\nMot de passe : {bku_mdp}\n\nMerci de nous prévenir par mail une fois les vidéos terminées.\n\nVotre intégration est prévue le {date_integration}, à condition que les vidéos soient terminées la veille au soir.\n\nUne fois tous les documents reçus et les vidéos effectuées, vous recevrez un mail vous informant que votre contrat est disponible pour signature électronique.\n\nNous restons disponibles pour toute question,\n\nÀ très bientôt,\nL\'équipe {resto}'
   },
   refus:{
     sujet:'Votre candidature chez {resto}',
@@ -2983,12 +3014,18 @@ var DOC_TYPES=[
   {id:'cpam',label:'Attestation CPAM'},
   {id:'mutuelle',label:'Carte de tiers payant 2026'},
   {id:'rib',label:'RIB français'},
-  {id:'moins24h',label:'Demande de contrat < 24h (si concerné)',type:'text',placeholder:'Ex : Je suis étudiant(e), je souhaite un contrat de moins de 24h/semaine car je suis à l\'école...'}
+  {id:'attestation24h',label:'Attestation de demande de contrat < 24h (datée et signée)',cond24h:true}
 ];
+
+// Le salarié est-il en contrat < 24h ? (déclenche l'attestation obligatoire)
+function estMoins24h(c){
+  var h=parseInt((c&&(c.contrat_heures!=null?c.contrat_heures:c.contratHeures))||0,10);
+  return h>0&&h<24;
+}
 
 // Nom de fichier clair pour Dropbox à partir de la clé (ex. "cni_recto" -> "Carte_identite_recto")
 function docFileName(key){
-  var base={cni:'Piece_identite',domicile:'Justificatif_domicile',hebergement:'Attestation_hebergement',vitale:'Carte_vitale',cpam:'Attestation_CPAM',mutuelle:'Carte_tiers_payant_2026',rib:'RIB',moins24h:'Demande_contrat_-24h'};
+  var base={cni:'Piece_identite',domicile:'Justificatif_domicile',hebergement:'Attestation_hebergement',vitale:'Carte_vitale',cpam:'Attestation_CPAM',mutuelle:'Carte_tiers_payant_2026',rib:'RIB',attestation24h:'Attestation_-24h_signee'};
   var parts=key.split('_'); // ex: ["cni","recto"]
   var id=parts[0];
   var side=parts[1]?('_'+parts[1].charAt(0).toUpperCase()+parts[1].slice(1)):''; // _Recto / _Verso
@@ -2999,12 +3036,7 @@ function docFileName(key){
 function renderDocsRecap(c){
   var docs=c.documents||{};
   var rows=DOC_TYPES.map(function(d){
-    if(d.type==='text'){
-      var txt=docs[d.id]&&docs[d.id].text;
-      return '<div style="padding:3px 0;font-size:.8rem;">'
-        +'<span style="color:'+(txt?'#4CAF50':'#888')+';">'+(txt?'✓':'○')+' '+d.label+'</span>'
-        +(txt?'<div style="font-size:.76rem;color:#bbb;font-style:italic;margin:2px 0 0 14px;">« '+txt+' »</div>':'')+'</div>';
-    }
+    if(d.cond24h&&!estMoins24h(c))return '';
     if(d.sides){
       var sub=d.sides.map(function(s){
         var k=d.id+'_'+s.toLowerCase();var has=docs[k]&&(docs[k].link||docs[k].data);
@@ -3055,13 +3087,13 @@ async function prepareMailDocs(){
   }catch(e){toast('Erreur','error');}
 }
 
-// Tous les documents obligatoires sont-ils fournis ? (recto/verso compris, hors demande <24h)
+// Tous les documents obligatoires sont-ils fournis ? (recto/verso compris ; attestation -24h obligatoire seulement si concerné)
 function docsComplets(c){
   var docs=c.documents||{};
   function aP(k){return docs[k]&&(docs[k].data||docs[k].link);}
   var ok=true;
   DOC_TYPES.forEach(function(d){
-    if(d.type==='text')return;
+    if(d.cond24h&&!estMoins24h(c))return;
     if(d.optionnel)return;
     if(d.sides){d.sides.forEach(function(s){if(!aP(d.id+'_'+s.toLowerCase()))ok=false;});}
     else{if(!aP(d.id))ok=false;}
@@ -3319,12 +3351,50 @@ var dispoState={}; // {lun:[{from,to},...], ...} — liste de créneaux par jour
 
 // ── PAGE PUBLIQUE : DÉPÔT DES DOCUMENTS (candidat retenu) ─────────────────────
 var _docsCand=null,_docsData={};
+// Génère le modèle d'attestation de demande de contrat < 24h, pré-rempli au nom du salarié
+function genAttest24hPDF(){
+  var c=_docsCand||{};
+  var prenom=c.prenom||'',nom=c.nom||'';
+  var resto=PUBLIC_RESTOS[c.resto_id]||c.resto_id||'';
+  var heures=parseInt((c.contrat_heures!=null?c.contrat_heures:c.contratHeures)||0,10);
+  try{
+    var JS=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF;
+    var doc=new JS({unit:'mm',format:'a4'});
+    var W=210,M=22,y=26;
+    doc.setFont('helvetica','bold');doc.setFontSize(15);
+    doc.text('ATTESTATION DE DEMANDE',W/2,y,{align:'center'});y+=7;
+    doc.text('DE CONTRAT À TEMPS PARTIEL INFÉRIEUR À 24 HEURES',W/2,y,{align:'center'});y+=14;
+    doc.setFont('helvetica','normal');doc.setFontSize(11);
+    var soussigne='Je soussigné(e) '+(prenom||'.................................')+' '+(nom||'.................................')+',';
+    doc.text(doc.splitTextToSize(soussigne,W-2*M),M,y);y+=10;
+    doc.text(doc.splitTextToSize('candidat(e) / salarié(e) au sein du restaurant '+(resto||'.................................')+',',W-2*M),M,y);y+=14;
+    var corps='atteste solliciter de ma propre initiative la conclusion d\'un contrat de travail à temps partiel '
+      +'d\'une durée hebdomadaire de '+(heures>0?heures+' heures':'............ heures')+', soit une durée inférieure à la durée '
+      +'minimale légale de 24 heures par semaine prévue à l\'article L.3123-7 du Code du travail.';
+    doc.text(doc.splitTextToSize(corps,W-2*M),M,y);y+=22;
+    doc.text(doc.splitTextToSize('Cette demande émane de ma seule volonté, pour le motif suivant :',W-2*M),M,y);y+=10;
+    // lignes à compléter pour le motif
+    doc.setDrawColor(150,150,150);
+    for(var i=0;i<3;i++){doc.line(M,y,W-M,y);y+=9;}
+    y+=4;
+    var legal='Je reconnais avoir été informé(e) que cette durée réduite résulte de ma demande personnelle et écrite, '
+      +'et non d\'une décision de l\'employeur.';
+    doc.text(doc.splitTextToSize(legal,W-2*M),M,y);y+=20;
+    doc.text('Fait à ......................................, le ....... / ....... / ..............',M,y);y+=22;
+    doc.text('Signature (précédée de la mention « Lu et approuvé ») :',M,y);
+    // pied de page
+    doc.setFontSize(8);doc.setTextColor(130,130,130);
+    doc.text('Document à compléter, dater et signer par le salarié, puis à déposer dans son espace d\'intégration.',W/2,285,{align:'center'});
+    var fn='Attestation_-24h_'+(nom||'salarie').replace(/[^a-zA-Z0-9]/g,'_')+'.pdf';
+    doc.save(fn);
+  }catch(e){alert('Impossible de générer le modèle. Vous pouvez rédiger l\'attestation à la main : indiquez votre nom, le restaurant, le nombre d\'heures demandé, le motif, la date et votre signature.');}
+}
 async function showDocsPage(cid){
   document.getElementById('loading-screen').style.display='none';
   var ls=document.getElementById('login-screen');if(ls)ls.style.display='none';
   var ap=document.getElementById('app');if(ap)ap.style.display='none';
   try{
-    var arr=await sb.get('bks_candidatures','select=id,prenom,nom,resto_id,documents,contact_urgence,tailles_tenue,videos_faites&id=eq.'+cid);
+    var arr=await sb.get('bks_candidatures','select=id,prenom,nom,resto_id,documents,contact_urgence,tailles_tenue,videos_faites,contrat_heures,contrat_label&id=eq.'+cid);
     _docsCand=arr&&arr[0]?arr[0]:null;
   }catch(e){_docsCand=null;}
   var sp=document.createElement('div');sp.style.cssText='min-height:100vh;background:#1A1A1A;';
@@ -3347,11 +3417,16 @@ async function showDocsPage(cid){
       +'</div>';
   }
   var rows=DOC_TYPES.map(function(d){
-    if(d.type==='text'){
-      var val=(_docsData[d.id]&&_docsData[d.id].text)||'';
+    if(d.cond24h){
+      if(!estMoins24h(_docsCand))return '';
+      var inner24=uploadBlock(d.id,'Attestation signée (photo ou PDF)');
       return '<div style="padding:10px 0;border-bottom:1px solid #2A2A2A;">'
-        +'<div style="font-size:.85rem;color:#ddd;margin-bottom:6px;">'+d.label+'</div>'
-        +'<textarea id="doc-txt-'+d.id+'" class="fi" style="min-height:60px;font-size:.82rem;" placeholder="'+(d.placeholder||'').replace(/"/g,'&quot;')+'">'+val.replace(/</g,'&lt;')+'</textarea></div>';
+        +'<div style="font-size:.85rem;color:#ddd;margin-bottom:4px;">'+d.label+'</div>'
+        +'<div style="background:#1A1208;border:1px solid #4A3000;border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:.78rem;color:#ddd;line-height:1.5;">'
+        +'Votre contrat est inférieur à 24h par semaine. La loi prévoit une durée minimale de 24h ; en dessous, c\'est à <strong>votre demande écrite</strong>. Merci de fournir une attestation <strong>datée et signée de votre main</strong> indiquant que vous demandez vous-même un contrat de moins de 24h et pourquoi (études, autre emploi, contraintes personnelles…).'
+        +'<div style="margin-top:9px;"><button type="button" class="btn btn-gray btn-sm" style="padding:6px 11px;" onclick="genAttest24hPDF()">📄 Télécharger le modèle pré-rempli à signer</button></div>'
+        +'<div style="font-size:.72rem;color:#999;margin-top:7px;">Imprimez-le (ou recopiez-le à la main), signez, puis prenez-le en photo ou scannez-le ci-dessous.</div>'
+        +'</div>'+inner24+'</div>';
     }
     var inner;
     if(d.sides){
@@ -3412,23 +3487,16 @@ function handleDocFile(key,input){
 
 async function submitDocs(){
   if(!_docsCand)return;
-  // récupérer le texte de la demande <24h
-  DOC_TYPES.forEach(function(d){
-    if(d.type==='text'){
-      var ta=document.getElementById('doc-txt-'+d.id);
-      if(ta&&ta.value.trim())_docsData[d.id]={text:ta.value.trim()};
-    }
-  });
   var th=document.getElementById('doc-t-haut').value,tp=document.getElementById('doc-t-pant').value,tc=document.getElementById('doc-t-ch').value;
   var tailles=[];
   if(th&&th!=='—')tailles.push('Haut: '+th);
   if(tp&&tp!=='—')tailles.push('Pantalon: '+tp);
   if(tc&&tc!=='—')tailles.push('Chaussures: '+tc);
-  // VALIDATION : toutes les pièces obligatoires (sauf demande <24h, facultative)
+  // VALIDATION : toutes les pièces obligatoires (attestation -24h obligatoire seulement si concerné)
   function _aPiece(k){return _docsData[k]&&(_docsData[k].data||_docsData[k].link);}
   var manquants=[];
   DOC_TYPES.forEach(function(d){
-    if(d.type==='text')return;
+    if(d.cond24h&&!estMoins24h(_docsCand))return;
     if(d.optionnel)return;
     if(d.sides){d.sides.forEach(function(s){if(!_aPiece(d.id+'_'+s.toLowerCase()))manquants.push(d.label+' ('+s+')');});}
     else{if(!_aPiece(d.id))manquants.push(d.label);}
