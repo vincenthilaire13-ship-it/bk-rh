@@ -6552,6 +6552,7 @@ function renderAll(){renderDays();renderMetrics();renderTimeline();}
 
 window.__hrInit=function(){
   if(window.__hrDone)return; window.__hrDone=true;
+  if(typeof window.HR_ALL==='undefined' || !window.HR_ALL){ window.HR_ALL={}; } try{ HR_ALL=window.HR_ALL; }catch(_e){}
   // Les courbes ¼h (2025 + 2026) viennent désormais UNIQUEMENT de Supabase
   // (table ventes_horaire.tranches_ca). Le seed intégré a été retiré du fichier
   // pour l'alléger ; on garde un fallback si jamais un HR_SEED_* était réinjecté.
@@ -8219,11 +8220,20 @@ window.hrParsePDF=hrParsePDF;
 function hrSelectResto(resto){
   if(!resto) return;
   window.ACTIVE_RESTO = resto;
+  // Garantir que la structure mémoire existe (évite 'Cannot read properties of undefined')
+  if(typeof window.HR_ALL === 'undefined' || !window.HR_ALL){ window.HR_ALL = {}; }
+  try{ HR_ALL = window.HR_ALL; }catch(_e){ window.HR_ALL = window.HR_ALL || {}; }
+  // Si le module n'a jamais été initialisé, le faire d'abord (charge toutes les données)
+  if(!window.__hrDone && typeof window.__hrInit==='function'){
+    try{ window.__hrInit(); }catch(e){ console.warn('init via select', e); }
+  }
   function afficher(){
     var etape='';
     try{
-      etape='resto'; HR_RESTO = resto; window.HR_RESTO = resto;
-      if(HR_ALL[resto]){ HR_DATA = HR_ALL[resto]; window.HR_DATA = HR_DATA; }
+      if(typeof window.HR_ALL==='undefined' || !window.HR_ALL){ window.HR_ALL={}; }
+      var ALL = window.HR_ALL;
+      etape='resto'; window.HR_RESTO = resto; try{ HR_RESTO = resto; }catch(_e){}
+      if(ALL[resto]){ try{ HR_DATA = ALL[resto]; }catch(_e){} window.HR_DATA = ALL[resto]; }
       etape='switchGrille'; if(typeof hrSwitchRestoGrille==='function') hrSwitchRestoGrille(resto);
       var rs=document.getElementById('hrx-resto-sel'); if(rs) rs.value=resto;
       var rs2=document.getElementById('hrx-resto-sel2'); if(rs2) rs2.value=resto;
@@ -8235,7 +8245,7 @@ function hrSelectResto(resto){
       etape='renderDays'; if(typeof renderDays==='function') renderDays();
       etape='renderAll'; if(typeof renderAll==='function') renderAll();
       etape='header'; if(typeof hrUpdateHeader==='function') hrUpdateHeader();
-      if(window.hrDiag && HR_ALL[resto]) hrDiag('✅ '+resto+' affiché — '+Object.keys(HR_ALL[resto]).length+' jours');
+      if(window.hrDiag) hrDiag('✅ '+resto+' — '+((ALL[resto]&&Object.keys(ALL[resto]).length)||0)+' jours');
     }catch(e){ console.warn('hrSelectResto afficher @'+etape, e); if(window.hrDiag) hrDiag('❌ Affichage bloqué à l\'étape « '+etape+' » : '+((e&&e.message)||e), true); }
   }
   try {
