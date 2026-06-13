@@ -8,7 +8,7 @@
 <script>
 (function(){
   // Version embarquée dans CE fichier (doit rester identique à APP_VERSION plus bas)
-  var EMBEDDED_VERSION = '2026-06-13 17:25';
+  var EMBEDDED_VERSION = '2026-06-13 18:05';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -199,7 +199,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 .pl-cell.we{background:#141414;}
 .pl-cell:hover{outline:2px solid var(--orange);outline-offset:-2px;}
 
-/* ===== MODULE HORAIRE (porté depuis BK administratif) ===== */
+/* MODULE HORAIRE */
 #sec-horaires{--bg:#0f0f11;--s1:#1a1a1e;--s2:#222228;--bd:#2e2e36;--bd2:#3a3a44;--tx:#f0f0f2;--mu:#7a7a8a;--ac:#e8e020;}#sec-horaires *{box-sizing:border-box;margin:0;padding:0;}#sec-horaires{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;}#sec-horaires .hr-hdr{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1.5rem;border-bottom:1px solid var(--bd);background:var(--s1);position:sticky;top:0;z-index:100;}#sec-horaires .hr-hdr-title{font-size:15px;font-weight:600;}#sec-horaires .hr-hdr-sub{font-size:11px;color:var(--mu);font-family:'DM Mono',monospace;}#sec-horaires .hr-nav{display:flex;gap:4px;}#sec-horaires .hr-nt{padding:6px 13px;border-radius:8px;font-size:13px;cursor:pointer;color:var(--mu);border:1px solid transparent;transition:all .15s;}#sec-horaires .hr-nt:hover{color:var(--tx);background:var(--s2);}#sec-horaires .hr-nt.hr-on{color:var(--ac);border-color:var(--bd2);background:var(--s2);}#sec-horaires .hr-hdr-r{display:flex;gap:8px;}#sec-horaires .hr-btn{padding:6px 13px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid var(--bd2);background:var(--s2);color:var(--tx);transition:all .15s;}#sec-horaires .hr-btn:hover{background:var(--bd);}#sec-horaires .hr-btn-ac{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}#sec-horaires .hr-btn-ac:hover{background:#f5e820;}#sec-horaires .hr-sec{display:none;padding:1.2rem 1.5rem;}#sec-horaires .hr-sec.hr-on{display:block;}#sec-horaires .hr-mrow{display:flex;gap:10px;margin-bottom:1.2rem;flex-wrap:wrap;}#sec-horaires .hr-mc{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:.7rem 1rem;flex:1;min-width:110px;}#sec-horaires .hr-mc-l{font-size:10px;color:var(--mu);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}#sec-horaires .hr-mc-v{font-size:22px;font-weight:500;}#sec-horaires .hr-mc-s{font-size:11px;color:var(--mu);margin-top:1px;}#sec-horaires .hr-plan-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:10px;}#sec-horaires .hr-days{display:flex;gap:5px;flex-wrap:wrap;}#sec-horaires .hr-db{padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid var(--bd);background:var(--s2);color:var(--mu);cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:135px;}#sec-horaires .hr-db:hover{color:var(--tx);border-color:var(--bd2);}#sec-horaires .hr-db.hr-on{color:var(--ac);border-color:var(--ac);background:rgba(232,224,32,.07);}#sec-horaires .hr-db-day{font-size:13px;font-weight:600;}#sec-horaires .hr-db-ca{font-size:10px;font-family:'DM Mono',monospace;opacity:.7;}#sec-horaires .hr-scx{overflow-x:auto;}#sec-horaires .hr-tl-wrap{background:var(--s1);border:1px solid var(--bd);border-radius:14px;overflow:hidden;}#sec-horaires .hr-tl-top{display:flex;border-bottom:1px solid var(--bd);position:sticky;top:53px;z-index:50;background:var(--s1);}#sec-horaires .hr-tl-lh{display:none;}#sec-horaires .hr-tl-hh{flex:1;display:flex;min-width:920px;}#sec-horaires .hr-tl-h{flex:1;text-align:center;font-size:10px;color:var(--mu);font-family:'DM Mono',monospace;padding:12px 0;border-right:1px solid var(--bd);}#sec-horaires .hr-tl-h:last-child{border-right:none;}#sec-horaires .hr-tl-row{display:flex;border-bottom:1px solid var(--bd);min-height:28px;}#sec-horaires .hr-tl-row:last-child{border-bottom:none;}#sec-horaires .hr-tl-row:hover{background:rgba(255,255,255,.015);}#sec-horaires .hr-tl-i{display:none;}#sec-horaires .hr-tl-b{flex:1;position:relative;display:flex;align-items:center;min-width:920px;}#sec-horaires .hr-tl-gl{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;pointer-events:none;}#sec-horaires .hr-tl-gl div{flex:1;border-right:1px solid rgba(255,255,255,.025);}#sec-horaires .hr-tl-gl div:last-child{border-right:none;}#sec-horaires .hr-bar{position:absolute;height:19px;border-radius:4px;display:flex;align-items:center;padding:0 5px;font-size:9px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;top:50%;transform:translateY(-50%);letter-spacing:.3px;transition:filter .12s;}#sec-horaires .hr-bar:hover{filter:brightness(1.2);z-index:20;}#sec-horaires .hr-leg{display:flex;flex-wrap:wrap;gap:8px;padding:.7rem 1.2rem;border-top:1px solid var(--bd);}#sec-horaires .hr-li{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--mu);}#sec-horaires .hr-ld{width:9px;height:9px;border-radius:2px;}#sec-horaires .hr-ca-ctrl{display:flex;gap:12px;margin-bottom:1.2rem;flex-wrap:wrap;align-items:flex-end;}#sec-horaires .hr-cc{display:flex;flex-direction:column;gap:4px;}#sec-horaires .hr-cc label{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);text-transform:uppercase;}#sec-horaires .hr-cc select{background:var(--s1);border:1px solid var(--bd2);border-radius:8px;padding:6px 11px;font-size:13px;color:var(--tx);font-family:'DM Sans',sans-serif;outline:none;}#sec-horaires .hr-ca-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;margin-bottom:1.2rem;}#sec-horaires .hr-ca-cell{background:var(--s1);border:1px solid var(--bd);border-radius:9px;padding:.5rem .8rem;}#sec-horaires .hr-ca-cell label{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);display:flex;justify-content:space-between;margin-bottom:4px;}#sec-horaires .hr-ca-cell label span{color:var(--ac);font-size:9px;}#sec-horaires .hr-ca-cell input{width:100%;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:4px 7px;font-size:12px;color:var(--tx);font-family:'DM Mono',monospace;outline:none;}#sec-horaires .hr-ca-cell input:focus{border-color:var(--ac);}#sec-horaires .hr-ca-bar{height:3px;border-radius:2px;margin-top:4px;background:var(--ac);min-width:1px;}#sec-horaires .hr-ca-cell.hr-hi{border-color:rgba(232,224,32,.4);}#sec-horaires .hr-gt-wrap{overflow-x:auto;border:1px solid var(--bd);border-radius:12px;}#sec-horaires .hr-gt{width:100%;border-collapse:collapse;font-size:11px;font-family:'DM Mono',monospace;}#sec-horaires .hr-gt th{background:var(--s2);color:var(--mu);padding:6px 9px;border-bottom:1px solid var(--bd);border-right:1px solid var(--bd);text-align:center;font-weight:500;white-space:nowrap;}#sec-horaires .hr-gt td{padding:4px 7px;border-bottom:1px solid var(--bd);border-right:1px solid var(--bd);text-align:center;color:var(--tx);}#sec-horaires .hr-gt tr:last-child td{border-bottom:none;}#sec-horaires .hr-gt td:first-child, #sec-horaires .hr-gt th:first-child{text-align:left;padding-left:12px;}#sec-horaires .hr-cv{display:inline-block;padding:2px 6px;border-radius:4px;font-weight:600;}#sec-horaires .hr-np-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;}#sec-horaires .hr-np-card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:.9rem 1.1rem;display:flex;flex-direction:column;gap:6px;}#sec-horaires .hr-np-top{display:flex;align-items:center;justify-content:space-between;}#sec-horaires .hr-np-nm{font-size:14px;font-weight:500;}#sec-horaires .hr-np-bg{font-size:9px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px;background:rgba(120,144,156,.15);color:#78909c;border:1px solid rgba(120,144,156,.3);}#sec-horaires .hr-np-ds{font-size:12px;color:var(--mu);line-height:1.5;}#sec-horaires .hr-np-ft{display:flex;gap:6px;align-items:center;}#sec-horaires .hr-np-dt{width:8px;height:8px;border-radius:2px;flex-shrink:0;}#sec-horaires .hr-np-tm{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);}#sec-horaires .hr-stitle{font-size:16px;font-weight:500;margin-bottom:.4rem;}#sec-horaires .hr-ssub{font-size:12px;color:var(--mu);margin-bottom:1.2rem;}#sec-horaires .hr-db.hr-ok{border-color:#3ecf8e!important;background:rgba(62,207,142,.14)!important;color:#3ecf8e!important;transition:all .25s;}#sec-horaires .hr-db.hr-ok .hr-db-day{color:#3ecf8e!important;}#sec-horaires .hr-db.hr-ok::after{content:'✓';position:absolute;top:6px;right:8px;color:#3ecf8e;font-weight:700;font-size:12px;}#sec-horaires .hr-db.hr-warn{border-color:#f5a623!important;background:rgba(245,166,35,.12)!important;color:#f5a623!important;transition:all .25s;}#sec-horaires .hr-db.hr-warn .hr-db-day{color:#f5a623!important;}#sec-horaires .hr-db.hr-warn::after{content:'⚠';position:absolute;top:6px;right:8px;color:#f5a623;font-weight:700;font-size:12px;}#sec-horaires .hr-db{position:relative;}@keyframes hrSpin{to{transform:rotate(360deg)}}#sec-horaires .hr-btn.hr-spinning{opacity:.7;pointer-events:none;}#sec-horaires .hr-btn .hr-spin-ico{display:inline-block;}#sec-horaires .hr-btn.hr-spinning .hr-spin-ico{animation:hrSpin .7s linear infinite;}#sec-horaires #hrx-rows{padding-top:62px;}#sec-horaires #hrx-rows .hr-tl-row:first-child{min-height:34px;}#sec-horaires .hr-np-jour{padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--bd2);background:var(--s2);color:var(--mu);font-family:'DM Sans',sans-serif;transition:all .12s;}#sec-horaires .hr-np-jour:hover{color:var(--tx);border-color:var(--mu);}#sec-horaires .hr-np-jour.hr-j-on{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}#sec-horaires .hr-np-freq{padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--bd2);background:var(--s2);color:var(--mu);font-family:'DM Sans',sans-serif;transition:all .12s;}#sec-horaires .hr-np-freq:hover{color:var(--tx);border-color:var(--mu);}#sec-horaires .hr-np-freq.hr-f-on{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}
 #sec-horaires #hrx-taux-input::-webkit-outer-spin-button,#sec-horaires #hrx-taux-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
 #sec-horaires .hr-np-card.hr-np-editing{border-color:var(--ac);box-shadow:0 0 0 1px rgba(232,224,32,.25);}
@@ -322,7 +322,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 <div id="app">
   <header>
     <h1>👑 BK<span>RH</span></h1>
-    <span id="maj-badge" style="font-size:.68rem;color:#aaa;background:#1A1A1A;border:1px solid #444;padding:3px 10px;border-radius:14px;margin-left:10px;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px;white-space:nowrap;"></span>
+    <span id="maj-badge" style="font-size:.68rem;color:#aaa;background:#1A1A1A;border:1px solid #444;padding:3px 10px;border-radius:14px;margin-left:10px;font-family:Barlow,sans-serif;letter-spacing:.5px;white-space:nowrap;"></span>
     <div id="user-info">
       <span id="uname"></span>
       <span id="role-badge"></span>
@@ -343,7 +343,6 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
   <!-- HORAIRES (module porté depuis BK administratif) -->
   <div class="page" id="page-horaires">
     <section class="section" id="sec-horaires">
-<div id="hrx-diag" style="background:#1a1a1e;color:#e8e020;border:1px solid #3a3a44;border-radius:8px;padding:8px 14px;margin:10px 14px;font-family:monospace;font-size:12px;line-height:1.5;">⏳ Initialisation du module horaire…</div>
 <div class="hr-hdr">
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
     <select id="hrx-resto-sel" onchange="hrSelectResto(this.value)" style="background:#1a1a1e;color:#f0f0f2;border:1px solid #3a3a44;border-radius:8px;padding:7px 12px;font-size:14px;font-weight:700;cursor:pointer">
@@ -1088,7 +1087,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-13 17:25';
+const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-13 18:05';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
@@ -1563,9 +1562,8 @@ function goPage(id, btn) {
   }
   if (id==='equipe') renderEquipe();
   if (id==='horaires'){ try{
-    if(!window.__hrDone){ if(window.__hrInit) window.__hrInit(); }
-    else { if(window.__hrSwitchTo) window.__hrSwitchTo(true); if(window.renderAll) try{window.renderAll();}catch(e){} }
-    if(window.hrTestConnexion) setTimeout(window.hrTestConnexion, 300);
+    if(!window.__hrDone && window.__hrInit){ window.__hrInit(); }
+    else if(window.hrSelectResto){ var rs=document.getElementById('hrx-resto-sel'); window.hrSelectResto((rs&&rs.value)||'BK526'); }
   }catch(e){console.warn('init horaires',e);} }
   if (id==='recrutement'){setCandFilter(candFilter||'nouveau');}
   if (id==='visite'){renderVisiteList();}
@@ -5006,109 +5004,80 @@ function toast(msg,type){
 window.onload=function(){schedReports();};
 </script>
 
-<!-- ===== MODULE HORAIRE : adaptateur + logique (porté depuis BK administratif) ===== -->
+<!-- ===== MODULE HORAIRE COMPLET (porté depuis BK administratif) ===== -->
 <script>
-// ═══════════════════════════════════════════════════════════════════════════
-// ADAPTATEUR SUPABASE pour le MODULE HORAIRE (porté depuis BK administratif)
-// Expose window.SB avec l'API du SDK officiel (sous-ensemble utilisé par le
-// module horaire), routée vers l'API REST PostgREST de BK RH.
-// v2 : pagination via limit/offset (params URL), gestion robuste de
-// select/eq/gte/lte/order/range/maybeSingle et upsert(...,{onConflict}).
-// ═══════════════════════════════════════════════════════════════════════════
+// ADAPTATEUR SUPABASE (SDK-like) routé vers l'API REST de BK RH — autonome.
 (function(){
-  // URL + clé de la base RH (mêmes valeurs que le client maison `sb`).
-  // Redéfinies ici car les const d'un autre <script> ne sont pas accessibles
-  // entre blocs : on ne dépend donc pas de SUPA_URL/SUPA_KEY du bloc principal.
   var SUPA_URL = 'https://qggkbtzhkomhldhacohd.supabase.co';
   var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZ2tidHpoa29taGxkaGFjb2hkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNzc0MzIsImV4cCI6MjA5NDc1MzQzMn0.l4W4rH4CFREugjImoRqN8hocmEXFcVqnN1-H78x3S-c';
   var REST = SUPA_URL + '/rest/v1/';
   var BASEH = { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY };
   function enc(v){ return encodeURIComponent(v); }
-
   function makeQuery(table){
-    var st = { table:table, select:'*', filters:[], order:null, limit:null, offset:null, single:false };
-    var builder = {
-      select:function(cols){ st.select = cols||'*'; return builder; },
-      eq:function(c,v){ st.filters.push(c+'=eq.'+enc(v)); return builder; },
-      gte:function(c,v){ st.filters.push(c+'=gte.'+enc(v)); return builder; },
-      lte:function(c,v){ st.filters.push(c+'=lte.'+enc(v)); return builder; },
-      order:function(c,o){ var asc=!o||o.ascending!==false; st.order=c+'.'+(asc?'asc':'desc'); return builder; },
-      range:function(from,to){ st.offset=from; st.limit=(to-from+1); return builder; },
-      limit:function(n){ st.limit=n; return builder; },
-      maybeSingle:function(){ st.single=true; return builder; },
-      single:function(){ st.single=true; return builder; },
-      then:function(res,rej){ return run().then(res,rej); },
-      catch:function(rej){ return run().catch(rej); }
+    var st={table:table,select:'*',filters:[],order:null,limit:null,offset:null,single:false};
+    var b={
+      select:function(c){st.select=c||'*';return b;},
+      eq:function(c,v){st.filters.push(c+'=eq.'+enc(v));return b;},
+      gte:function(c,v){st.filters.push(c+'=gte.'+enc(v));return b;},
+      lte:function(c,v){st.filters.push(c+'=lte.'+enc(v));return b;},
+      order:function(c,o){var a=!o||o.ascending!==false;st.order=c+'.'+(a?'asc':'desc');return b;},
+      range:function(f,t){st.offset=f;st.limit=(t-f+1);return b;},
+      limit:function(n){st.limit=n;return b;},
+      maybeSingle:function(){st.single=true;return b;},
+      single:function(){st.single=true;return b;},
+      then:function(res,rej){return run().then(res,rej);},
+      catch:function(rej){return run().catch(rej);}
     };
-    function buildUrl(){
-      var url = REST + st.table + '?select=' + encodeURIComponent(st.select);
-      st.filters.forEach(function(f){ url += '&' + f; });
-      if (st.order)  url += '&order=' + st.order;
-      if (st.limit  !== null) url += '&limit='  + st.limit;
-      if (st.offset !== null) url += '&offset=' + st.offset;
-      return url;
-    }
-    function run(){
-      return fetch(buildUrl(), { headers: BASEH }).then(function(r){
-        if(!r.ok){ return r.text().then(function(t){ return { data:null, error:{ message: st.table+' '+r.status+' '+t } }; }); }
-        return r.json().then(function(data){
-          if (st.single) data = (Array.isArray(data) && data.length) ? data[0] : null;
-          return { data:data, error:null };
-        });
-      }).catch(function(e){ return { data:null, error:{ message:(e&&e.message)||String(e) } }; });
-    }
-    builder.upsert = function(payload, opts){
-      var onConflict = opts && opts.onConflict ? opts.onConflict : null;
-      function exec(){
-        var url = REST + st.table;
-        if (onConflict) url += '?on_conflict=' + encodeURIComponent(onConflict);
-        var h = Object.assign({}, BASEH, {
-          'Content-Type':'application/json',
-          'Prefer':'resolution=merge-duplicates,return=minimal'
-        });
-        return fetch(url, { method:'POST', headers:h, body:JSON.stringify(payload) })
-          .then(function(r){
-            if(!r.ok){ return r.text().then(function(t){ return { data:null, error:{ message: st.table+' upsert '+r.status+' '+t } }; }); }
-            return { data:null, error:null };
-          })
-          .catch(function(e){ return { data:null, error:{ message:(e&&e.message)||String(e) } }; });
-      }
-      return { then:function(res,rej){ return exec().then(res,rej); }, catch:function(rej){ return exec().catch(rej); } };
-    };
-    return builder;
+    function url(){var u=REST+st.table+'?select='+encodeURIComponent(st.select);st.filters.forEach(function(f){u+='&'+f;});if(st.order)u+='&order='+st.order;if(st.limit!==null)u+='&limit='+st.limit;if(st.offset!==null)u+='&offset='+st.offset;return u;}
+    function run(){return fetch(url(),{headers:BASEH}).then(function(r){if(!r.ok){return r.text().then(function(t){return {data:null,error:{message:st.table+' '+r.status+' '+t}};});}return r.json().then(function(d){if(st.single)d=(Array.isArray(d)&&d.length)?d[0]:null;return {data:d,error:null};});}).catch(function(e){return {data:null,error:{message:(e&&e.message)||String(e)}};});}
+    b.upsert=function(payload,opts){var oc=opts&&opts.onConflict?opts.onConflict:null;function exec(){var u=REST+st.table;if(oc)u+='?on_conflict='+encodeURIComponent(oc);var h=Object.assign({},BASEH,{'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'});return fetch(u,{method:'POST',headers:h,body:JSON.stringify(payload)}).then(function(r){if(!r.ok){return r.text().then(function(t){return {data:null,error:{message:st.table+' upsert '+r.status+' '+t}};});}return {data:null,error:null};}).catch(function(e){return {data:null,error:{message:(e&&e.message)||String(e)}};});}return {then:function(res,rej){return exec().then(res,rej);},catch:function(rej){return exec().catch(rej);}};};
+    return b;
   }
-
   window.SB = { from:function(table){ return makeQuery(table); } };
 })();
 
-var SB = window.SB; // garantir l'accès global au sein du module horaire
-function parserVentesHoraire(txt){
-  const dm = txt.match(/Du\s+(\d{2})\/(\d{2})\/(\d{2,4})/);
-  const date = dm ? `20${dm[3].slice(-2)}-${dm[2]}-${dm[1]}` : null;
-  // Total pdf.js : "TOTAL 7 0 190 267 185 825 9,36 ... 14375,31 ..."
-  //   → les entiers après TOTAL sont les Nbre par colonne ; le TAC total = le plus grand (825)
-  //   → le HT total = le plus grand montant FR cohérent (14375,31)
-  let tickets=null, ht=null;
-  const mTot = txt.match(/TOTAL\s+((?:\d+\s+){4,8})/);
-  if(mTot){
-    const ints = mTot[1].trim().split(/\s+/).map(n=>parseInt(n,10)).filter(n=>!isNaN(n));
-    if(ints.length) tickets = Math.max(...ints);
-  }
-  const montants = [...txt.matchAll(/(\d{4,6},\d{2})/g)].map(x=>_num(x[1]));
-  const candidatsHT = montants.filter(v=>v>3000 && v<100000).sort((a,b)=>b-a);
-  if(candidatsHT.length) ht = candidatsHT[0];
-  // Secours ancien format
-  if(tickets==null){ const m3 = txt.match(/TOTAL\s+(\d+)\b/); if(m3) tickets=parseInt(m3[1],10); }
-  // Tranches simples : HH:MM ... (pour usage horaires futur) — on stocke heure + total approximatif
-  const tranches=[];
-  const re=/(\d{2}:\d{2})\s+(\d+)/g; let mm;
-  const seen=new Set();
-  while((mm=re.exec(txt))!==null){
-    if(seen.has(mm[1])) continue; seen.add(mm[1]);
-    tranches.push({heure:mm[1], nb:parseInt(mm[2],10)});
-  }
-  return { date, tickets, ht, tranches };
-}
+var SB = window.SB;
+function hrDiag(msg,isErr){try{var el=document.getElementById('hrx-diag');if(el){el.textContent=msg;el.style.color=isErr?'#ff6b6b':'#3ecf8e';}}catch(e){}try{console.log('[HR diag]',msg);}catch(e){}}
+window.hrDiag=hrDiag;
+
+(function(){
+
+// ── GRILLE CA/EFFECTIFS — BASE QUART D'HEURE (€/15 min) ─────────────────────
+// Source unique de vérité : seuil = CA réalisé sur UN quart d'heure (15 min).
+// getEff() compare directement le CA 15min de chaque tranche à ces seuils.
+// Aides à la saisie : mode 30min → seuils ×2 (affichage), mode 1h → seuils ×4.
+// [seuil €/15min, eff, CUISINE, FRITES, SNACK, BROILER, BOARD VOLANT, BORNE, DRIVE, SAT SALLE, PREM CABINE, TABLETTE DRIVE, EMPORTER, COMPTOIR VOL, UBER, SAT EMP UBER]
+const GRILLE=[
+  [0,    2,  1,0,0,0,0,0,1,0,0,0,0,0,0,0],
+  [50,   3,  1,0,0,0,0,1,1,0,0,0,0,0,0,0],
+  [100,  4,  2,0,0,0,0,1,1,0,0,0,0,0,0,0],
+  [150,  7,  2,0,0,1,0,2,2,0,0,0,0,0,0,0],
+  [200,  10, 3,0,1,1,0,2,2,0,0,0,1,0,0,0],
+  [250,  13, 4,0,1,1,0,2,2,1,0,0,1,0,1,0],
+  [300,  15, 4,1,1,1,0,2,2,1,0,1,1,0,1,0],
+  [350,  18, 4,1,1,1,1,2,2,1,0,2,1,0,2,0],
+  [450,  20, 4,1,1,1,2,2,3,1,0,1,2,0,2,0],
+  [550,  22, 4,1,2,1,2,2,3,1,0,2,2,0,2,0],
+  [650,  24, 4,1,2,1,3,3,3,1,0,2,2,0,2,0],
+  [750,  26, 4,1,2,1,3,3,3,2,0,2,2,0,3,0],
+  [850,  28, 4,2,2,1,3,3,3,2,1,2,2,0,3,0],
+  [950,  30, 4,2,2,1,4,3,3,2,1,2,3,0,3,0],
+  [1050, 32, 4,2,2,2,4,3,3,2,1,2,3,1,3,1],
+  [1150, 33, 4,2,2,2,4,3,3,2,1,2,3,1,3,1],
+];
+const POSTES=['CUISINE','FRITES','SNACK','BROILER','BOARD VOLANT','BORNE','DRIVE','SAT SALLE','PREMIERE CABINE','TABLETTE DRIVE','EMPORTER','COMPTOIR VOLANT','UBER','SAT EMPORTER UBER'];
+
+// Sauvegarde des valeurs par défaut pour reset
+const GRILLE_DEFAULT = GRILLE.map(r=>[...r]); // Base 30min
+let GRILLE_EDIT = GRILLE.map(r=>[...r]);
+let grilleMode = 15; // Référence = 15 min (quart d'heure)
+
+// ── Séparation par restaurant : chaque resto a sa grille et sa base min ──
+// On mémorise les versions personnalisées ; au changement de resto on recharge.
+let BASEMIN_DEFAULT = null; // initialisé après la déclaration de BASE_MIN
+let GRILLE_BY_RESTO = {};   // { 'BK526': [[...]], ... }
+let BASEMIN_BY_RESTO = {};  // { 'BK526': [[...]], ... }
+let TAUX_BY_RESTO = {};     // { 'BK526': 20, ... } taux horaire € (masse salariale), par resto
 let HR_GRILLE_RESTO = 'BK526'; // resto dont la grille/base est active
 const TAUX_DEFAULT = 20;    // € / heure par défaut si non défini pour le resto
 // Taux horaire du resto actif (ou défaut)
@@ -6531,9 +6500,8 @@ async function hrReloadVentes(el){
 
 function hrShow(id){
   document.querySelectorAll('#sec-horaires .hr-sec').forEach(s=>s.classList.remove('hr-on'));
-  document.querySelectorAll('#sec-horaires .hr-nt').forEach((t,i)=>t.classList.toggle('hr-on',['planning','ca','np','grille','import'][i]===id));
+  document.querySelectorAll('#sec-horaires .hr-nt').forEach((t,i)=>t.classList.toggle('hr-on',['planning','ca','np','grille'][i]===id));
   document.getElementById('hrx-sec-'+id).classList.add('hr-on');
-  if(id==='import'){ try{ hrInitDropZone && hrInitDropZone(); hrRefreshLoadedState && hrRefreshLoadedState(); }catch(e){console.warn('hrShow import',e);} }
   // Quand on entre dans CA prévisionnel, on rafraîchit la liste déroulante des jours
   // pour que les statuts (🟢/🟠/🔴/⚪) reflètent les derniers PDF déposés.
   if(id==='ca'){
@@ -6552,7 +6520,6 @@ function renderAll(){renderDays();renderMetrics();renderTimeline();}
 
 window.__hrInit=function(){
   if(window.__hrDone)return; window.__hrDone=true;
-  if(typeof window.HR_ALL==='undefined' || !window.HR_ALL){ window.HR_ALL={}; } try{ HR_ALL=window.HR_ALL; }catch(_e){}
   // Les courbes ¼h (2025 + 2026) viennent désormais UNIQUEMENT de Supabase
   // (table ventes_horaire.tranches_ca). Le seed intégré a été retiré du fichier
   // pour l'alléger ; on garde un fallback si jamais un HR_SEED_* était réinjecté.
@@ -6593,10 +6560,7 @@ window.__hrInit=function(){
             offset += PAGE;
           }
         }catch(e){ console.warn('[ventes_horaire pagination]', e); }
-        if(n){ window.HR_ALL=HR_ALL; const r=(typeof HR_RESTO!=='undefined'&&HR_RESTO)?HR_RESTO:'BK526'; if(HR_ALL[r]){HR_DATA=HR_ALL[r];window.HR_DATA=HR_DATA;} if(!window.ACTIVE_RESTO) window.ACTIVE_RESTO=r; try{hrFillDaySelect&&hrFillDaySelect();hrFillWeekSelect&&hrFillWeekSelect();}catch(e){}
-          try{ const rs=document.getElementById('hrx-resto-sel'); if(rs) rs.value=r; }catch(e){}
-          try{ if(typeof hrSetVue==='function'){ const vue=document.getElementById('hrx-vue-sel'); if(vue) vue.value='semaine'; hrSetVue('semaine'); } }catch(e){}
-          try{ renderGrille&&renderGrille(); renderNP&&renderNP(); }catch(e){}
+        if(n){ window.HR_ALL=HR_ALL; const r=(typeof HR_RESTO!=='undefined'&&HR_RESTO)?HR_RESTO:'BK526'; if(HR_ALL[r]){HR_DATA=HR_ALL[r];window.HR_DATA=HR_DATA;} try{hrFillDaySelect&&hrFillDaySelect();hrFillWeekSelect&&hrFillWeekSelect();}catch(e){}
           try{ renderDays&&renderDays(); }catch(e){}
           try{ renderAll&&renderAll(); }catch(e){}
           try{ hrFillConsultSelect&&hrFillConsultSelect(); }catch(e){}
@@ -6680,22 +6644,45 @@ window.hrUpdateHeader=hrUpdateHeader;
 
 // Sélection explicite du resto dans la section Horaires (sélecteur dédié)
 window.hrSelectResto=function(resto){
-  if(!HR_ALL[resto]){ alert('Pas de données horaires pour ce restaurant.'); return; }
-  HR_DATA = HR_ALL[resto]; HR_RESTO = resto; window.HR_DATA = HR_DATA;
-  hrSwitchRestoGrille(resto);
-  const noms={BK500:'Près des Arènes',BK509:'Saint-Jean-de-Védas',BK526:'Saint-Clément'};
-  const titre=document.querySelector('#sec-horaires .hr-hdr-title');
-  if(titre) titre.textContent='BK '+(noms[resto]||resto);
-  // Synchroniser les 2 sélecteurs de resto
-  const r1=document.getElementById('hrx-resto-sel'); if(r1) r1.value=resto;
-  const r2=document.getElementById('hrx-resto-sel2'); if(r2) r2.value=resto;
-  hrFillDaySelect();
-  hrFillWeekSelect();
-  const vue=document.getElementById('hrx-vue-sel');
-  if(vue && vue.value==='jour'){
-    const s=document.getElementById('hrx-ca-day-sel'); if(s&&s.value) hrGenFromDate(s.value);
+  if(typeof HR_ALL==='undefined' || !HR_ALL){ try{ HR_ALL={}; }catch(_e){} window.HR_ALL=window.HR_ALL||{}; }
+  function afficher(){
+    HR_DATA = (HR_ALL[resto]||{}); HR_RESTO = resto; window.HR_DATA = HR_DATA; window.HR_RESTO = resto;
+    hrSwitchRestoGrille(resto);
+    const noms={BK500:'Près des Arènes',BK509:'Saint-Jean-de-Védas',BK526:'Saint-Clément'};
+    const titre=document.querySelector('#sec-horaires .hr-hdr-title');
+    if(titre) titre.textContent='BK '+(noms[resto]||resto);
+    const r1=document.getElementById('hrx-resto-sel'); if(r1) r1.value=resto;
+    const r2=document.getElementById('hrx-resto-sel2'); if(r2) r2.value=resto;
+    hrFillDaySelect(); hrFillWeekSelect();
+    const vue=document.getElementById('hrx-vue-sel');
+    if(vue){ vue.value='semaine'; if(typeof hrSetVue==='function') hrSetVue('semaine'); }
+    renderGrille(); renderNP();
+    if(typeof renderDays==='function') renderDays();
+    if(typeof renderAll==='function') renderAll();
+    if(window.hrDiag) hrDiag('✅ '+resto+' — '+Object.keys(HR_ALL[resto]||{}).length+' jours');
   }
-  renderGrille(); renderNP();
+  // Données déjà en mémoire → afficher direct
+  if(HR_ALL[resto] && Object.keys(HR_ALL[resto]).length){ afficher(); return; }
+  // Sinon charger les courbes de ce resto depuis Supabase, puis afficher
+  if(typeof SB!=='undefined' && SB){
+    if(window.hrDiag) hrDiag('⏳ Chargement '+resto+'…');
+    (async function(){
+      try{
+        if(!HR_ALL[resto]) HR_ALL[resto]={};
+        var offset=0; var PAGE=1000;
+        for(var g=0; g<200; g++){
+          var res = await SB.from('ventes_horaire').select('restaurant,date,tranches_ca').eq('restaurant',resto).order('date',{ascending:true}).range(offset, offset+PAGE-1);
+          if(res.error){ if(window.hrDiag) hrDiag('❌ '+res.error.message, true); break; }
+          var data=res.data||[];
+          data.forEach(function(row){ if(row.tranches_ca && typeof row.tranches_ca==='object'){ HR_ALL[resto][(row.date||'').slice(0,10)]=row.tranches_ca; } });
+          if(data.length<PAGE) break;
+          offset+=PAGE;
+        }
+        window.HR_ALL=HR_ALL;
+      }catch(e){ if(window.hrDiag) hrDiag('❌ '+((e&&e.message)||e), true); }
+      afficher();
+    })();
+  } else { afficher(); }
 };
 
 
@@ -8214,100 +8201,7 @@ async function hrParsePDF(arrayBuffer){
 
 window.hrParsePDF=hrParsePDF;
 
-// ── Sélecteur de restaurant (BK RH : remplace la barre globale de l'admin) ──────
-// Charge les courbes du resto si absentes, puis bascule TOUT l'affichage
-// (titre, grille, non productifs, planning, CA) sur ce restaurant.
-function hrSelectResto(resto){
-  if(!resto) return;
-  window.ACTIVE_RESTO = resto;
-  // Garantir que la structure mémoire existe (évite 'Cannot read properties of undefined')
-  if(typeof window.HR_ALL === 'undefined' || !window.HR_ALL){ window.HR_ALL = {}; }
-  try{ HR_ALL = window.HR_ALL; }catch(_e){ window.HR_ALL = window.HR_ALL || {}; }
-  // Si le module n'a jamais été initialisé, le faire d'abord (charge toutes les données)
-  if(!window.__hrDone && typeof window.__hrInit==='function'){
-    try{ window.__hrInit(); }catch(e){ console.warn('init via select', e); }
-  }
-  function afficher(){
-    var etape='';
-    try{
-      if(typeof window.HR_ALL==='undefined' || !window.HR_ALL){ window.HR_ALL={}; }
-      var ALL = window.HR_ALL;
-      etape='resto'; window.HR_RESTO = resto; try{ HR_RESTO = resto; }catch(_e){}
-      if(ALL[resto]){ try{ HR_DATA = ALL[resto]; }catch(_e){} window.HR_DATA = ALL[resto]; }
-      etape='switchGrille'; if(typeof hrSwitchRestoGrille==='function') hrSwitchRestoGrille(resto);
-      var rs=document.getElementById('hrx-resto-sel'); if(rs) rs.value=resto;
-      var rs2=document.getElementById('hrx-resto-sel2'); if(rs2) rs2.value=resto;
-      etape='fillDay'; if(typeof hrFillDaySelect==='function') hrFillDaySelect();
-      etape='fillWeek'; if(typeof hrFillWeekSelect==='function') hrFillWeekSelect();
-      etape='setVue'; if(typeof hrSetVue==='function'){ var vue=document.getElementById('hrx-vue-sel'); if(vue) vue.value='semaine'; hrSetVue('semaine'); }
-      etape='renderGrille'; if(typeof renderGrille==='function') renderGrille();
-      etape='renderNP'; if(typeof renderNP==='function') renderNP();
-      etape='renderDays'; if(typeof renderDays==='function') renderDays();
-      etape='renderAll'; if(typeof renderAll==='function') renderAll();
-      etape='header'; if(typeof hrUpdateHeader==='function') hrUpdateHeader();
-      if(window.hrDiag) hrDiag('✅ '+resto+' — '+((ALL[resto]&&Object.keys(ALL[resto]).length)||0)+' jours');
-    }catch(e){ console.warn('hrSelectResto afficher @'+etape, e); if(window.hrDiag) hrDiag('❌ Affichage bloqué à l\'étape « '+etape+' » : '+((e&&e.message)||e), true); }
-  }
-  try {
-    if(typeof HR_ALL!=='undefined' && HR_ALL[resto] && Object.keys(HR_ALL[resto]).length){
-      afficher();
-    } else if(typeof SB!=='undefined' && SB){
-      if(window.hrDiag) hrDiag('⏳ Chargement '+resto+'…');
-      (async function(){
-        try{
-          var offset=0; const PAGE=1000;
-          if(!HR_ALL[resto]) HR_ALL[resto]={};
-          for(var g=0; g<200; g++){
-            var res = await SB.from('ventes_horaire')
-              .select('restaurant,date,tranches_ca').eq('restaurant',resto)
-              .order('date',{ascending:true}).range(offset, offset+PAGE-1);
-            if(res.error){ if(window.hrDiag) hrDiag('❌ '+res.error.message, true); break; }
-            var data=res.data||[];
-            data.forEach(function(row){
-              if(row.tranches_ca && typeof row.tranches_ca==='object'){
-                var dt=(row.date||'').slice(0,10);
-                HR_ALL[resto][dt]=row.tranches_ca;
-              }
-            });
-            if(data.length<PAGE) break;
-            offset+=PAGE;
-          }
-          window.HR_ALL=HR_ALL;
-          if(window.hrDiag) hrDiag('✅ '+resto+' : '+Object.keys(HR_ALL[resto]).length+' jours');
-        }catch(e){ console.warn('[hrSelectResto load]', e); }
-        afficher();
-      })();
-    } else { afficher(); }
-  } catch(e){ console.warn('hrSelectResto', e); }
-}
-window.hrSelectResto=hrSelectResto;
-
-// ── Diagnostic visible (pour comprendre un éventuel écran vide) ────────────────
-function hrDiag(msg, isError){
-  try{ var el=document.getElementById('hrx-diag'); if(el){ el.textContent=msg; el.style.color=isError?'#ff6b6b':'#3ecf8e'; } }catch(e){}
-  try{ console.log('[HR diag]', msg); }catch(e){}
-}
-window.hrDiag=hrDiag;
-// Sonde réseau indépendante : compte les lignes réellement lisibles depuis la base
-window.hrTestConnexion = async function(){
-  hrDiag('⏳ Test de connexion à la base…');
-  try{
-    if(typeof SB==='undefined' || !SB){ hrDiag('❌ SB (adaptateur Supabase) non défini', true); return; }
-    var tot=0, parResto={};
-    var offset=0; const PAGE=1000;
-    for(var g=0; g<200; g++){
-      var res = await SB.from('ventes_horaire').select('restaurant,date,tranches_ca').order('date',{ascending:true}).range(offset, offset+PAGE-1);
-      if(res.error){ hrDiag('❌ Erreur base : '+res.error.message, true); return; }
-      var data=res.data||[];
-      data.forEach(function(r){ if(r.tranches_ca){ tot++; parResto[r.restaurant]=(parResto[r.restaurant]||0)+1; } });
-      if(data.length<PAGE) break;
-      offset+=PAGE;
-    }
-    var det=Object.keys(parResto).map(function(k){return k+':'+parResto[k];}).join('  ');
-    if(tot===0) hrDiag('⚠️ Connexion OK mais 0 ligne avec courbe ¼h trouvée', true);
-    else hrDiag('✅ '+tot+' jours chargés depuis la base — '+det);
-  }catch(e){ hrDiag('❌ Exception : '+((e&&e.message)||e), true); }
-};
+})();
 </script>
 </body>
 </html>
