@@ -8,7 +8,7 @@
 <script>
 (function(){
   // Version embarquée dans CE fichier (doit rester identique à APP_VERSION plus bas)
-  var EMBEDDED_VERSION = '2026-06-11 18:01';
+  var EMBEDDED_VERSION = '2026-06-13 17:25';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -173,7 +173,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 #toast.success{border-left-color:#4CAF50;}#toast.error{border-left-color:var(--red);}
 .empty{text-align:center;padding:36px;color:#555;}
 .empty .ei{font-size:2.8rem;margin-bottom:10px;}
-@media(max-width:600px){.form-row{grid-template-columns:1fr;}.stats-grid{grid-template-columns:repeat(2,1fr);}.tile-bk{width:145px;height:145px;}.tile-dir{width:145px;height:145px;}}
+@media(max-width:600px){.form-row{grid-template-columns:1fr;}.stats-grid{grid-template-columns:repeat(2,1fr);}.tile-bk{width:145px;height:145px;}.tile-dir{width:145px;height:145px;}#main-nav button.desktop-only{display:none;}}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
 .cal-dow{text-align:center;font-size:.68rem;color:#888;text-transform:uppercase;letter-spacing:1px;padding:4px 0;font-weight:600;}
 .cal-cell{aspect-ratio:1;background:#1A1A1A;border:1px solid #2A2A2A;border-radius:6px;padding:4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;transition:border-color .15s,background .15s;position:relative;}
@@ -330,19 +330,20 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
     </div>
   </header>
   <nav id="main-nav">
-    <button class="active" onclick="goPage('equipe',this)">👥 Équipe</button>
+    <button class="active desktop-only" onclick="goPage('equipe',this)">👥 Équipe</button>
     <button onclick="goPage('horaires',this)">🕐 Horaires</button>
     <button onclick="goPage('recrutement',this)">🎯 Recrutement <span id="rbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
-    <button onclick="goPage('visite',this)">🩺 Visite médicale <span id="vbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
+    <button class="desktop-only" onclick="goPage('visite',this)">🩺 Visite médicale <span id="vbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
     <button onclick="goPage('incidents',this)">📋 Incidents</button>
-    <button onclick="goPage('rapports',this)">📊 Rapports</button>
+    <button class="desktop-only" onclick="goPage('rapports',this)">📊 Rapports</button>
     <button onclick="goPage('planning',this)">🗓️ Planning</button>
-    <button onclick="goPage('parametres',this)">⚙️ Paramètres</button>
+    <button class="desktop-only" onclick="goPage('parametres',this)">⚙️ Paramètres</button>
   </nav>
 
   <!-- HORAIRES (module porté depuis BK administratif) -->
   <div class="page" id="page-horaires">
     <section class="section" id="sec-horaires">
+<div id="hrx-diag" style="background:#1a1a1e;color:#e8e020;border:1px solid #3a3a44;border-radius:8px;padding:8px 14px;margin:10px 14px;font-family:monospace;font-size:12px;line-height:1.5;">⏳ Initialisation du module horaire…</div>
 <div class="hr-hdr">
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
     <select id="hrx-resto-sel" onchange="hrSelectResto(this.value)" style="background:#1a1a1e;color:#f0f0f2;border:1px solid #3a3a44;border-radius:8px;padding:7px 12px;font-size:14px;font-weight:700;cursor:pointer">
@@ -1087,7 +1088,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-13 17:04';
+const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-13 17:25';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
@@ -1564,6 +1565,7 @@ function goPage(id, btn) {
   if (id==='horaires'){ try{
     if(!window.__hrDone){ if(window.__hrInit) window.__hrInit(); }
     else { if(window.__hrSwitchTo) window.__hrSwitchTo(true); if(window.renderAll) try{window.renderAll();}catch(e){} }
+    if(window.hrTestConnexion) setTimeout(window.hrTestConnexion, 300);
   }catch(e){console.warn('init horaires',e);} }
   if (id==='recrutement'){setCandFilter(candFilter||'nouveau');}
   if (id==='visite'){renderVisiteList();}
@@ -5014,10 +5016,11 @@ window.onload=function(){schedReports();};
 // select/eq/gte/lte/order/range/maybeSingle et upsert(...,{onConflict}).
 // ═══════════════════════════════════════════════════════════════════════════
 (function(){
-  if (typeof SUPA_URL === 'undefined' || typeof SUPA_KEY === 'undefined') {
-    console.error('[HR adapter] SUPA_URL/SUPA_KEY introuvables.');
-    return;
-  }
+  // URL + clé de la base RH (mêmes valeurs que le client maison `sb`).
+  // Redéfinies ici car les const d'un autre <script> ne sont pas accessibles
+  // entre blocs : on ne dépend donc pas de SUPA_URL/SUPA_KEY du bloc principal.
+  var SUPA_URL = 'https://qggkbtzhkomhldhacohd.supabase.co';
+  var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZ2tidHpoa29taGxkaGFjb2hkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNzc0MzIsImV4cCI6MjA5NDc1MzQzMn0.l4W4rH4CFREugjImoRqN8hocmEXFcVqnN1-H78x3S-c';
   var REST = SUPA_URL + '/rest/v1/';
   var BASEH = { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY };
   function enc(v){ return encodeURIComponent(v); }
@@ -8211,28 +8214,46 @@ async function hrParsePDF(arrayBuffer){
 window.hrParsePDF=hrParsePDF;
 
 // ── Sélecteur de restaurant (BK RH : remplace la barre globale de l'admin) ──────
+// Charge les courbes du resto si absentes, puis bascule TOUT l'affichage
+// (titre, grille, non productifs, planning, CA) sur ce restaurant.
 function hrSelectResto(resto){
   if(!resto) return;
   window.ACTIVE_RESTO = resto;
-  // Si les données du resto ne sont pas encore en mémoire, on tente un chargement,
-  // sinon on bascule directement l'affichage.
+  function afficher(){
+    try{
+      HR_RESTO = resto; window.HR_RESTO = resto;
+      if(HR_ALL[resto]){ HR_DATA = HR_ALL[resto]; window.HR_DATA = HR_DATA; }
+      if(typeof hrSwitchRestoGrille==='function') hrSwitchRestoGrille(resto);
+      var rs=document.getElementById('hrx-resto-sel'); if(rs) rs.value=resto;
+      var rs2=document.getElementById('hrx-resto-sel2'); if(rs2) rs2.value=resto;
+      if(typeof hrFillDaySelect==='function') hrFillDaySelect();
+      if(typeof hrFillWeekSelect==='function') hrFillWeekSelect();
+      if(typeof hrSetVue==='function'){ var vue=document.getElementById('hrx-vue-sel'); if(vue) vue.value='semaine'; hrSetVue('semaine'); }
+      if(typeof renderGrille==='function') renderGrille();
+      if(typeof renderNP==='function') renderNP();
+      if(typeof renderDays==='function') renderDays();
+      if(typeof renderAll==='function') renderAll();
+      if(typeof hrUpdateHeader==='function') hrUpdateHeader();
+    }catch(e){ console.warn('hrSelectResto afficher', e); }
+  }
   try {
-    if(typeof HR_ALL!=='undefined' && HR_ALL[resto]){
-      if(window.__hrSwitchTo) window.__hrSwitchTo(true);
+    if(typeof HR_ALL!=='undefined' && HR_ALL[resto] && Object.keys(HR_ALL[resto]).length){
+      afficher();
     } else if(typeof SB!=='undefined' && SB){
-      // charger les courbes de ce resto à la demande
+      if(window.hrDiag) hrDiag('⏳ Chargement '+resto+'…');
       (async function(){
         try{
-          let offset=0; const PAGE=1000;
-          for(let g=0; g<200; g++){
-            const { data, error } = await SB.from('ventes_horaire')
+          var offset=0; const PAGE=1000;
+          if(!HR_ALL[resto]) HR_ALL[resto]={};
+          for(var g=0; g<200; g++){
+            var res = await SB.from('ventes_horaire')
               .select('restaurant,date,tranches_ca').eq('restaurant',resto)
               .order('date',{ascending:true}).range(offset, offset+PAGE-1);
-            if(error||!data) break;
-            data.forEach(row=>{
+            if(res.error){ if(window.hrDiag) hrDiag('❌ '+res.error.message, true); break; }
+            var data=res.data||[];
+            data.forEach(function(row){
               if(row.tranches_ca && typeof row.tranches_ca==='object'){
-                const dt=(row.date||'').slice(0,10);
-                if(!HR_ALL[resto]) HR_ALL[resto]={};
+                var dt=(row.date||'').slice(0,10);
                 HR_ALL[resto][dt]=row.tranches_ca;
               }
             });
@@ -8240,15 +8261,41 @@ function hrSelectResto(resto){
             offset+=PAGE;
           }
           window.HR_ALL=HR_ALL;
+          if(window.hrDiag) hrDiag('✅ '+resto+' : '+Object.keys(HR_ALL[resto]).length+' jours');
         }catch(e){ console.warn('[hrSelectResto load]', e); }
-        if(window.__hrSwitchTo) window.__hrSwitchTo(true);
+        afficher();
       })();
-    } else {
-      if(window.__hrSwitchTo) window.__hrSwitchTo(true);
-    }
+    } else { afficher(); }
   } catch(e){ console.warn('hrSelectResto', e); }
 }
 window.hrSelectResto=hrSelectResto;
+
+// ── Diagnostic visible (pour comprendre un éventuel écran vide) ────────────────
+function hrDiag(msg, isError){
+  try{ var el=document.getElementById('hrx-diag'); if(el){ el.textContent=msg; el.style.color=isError?'#ff6b6b':'#3ecf8e'; } }catch(e){}
+  try{ console.log('[HR diag]', msg); }catch(e){}
+}
+window.hrDiag=hrDiag;
+// Sonde réseau indépendante : compte les lignes réellement lisibles depuis la base
+window.hrTestConnexion = async function(){
+  hrDiag('⏳ Test de connexion à la base…');
+  try{
+    if(typeof SB==='undefined' || !SB){ hrDiag('❌ SB (adaptateur Supabase) non défini', true); return; }
+    var tot=0, parResto={};
+    var offset=0; const PAGE=1000;
+    for(var g=0; g<200; g++){
+      var res = await SB.from('ventes_horaire').select('restaurant,date,tranches_ca').order('date',{ascending:true}).range(offset, offset+PAGE-1);
+      if(res.error){ hrDiag('❌ Erreur base : '+res.error.message, true); return; }
+      var data=res.data||[];
+      data.forEach(function(r){ if(r.tranches_ca){ tot++; parResto[r.restaurant]=(parResto[r.restaurant]||0)+1; } });
+      if(data.length<PAGE) break;
+      offset+=PAGE;
+    }
+    var det=Object.keys(parResto).map(function(k){return k+':'+parResto[k];}).join('  ');
+    if(tot===0) hrDiag('⚠️ Connexion OK mais 0 ligne avec courbe ¼h trouvée', true);
+    else hrDiag('✅ '+tot+' jours chargés depuis la base — '+det);
+  }catch(e){ hrDiag('❌ Exception : '+((e&&e.message)||e), true); }
+};
 </script>
 </body>
 </html>
