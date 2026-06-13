@@ -8,7 +8,7 @@
 <script>
 (function(){
   // Version embarquée dans CE fichier (doit rester identique à APP_VERSION plus bas)
-  var EMBEDDED_VERSION = '2026-06-13 18:14';
+  var EMBEDDED_VERSION = '2026-06-13 18:48';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1091,7 +1091,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-13 18:14';
+const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-13 18:48';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
@@ -5988,7 +5988,12 @@ function resetGrille(){
 function _kGrilleProt(resto){ return 'bk_grille_protegee_'+resto; }
 function nomResto(resto){ try{ return (RESTAURANTS[resto]?.nom)||resto; }catch(e){ return resto; } }
 
+// Cache mémoire des grilles protégées, alimenté depuis Supabase (et localStorage en repli).
+var HR_PROTEG = (typeof HR_PROTEG!=='undefined' && HR_PROTEG) ? HR_PROTEG : {};
 function grilleProtegee(resto){
+  // 1) cache mémoire (chargé depuis Supabase)
+  if(HR_PROTEG && HR_PROTEG[resto]) return HR_PROTEG[resto];
+  // 2) repli localStorage
   try{ const raw=localStorage.getItem(_kGrilleProt(resto)); return raw?JSON.parse(raw):null; }catch(e){ return null; }
 }
 function grilleEstProtegee(resto){ const g=grilleProtegee(resto); return !!(g && g.grille && g.grille.length); }
@@ -6032,20 +6037,21 @@ function protegerGrille(){
     mode: (typeof grilleMode==='number'?grilleMode:15),
     le: new Date().toISOString()
   };
-  try{ localStorage.setItem(_kGrilleProt(resto), JSON.stringify(snap)); }catch(e){ alert('Impossible d\'enregistrer localement la grille protégée.'); return; }
+  try{ localStorage.setItem(_kGrilleProt(resto), JSON.stringify(snap)); }catch(e){}
+  HR_PROTEG[resto] = snap; // cache mémoire immédiat
 
-  // Best-effort : persister aussi en base (colonne grille_protegee si elle existe)
+  // Persister en base (visible sur tous les appareils, jamais perdu)
   if(window.SB){
     (async()=>{
       try{
-        await SB.from('planning_grilles').upsert({
+        const { error } = await SB.from('planning_grilles').upsert({
           resto,
-          grille_protegee: JSON.stringify(snap.grille),
-          basemin_protegee: snap.basemin?JSON.stringify(snap.basemin):null,
-          mode_protege: snap.mode,
-          protege_le: snap.le
+          grille_protegee: snap.grille,
+          basemin_protegee: snap.basemin || null,
+          protegee_le: snap.le
         },{onConflict:'resto'});
-      }catch(e){ /* colonnes absentes : la protection locale suffit */ }
+        if(error){ console.warn('[protegerGrille] base', error.message); }
+      }catch(e){ console.warn('[protegerGrille] exception', e); }
     })();
   }
   renderGrille();
@@ -6128,7 +6134,7 @@ function renderGrille(){
   let addBtn = document.getElementById('hrx-grille-add-btn');
   if(!addBtn){
     addBtn = document.createElement('button');
-    addBtn.id = 'grille-add-btn';
+    addBtn.id = 'hrx-grille-add-btn';
     addBtn.className = 'btn';
     addBtn.style.cssText = 'margin:10px;font-size:12px;';
     addBtn.textContent = '+ Ajouter un palier';
@@ -7232,12 +7238,13 @@ var HR_GRILLES_CHARGEES = false;
 async function hrChargerGrilles(){
   if(!window.SB){ HR_GRILLES_CHARGEES=true; return; }
   try{
-    // On tente de lire aussi la colonne taux_horaire (si elle existe)
+    // On tente de lire aussi la colonne taux_horaire + les colonnes de protection (si elles existent)
     let data, error;
-    ({data, error} = await SB.from('planning_grilles').select('resto,grille,basemin,mode,taux_horaire'));
+    ({data, error} = await SB.from('planning_grilles').select('resto,grille,basemin,mode,taux_horaire,grille_protegee,basemin_protegee,protegee_le'));
     if(error){
-      // colonne taux_horaire absente : on relit sans elle
-      ({data, error} = await SB.from('planning_grilles').select('resto,grille,basemin,mode'));
+      // colonnes de protection/taux absentes : on relit sans elles
+      ({data, error} = await SB.from('planning_grilles').select('resto,grille,basemin,mode,taux_horaire'));
+      if(error){ ({data, error} = await SB.from('planning_grilles').select('resto,grille,basemin,mode')); }
     }
     if(error) throw error;
     (data||[]).forEach(row=>{
@@ -7247,6 +7254,14 @@ async function hrChargerGrilles(){
         if(row.taux_horaire!=null && row.taux_horaire!==''){
           const t=parseFloat(row.taux_horaire);
           if(isFinite(t) && t>0) TAUX_BY_RESTO[row.resto]=t;
+        }
+        // Grille protégée (depuis Supabase) -> cache mémoire HR_PROTEG
+        if(row.grille_protegee){
+          const gp = (typeof row.grille_protegee==='string'? JSON.parse(row.grille_protegee): row.grille_protegee);
+          if(gp && gp.length){
+            const bp = row.basemin_protegee ? (typeof row.basemin_protegee==='string'? JSON.parse(row.basemin_protegee): row.basemin_protegee) : null;
+            HR_PROTEG[row.resto] = { resto:row.resto, grille:gp, basemin:bp, mode:(row.mode||15), le:row.protegee_le||null };
+          }
         }
       }catch(e){ console.warn('grille resto', row.resto, e); }
     });
