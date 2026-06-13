@@ -8,7 +8,7 @@
 <script>
 (function(){
   // Version embarquée dans CE fichier (doit rester identique à APP_VERSION plus bas)
-  var EMBEDDED_VERSION = '2026-06-13 18:48';
+  var EMBEDDED_VERSION = '2026-06-13 18:55';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -343,6 +343,23 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
     <button onclick="goPage('planning',this)">🗓️ Planning</button>
     <button class="desktop-only" onclick="goPage('parametres',this)">⚙️ Paramètres</button>
   </nav>
+  <div id="preview-bar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;background:#2A2A2A;border-bottom:1px solid #444;padding:8px 16px;">
+    <span style="font-size:.8rem;color:#F5A623;font-weight:700;">👁️ Voir comme</span>
+    <select id="preview-role" onchange="onPreviewChange()" style="background:#1A1A1A;color:#fff;border:1px solid #555;border-radius:6px;padding:5px 10px;font-size:.82rem;">
+      <option value="">— Ma vue (Admin/RH) —</option>
+      <option value="directeur">👔 Directeur</option>
+      <option value="manager">⭐ Manager</option>
+      <option value="leader">🔶 Leader</option>
+      <option value="equipier">🧑‍🍳 Équipier</option>
+    </select>
+    <select id="preview-resto" onchange="onPreviewChange()" style="background:#1A1A1A;color:#fff;border:1px solid #555;border-radius:6px;padding:5px 10px;font-size:.82rem;">
+      <option value="bk500">BK 500</option>
+      <option value="bk509">BK 509</option>
+      <option value="bk526">BK 526</option>
+    </select>
+    <span id="preview-status" style="font-size:.78rem;color:#aaa;"></span>
+    <button id="preview-back" onclick="stopPreview()" style="display:none;background:#F5A623;color:#1A1A1A;border:none;border-radius:6px;padding:5px 12px;font-size:.8rem;font-weight:700;cursor:pointer;">↩ Revenir à ma vue</button>
+  </div>
 
   <!-- HORAIRES (module porté depuis BK administratif) -->
   <div class="page" id="page-horaires">
@@ -1091,7 +1108,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-13 18:48';
+const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-13 18:55';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
@@ -1377,6 +1394,38 @@ function startSync() {
   var lv=document.getElementById('login-version');if(lv)lv.textContent='Version '+APP_VERSION;
   var lm=document.getElementById('login-maj');if(lm)lm.textContent='✓ '+majTxt;
   var mb=document.getElementById('maj-badge');if(mb)mb.textContent='🔄 '+majTxt;
+  // Indicateur vert/orange : comparer la version embarquée à la version officielle (Supabase app_config)
+  (function(){
+    try{
+      sb.get('app_config','select=valeur&cle=eq.app_version_officielle').then(function(rows){
+        var off = (rows && rows[0] && rows[0].valeur) ? String(rows[0].valeur).trim() : null;
+        var mb=document.getElementById('maj-badge'); if(!mb) return;
+        if(!off){ return; } // pas de référence : on laisse le badge neutre
+        var locale = String(EMBEDDED_VERSION).trim();
+        if(locale === off){
+          // À jour
+          mb.textContent = '🟢 À jour · '+formatMajDate(locale);
+          mb.style.color = '#0a7d3c';
+          mb.style.background = 'rgba(62,207,142,.15)';
+          mb.style.borderColor = '#3ecf8e';
+        } else if(off > locale){
+          // Une version plus récente existe : à déployer
+          mb.textContent = '🟠 Mise à jour à déployer · '+formatMajDate(off);
+          mb.style.color = '#7a4a00';
+          mb.style.background = 'rgba(245,166,35,.20)';
+          mb.style.borderColor = '#F5A623';
+          mb.style.fontWeight = '700';
+          mb.title = 'Votre version : '+locale+' · Dernière version : '+off+'. Redéployez le dernier fichier index.html.';
+        } else {
+          // Version locale plus récente que la référence (juste après une livraison non encore enregistrée) : on considère à jour
+          mb.textContent = '🟢 À jour · '+formatMajDate(locale);
+          mb.style.color = '#0a7d3c';
+          mb.style.background = 'rgba(62,207,142,.15)';
+          mb.style.borderColor = '#3ecf8e';
+        }
+      }).catch(function(){ /* hors-ligne : badge neutre */ });
+    }catch(e){}
+  })();
   var hash = window.location.hash;
   // Page publique de candidature : affichage immédiat, indépendant du chargement de l'app
   if (hash.indexOf('#postuler') === 0) {
@@ -1484,6 +1533,83 @@ function updatePinDots(err) {
   }
 }
 
+function applyRolePermissions(r){
+    var roleLabels = {franchise:'Admin/RH',directeur:'Directeur',manager:'Manager',leader:'Leader',equipier:'Équipier'};
+    document.getElementById('role-badge').textContent = roleLabels[r]||r;
+    var isGlobal = r==='franchise';
+    var isDir = r==='directeur';
+    var isMgr = r==='manager';
+    var isAdmin = r==='franchise';
+    var canSeeAll = isGlobal || isDir;
+    var rptTabsEl=document.getElementById('rpt-tabs'); if(rptTabsEl) rptTabsEl.style.display = isGlobal?'flex':'none';
+    var navBtns = document.querySelectorAll('#main-nav button');
+    navBtns.forEach(function(b){
+      var txt = b.textContent.trim();
+      var show;
+      if (isMgr) {
+        show = (txt.indexOf('Équipe')>=0 || txt.indexOf('Equipe')>=0 || txt.indexOf('Incidents')>=0);
+      } else if (isDir) {
+        show = (txt.indexOf('Paramètres')<0 && txt.indexOf('Parametres')<0);
+      } else if (r==='leader' || r==='equipier') {
+        // Leader / Équipier : Équipe + Incidents (lecture limitée), pas de réglages
+        show = (txt.indexOf('Équipe')>=0 || txt.indexOf('Equipe')>=0 || txt.indexOf('Incidents')>=0);
+      } else {
+        show = true;
+      }
+      b.style.display = show ? '' : 'none';
+    });
+    var nrr=document.getElementById('new-resto-row'); if(nrr) nrr.style.display = isGlobal?'block':'none';
+    // role-superadmin-only : visible seulement franchise (et admin)
+    document.querySelectorAll('.role-superadmin-only').forEach(function(el){ el.style.display = isAdmin?'':'none'; });
+}
+
+// ── PRÉVISUALISATION DES RÔLES (Admin/RH uniquement) ──────────────────────────
+// Permet à un Admin/RH de voir l'interface telle que la voient les autres rôles,
+// puis de revenir à sa vue normale. La vraie session (curUser réel) est sauvegardée.
+var _realUser = null; // sauvegarde du profil réel pendant une prévisualisation
+function onPreviewChange(){
+  var role = document.getElementById('preview-role').value;
+  var resto = document.getElementById('preview-resto').value;
+  if(!role){ stopPreview(); return; }
+  previewAs(role, resto);
+}
+function previewAs(role, resto){
+  // Sauvegarder le profil réel la première fois
+  if(!_realUser) _realUser = Object.assign({}, curUser);
+  // Appliquer le rôle simulé (franchise reste global ; les autres sont liés à un resto)
+  var simRestoId = (role==='franchise') ? null : (resto || 'bk500');
+  curUser = { id:'preview', name:_realUser.name, role:role, restoId:simRestoId };
+  applyRolePermissions(role);
+  // Statut + bouton retour
+  var roleLabels = {directeur:'Directeur',manager:'Manager',leader:'Leader',equipier:'Équipier'};
+  var rlabel = (RESTOS[simRestoId] && RESTOS[simRestoId].label) || simRestoId || '';
+  var st=document.getElementById('preview-status'); if(st) st.textContent = '— Vue '+(roleLabels[role]||role)+(rlabel?(' · '+rlabel):'')+' (lecture seule de la mise en page)';
+  var bk=document.getElementById('preview-back'); if(bk) bk.style.display='inline-block';
+  document.getElementById('preview-resto').style.display = (role==='franchise')?'none':'';
+  // Revenir à une page visible pour ce rôle et rafraîchir
+  try{ goPage('equipe'); }catch(e){}
+  try{ refreshPreviewViews(); }catch(e){}
+}
+function stopPreview(){
+  if(_realUser){ curUser = Object.assign({}, _realUser); _realUser = null; }
+  var pr=document.getElementById('preview-role'); if(pr) pr.value='';
+  var st=document.getElementById('preview-status'); if(st) st.textContent='';
+  var bk=document.getElementById('preview-back'); if(bk) bk.style.display='none';
+  if(curUser) applyRolePermissions(curUser.role);
+  try{ goPage('equipe'); }catch(e){}
+  try{ refreshPreviewViews(); }catch(e){}
+}
+function refreshPreviewViews(){
+  // Rafraîchir les vues principales selon le rôle courant
+  try{ renderEquipe&&renderEquipe(); }catch(e){}
+  try{ renderHistory&&renderHistory(); }catch(e){}
+  try{ updateVBadge&&updateVBadge(); }catch(e){}
+  try{ updateRBadge&&updateRBadge(); }catch(e){}
+}
+window.onPreviewChange=onPreviewChange;
+window.previewAs=previewAs;
+window.stopPreview=stopPreview;
+
 function checkPin() {
   if (pinVal === pinProf.pin) {
     var r = pinProf.role;
@@ -1491,39 +1617,17 @@ function checkPin() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     document.getElementById('uname').textContent = pinProf.title;
-    var roleLabels = {franchise:'Admin/RH',directeur:'Directeur',manager:'Manager',leader:'Leader',equipier:'Équipier'};
-    document.getElementById('role-badge').textContent = roleLabels[r]||r;
-    // Afficher onglets selon rôle
+    applyRolePermissions(r);
     var isGlobal = r==='franchise';
-    var isDir = r==='directeur';
     var isMgr = r==='manager';
-    var isAdmin = r==='franchise';
-    var canSeeAll = isGlobal || isDir;
-    document.getElementById('rpt-tabs').style.display = isGlobal?'flex':'none';
-    // Masquer onglets selon rôle
     var navBtns = document.querySelectorAll('#main-nav button');
-    navBtns.forEach(function(b){
-      var txt = b.textContent.trim();
-      var show;
-      if (isMgr) {
-        // Manager : Équipe + Incidents uniquement
-        show = (txt.indexOf('Équipe')>=0 || txt.indexOf('Equipe')>=0 || txt.indexOf('Incidents')>=0);
-      } else if (isDir) {
-        // Directeur : tout sauf Paramètres
-        show = (txt.indexOf('Paramètres')<0 && txt.indexOf('Parametres')<0);
-      } else {
-        // Admin / franchise : tout
-        show = true;
-      }
-      b.style.display = show ? '' : 'none';
-    });
-    if (isGlobal) document.getElementById('new-resto-row').style.display = 'block';
     if (isMgr) {
-      // Manager démarre sur Équipe
       document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
       document.getElementById('page-equipe').classList.add('active');
       navBtns.forEach(function(b){b.classList.remove('active');if(b.textContent.indexOf('Équipe')>=0||b.textContent.indexOf('Equipe')>=0)b.classList.add('active');});
     }
+    // Barre "Voir comme" réservée à Admin/RH (franchise)
+    try{ var vb=document.getElementById('preview-bar'); if(vb) vb.style.display = (r==='franchise')?'flex':'none'; }catch(e){}
     initForm();
     renderEquipe();
     renderHistory();
@@ -1544,6 +1648,8 @@ function checkPin() {
 
 function logout() {
   if (syncInterval) clearInterval(syncInterval);
+  _realUser = null;
+  try{ var pr=document.getElementById('preview-role'); if(pr) pr.value=''; var bk=document.getElementById('preview-back'); if(bk) bk.style.display='none'; var st=document.getElementById('preview-status'); if(st) st.textContent=''; }catch(e){}
   curUser = null; pinProf = null; pinVal = ''; curResto = null;
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'block';
