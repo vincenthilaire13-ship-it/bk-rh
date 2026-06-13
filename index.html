@@ -8,7 +8,7 @@
 <script>
 (function(){
   // Version embarquée dans CE fichier (doit rester identique à APP_VERSION plus bas)
-  var EMBEDDED_VERSION = '2026-06-13 18:05';
+  var EMBEDDED_VERSION = '2026-06-13 18:14';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -92,6 +92,10 @@ nav::-webkit-scrollbar{display:none;}
 nav button{background:none;border:none;color:#888;padding:13px 14px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:.9rem;text-transform:uppercase;letter-spacing:1px;border-bottom:3px solid transparent;white-space:nowrap;transition:color .2s;font-family:Barlow,sans-serif;}
 nav button.active{color:var(--orange);border-bottom-color:var(--orange);}
 .page{display:none;padding:16px;max-width:980px;margin:0 auto;}
+/* La page Horaires utilise toute la largeur de l'écran (module pensé grand écran) */
+#page-horaires{max-width:none;padding:0;}
+#page-horaires #sec-horaires{min-height:auto;}
+#page-horaires .hr-sec{padding:1.2rem 2rem;}
 .page.active{display:block;}
 .card{background:var(--gray);border-radius:var(--r);padding:18px;margin-bottom:14px;border:1px solid #333;}
 .sec-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1.2rem;text-transform:uppercase;letter-spacing:2px;color:var(--orange);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
@@ -1087,7 +1091,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-13 18:05';
+const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-13 18:14';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM'
   try{
