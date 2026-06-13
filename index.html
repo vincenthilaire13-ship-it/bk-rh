@@ -8220,21 +8220,23 @@ function hrSelectResto(resto){
   if(!resto) return;
   window.ACTIVE_RESTO = resto;
   function afficher(){
+    var etape='';
     try{
-      HR_RESTO = resto; window.HR_RESTO = resto;
+      etape='resto'; HR_RESTO = resto; window.HR_RESTO = resto;
       if(HR_ALL[resto]){ HR_DATA = HR_ALL[resto]; window.HR_DATA = HR_DATA; }
-      if(typeof hrSwitchRestoGrille==='function') hrSwitchRestoGrille(resto);
+      etape='switchGrille'; if(typeof hrSwitchRestoGrille==='function') hrSwitchRestoGrille(resto);
       var rs=document.getElementById('hrx-resto-sel'); if(rs) rs.value=resto;
       var rs2=document.getElementById('hrx-resto-sel2'); if(rs2) rs2.value=resto;
-      if(typeof hrFillDaySelect==='function') hrFillDaySelect();
-      if(typeof hrFillWeekSelect==='function') hrFillWeekSelect();
-      if(typeof hrSetVue==='function'){ var vue=document.getElementById('hrx-vue-sel'); if(vue) vue.value='semaine'; hrSetVue('semaine'); }
-      if(typeof renderGrille==='function') renderGrille();
-      if(typeof renderNP==='function') renderNP();
-      if(typeof renderDays==='function') renderDays();
-      if(typeof renderAll==='function') renderAll();
-      if(typeof hrUpdateHeader==='function') hrUpdateHeader();
-    }catch(e){ console.warn('hrSelectResto afficher', e); }
+      etape='fillDay'; if(typeof hrFillDaySelect==='function') hrFillDaySelect();
+      etape='fillWeek'; if(typeof hrFillWeekSelect==='function') hrFillWeekSelect();
+      etape='setVue'; if(typeof hrSetVue==='function'){ var vue=document.getElementById('hrx-vue-sel'); if(vue) vue.value='semaine'; hrSetVue('semaine'); }
+      etape='renderGrille'; if(typeof renderGrille==='function') renderGrille();
+      etape='renderNP'; if(typeof renderNP==='function') renderNP();
+      etape='renderDays'; if(typeof renderDays==='function') renderDays();
+      etape='renderAll'; if(typeof renderAll==='function') renderAll();
+      etape='header'; if(typeof hrUpdateHeader==='function') hrUpdateHeader();
+      if(window.hrDiag && HR_ALL[resto]) hrDiag('✅ '+resto+' affiché — '+Object.keys(HR_ALL[resto]).length+' jours');
+    }catch(e){ console.warn('hrSelectResto afficher @'+etape, e); if(window.hrDiag) hrDiag('❌ Affichage bloqué à l\'étape « '+etape+' » : '+((e&&e.message)||e), true); }
   }
   try {
     if(typeof HR_ALL!=='undefined' && HR_ALL[resto] && Object.keys(HR_ALL[resto]).length){
