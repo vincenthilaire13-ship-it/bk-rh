@@ -344,7 +344,14 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
   <div class="page" id="page-horaires">
     <section class="section" id="sec-horaires">
 <div class="hr-hdr">
-  <div><div class="hr-hdr-title">BK St Clément de Rivière</div><div class="hr-hdr-sub">Planning · Base min + CA 15min · Sem. 13–19 avr. 2026</div></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <select id="hrx-resto-sel" onchange="hrSelectResto(this.value)" style="background:#1a1a1e;color:#f0f0f2;border:1px solid #3a3a44;border-radius:8px;padding:7px 12px;font-size:14px;font-weight:700;cursor:pointer">
+      <option value="BK500">BK 500 — Près des Arènes</option>
+      <option value="BK509">BK 509 — Saint-Jean-de-Védas</option>
+      <option value="BK526" selected>BK 526 — Saint-Clément</option>
+    </select>
+    <div><div class="hr-hdr-title">BK St Clément de Rivière</div><div class="hr-hdr-sub">Planning · Base min + CA 15min · Sem. 13–19 avr. 2026</div></div>
+  </div>
   <div class="hr-nav">
     <div class="hr-nt hr-on" onclick="hrShow('planning')">Planning</div>
     <div class="hr-nt" onclick="hrShow('ca')">CA prévisionnel</div>
@@ -1554,7 +1561,10 @@ function goPage(id, btn) {
     fillRptPersons();genReport();
   }
   if (id==='equipe') renderEquipe();
-  if (id==='horaires'){ try{ if(window.__hrInit) window.__hrInit(); if(window.__hrSwitchTo) window.__hrSwitchTo(true); }catch(e){console.warn('init horaires',e);} }
+  if (id==='horaires'){ try{
+    if(!window.__hrDone){ if(window.__hrInit) window.__hrInit(); }
+    else { if(window.__hrSwitchTo) window.__hrSwitchTo(true); if(window.renderAll) try{window.renderAll();}catch(e){} }
+  }catch(e){console.warn('init horaires',e);} }
   if (id==='recrutement'){setCandFilter(candFilter||'nouveau');}
   if (id==='visite'){renderVisiteList();}
   if (id==='planning'){openPlanning();}
@@ -4998,86 +5008,77 @@ window.onload=function(){schedReports();};
 <script>
 // ═══════════════════════════════════════════════════════════════════════════
 // ADAPTATEUR SUPABASE pour le MODULE HORAIRE (porté depuis BK administratif)
-// Le module horaire a été écrit pour le SDK officiel (SB.from('t').select()...).
-// BK RH utilise un client maison REST. Cet adaptateur expose un objet `SB`
-// avec la même API (sous-ensemble réellement utilisé par le module horaire),
-// routé en interne vers l'API REST de Supabase (même URL + clé que `sb`).
-// Cela évite de réécrire les ~3000 lignes du module : on leur donne le `SB`
-// qu'elles attendent.
+// Expose window.SB avec l'API du SDK officiel (sous-ensemble utilisé par le
+// module horaire), routée vers l'API REST PostgREST de BK RH.
+// v2 : pagination via limit/offset (params URL), gestion robuste de
+// select/eq/gte/lte/order/range/maybeSingle et upsert(...,{onConflict}).
 // ═══════════════════════════════════════════════════════════════════════════
 (function(){
   if (typeof SUPA_URL === 'undefined' || typeof SUPA_KEY === 'undefined') {
-    console.error('[HR adapter] SUPA_URL/SUPA_KEY introuvables — le module horaire ne pourra pas lire la base.');
+    console.error('[HR adapter] SUPA_URL/SUPA_KEY introuvables.');
     return;
   }
-  const REST = SUPA_URL + '/rest/v1/';
-  const HEADERS = { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY };
-
-  // Encode une valeur pour un filtre PostgREST
+  var REST = SUPA_URL + '/rest/v1/';
+  var BASEH = { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY };
   function enc(v){ return encodeURIComponent(v); }
 
-  // Builder de requête : accumule colonnes + filtres, exécutable via await (thenable)
   function makeQuery(table){
-    const state = { table, select: '*', filters: [], order: null, rangeFrom: null, rangeTo: null, single: false };
-
-    const builder = {
-      select(cols){ state.select = cols || '*'; return builder; },
-      eq(col, val){ state.filters.push(col + '=eq.' + enc(val)); return builder; },
-      gte(col, val){ state.filters.push(col + '=gte.' + enc(val)); return builder; },
-      lte(col, val){ state.filters.push(col + '=lte.' + enc(val)); return builder; },
-      order(col, opts){ const asc = !opts || opts.ascending !== false; state.order = col + '.' + (asc ? 'asc' : 'desc'); return builder; },
-      range(from, to){ state.rangeFrom = from; state.rangeTo = to; return builder; },
-      maybeSingle(){ state.single = true; return builder; },
-
-      // Exécution (thenable) : await SB.from(t).select()... => {data, error}
-      then(resolve, reject){ return _run().then(resolve, reject); }
+    var st = { table:table, select:'*', filters:[], order:null, limit:null, offset:null, single:false };
+    var builder = {
+      select:function(cols){ st.select = cols||'*'; return builder; },
+      eq:function(c,v){ st.filters.push(c+'=eq.'+enc(v)); return builder; },
+      gte:function(c,v){ st.filters.push(c+'=gte.'+enc(v)); return builder; },
+      lte:function(c,v){ st.filters.push(c+'=lte.'+enc(v)); return builder; },
+      order:function(c,o){ var asc=!o||o.ascending!==false; st.order=c+'.'+(asc?'asc':'desc'); return builder; },
+      range:function(from,to){ st.offset=from; st.limit=(to-from+1); return builder; },
+      limit:function(n){ st.limit=n; return builder; },
+      maybeSingle:function(){ st.single=true; return builder; },
+      single:function(){ st.single=true; return builder; },
+      then:function(res,rej){ return run().then(res,rej); },
+      catch:function(rej){ return run().catch(rej); }
     };
-
-    async function _run(){
-      try {
-        let url = REST + state.table + '?select=' + encodeURIComponent(state.select);
-        state.filters.forEach(f => { url += '&' + f; });
-        if (state.order) url += '&order=' + state.order;
-        const h = Object.assign({}, HEADERS);
-        if (state.rangeFrom !== null) h['Range'] = state.rangeFrom + '-' + state.rangeTo;
-        const r = await fetch(url, { headers: h });
-        if (!r.ok) return { data: null, error: { message: state.table + ' ' + r.status + ' ' + (await r.text()) } };
-        let data = await r.json();
-        if (state.single) data = (Array.isArray(data) && data.length) ? data[0] : null;
-        return { data, error: null };
-      } catch(e){ return { data: null, error: { message: (e && e.message) || String(e) } }; }
+    function buildUrl(){
+      var url = REST + st.table + '?select=' + encodeURIComponent(st.select);
+      st.filters.forEach(function(f){ url += '&' + f; });
+      if (st.order)  url += '&order=' + st.order;
+      if (st.limit  !== null) url += '&limit='  + st.limit;
+      if (st.offset !== null) url += '&offset=' + st.offset;
+      return url;
     }
-
-    // upsert(obj|array, {onConflict}) => {data, error} (thenable + .then support)
+    function run(){
+      return fetch(buildUrl(), { headers: BASEH }).then(function(r){
+        if(!r.ok){ return r.text().then(function(t){ return { data:null, error:{ message: st.table+' '+r.status+' '+t } }; }); }
+        return r.json().then(function(data){
+          if (st.single) data = (Array.isArray(data) && data.length) ? data[0] : null;
+          return { data:data, error:null };
+        });
+      }).catch(function(e){ return { data:null, error:{ message:(e&&e.message)||String(e) } }; });
+    }
     builder.upsert = function(payload, opts){
-      const onConflict = opts && opts.onConflict ? opts.onConflict : null;
-      const exec = async () => {
-        try {
-          let url = REST + state.table;
-          if (onConflict) url += '?on_conflict=' + encodeURIComponent(onConflict);
-          const h = Object.assign({}, HEADERS, {
-            'Content-Type': 'application/json',
-            'Prefer': 'resolution=merge-duplicates,return=minimal'
-          });
-          const r = await fetch(url, { method: 'POST', headers: h, body: JSON.stringify(payload) });
-          if (!r.ok) return { data: null, error: { message: state.table + ' upsert ' + r.status + ' ' + (await r.text()) } };
-          return { data: null, error: null };
-        } catch(e){ return { data: null, error: { message: (e && e.message) || String(e) } }; }
-      };
-      // thenable pour `await SB.from(t).upsert(...)` ET `.then(...).catch(...)`
-      const p = { then(res, rej){ return exec().then(res, rej); }, catch(rej){ return exec().catch(rej); } };
-      return p;
+      var onConflict = opts && opts.onConflict ? opts.onConflict : null;
+      function exec(){
+        var url = REST + st.table;
+        if (onConflict) url += '?on_conflict=' + encodeURIComponent(onConflict);
+        var h = Object.assign({}, BASEH, {
+          'Content-Type':'application/json',
+          'Prefer':'resolution=merge-duplicates,return=minimal'
+        });
+        return fetch(url, { method:'POST', headers:h, body:JSON.stringify(payload) })
+          .then(function(r){
+            if(!r.ok){ return r.text().then(function(t){ return { data:null, error:{ message: st.table+' upsert '+r.status+' '+t } }; }); }
+            return { data:null, error:null };
+          })
+          .catch(function(e){ return { data:null, error:{ message:(e&&e.message)||String(e) } }; });
+      }
+      return { then:function(res,rej){ return exec().then(res,rej); }, catch:function(rej){ return exec().catch(rej); } };
     };
-
     return builder;
   }
 
-  // Objet SB exposé au module horaire
-  window.SB = window.SB || { from(table){ return makeQuery(table); } };
-  // Si window.SB existe déjà mais sans .from compatible, on le complète
-  if (!window.SB.from) window.SB.from = function(table){ return makeQuery(table); };
+  window.SB = { from:function(table){ return makeQuery(table); } };
 })();
 
+var SB = window.SB; // garantir l'accès global au sein du module horaire
 function parserVentesHoraire(txt){
   const dm = txt.match(/Du\s+(\d{2})\/(\d{2})\/(\d{2,4})/);
   const date = dm ? `20${dm[3].slice(-2)}-${dm[2]}-${dm[1]}` : null;
@@ -6588,7 +6589,10 @@ window.__hrInit=function(){
             offset += PAGE;
           }
         }catch(e){ console.warn('[ventes_horaire pagination]', e); }
-        if(n){ window.HR_ALL=HR_ALL; const r=(typeof HR_RESTO!=='undefined'&&HR_RESTO)?HR_RESTO:'BK526'; if(HR_ALL[r]){HR_DATA=HR_ALL[r];window.HR_DATA=HR_DATA;} try{hrFillDaySelect&&hrFillDaySelect();hrFillWeekSelect&&hrFillWeekSelect();}catch(e){}
+        if(n){ window.HR_ALL=HR_ALL; const r=(typeof HR_RESTO!=='undefined'&&HR_RESTO)?HR_RESTO:'BK526'; if(HR_ALL[r]){HR_DATA=HR_ALL[r];window.HR_DATA=HR_DATA;} if(!window.ACTIVE_RESTO) window.ACTIVE_RESTO=r; try{hrFillDaySelect&&hrFillDaySelect();hrFillWeekSelect&&hrFillWeekSelect();}catch(e){}
+          try{ const rs=document.getElementById('hrx-resto-sel'); if(rs) rs.value=r; }catch(e){}
+          try{ if(typeof hrSetVue==='function'){ const vue=document.getElementById('hrx-vue-sel'); if(vue) vue.value='semaine'; hrSetVue('semaine'); } }catch(e){}
+          try{ renderGrille&&renderGrille(); renderNP&&renderNP(); }catch(e){}
           try{ renderDays&&renderDays(); }catch(e){}
           try{ renderAll&&renderAll(); }catch(e){}
           try{ hrFillConsultSelect&&hrFillConsultSelect(); }catch(e){}
@@ -8205,6 +8209,46 @@ async function hrParsePDF(arrayBuffer){
 }
 
 window.hrParsePDF=hrParsePDF;
+
+// ── Sélecteur de restaurant (BK RH : remplace la barre globale de l'admin) ──────
+function hrSelectResto(resto){
+  if(!resto) return;
+  window.ACTIVE_RESTO = resto;
+  // Si les données du resto ne sont pas encore en mémoire, on tente un chargement,
+  // sinon on bascule directement l'affichage.
+  try {
+    if(typeof HR_ALL!=='undefined' && HR_ALL[resto]){
+      if(window.__hrSwitchTo) window.__hrSwitchTo(true);
+    } else if(typeof SB!=='undefined' && SB){
+      // charger les courbes de ce resto à la demande
+      (async function(){
+        try{
+          let offset=0; const PAGE=1000;
+          for(let g=0; g<200; g++){
+            const { data, error } = await SB.from('ventes_horaire')
+              .select('restaurant,date,tranches_ca').eq('restaurant',resto)
+              .order('date',{ascending:true}).range(offset, offset+PAGE-1);
+            if(error||!data) break;
+            data.forEach(row=>{
+              if(row.tranches_ca && typeof row.tranches_ca==='object'){
+                const dt=(row.date||'').slice(0,10);
+                if(!HR_ALL[resto]) HR_ALL[resto]={};
+                HR_ALL[resto][dt]=row.tranches_ca;
+              }
+            });
+            if(data.length<PAGE) break;
+            offset+=PAGE;
+          }
+          window.HR_ALL=HR_ALL;
+        }catch(e){ console.warn('[hrSelectResto load]', e); }
+        if(window.__hrSwitchTo) window.__hrSwitchTo(true);
+      })();
+    } else {
+      if(window.__hrSwitchTo) window.__hrSwitchTo(true);
+    }
+  } catch(e){ console.warn('hrSelectResto', e); }
+}
+window.hrSelectResto=hrSelectResto;
 </script>
 </body>
 </html>
