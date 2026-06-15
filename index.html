@@ -8,7 +8,7 @@
 <script>
 (function(){
   // Version embarquée dans CE fichier (doit rester identique à APP_VERSION plus bas)
-  var EMBEDDED_VERSION = '2026-06-15 16:10';
+  var EMBEDDED_VERSION = '2026-06-15 17:00';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -94,6 +94,8 @@ nav button.active{color:var(--orange);border-bottom-color:var(--orange);}
 .page{display:none;padding:16px;max-width:1400px;margin:0 auto;}
 /* Incidents : vue téléphone (étroite) */
 #page-incidents{max-width:480px;}
+/* Planning : pleine largeur (grand écran) */
+#page-planning{max-width:none;}
 /* La page Horaires utilise toute la largeur de l'écran (module pensé grand écran) */
 #page-horaires{max-width:none;padding:0;}
 #page-horaires #sec-horaires{min-height:auto;}
@@ -195,13 +197,13 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 .cal-dot{width:6px;height:6px;border-radius:50%;background:var(--orange);margin-top:2px;}
 .cal-cnt{position:absolute;top:2px;right:3px;font-size:.62rem;font-weight:700;background:#fff;color:var(--orange);border-radius:8px;padding:0 4px;min-width:14px;text-align:center;}
 /* Planning */
-.pl-table{border-collapse:collapse;font-size:.78rem;}
+.pl-table{border-collapse:collapse;font-size:.92rem;width:100%;}
 .pl-table th,.pl-table td{border:1px solid #2A2A2A;text-align:center;padding:0;}
-.pl-name{position:sticky;left:0;background:#1A1A1A;z-index:2;text-align:left!important;padding:6px 10px!important;font-weight:600;color:#ddd;white-space:nowrap;min-width:130px;}
-.pl-cat-row td{background:#241400;color:var(--orange);font-weight:700;text-transform:uppercase;letter-spacing:1px;font-size:.7rem;padding:5px 10px!important;text-align:left!important;position:sticky;left:0;}
-.pl-dayhead{font-size:.62rem;color:#888;padding:3px 2px!important;min-width:30px;}
+.pl-name{position:sticky;left:0;background:#1A1A1A;z-index:2;text-align:left!important;padding:9px 14px!important;font-weight:600;color:#ddd;white-space:nowrap;min-width:170px;font-size:.95rem;}
+.pl-cat-row td{background:#241400;color:var(--orange);font-weight:700;text-transform:uppercase;letter-spacing:1px;font-size:.8rem;padding:7px 14px!important;text-align:left!important;position:sticky;left:0;}
+.pl-dayhead{font-size:.74rem;color:#888;padding:5px 3px!important;min-width:44px;}
 .pl-dayhead.we{background:#181818;color:#666;}
-.pl-cell{cursor:pointer;min-width:30px;height:30px;font-size:.68rem;font-weight:700;color:#fff;}
+.pl-cell{cursor:pointer;min-width:44px;height:44px;font-size:.82rem;font-weight:700;color:#fff;}
 .pl-cell.we{background:#141414;}
 .pl-cell:hover{outline:2px solid var(--orange);outline-offset:-2px;}
 
@@ -344,6 +346,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
     <button class="desktop-only" onclick="goPage('rapports',this)">📊 Rapports</button>
     <button onclick="goPage('planning',this)">🗓️ Planning</button>
     <button class="desktop-only" onclick="goPage('parametres',this)">⚙️ Paramètres</button>
+    <button class="desktop-only" onclick="goPage('alertes',this)">🔔 Alertes <span id="albadge" style="background:var(--red);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
   </nav>
   <div id="preview-bar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;background:#2A2A2A;border-bottom:1px solid #444;padding:8px 16px;">
     <span style="font-size:.8rem;color:#F5A623;font-weight:700;">👁️ Voir comme</span>
@@ -619,11 +622,17 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
     <div class="card">
       <div class="sec-title">🩺 Visites médicales</div>
       <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Suivi des visites médicales. <strong>Visite d'embauche</strong> : à passer dans les 6 mois suivant l'entrée. <strong>Visites périodiques</strong> : validez-les depuis la fiche du salarié (Équipe → Historique) en insérant l'avis médical et en indiquant la date de la prochaine visite. 🟢 OK · 🟠 à planifier · 🔴 dépassé.</p>
-      <div id="visite-resto-filter" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+      <div id="visite-resto-filter" style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
         <button class="rtab rf on" onclick="setVisiteResto(this,'all')">Tous</button>
         <button class="rtab rf" onclick="setVisiteResto(this,'bk500')">BK 500</button>
         <button class="rtab rf" onclick="setVisiteResto(this,'bk509')">BK 509</button>
         <button class="rtab rf" onclick="setVisiteResto(this,'bk526')">BK 526</button>
+      </div>
+      <div id="visite-statut-filter" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+        <button class="rtab sf on" onclick="setVisiteStatut(this,'all')">Tous les statuts</button>
+        <button class="rtab sf" onclick="setVisiteStatut(this,'depasse')">🔴 Dépassé</button>
+        <button class="rtab sf" onclick="setVisiteStatut(this,'bientot')">🟠 Bientôt (&lt; 1 mois)</button>
+        <button class="rtab sf" onclick="setVisiteStatut(this,'planifie')">🟢 Planifié</button>
       </div>
       <div id="visite-list"></div>
     </div>
@@ -731,10 +740,10 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 
     <!-- Ligne 1 : sélection restaurant - Tous actif par défaut -->
     <div id="eq-tabs" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+      <button class="rtab on" onclick="setEqTab(this,'all')">👥 Tous</button>
       <button class="rtab" onclick="setEqTab(this,'bk500')">🍔 BK 500</button>
       <button class="rtab" onclick="setEqTab(this,'bk509')">🍔 BK 509</button>
       <button class="rtab" onclick="setEqTab(this,'bk526')">🍔 BK 526</button>
-      <button class="rtab on" onclick="setEqTab(this,'all')">👥 Tous</button>
     </div>
 
     <!-- Ligne 2 : filtre statut + bouton ajouter -->
@@ -930,6 +939,15 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
       <textarea id="mt-corps" class="fi" style="min-height:200px;font-size:.85rem;"></textarea>
       <button class="btn btn-red" style="margin-top:12px;" onclick="saveMailTpl()">💾 Enregistrer les modèles</button>
     </div>
+  </div>
+</div>
+
+<!-- ALERTES -->
+<div class="page" id="page-alertes">
+  <div class="card">
+    <div class="sec-title">🔔 Alertes</div>
+    <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Toutes les alertes en cours sont regroupées ici. Cliquez sur une alerte pour ouvrir la fiche concernée.</p>
+    <div id="alertes-list"></div>
   </div>
 </div>
 
@@ -1434,7 +1452,8 @@ function startSync() {
       renderHistory();
       updateVBadge();
       updateRBadge();
-      if(document.getElementById('page-recrutement').classList.contains('active')){renderCandidatures();if(candFilter==='entretien')renderAgenda();}
+      if(typeof updateAlBadge==="function")updateAlBadge();
+      if(document.getElementById("page-recrutement").classList.contains('active')){renderCandidatures();if(candFilter==='entretien')renderAgenda();}
     } catch(e) { console.warn('sync',e); }
   }, 5000);
 }
@@ -1705,6 +1724,7 @@ function checkPin() {
     renderHistory();
     updateVBadge();
     updateRBadge();
+    if(typeof updateAlBadge==="function")updateAlBadge();
     loadMailSettings();
     renderPinSettings();
     renderNamesSettings();
@@ -1749,6 +1769,7 @@ function goPage(id, btn) {
   }catch(e){console.warn('init horaires',e);} }
   if (id==='recrutement'){setCandFilter(candFilter||'nouveau');}
   if (id==='visite'){renderVisiteList();}
+  if (id==='alertes'){renderAlertes();}
   if (id==='planning'){openPlanning();}
   if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();loadSeuilOral();loadMailTpl();renderQr();renderApercuForm();var av=document.getElementById('app-version-badge');if(av){av.textContent='✓ À jour — '+formatMajDate(APP_VERSION);av.style.color='#4CAF50';av.style.borderColor='#2E5E33';}}
 }
@@ -1970,12 +1991,21 @@ function renderHistory(){
 }
 
 // ── RAPPORTS ──────────────────────────────────────────────────────────────────
+function _roleRank(role){var o={directeur:0,manager:1,leader:2,equipier:3};return (role in o)?o[role]:9;}
+function sortByRoleThenName(arr){
+  return arr.slice().sort(function(a,b){
+    var ra=_roleRank(a.role),rb=_roleRank(b.role);
+    if(ra!==rb)return ra-rb;
+    return (a.name||'').localeCompare(b.name||'','fr',{sensitivity:'base'});
+  });
+}
 function fillRptPersons(){
   var sel=document.getElementById('rpt-person');sel.innerHTML="<option value='all'>Toute l'équipe</option>";
   var r=curUser.role;var targets;
   if(r==='franchise'){var rf=rptTab==='all'?null:rptTab;targets=DB.employees.filter(function(e){return e.role!=='franchise'&&!e.archived&&(rf?e.restoId===rf:true);});}
   else if(r==='directeur'){targets=DB.employees.filter(function(e){return e.restoId===curUser.restoId&&e.role!=='directeur'&&!e.archived;});}
   else{targets=DB.employees.filter(function(e){return e.restoId===curUser.restoId&&e.role==='equipier'&&!e.archived;});}
+  targets=sortByRoleThenName(targets);
   targets.forEach(function(e){var o=document.createElement('option');o.value=e.id;var rLbl=r==='franchise'&&RESTOS[e.restoId]?' ['+RESTOS[e.restoId].label+']':'';o.textContent=e.name+rLbl;sel.appendChild(o);});
 }
 function filterIncsByPeriod(period){
@@ -3332,8 +3362,8 @@ function visiteEmpInfo(e){
   var sub=(e.visiteDate?'Dernière le '+new Date(e.visiteDate+'T12:00:00').toLocaleDateString('fr-FR')+' · ':'')+'Prochaine le '+prochStr;
   var col,badge,etat;
   if(jours<0){col='#cc5555';badge='🔴 Visite dépassée ('+prochStr+')';etat='depasse';}
-  else if(jours<=60){col='#F5A623';badge='🟠 À planifier — avant le '+prochStr;etat='orange';}
-  else{col='#4CAF50';badge='🟢 OK — prochaine le '+prochStr;etat='ok';}
+  else if(jours<=30){col='#F5A623';badge='🟠 Bientôt — dans '+jours+' j (avant le '+prochStr+')';etat='bientot';}
+  else{col='#4CAF50';badge='🟢 Planifié — prochaine le '+prochStr;etat='ok';}
   return {col:col,badge:badge,etat:etat,sub:sub,jours:jours,prochStr:prochStr};
 }
 
@@ -3357,11 +3387,68 @@ function visiteInfo(c){
 }
 
 var visiteRestoFilter='all';
+var visiteStatutFilter='all';
 function setVisiteResto(btn,r){
   visiteRestoFilter=r;
   document.querySelectorAll('#visite-resto-filter .rf').forEach(function(b){b.classList.remove('on');});
   btn.classList.add('on');
   renderVisiteList();
+}
+function setVisiteStatut(btn,s){
+  visiteStatutFilter=s;
+  document.querySelectorAll('#visite-statut-filter .sf').forEach(function(b){b.classList.remove('on');});
+  btn.classList.add('on');
+  renderVisiteList();
+}
+// ══ ALERTES (centralisées) ═══════════════════════════════════════════════════
+function collectAlertes(){
+  var alerts=[];
+  var isDir=(curUser&&curUser.role==='directeur');
+  var emps=DB.employees.filter(function(e){return !e.archived;});
+  if(isDir)emps=emps.filter(function(e){return e.restoId===curUser.restoId;});
+  // 1) Visites médicales : dépassées + bientôt (< 1 mois)
+  emps.forEach(function(e){
+    var v=visiteEmpInfo(e);
+    var resto=RESTOS[e.restoId]?RESTOS[e.restoId].label:e.restoId;
+    if(v.etat==='depasse'){
+      alerts.push({prio:0,cat:'Visite médicale',icon:'🩺',col:'#cc5555',
+        titre:e.name+' — visite dépassée',
+        sub:'Échéance le '+v.prochStr+' · '+resto,empId:e.id});
+    }else if(v.etat==='bientot'){
+      alerts.push({prio:1,cat:'Visite médicale',icon:'🩺',col:'#F5A623',
+        titre:e.name+' — visite dans '+v.jours+' j',
+        sub:'Avant le '+v.prochStr+' · '+resto,empId:e.id});
+    }
+  });
+  // (futures alertes : titre de séjour, mutuelle, documents… s'ajouteront ici)
+  alerts.sort(function(a,b){return a.prio-b.prio;});
+  return alerts;
+}
+function updateAlBadge(){
+  var n=collectAlertes().length;
+  var b=document.getElementById('albadge');if(!b)return;
+  b.textContent=n;b.style.display=n>0?'inline-flex':'none';
+}
+function renderAlertes(){
+  var box=document.getElementById('alertes-list');if(!box)return;
+  var alerts=collectAlertes();
+  if(!alerts.length){box.innerHTML='<div class="empty"><div class="ei">✅</div><p>Aucune alerte en cours</p></div>';return;}
+  // grouper par catégorie
+  var cats={};alerts.forEach(function(a){(cats[a.cat]=cats[a.cat]||[]).push(a);});
+  var h='';
+  Object.keys(cats).forEach(function(cat){
+    var arr=cats[cat];
+    h+='<details open style="margin-bottom:8px;border:1px solid #2A2A2A;border-radius:10px;overflow:hidden;">'
+      +'<summary style="cursor:pointer;padding:11px 14px;background:#1A1A1A;font-weight:700;font-size:.9rem;color:var(--orange);list-style:none;display:flex;justify-content:space-between;align-items:center;">'
+      +'<span>'+arr[0].icon+' '+cat+'</span><span style="background:var(--red);color:#fff;border-radius:12px;padding:1px 10px;font-size:.8rem;">'+arr.length+'</span></summary>'
+      +'<div style="padding:10px;">'+arr.map(function(a){
+        return '<div class="emp-card" style="border-left:4px solid '+a.col+';cursor:pointer;" '+(a.empId?'onclick="openEmpFiche(\''+a.empId+'\')"':'')+'>'
+          +'<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:.9rem;">'+a.titre+'</div>'
+          +'<div style="font-size:.74rem;color:#888;margin-top:2px;">'+a.sub+'</div></div>'
+          +(a.empId?'<span style="color:'+a.col+';font-size:1.3rem;">›</span>':'')+'</div>';
+      }).join('')+'</div></details>';
+  });
+  box.innerHTML=h;
 }
 function renderVisiteList(){
   var list=document.getElementById('visite-list');if(!list)return;
@@ -3390,21 +3477,39 @@ function renderVisiteList(){
   var emps=DB.employees.filter(function(e){return !e.archived;});
   if(isDir)emps=emps.filter(function(e){return e.restoId===curUser.restoId;});
   if(!isDir&&visiteRestoFilter!=='all')emps=emps.filter(function(e){return e.restoId===visiteRestoFilter;});
-  var ordreE={depasse:0,orange:1,ok:2,adefinir:3,aucune:4};
-  emps.sort(function(a,b){return (ordreE[visiteEmpInfo(a).etat]||9)-(ordreE[visiteEmpInfo(b).etat]||9);});
-  var periodiqueHtml=emps.map(function(e){
+  // grouper par statut
+  var groupes={depasse:[],bientot:[],ok:[],adefinir:[],aucune:[]};
+  emps.forEach(function(e){var et=visiteEmpInfo(e).etat;(groupes[et]||groupes.aucune).push(e);});
+  Object.keys(groupes).forEach(function(k){groupes[k]=sortByRoleThenName(groupes[k]);});
+
+  function cardEmp(e){
     var v=visiteEmpInfo(e);
-    var resto=RESTOS[e.restoId]?RESTOS[e.restoId].label:e.restoId;
     var ini=(e.name||'').split(' ').map(function(x){return x[0]||'';}).join('').slice(0,2).toUpperCase();
-    return '<div class="emp-card" style="border-left:4px solid '+v.col+';cursor:pointer;" onclick="openHistorique(\''+e.id+'\')">'
+    var resto=RESTOS[e.restoId]?RESTOS[e.restoId].label:e.restoId;
+    return '<div class="emp-card" style="border-left:4px solid '+v.col+';cursor:pointer;" onclick="openEmpFiche(\''+e.id+'\')">'
       +'<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
-      +'<div class="emp-av av-e">'+ini+'</div>'
-      +'<div style="min-width:0;"><div style="font-weight:600;font-size:.92rem;">'+e.name+'</div>'
-      +'<div style="font-size:.73rem;color:#888;">'+(v.sub||resto)+'</div>'
+      +'<div class="emp-av av-'+ (e.role?e.role[0]:'e') +'">'+ini+'</div>'
+      +'<div style="min-width:0;"><div style="font-weight:600;font-size:.92rem;">'+e.name+' <span style="font-size:.7rem;color:#888;">· '+cap(e.role)+' · '+resto+'</span></div>'
+      +'<div style="font-size:.73rem;color:#888;">'+(v.sub||'')+'</div>'
       +'<div style="margin-top:3px;"><span style="background:'+v.col+';color:#fff;border-radius:10px;padding:2px 8px;font-size:.68rem;font-weight:700;">'+v.badge+'</span></div></div></div>'
-      +'<span style="color:'+v.col+';font-size:1.3rem;">›</span>'
-      +'</div>';
-  }).join('');
+      +'<span style="color:'+v.col+';font-size:1.3rem;">›</span></div>';
+  }
+  function bloc(titre,key,couleur,ouvert){
+    var arr=groupes[key]||[];
+    if(visiteStatutFilter!=='all'&&visiteStatutFilter!==key)return '';
+    if(!arr.length&&visiteStatutFilter==='all'&&key!=='depasse'&&key!=='bientot')return '';
+    var open=(ouvert||visiteStatutFilter===key)?' open':'';
+    return '<details'+open+' style="margin-bottom:8px;border:1px solid #2A2A2A;border-radius:10px;overflow:hidden;">'
+      +'<summary style="cursor:pointer;padding:11px 14px;background:#1A1A1A;font-weight:700;font-size:.9rem;color:'+couleur+';list-style:none;display:flex;justify-content:space-between;align-items:center;">'
+      +'<span>'+titre+'</span><span style="background:'+couleur+';color:#fff;border-radius:12px;padding:1px 10px;font-size:.8rem;">'+arr.length+'</span></summary>'
+      +'<div style="padding:10px;">'+(arr.length?arr.map(cardEmp).join(''):'<div style="font-size:.8rem;color:#666;padding:4px 2px;">Aucun salarié.</div>')+'</div></details>';
+  }
+  var periodiqueHtml='';
+  periodiqueHtml+=bloc('🔴 Dépassé','depasse','#cc5555',true);
+  periodiqueHtml+=bloc('🟠 Bientôt (moins d\'1 mois)','bientot','#F5A623',true);
+  periodiqueHtml+=bloc('🟢 Planifié','ok','#4CAF50',false);
+  periodiqueHtml+=bloc('⚪ Prochaine visite à définir','adefinir','#888',false);
+  periodiqueHtml+=bloc('⚪ Aucune visite enregistrée','aucune','#888',false);
   var html='';
   html+='<div style="font-size:.78rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin:4px 0 8px;font-weight:700;">🆕 Visite d\'embauche (période d\'essai)</div>';
   html+=embaucheHtml||'<div style="font-size:.8rem;color:#666;padding:8px 2px 16px;">Aucun salarié en période d\'essai.</div>';
