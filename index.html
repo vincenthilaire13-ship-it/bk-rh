@@ -8,7 +8,7 @@
 <script>
 (function(){
   // Version embarquée dans CE fichier (doit rester identique à APP_VERSION plus bas)
-  var EMBEDDED_VERSION = '2026-06-15 15:30';
+  var EMBEDDED_VERSION = '2026-06-15 16:10';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -892,7 +892,12 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
       <div class="sec-title">📧 Adresses d'expédition</div>
       <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Le destinataire est toujours le candidat. Indiquez ici l'<strong>adresse RH</strong> depuis laquelle les mails doivent partir : elle sera ajoutée à chaque mail (en copie) pour qu'ils soient bien rattachés au compte RH. Vous pouvez aussi ajouter des adresses en <strong>copie cachée</strong> (le candidat ne les voit pas), chacune rattachée à un restaurant ou à « tous ».</p>
       <label class="flabel">Adresse RH (expéditrice)</label>
-      <input type="email" id="mt-exp" class="fi" placeholder="recrutement@votredomaine.fr" style="margin-bottom:16px;">
+      <input type="email" id="mt-exp" class="fi" placeholder="recrutement@votredomaine.fr" style="margin-bottom:12px;">
+      <label class="flabel">Ouvrir les mails dans</label>
+      <select id="mt-mode" class="fi" style="margin-bottom:16px;max-width:320px;" onchange="saveMailMode()">
+        <option value="gmail">Gmail (dans le navigateur) — recommandé</option>
+        <option value="mailto">Le logiciel mail de l'ordinateur</option>
+      </select>
       <div class="flabel">Adresses en copie cachée (directeurs / superviseurs)</div>
       <div id="cc-list" style="margin-bottom:10px;"></div>
       <div style="background:#141414;border-radius:8px;padding:10px;">
@@ -3691,7 +3696,7 @@ function saveEditCand(){
 
 // ── MAILS (modèles éditables + adresse expéditrice, s'ouvrent dans le client mail) ──
 var MAIL_DEFAULTS={
-  expediteur:'',
+  expediteur:'rh.bkmontpellier@gmail.com',
   entretien:{
     sujet:'Votre entretien chez {resto}',
     corps:'Bonjour {prenom},\n\nNous avons bien reçu votre candidature et nous serions ravis de vous rencontrer.\n\nNous vous proposons un entretien le {date} au restaurant {resto}.\n\nMerci de nous confirmer votre présence en répondant à ce message.\n\nÀ très bientôt,\nL\'équipe {resto}'
@@ -3751,14 +3756,31 @@ function _mailto(c,subject,body){
   var tpl=getMailTpl();
   var dest=(c.email||'').trim();
   if(!dest){toast('Ce candidat n\'a pas d\'adresse email renseignée.','error');return;}
-  var params='subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
   // CC : adresse principale RH (commune à tous)
-  if(tpl.expediteur)params+='&cc='+encodeURIComponent(tpl.expediteur);
+  var ccArr=[];
+  if(tpl.expediteur)ccArr.push(tpl.expediteur);
   // BCC (copie cachée) : adresses liées au restaurant du candidat, ou "tous"
   var cclist=(DB.mailSettings&&DB.mailSettings.ccAddresses)||[];
   var bcc=cclist.filter(function(a){return a.resto==='all'||!a.resto||a.resto===c.restoId;}).map(function(a){return a.email;}).filter(Boolean);
+  // Mode d'envoi : 'gmail' (compose dans le navigateur) ou 'mailto' (logiciel mail)
+  var mode=(DB.mailSettings&&DB.mailSettings.mailMode)||'gmail';
+  if(mode==='gmail'){
+    // Fenêtre de composition Gmail — part du compte Gmail connecté (l'adresse RH)
+    var g='https://mail.google.com/mail/?view=cm&fs=1'
+      +'&to='+encodeURIComponent(dest)
+      +'&su='+encodeURIComponent(subject)
+      +'&body='+encodeURIComponent(body);
+    if(ccArr.length)g+='&cc='+encodeURIComponent(ccArr.join(','));
+    if(bcc.length)g+='&bcc='+encodeURIComponent(bcc.join(','));
+    var w=window.open(g,'_blank');
+    if(!w){toast('Autorisez les fenêtres pop-up pour ouvrir Gmail.','error');}
+    else{toast('Mail ouvert dans Gmail — vérifiez puis envoyez ✔','success');}
+    return;
+  }
+  // Secours : logiciel mail par défaut
+  var params='subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  if(ccArr.length)params+='&cc='+encodeURIComponent(ccArr.join(','));
   if(bcc.length)params+='&bcc='+encodeURIComponent(bcc.join(','));
-  // l'adresse destinataire ne doit PAS être encodée (sinon le @ devient %40 et le client mail ne reconnaît pas le destinataire)
   var url='mailto:'+dest+'?'+params;
   window.location.href=url;
 }
@@ -4995,6 +5017,7 @@ var _mailTab='entretien';
 function loadMailTpl(){
   var tpl=getMailTpl();
   var exp=document.getElementById('mt-exp');if(exp)exp.value=tpl.expediteur||'';
+  var md=document.getElementById('mt-mode');if(md)md.value=(DB.mailSettings&&DB.mailSettings.mailMode)||'gmail';
   renderCcList();
   _mailTab='entretien';
   document.querySelectorAll('#mt-tabs .rtab').forEach(function(b,i){b.classList.toggle('on',i===0);});
@@ -5027,6 +5050,12 @@ function delCcAddress(i){
   if(!DB.mailSettings||!DB.mailSettings.ccAddresses)return;
   DB.mailSettings.ccAddresses.splice(i,1);
   renderCcList();
+}
+async function saveMailMode(){
+  if(!DB.mailSettings)DB.mailSettings={};
+  DB.mailSettings.mailMode=document.getElementById('mt-mode').value;
+  await saveDB();
+  toast('Mode d\'envoi enregistré ✔','success');
 }
 async function saveMailAddresses(){
   if(!DB.mailSettings)DB.mailSettings={};
