@@ -8,7 +8,7 @@
 <script>
 (function(){
   // Version embarquée dans CE fichier (doit rester identique à APP_VERSION plus bas)
-  var EMBEDDED_VERSION = '2026-06-15 14:45';
+  var EMBEDDED_VERSION = '2026-06-15 15:30';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -91,7 +91,9 @@ nav{background:var(--gray);border-bottom:2px solid #333;display:flex;padding:0 1
 nav::-webkit-scrollbar{display:none;}
 nav button{background:none;border:none;color:#888;padding:13px 14px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:.9rem;text-transform:uppercase;letter-spacing:1px;border-bottom:3px solid transparent;white-space:nowrap;transition:color .2s;font-family:Barlow,sans-serif;}
 nav button.active{color:var(--orange);border-bottom-color:var(--orange);}
-.page{display:none;padding:16px;max-width:980px;margin:0 auto;}
+.page{display:none;padding:16px;max-width:1400px;margin:0 auto;}
+/* Incidents : vue téléphone (étroite) */
+#page-incidents{max-width:480px;}
 /* La page Horaires utilise toute la largeur de l'écran (module pensé grand écran) */
 #page-horaires{max-width:none;padding:0;}
 #page-horaires #sec-horaires{min-height:auto;}
@@ -715,6 +717,15 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
     <div id="rpt-out"></div>
   </div>
 
+  <!-- PAS D'ACCÈS (leader / équipier) -->
+  <div class="page" id="page-noaccess">
+    <div class="empty" style="padding:80px 16px;text-align:center;">
+      <div class="ei" style="font-size:3rem;">🔒</div>
+      <p style="font-size:1.1rem;color:#ccc;margin-top:10px;">Vous n'avez pas accès à cette application.</p>
+      <p style="font-size:.85rem;color:#888;margin-top:6px;">Rapprochez-vous de votre direction si besoin.</p>
+    </div>
+  </div>
+
   <!-- ÉQUIPE -->
   <div class="page active" id="page-equipe">
 
@@ -732,7 +743,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
         <button class="rtab on" id="ef-actif" onclick="setEmpFilter(this,'actif')">✅ Actifs</button>
         <button class="rtab" id="ef-archive" onclick="setEmpFilter(this,'archive')">📁 Archivés</button>
       </div>
-      <button class="btn btn-red btn-sm" onclick="document.getElementById('add-emp-card').style.display=document.getElementById('add-emp-card').style.display==='none'?'block':'none'">➕ Ajouter</button>
+      <button class="btn btn-red btn-sm rw-only" onclick="document.getElementById('add-emp-card').style.display=document.getElementById('add-emp-card').style.display==='none'?'block':'none'">➕ Ajouter</button>
     </div>
 
     <!-- Formulaire ajout (masqué par défaut) -->
@@ -1575,27 +1586,40 @@ function applyRolePermissions(r){
     var isDir = r==='directeur';
     var isMgr = r==='manager';
     var isAdmin = r==='franchise';
+    var noAccess = (r==='leader'||r==='equipier');   // ne voient rien
     var canSeeAll = isGlobal || isDir;
     var rptTabsEl=document.getElementById('rpt-tabs'); if(rptTabsEl) rptTabsEl.style.display = isGlobal?'flex':'none';
+
+    // Indicateur global de lecture seule (directeur = lecture seule partout sauf incidents)
+    window.__readOnly = isDir;
+
     var navBtns = document.querySelectorAll('#main-nav button');
     navBtns.forEach(function(b){
       var txt = b.textContent.trim();
       var show;
-      if (isMgr) {
-        show = (txt.indexOf('Équipe')>=0 || txt.indexOf('Equipe')>=0 || txt.indexOf('Incidents')>=0);
+      if (isGlobal) {
+        show = true;                                   // Admin/RH : tout
       } else if (isDir) {
-        show = (txt.indexOf('Paramètres')<0 && txt.indexOf('Parametres')<0);
-      } else if (r==='leader' || r==='equipier') {
-        // Leader / Équipier : Équipe + Incidents (lecture limitée), pas de réglages
-        show = (txt.indexOf('Équipe')>=0 || txt.indexOf('Equipe')>=0 || txt.indexOf('Incidents')>=0);
+        show = (txt.indexOf('Paramètres')<0 && txt.indexOf('Parametres')<0); // tout sauf Paramètres
+      } else if (isMgr) {
+        show = (txt.indexOf('Incidents')>=0);          // Manager : Incidents uniquement
       } else {
-        show = true;
+        show = false;                                  // Leader / Équipier : rien
       }
       b.style.display = show ? '' : 'none';
     });
+
+    // Écran "pas d'accès" pour leader / équipier
+    var na = document.getElementById('page-noaccess');
+    if (noAccess) {
+      if (na) { goPage('noaccess'); }
+    }
+
     var nrr=document.getElementById('new-resto-row'); if(nrr) nrr.style.display = isGlobal?'block':'none';
     // role-superadmin-only : visible seulement franchise (et admin)
     document.querySelectorAll('.role-superadmin-only').forEach(function(el){ el.style.display = isAdmin?'':'none'; });
+    // lecture seule : masquer tous les éléments d'action (classe .rw-only)
+    document.querySelectorAll('.rw-only').forEach(function(el){ el.style.display = window.__readOnly?'none':''; });
 }
 
 // ── PRÉVISUALISATION DES RÔLES (Admin/RH uniquement) ──────────────────────────
@@ -1653,14 +1677,22 @@ function checkPin() {
     document.getElementById('app').style.display = 'block';
     document.getElementById('uname').textContent = pinProf.title;
     applyRolePermissions(r);
-    var isGlobal = r==='franchise';
-    var isMgr = r==='manager';
-    var navBtns = document.querySelectorAll('#main-nav button');
-    if (isMgr) {
+    // Page de départ selon le rôle
+    var startPage;
+    if (r==='manager') startPage='incidents';
+    else if (r==='leader'||r==='equipier') startPage='noaccess';
+    else startPage='equipe';   // franchise + directeur
+    try{
       document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
-      document.getElementById('page-equipe').classList.add('active');
-      navBtns.forEach(function(b){b.classList.remove('active');if(b.textContent.indexOf('Équipe')>=0||b.textContent.indexOf('Equipe')>=0)b.classList.add('active');});
-    }
+      var sp=document.getElementById('page-'+startPage); if(sp) sp.classList.add('active');
+      var navBtns=document.querySelectorAll('#main-nav button');
+      navBtns.forEach(function(b){b.classList.remove('active');});
+      navBtns.forEach(function(b){
+        var t=b.textContent;
+        if(startPage==='incidents'&&t.indexOf('Incidents')>=0)b.classList.add('active');
+        else if(startPage==='equipe'&&(t.indexOf('Équipe')>=0||t.indexOf('Equipe')>=0))b.classList.add('active');
+      });
+    }catch(e){}
     // Barre "Voir comme" réservée à Admin/RH (franchise)
     try{ var vb=document.getElementById('preview-bar'); if(vb) vb.style.display = (r==='franchise')?'flex':'none'; }catch(e){}
     initForm();
@@ -2010,7 +2042,8 @@ function genReport(){
 function renderEquipe(){
   var list=document.getElementById('eq-list');if(!list)return;
   var r=curUser.role;var isGlobal=(r==='franchise');
-  var canManage=r==='franchise'||r==='directeur';
+  var canManage=(r==='franchise'||r==='directeur')&&!window.__readOnly; // écriture
+  var canView=(r==='franchise'||r==='directeur');                       // consultation fiche
   if(!isGlobal&&eqTab==='none') eqTab=curUser.restoId;
   var restosToShow=eqTab==='none'?[]:eqTab==='all'?Object.keys(RESTOS):[eqTab];
   if(eqTab==='none'){
@@ -2044,7 +2077,7 @@ function renderEquipe(){
           +'<div style="font-size:.73rem;color:#888;">'+cap(e.role)+' · '+myInc+' incident'+(myInc!==1?'s':'')+(e.infos&&e.infos.matricule?' · n°'+e.infos.matricule:'')+(e.email?' · '+e.email:'')+'</div></div></div>'
           +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">'
           +'<span class="role-pill rp-'+ro[0]+'">'+cap(ro)+'</span>'
-          +(canManage?'<button class="btn btn-gray btn-sm" onclick="openEmpFiche(\''+e.id+'\')">👁️ Fiche</button>':'')
+          +(canView?'<button class="btn btn-gray btn-sm" onclick="openEmpFiche(\''+e.id+'\')">👁️ Fiche</button>':'')
           +(canManage&&!arch?'<button class="btn btn-gray btn-sm" onclick="openEdit(\''+e.id+'\')">✏️</button>':'')
           +(canManage&&!arch?'<button class="btn btn-gray btn-sm" onclick="openHistorique(\''+e.id+'\')">📋 Historique</button>':'')
           +(canManage&&!arch?'<button class="btn-danger" onclick="openSortie(\''+e.id+'\')" title="Gérer la sortie">'+(enSortie?'🚪':'📤')+'</button>':'')
@@ -2195,12 +2228,13 @@ function renderEmpDocs(empId,boxId){
         h+='<div style="display:flex;align-items:center;gap:8px;background:#141414;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
           +'<span style="flex:1;min-width:0;font-size:.82rem;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(d.label||d.name||'Document')+(dt?' <span style="color:#666;font-size:.72rem;">· '+dt+'</span>':'')+'</span>'
           +(d.link?'<button class="btn btn-gray btn-sm" onclick="viewDoc(\''+d.id+'\')">👁️ Lire</button>':'<span style="font-size:.72rem;color:#a8460f;">non lisible</span>')
-          +'<button class="btn-danger" style="padding:3px 8px;" onclick="delEmpDoc(\''+d.id+'\')">🗑️</button>'
+          +(window.__readOnly?'':'<button class="btn-danger" style="padding:3px 8px;" onclick="delEmpDoc(\''+d.id+'\')">🗑️</button>')
           +'</div>';
       });
     });
   }
-  // ajout d'un document
+  // ajout d'un document (masqué en lecture seule)
+  if(!window.__readOnly){
   h+='<div style="background:#141414;border-radius:8px;padding:10px;margin-top:10px;">'
     +'<div style="font-size:.8rem;color:#ddd;margin-bottom:7px;">➕ Ajouter un document</div>'
     +'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end;">'
@@ -2213,6 +2247,7 @@ function renderEmpDocs(empId,boxId){
     +'<button class="btn btn-red btn-sm" style="margin-top:8px;" onclick="document.getElementById(\'empdoc-file\').click()">📎 Choisir le fichier et importer</button>'
     +'<div id="empdoc-status" style="font-size:.74rem;color:#888;margin-top:6px;"></div>'
     +'</div></div>';
+  }
   box.innerHTML=h;
 }
 
@@ -2248,7 +2283,7 @@ function renderVisiteMedicalePanel(empId,boxId){
     +'<div style="font-weight:700;font-size:.9rem;color:#fff;">'+v.badge+'</div>'
     +(v.sub?'<div style="font-size:.74rem;color:#999;margin-top:3px;">'+v.sub+'</div>':'')
     +'</div>'
-    +'<button class="btn btn-red btn-sm" style="margin-top:10px;width:100%;" onclick="openValiderVisite(\''+empId+'\')">✅ Valider une visite médicale</button>'
+    +(window.__readOnly?'':'<button class="btn btn-red btn-sm" style="margin-top:10px;width:100%;" onclick="openValiderVisite(\''+empId+'\')">✅ Valider une visite médicale</button>')
     +'</div>';
 }
 
@@ -2700,7 +2735,7 @@ function renderEmpFicheInfos(id){
   var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
   var inf=e.infos||{};
   var resto=RESTOS[e.restoId]?RESTOS[e.restoId].label:(e.restoId||'—');
-  var canEdit=(curUser.role==='franchise'||curUser.role==='directeur');
+  var canEdit=(curUser.role==='franchise'||curUser.role==='directeur')&&!window.__readOnly;
   // entête
   var v=visiteEmpInfo(e);
   var h='<div class="card" style="margin-bottom:14px;">'
