@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-15 20:30 · v28';
+  var EMBEDDED_VERSION = '2026-06-15 20:45 · v29';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -407,6 +407,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
       </div>
       <button class="hr-btn hr-btn-ac" id="hrx-refresh-btn" onclick="hrRefreshWeek()" title="Recalcule le planning des 7 jours de la semaine">🔄 Actualiser</button>
       <button class="hr-btn" onclick="hrAutoAssignAndRender()" title="Place automatiquement les équipiers disponibles et qualifiés sur les traits du jour affiché">👥 Placer les équipiers (auto)</button>
+      <button class="hr-btn hr-btn-ac" onclick="hrAutoAssignWeek()" title="Place les équipiers sur les 7 jours et affiche l'emploi du temps de la semaine">📅 Placer la semaine</button>
       <span id="hrx-assign-status" style="font-size:11px;color:#60a5fa;align-self:center;margin-left:4px"></span>
       <span id="hrx-valid-status" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--mu);align-self:center;margin-left:4px"></span>
     </div>
@@ -418,6 +419,11 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
     <div id="hrx-rows"></div>
     <div class="hr-leg" id="hrx-leg"></div>
   </div></div>
+  <div style="margin-top:1.4rem;">
+    <div class="hr-stitle" style="margin:0 0 .3rem;">📋 Emploi du temps de la semaine — équipiers</div>
+    <div class="hr-ssub" style="margin:0 0 .8rem;">Créneaux placés par jour et total d'heures de chaque équipier. Cliquez sur « Placer la semaine » pour le générer.</div>
+    <div id="hrx-emploi-semaine"></div>
+  </div>
 </div>
 
 <div id="hrx-sec-ca" class="hr-sec">
@@ -6591,6 +6597,81 @@ function hrAutoAssignAndRender(){
 }
 window.hrAutoAssignAndRender=hrAutoAssignAndRender;
 window.hrAutoAssignDay=hrAutoAssignDay;
+
+// Place les équipiers sur les 7 jours de la semaine, puis affiche l'emploi du temps
+function hrAutoAssignWeek(){
+  var totalPlaced=0,totalTraits=0,nbEq=0;
+  for(var d=0;d<7;d++){
+    var r=hrAutoAssignDay(d);
+    totalPlaced+=r.placed; totalTraits+=r.total; nbEq=r.equipiers;
+  }
+  renderTimeline(); // rafraîchit le jour affiché
+  hrRenderEmploiSemaine();
+  var st=document.getElementById('hrx-assign-status');
+  if(st) st.textContent='👥 Semaine : '+totalPlaced+' / '+totalTraits+' traits pourvus ('+nbEq+' équipiers)';
+}
+window.hrAutoAssignWeek=hrAutoAssignWeek;
+
+// Construit l'emploi du temps de la semaine, par équipier (créneaux + total d'heures)
+function hrRenderEmploiSemaine(){
+  var box=document.getElementById('hrx-emploi-semaine'); if(!box) return;
+  var jours=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  // Rassembler par équipier : empId -> {name, jours:[ [ {l,s,e} ], ... 7 ], totalMin}
+  var parEmp={};
+  for(var d=0;d<7;d++){
+    (ROWS_BY_DAY[d]||[]).forEach(function(row){
+      row.bars.forEach(function(b){
+        if(!b.empId) return;
+        if(!parEmp[b.empId]) parEmp[b.empId]={name:b.emp,jours:[[],[],[],[],[],[],[]],totalMin:0};
+        parEmp[b.empId].jours[d].push({l:b.l,s:b.s,e:b.e});
+        parEmp[b.empId].totalMin+=(b.e-b.s);
+      });
+    });
+  }
+  var emps=Object.keys(parEmp).map(function(id){return Object.assign({id:id},parEmp[id]);});
+  emps.sort(function(a,b){return a.name.localeCompare(b.name);});
+  if(!emps.length){ box.innerHTML='<div style="color:var(--mu);font-size:13px;padding:12px;">Cliquez sur « Placer la semaine » pour générer l\'emploi du temps des équipiers.</div>'; return; }
+
+  // contrat hebdo (depuis infos.contrat_hebdo) pour comparer aux heures placées
+  function contratDe(id){
+    var e=(DB.employees||[]).find(function(x){return x.id===id;});
+    var h=e&&e.infos&&e.infos.contrat_hebdo?parseFloat(e.infos.contrat_hebdo):null;
+    return (h&&!isNaN(h))?h:null;
+  }
+  function fmtH(min){ var h=Math.floor(min/60), m=min%60; return m?(h+'h'+String(m).padStart(2,'0')):(h+'h'); }
+
+  var h='<div style="overflow-x:auto;"><table class="hr-gt" style="min-width:760px;border-collapse:collapse;width:100%;font-size:12px;">';
+  h+='<thead><tr><th style="text-align:left;padding:7px 9px;position:sticky;left:0;background:var(--s1);">Équipier</th>';
+  jours.forEach(function(j,i){
+    var dt=(typeof DAY_DATES!=='undefined'&&DAY_DATES[i])?(' '+DAY_DATES[i].slice(8,10)+'/'+DAY_DATES[i].slice(5,7)):'';
+    h+='<th style="padding:7px 6px;font-size:11px;">'+j.slice(0,3)+dt+'</th>';
+  });
+  h+='<th style="padding:7px 9px;">Total</th><th style="padding:7px 9px;">Contrat</th></tr></thead><tbody>';
+
+  emps.forEach(function(e){
+    h+='<tr style="border-top:1px solid var(--bd2);">';
+    h+='<td style="padding:6px 9px;font-weight:600;color:var(--tx);position:sticky;left:0;background:var(--s1);white-space:nowrap;">'+e.name+'</td>';
+    for(var d=0;d<7;d++){
+      var cell=e.jours[d];
+      if(!cell.length){ h+='<td style="padding:5px 6px;text-align:center;color:#444;">—</td>'; continue; }
+      cell.sort(function(a,b){return a.s-b.s;});
+      var inner=cell.map(function(b){
+        return '<div style="font-size:10.5px;line-height:1.3;color:#cbd5e1;white-space:nowrap;">'+fmt(b.s)+'–'+fmt(b.e)+'<br><span style="color:#60a5fa;">'+b.l+'</span></div>';
+      }).join('<div style="height:3px;"></div>');
+      h+='<td style="padding:5px 6px;vertical-align:top;">'+inner+'</td>';
+    }
+    var tot=e.totalMin;
+    var contrat=contratDe(e.id);
+    var totColor= contrat!=null ? (tot/60>contrat+0.01?'#e74c3c':(tot/60<contrat-0.01?'#e8a020':'#3ecf8e')) : 'var(--tx)';
+    h+='<td style="padding:6px 9px;text-align:center;font-weight:700;color:'+totColor+';">'+fmtH(tot)+'</td>';
+    h+='<td style="padding:6px 9px;text-align:center;color:var(--mu);">'+(contrat!=null?contrat+'h':'—')+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='<div style="font-size:11px;color:var(--mu);margin-top:8px;">Total <span style="color:#3ecf8e;">vert</span> = proche du contrat · <span style="color:#e8a020;">orange</span> = en-dessous · <span style="color:#e74c3c;">rouge</span> = au-dessus du contrat.</div>';
+  box.innerHTML=h;
+}
+window.hrRenderEmploiSemaine=hrRenderEmploiSemaine;
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
 const SPAN=DE-DS;
