@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-15 19:45 · v26';
+  var EMBEDDED_VERSION = '2026-06-15 20:15 · v27';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -406,6 +406,8 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
         <select id="hrx-sem-sel2" onchange="hrGenFromWeek(this.value);document.getElementById('hrx-sem-sel')&&(document.getElementById('hrx-sem-sel').value=this.value)"></select>
       </div>
       <button class="hr-btn hr-btn-ac" id="hrx-refresh-btn" onclick="hrRefreshWeek()" title="Recalcule le planning des 7 jours de la semaine">🔄 Actualiser</button>
+      <button class="hr-btn" onclick="hrAutoAssignAndRender()" title="Place automatiquement les équipiers disponibles et qualifiés sur les traits du jour affiché">👥 Placer les équipiers (auto)</button>
+      <span id="hrx-assign-status" style="font-size:11px;color:#60a5fa;align-self:center;margin-left:4px"></span>
       <span id="hrx-valid-status" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--mu);align-self:center;margin-left:4px"></span>
     </div>
   </div>
@@ -6513,6 +6515,81 @@ function buildRows(caMap, dayIdx, isoDate){
 const ROWS_BY_DAY=CA_DAYS.map((ca,i)=>buildRows(ca,i));
 let curDay=0;
 
+// ══ AFFECTATION NOMINATIVE AUTO DES ÉQUIPIERS SUR LES TRAITS (test) ════════════
+// Pour un jour donné, place automatiquement un équipier disponible + qualifié
+// sur chaque trait productif. Stocke le nom dans b.emp (affiché sur le trait).
+var JOURS_KEYS=['lun','mar','mer','jeu','ven','sam','dim'];
+function _dispoMin(hhmm){
+  // "HH:MM" -> minutes, avec +24h si après minuit (ex 02:00 -> 1560)
+  if(!hhmm) return null;
+  var p=hhmm.split(':'); var h=parseInt(p[0],10), m=parseInt(p[1],10);
+  if(isNaN(h)) return null;
+  var min=h*60+m;
+  if(h<5) min+=24*60; // après minuit
+  return min;
+}
+function hrAutoAssignDay(dayIdx){
+  var rows=ROWS_BY_DAY[dayIdx]; if(!rows) return {placed:0,total:0};
+  var iso=(typeof DAY_DATES!=='undefined'&&DAY_DATES[dayIdx])?DAY_DATES[dayIdx]:'';
+  var jourKey=JOURS_KEYS[dayIdx]||'lun';
+  var resto=hrCurrentResto(); // ex 'BK500'
+  var restoId=(resto||'').toLowerCase(); // 'bk500'
+  // équipiers du resto, non archivés
+  var equipiers=(DB.employees||[]).filter(function(e){
+    return e.role==='equipier' && !e.archived && (e.restoId===restoId);
+  });
+  // non productifs : on ne les affecte pas (ouverture/fermeture gérées par encadrement)
+  var npSet=(typeof hrNpLabels==='function')?hrNpLabels():new Set();
+  // occupation : pour éviter qu'un équipier soit sur 2 traits en même temps
+  var busy={}; // empId -> [{s,e}]
+  function libre(empId,s,e){
+    var arr=busy[empId]||[]; for(var i=0;i<arr.length;i++){ if(s<arr[i].e && e>arr[i].s) return false; } return true;
+  }
+  // dispo de l'équipier ce jour ?
+  function dispoOk(emp,s,e){
+    var d=(emp.infos&&emp.infos.dispos&&emp.infos.dispos[jourKey])||null;
+    if(!d||!d.on) return false;
+    var from=_dispoMin(d.from), to=_dispoMin(d.to);
+    if(from==null||to==null) return false;
+    return s>=from && e<=to;
+  }
+  function qualifOk(emp,poste){
+    var q=(emp.infos&&emp.infos.qualifs)||[];
+    return q.indexOf(poste)>=0;
+  }
+  // compteur d'heures déjà affectées (pour répartir équitablement)
+  var heures={}; equipiers.forEach(function(e){heures[e.id]=0;});
+  var placed=0,total=0;
+  // parcourir tous les traits productifs, par ordre de début
+  var allBars=[];
+  rows.forEach(function(r){ if(r.type==='extra'||!npSet.has((r.bars[0]&&(r.bars[0].l||'').toUpperCase()))){
+    r.bars.forEach(function(b){ if(!npSet.has((b.l||'').toUpperCase())) allBars.push(b); });
+  }});
+  allBars.sort(function(a,b){return a.s-b.s;});
+  allBars.forEach(function(b){
+    total++;
+    b.emp=null; b.empId=null;
+    // candidats : dispo + qualifié + libre, triés par moins d'heures déjà placées
+    var cands=equipiers.filter(function(e){
+      return dispoOk(e,b.s,b.e) && qualifOk(e,b.l) && libre(e.id,b.s,b.e);
+    }).sort(function(a,c){return heures[a.id]-heures[c.id];});
+    if(cands.length){
+      var chosen=cands[0];
+      b.emp=chosen.name; b.empId=chosen.id;
+      busy[chosen.id]=busy[chosen.id]||[]; busy[chosen.id].push({s:b.s,e:b.e});
+      heures[chosen.id]+=(b.e-b.s);
+      placed++;
+    }
+  });
+  return {placed:placed,total:total,equipiers:equipiers.length};
+}
+function hrAutoAssignAndRender(){
+  var r=hrAutoAssignDay(curDay);
+  renderTimeline();
+  var msg='👥 '+r.placed+' / '+r.total+' traits pourvus ('+r.equipiers+' équipiers dispos sur ce resto)';
+  var st=document.getElementById('hrx-assign-status'); if(st) st.textContent=msg;
+}
+
 // ── RENDER ────────────────────────────────────────────────────────────────────
 const SPAN=DE-DS;
 function pct(m){return((m-DS)/SPAN*100).toFixed(4)+'%';}
@@ -6670,9 +6747,11 @@ function renderTimeline(){
       // Base minimum = opacité pleine, extra = légèrement plus clair
       const opacity=row.type==='extra'?'CC':'FF';
       bar.style.cssText=`left:${pct(cs)};width:${pctW(cs,ce)};background:${c.bg};color:${c.tx};`;
-      // Texte : nom du poste + heures de début/fin
-      bar.textContent=`${b.l} ${fmt(s)}–${fmt(e)}`;
-      bar.title=`${b.l}\n${fmt(s)} – ${fmt(e)}\n${row.type==='extra'?'+ CA':'Base'}`;
+      // Texte : poste + heures, et nom de l'équipier affecté si présent
+      var nomEmp = b.emp ? (' — '+b.emp) : '';
+      bar.textContent=`${b.l} ${fmt(s)}–${fmt(e)}${nomEmp}`;
+      if(b.emp){ bar.style.fontWeight='600'; }
+      bar.title=`${b.l}\n${fmt(s)} – ${fmt(e)}${b.emp?('\n👤 '+b.emp):'\n(non pourvu)'}\n${row.type==='extra'?'+ CA':'Base'}`;
       bd.appendChild(bar);
     });
     tr.appendChild(bd);body.appendChild(tr);
