@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-15 19:30 · v25';
+  var EMBEDDED_VERSION = '2026-06-15 19:45 · v26';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -807,9 +807,11 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
     <div id="empf-tabs" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
       <button class="rtab on" id="empft-infos" onclick="empfTab('infos')">📋 Informations</button>
       <button class="rtab" id="empft-docs" onclick="empfTab('docs')">📁 Documents</button>
+      <button class="rtab" id="empft-qualif" onclick="empfTab('qualif')">🎯 Compétences & Dispos</button>
       <button class="rtab" id="empft-histo" onclick="empfTab('histo')">🕓 Historique</button>
     </div>
     <div id="empf-pane-infos"></div>
+    <div id="empf-pane-qualif" style="display:none;"></div>
     <div id="empf-pane-docs" style="display:none;">
       <div id="empf-visite"></div>
       <div id="empf-docs"></div>
@@ -2945,13 +2947,126 @@ function closeEmpFiche(){goPage('equipe');renderEquipe();}
 
 function empfTab(t){
   _empfTab=t;
-  ['infos','docs','histo'].forEach(function(x){
+  ['infos','docs','qualif','histo'].forEach(function(x){
     var btn=document.getElementById('empft-'+x);if(btn)btn.className='rtab'+(x===t?' on':'');
     var pane=document.getElementById('empf-pane-'+x);if(pane)pane.style.display=(x===t?'block':'none');
   });
   if(t==='infos')renderEmpFicheInfos(_empfId);
   else if(t==='docs'){renderVisiteMedicalePanel(_empfId,'empf-visite');renderEmpDocs(_empfId,'empf-docs');}
+  else if(t==='qualif')renderEmpQualif(_empfId);
   else if(t==='histo')renderEmpFicheHisto(_empfId);
+}
+// ══ COMPÉTENCES (qualifications postes) & DISPONIBILITÉS ═══════════════════════
+var POSTES_PRODUCTIFS=['CUISINE','FRITES','SNACK','BROILER','BOARD VOLANT','BORNE','DRIVE','SAT SALLE','PREMIERE CABINE','TABLETTE DRIVE','EMPORTER','COMPTOIR VOLANT','UBER','SAT EMPORTER UBER'];
+function postesNonProductifs(){
+  // récupère les non-productifs définis (dans BASE_MIN), sinon liste vide
+  var arr=[];
+  try{(BASE_MIN||[]).forEach(function(b){if(b[3]==='np'){var u=(b[0]||'').toUpperCase();if(u&&arr.indexOf(u)<0)arr.push(u);}});}catch(e){}
+  return arr;
+}
+function renderEmpQualif(id){
+  var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
+  var inf=e.infos||{};
+  var qualifs=inf.qualifs||[];      // tableau de postes maîtrisés
+  var dispos=inf.dispos||{};        // {lun:{on:true,from:'11:00',to:'15:00'}, ...}
+  var canEdit=(curUser.role==='franchise'||curUser.role==='directeur')&&!window.__readOnly;
+  var np=postesNonProductifs();
+
+  var h='';
+  // ── Bloc QUALIFICATIONS ──
+  h+='<div class="card" style="margin-bottom:14px;">';
+  h+='<div class="sec-title">🎯 Qualifications — postes maîtrisés</div>';
+  h+='<p style="font-size:.8rem;color:#aaa;margin-bottom:12px;">Cochez les postes que '+e.name+' sait tenir. Ils servent à placer la personne sur le planning uniquement sur des postes qu\'elle maîtrise.</p>';
+  h+='<div style="font-size:.74rem;color:#7FB3FF;font-weight:700;margin-bottom:7px;text-transform:uppercase;letter-spacing:.04em;">Postes productifs</div>';
+  h+='<div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;">';
+  POSTES_PRODUCTIFS.forEach(function(p){
+    var on=qualifs.indexOf(p)>=0;
+    h+='<span onclick="'+(canEdit?'toggleQualif(\''+id+'\',\''+p.replace(/'/g,"\\'")+'\')':'')+'" style="font-size:.8rem;padding:6px 11px;border-radius:18px;cursor:'+(canEdit?'pointer':'default')+';user-select:none;border:1px solid '+(on?'#2E6FC2':'#333')+';background:'+(on?'#1E3A5F':'#141414')+';color:'+(on?'#7FB3FF':'#999')+';">'+(on?'✓ ':'')+p+'</span>';
+  });
+  h+='</div>';
+  if(np.length){
+    h+='<div style="font-size:.74rem;color:#F5A623;font-weight:700;margin-bottom:7px;text-transform:uppercase;letter-spacing:.04em;">Postes non productifs</div>';
+    h+='<div style="display:flex;flex-wrap:wrap;gap:7px;">';
+    np.forEach(function(p){
+      var on=qualifs.indexOf(p)>=0;
+      h+='<span onclick="'+(canEdit?'toggleQualif(\''+id+'\',\''+p.replace(/'/g,"\\'")+'\')':'')+'" style="font-size:.8rem;padding:6px 11px;border-radius:18px;cursor:'+(canEdit?'pointer':'default')+';user-select:none;border:1px solid '+(on?'#A86A00':'#333')+';background:'+(on?'#3A2A0A':'#141414')+';color:'+(on?'#F5A623':'#999')+';">'+(on?'✓ ':'')+p+'</span>';
+    });
+    h+='</div>';
+  }
+  h+='</div>';
+
+  // ── Bloc DISPONIBILITÉS ──
+  h+='<div class="card">';
+  h+='<div class="sec-title">📅 Disponibilités</div>';
+  h+='<p style="font-size:.8rem;color:#aaa;margin-bottom:12px;">Indiquez les jours et les heures où '+e.name+' peut travailler. Ces créneaux servent de base pour le planning.</p>';
+  h+='<div style="display:flex;flex-direction:column;gap:8px;">';
+  JOURS.forEach(function(j){
+    var jk=j[0];var d=dispos[jk]||{};var on=!!d.on;
+    h+='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#141414;border-radius:8px;padding:8px 11px;">';
+    h+='<label style="display:flex;align-items:center;gap:7px;min-width:120px;cursor:'+(canEdit?'pointer':'default')+';">'
+      +'<input type="checkbox" '+(on?'checked':'')+' '+(canEdit?'':'disabled')+' onchange="toggleDispoJour(\''+id+'\',\''+jk+'\',this.checked)" style="width:16px;height:16px;accent-color:var(--orange);">'
+      +'<span style="font-size:.85rem;color:#ddd;font-weight:600;">'+j[1]+'</span></label>';
+    h+='<div style="display:flex;align-items:center;gap:6px;'+(on?'':'opacity:.35;pointer-events:none;')+'" id="dispo-h-'+jk+'">'
+      +'<span style="font-size:.78rem;color:#888;">de</span>'
+      +'<input type="time" value="'+(d.from||'11:00')+'" '+(canEdit?'':'disabled')+' onchange="setDispoHeure(\''+id+'\',\''+jk+'\',\'from\',this.value)" class="fi" style="width:auto;padding:4px 6px;">'
+      +'<span style="font-size:.78rem;color:#888;">à</span>'
+      +'<input type="time" value="'+(d.to||'15:00')+'" '+(canEdit?'':'disabled')+' onchange="setDispoHeure(\''+id+'\',\''+jk+'\',\'to\',this.value)" class="fi" style="width:auto;padding:4px 6px;">'
+      +'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  if(canEdit){
+    h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">'
+      +'<button class="btn btn-gray btn-sm" onclick="copyDispoToAll(\''+id+'\')">📋 Appliquer le 1er jour coché à tous</button>'
+      +'<button class="btn btn-red btn-sm" onclick="saveEmpQualif(\''+id+'\')">💾 Enregistrer compétences & dispos</button>'
+      +'</div>';
+    h+='<div id="qualif-status" style="font-size:.78rem;color:#888;margin-top:8px;"></div>';
+  }
+  h+='</div>';
+
+  document.getElementById('empf-pane-qualif').innerHTML=h;
+}
+// état temporaire en mémoire pendant l'édition
+function _ensureQualifBuf(id){
+  var e=DB.employees.find(function(x){return x.id===id;});if(!e)return null;
+  if(!e.infos)e.infos={};
+  if(!e.infos.qualifs)e.infos.qualifs=[];
+  if(!e.infos.dispos)e.infos.dispos={};
+  return e;
+}
+function toggleQualif(id,poste){
+  var e=_ensureQualifBuf(id);if(!e)return;
+  var i=e.infos.qualifs.indexOf(poste);
+  if(i>=0)e.infos.qualifs.splice(i,1);else e.infos.qualifs.push(poste);
+  renderEmpQualif(id);
+}
+function toggleDispoJour(id,jk,on){
+  var e=_ensureQualifBuf(id);if(!e)return;
+  if(!e.infos.dispos[jk])e.infos.dispos[jk]={from:'11:00',to:'15:00'};
+  e.infos.dispos[jk].on=on;
+  renderEmpQualif(id);
+}
+function setDispoHeure(id,jk,champ,val){
+  var e=_ensureQualifBuf(id);if(!e)return;
+  if(!e.infos.dispos[jk])e.infos.dispos[jk]={on:true};
+  e.infos.dispos[jk][champ]=val;
+}
+function copyDispoToAll(id){
+  var e=_ensureQualifBuf(id);if(!e)return;
+  var first=null;
+  for(var k in e.infos.dispos){if(e.infos.dispos[k]&&e.infos.dispos[k].on){first=e.infos.dispos[k];break;}}
+  if(!first){toast('Cochez d\'abord un jour','error');return;}
+  JOURS.forEach(function(j){e.infos.dispos[j[0]]={on:true,from:first.from,to:first.to};});
+  renderEmpQualif(id);
+}
+async function saveEmpQualif(id){
+  var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
+  var st=document.getElementById('qualif-status');if(st)st.textContent='⏳ Enregistrement…';
+  try{
+    await sb.patch('bks_employees','id=eq.'+e.id,{infos:e.infos});
+    if(st)st.textContent='✅ Enregistré';
+    setTimeout(function(){var s=document.getElementById('qualif-status');if(s)s.textContent='';},3000);
+  }catch(err){console.error(err);if(st)st.textContent='❌ Erreur : '+(window.__lastSbError||err);}
 }
 
 function renderEmpFicheInfos(id){
