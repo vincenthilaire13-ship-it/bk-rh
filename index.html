@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-15 21:00 · v30';
+  var EMBEDDED_VERSION = '2026-06-15 21:45 · v32';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -408,6 +408,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
       <button class="hr-btn hr-btn-ac" id="hrx-refresh-btn" onclick="hrRefreshWeek()" title="Recalcule le planning des 7 jours de la semaine">🔄 Actualiser</button>
       <button class="hr-btn" onclick="hrAutoAssignAndRender()" title="Place automatiquement les équipiers disponibles et qualifiés sur les traits du jour affiché">👥 Placer les équipiers (auto)</button>
       <button class="hr-btn hr-btn-ac" onclick="hrAutoAssignWeek()" title="Place les équipiers sur les 7 jours et affiche l'emploi du temps de la semaine">📅 Placer la semaine</button>
+      <button class="hr-btn hr-btn-ac" onclick="hrAutoAssignMonth()" title="Place les équipiers sur tout le mois en respectant le plafond mensuel (24h → 104h/mois)">🗓️ Placer le mois</button>
       <span id="hrx-assign-status" style="font-size:11px;color:#60a5fa;align-self:center;margin-left:4px"></span>
       <span id="hrx-valid-status" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--mu);align-self:center;margin-left:4px"></span>
     </div>
@@ -6534,24 +6535,58 @@ function _dispoMin(hhmm){
   if(h<5) min+=24*60; // après minuit
   return min;
 }
-function hrAutoAssignDay(dayIdx){
-  var rows=ROWS_BY_DAY[dayIdx]; if(!rows) return {placed:0,total:0};
-  var iso=(typeof DAY_DATES!=='undefined'&&DAY_DATES[dayIdx])?DAY_DATES[dayIdx]:'';
+function hrContratHebdo(emp){
+  // lit le contrat hebdo depuis la fiche salarié (infos.contrat_hebdo)
+  var h=emp&&emp.infos&&emp.infos.contrat_hebdo?parseFloat(emp.infos.contrat_hebdo):null;
+  return (h&&!isNaN(h)&&h>0)?h:null;
+}
+// Nombre de lundis (semaines) dans le mois de la semaine actuellement affichée
+function hrSemainesDuMois(){
+  try{
+    var iso=(typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?DAY_DATES[0]:null; // lundi affiché AAAA-MM-JJ
+    if(!iso) return 4.33;
+    var an=parseInt(iso.slice(0,4),10), mois=parseInt(iso.slice(5,7),10);
+    // compter les lundis du mois
+    var d=new Date(an,mois-1,1), n=0;
+    while(d.getMonth()===mois-1){ if(d.getDay()===1) n++; d.setDate(d.getDate()+1); }
+    return n||4.33;
+  }catch(e){ return 4.33; }
+}
+// Plafond HEBDO pour cet équipier : contrat + 2h max (fourchette ±2h)
+// 35h = fixe chaque semaine
+function hrPlafondHebdoMin(emp){
+  var h=hrContratHebdo(emp);
+  if(h==null) return null;             // pas de contrat connu -> pas de limite
+  if(h>=35) return Math.round(h*60);   // 35h = fixe par semaine
+  return Math.round((h+2)*60);         // ex 24h -> 26h max par semaine
+}
+// Plancher HEBDO visé : contrat - 2h (on essaie d'atteindre au moins ça)
+function hrPlancherHebdoMin(emp){
+  var h=hrContratHebdo(emp);
+  if(h==null) return 0;
+  if(h>=35) return Math.round(h*60);
+  return Math.round((h-2)*60);         // ex 24h -> 22h mini visé
+}
+function hrAutoAssignDay(dayIdx, ctx){
+  var rows=ROWS_BY_DAY[dayIdx]; if(!rows) return {placed:0,total:0,equipiers:0};
   var jourKey=JOURS_KEYS[dayIdx]||'lun';
-  var resto=hrCurrentResto(); // ex 'BK500'
-  var restoId=(resto||'').toLowerCase(); // 'bk500'
-  // équipiers du resto, non archivés
+  var resto=hrCurrentResto();
+  var restoId=(resto||'').toLowerCase();
   var equipiers=(DB.employees||[]).filter(function(e){
     return e.role==='equipier' && !e.archived && (e.restoId===restoId);
   });
-  // non productifs : on ne les affecte pas (ouverture/fermeture gérées par encadrement)
   var npSet=(typeof hrNpLabels==='function')?hrNpLabels():new Set();
-  // occupation : pour éviter qu'un équipier soit sur 2 traits en même temps
-  var busy={}; // empId -> [{s,e}]
-  function libre(empId,s,e){
-    var arr=busy[empId]||[]; for(var i=0;i<arr.length;i++){ if(s<arr[i].e && e>arr[i].s) return false; } return true;
+
+  // Contexte partagé sur la semaine (créé si absent = placement d'un seul jour)
+  ctx=ctx||{minSemaine:{},joursTravailles:{},busy:{}};
+  function minFaits(id){return ctx.minSemaine[id]||0;}
+  function plafondMin(emp){
+    if(ctx&&typeof ctx._plafondOverride==='function') return ctx._plafondOverride(emp);
+    return hrPlafondHebdoMin(emp); // plafond hebdo issu du lissage mensuel (35h = fixe)
   }
-  // dispo de l'équipier ce jour ?
+  function libre(id,s,e){
+    var arr=ctx.busy[id]||[]; for(var i=0;i<arr.length;i++){ if(s<arr[i].e && e>arr[i].s) return false; } return true;
+  }
   function dispoOk(emp,s,e){
     var d=(emp.infos&&emp.infos.dispos&&emp.infos.dispos[jourKey])||null;
     if(!d||!d.on) return false;
@@ -6563,31 +6598,55 @@ function hrAutoAssignDay(dayIdx){
     var q=(emp.infos&&emp.infos.qualifs)||[];
     return q.indexOf(poste)>=0;
   }
-  // compteur d'heures déjà affectées (pour répartir équitablement)
-  var heures={}; equipiers.forEach(function(e){heures[e.id]=0;});
+
   var placed=0,total=0;
-  // parcourir tous les traits productifs, par ordre de début
   var allBars=[];
-  rows.forEach(function(r){ if(r.type==='extra'||!npSet.has((r.bars[0]&&(r.bars[0].l||'').toUpperCase()))){
+  rows.forEach(function(r){
     r.bars.forEach(function(b){ if(!npSet.has((b.l||'').toUpperCase())) allBars.push(b); });
-  }});
+  });
   allBars.sort(function(a,b){return a.s-b.s;});
+
   allBars.forEach(function(b){
     total++;
     b.emp=null; b.empId=null;
-    // candidats : dispo + qualifié + libre, triés par moins d'heures déjà placées
+    var duree=b.e-b.s;
     var cands=equipiers.filter(function(e){
-      return dispoOk(e,b.s,b.e) && qualifOk(e,b.l) && libre(e.id,b.s,b.e);
-    }).sort(function(a,c){return heures[a.id]-heures[c.id];});
+      if(!dispoOk(e,b.s,b.e)||!qualifOk(e,b.l)||!libre(e.id,b.s,b.e)) return false;
+      // jour de repos réservé (2 jours consécutifs) : on ne place pas
+      if(ctx.repos&&ctx.repos[e.id]&&ctx.repos[e.id].indexOf(dayIdx)>=0) return false;
+      // PLAFOND CONTRAT : ne pas dépasser le contrat hebdo
+      var plaf=plafondMin(e);
+      if(plaf!=null && (minFaits(e.id)+duree)>plaf) return false;
+      return true;
+    }).sort(function(a,c){
+      // priorité à ceux qui sont le plus loin de leur contrat (pour viser le contrat)
+      var ra=hrResteMin(a,ctx), rc=hrResteMin(c,ctx);
+      return rc-ra;
+    });
     if(cands.length){
       var chosen=cands[0];
       b.emp=chosen.name; b.empId=chosen.id;
-      busy[chosen.id]=busy[chosen.id]||[]; busy[chosen.id].push({s:b.s,e:b.e});
-      heures[chosen.id]+=(b.e-b.s);
+      ctx.busy[chosen.id]=ctx.busy[chosen.id]||[]; ctx.busy[chosen.id].push({s:b.s,e:b.e});
+      ctx.minSemaine[chosen.id]=(ctx.minSemaine[chosen.id]||0)+duree;
+      ctx.joursTravailles[chosen.id]=ctx.joursTravailles[chosen.id]||{};
+      ctx.joursTravailles[chosen.id][dayIdx]=true;
       placed++;
     }
   });
   return {placed:placed,total:total,equipiers:equipiers.length};
+}
+// Priorité de placement : ceux sous leur plancher (contrat-2h) passent devant.
+// Renvoie un score : plus c'est grand, plus l'équipier est prioritaire.
+function hrResteMin(emp,ctx){
+  var faits=(ctx&&ctx.minSemaine&&ctx.minSemaine[emp.id])||0;
+  var plancher=hrPlancherHebdoMin(emp);
+  var plafond=hrPlafondHebdoMin(emp); if(plafond==null) plafond=99*60;
+  if(faits<plancher){
+    // sous le plancher : très prioritaire, d'autant plus qu'on est loin du plancher
+    return 100000 + (plancher-faits);
+  }
+  // au-dessus du plancher : priorité faible, décroissante vers le plafond
+  return (plafond-faits);
 }
 function hrAutoAssignAndRender(){
   var r=hrAutoAssignDay(curDay);
@@ -6600,17 +6659,159 @@ window.hrAutoAssignDay=hrAutoAssignDay;
 
 // Place les équipiers sur les 7 jours de la semaine, puis affiche l'emploi du temps
 function hrAutoAssignWeek(){
+  // contexte partagé sur toute la semaine : heures cumulées, jours travaillés, occupation
+  var ctx={minSemaine:{},joursTravailles:{},busy:{}};
+  // Règle des 2 jours de repos consécutifs : on choisit pour chaque équipier 2 jours OFF qui se suivent.
+  // Stratégie simple : on réserve le repos AVANT de placer, en bloquant ces jours.
+  hrReserverReposConsecutifs(ctx);
   var totalPlaced=0,totalTraits=0,nbEq=0;
   for(var d=0;d<7;d++){
-    var r=hrAutoAssignDay(d);
+    var r=hrAutoAssignDay(d, ctx);
     totalPlaced+=r.placed; totalTraits+=r.total; nbEq=r.equipiers;
   }
-  renderTimeline(); // rafraîchit le jour affiché
+  renderTimeline();
   hrRenderEmploiSemaine();
   var st=document.getElementById('hrx-assign-status');
-  if(st) st.textContent='👥 Semaine : '+totalPlaced+' / '+totalTraits+' traits pourvus ('+nbEq+' équipiers)';
+  if(st) st.textContent='👥 Semaine : '+totalPlaced+' / '+totalTraits+' traits pourvus ('+nbEq+' équipiers · contrats respectés)';
+}
+// Réserve 2 jours de repos consécutifs par équipier (les bloque pour qu'on n'y place personne)
+function hrReserverReposConsecutifs(ctx){
+  var resto=(hrCurrentResto()||'').toLowerCase();
+  var equipiers=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto;});
+  ctx.repos=ctx.repos||{};
+  equipiers.forEach(function(e,idx){
+    // on répartit les paires de repos sur la semaine pour ne pas vider les mêmes jours
+    // paires possibles : (lun,mar)=0,(mar,mer)=1,...(sam,dim)=5, (dim,lun)=6
+    var paire=idx%6; // 0..5 -> début du repos
+    ctx.repos[e.id]=[paire,(paire+1)%7];
+  });
 }
 window.hrAutoAssignWeek=hrAutoAssignWeek;
+
+// ══ PLACEMENT SUR LE MOIS (lissage : 24h -> 104h/mois max) ════════════════════
+// Pour le mois de la semaine affichée : place les équipiers semaine par semaine
+// en respectant un plafond MENSUEL (contrat*4,33), jamais dépassé.
+var HR_MONTH_RESULT=null; // {label, semaines:[{lundi,parEmp:{id:{name,jours,totalMin}}}], moisMin:{id:min}}
+function hrLundisDuMois(isoRef){
+  // retourne les lundis (AAAA-MM-JJ) dont la semaine appartient majoritairement au mois de isoRef
+  var an=parseInt(isoRef.slice(0,4),10), mois=parseInt(isoRef.slice(5,7),10);
+  var lundis=[];
+  // premier lundi <= 1er du mois
+  var d=new Date(an,mois-1,1,12,0,0);
+  // reculer jusqu'au lundi
+  while(d.getDay()!==1) d.setDate(d.getDate()-1);
+  // avancer semaine par semaine tant que le jeudi de la semaine est dans le mois
+  for(var k=0;k<6;k++){
+    var jeudi=new Date(d); jeudi.setDate(d.getDate()+3); // jeudi = jour "majoritaire"
+    if(jeudi.getMonth()===mois-1){ lundis.push(hrISO(d)); }
+    d.setDate(d.getDate()+7);
+    if(d.getMonth()>mois-1 && d.getFullYear()>=an && lundis.length>=4 && jeudi.getMonth()>mois-1) break;
+  }
+  return lundis;
+}
+function hrPlafondMensuelMin(emp){
+  var h=hrContratHebdo(emp);
+  if(h==null) return null;
+  if(h>=35) return null; // 35h géré en hebdo fixe, pas de plafond mensuel ici
+  return Math.round(h*4.33*60); // ex 24h -> 6235 min (104h)
+}
+function hrAutoAssignMonth(){
+  var isoRef=(typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?DAY_DATES[0]:null;
+  if(!isoRef){ toast&&toast('Choisis d\'abord une semaine','error'); return; }
+  var lundis=hrLundisDuMois(isoRef);
+  var moisNoms=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var moisLabel=moisNoms[parseInt(isoRef.slice(5,7),10)-1]+' '+isoRef.slice(0,4);
+  var resto=(hrCurrentResto()||'').toLowerCase();
+  var equipiers=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto;});
+
+  // contexte MENSUEL : minMois cumulé sur tout le mois
+  var moisMin={}; equipiers.forEach(function(e){moisMin[e.id]=0;});
+  var semaines=[];
+  var lundiCourant=HR_WEEK_LUNDI; // pour restaurer l'affichage à la fin
+
+  lundis.forEach(function(lundi,wi){
+    // générer les traits réels de cette semaine
+    hrGenFromWeek(lundi, true);
+    // contexte hebdo, mais le plafond tient compte du reste MENSUEL
+    var ctx={minSemaine:{},joursTravailles:{},busy:{},repos:{}};
+    hrReserverReposConsecutifs(ctx);
+    // surcharge du plafond : min(plafond hebdo lissé, reste mensuel)
+    ctx._plafondOverride=function(emp){
+      var resteMois=null, pm=hrPlafondMensuelMin(emp);
+      if(pm!=null){ resteMois=pm-(moisMin[emp.id]||0); }
+      var hebdo=hrPlafondHebdoMin(emp);
+      if(resteMois==null) return hebdo;
+      if(hebdo==null) return resteMois;
+      return Math.min(hebdo,resteMois);
+    };
+    for(var d=0;d<7;d++){ hrAutoAssignDay(d, ctx); }
+    // cumuler dans le mois + mémoriser le détail de la semaine
+    var parEmp={};
+    for(var dd=0;dd<7;dd++){
+      (ROWS_BY_DAY[dd]||[]).forEach(function(row){
+        row.bars.forEach(function(b){
+          if(!b.empId) return;
+          if(!parEmp[b.empId]) parEmp[b.empId]={name:b.emp,jours:[[],[],[],[],[],[],[]],totalMin:0};
+          parEmp[b.empId].jours[dd].push({l:b.l,s:b.s,e:b.e});
+          parEmp[b.empId].totalMin+=(b.e-b.s);
+          moisMin[b.empId]=(moisMin[b.empId]||0)+(b.e-b.s);
+        });
+      });
+    }
+    semaines.push({lundi:lundi, parEmp:parEmp});
+  });
+
+  HR_MONTH_RESULT={label:moisLabel, semaines:semaines, moisMin:moisMin};
+  // restaurer la semaine d'origine à l'écran
+  if(lundiCourant) hrGenFromWeek(lundiCourant, true);
+  renderTimeline();
+  hrRenderEmploiMois();
+  var st=document.getElementById('hrx-assign-status');
+  if(st) st.textContent='🗓️ Mois '+moisLabel+' : '+lundis.length+' semaines placées (plafond mensuel respecté)';
+}
+window.hrAutoAssignMonth=hrAutoAssignMonth;
+
+// Tableau récap MENSUEL : par équipier, heures de chaque semaine + total mois
+function hrRenderEmploiMois(){
+  var box=document.getElementById('hrx-emploi-semaine'); if(!box) return;
+  if(!HR_MONTH_RESULT){ box.innerHTML=''; return; }
+  var R=HR_MONTH_RESULT;
+  function fmtH(min){ var h=Math.floor(min/60), m=min%60; return m?(h+'h'+String(m).padStart(2,'0')):(h+'h'); }
+  // liste des équipiers présents
+  var ids={};
+  R.semaines.forEach(function(s){ Object.keys(s.parEmp).forEach(function(id){ ids[id]=s.parEmp[id].name; }); });
+  var liste=Object.keys(ids).map(function(id){return {id:id,name:ids[id]};});
+  liste.sort(function(a,b){return a.name.localeCompare(b.name);});
+  if(!liste.length){ box.innerHTML='<div style="color:var(--mu);font-size:13px;padding:12px;">Aucun placement.</div>'; return; }
+
+  function contratDe(id){var e=(DB.employees||[]).find(function(x){return x.id===id;});return hrContratHebdo(e);}
+  function plafMoisH(id){var e=(DB.employees||[]).find(function(x){return x.id===id;});var p=hrPlafondMensuelMin(e);return p!=null?p/60:null;}
+
+  var h='<div style="overflow-x:auto;"><table class="hr-gt" style="min-width:680px;border-collapse:collapse;width:100%;font-size:12px;">';
+  h+='<thead><tr><th style="text-align:left;padding:7px 9px;position:sticky;left:0;background:var(--s1);">Équipier</th>';
+  R.semaines.forEach(function(s,i){ h+='<th style="padding:7px 8px;">S'+(i+1)+'<br><span style="font-size:10px;color:var(--mu);">'+s.lundi.slice(8,10)+'/'+s.lundi.slice(5,7)+'</span></th>'; });
+  h+='<th style="padding:7px 9px;">Total mois</th><th style="padding:7px 9px;">Plafond</th></tr></thead><tbody>';
+
+  liste.forEach(function(e){
+    h+='<tr style="border-top:1px solid var(--bd2);">';
+    h+='<td style="padding:6px 9px;font-weight:600;color:var(--tx);position:sticky;left:0;background:var(--s1);white-space:nowrap;">'+e.name+'</td>';
+    var totMois=0;
+    R.semaines.forEach(function(s){
+      var pe=s.parEmp[e.id];
+      var min=pe?pe.totalMin:0; totMois+=min;
+      h+='<td style="padding:6px 8px;text-align:center;color:'+(min?'#cbd5e1':'#444')+';">'+(min?fmtH(min):'—')+'</td>';
+    });
+    var plafH=plafMoisH(e.id);
+    var totColor= plafH!=null ? (totMois/60>plafH+0.01?'#e74c3c':(totMois/60<plafH-2?'#e8a020':'#3ecf8e')) : 'var(--tx)';
+    h+='<td style="padding:6px 9px;text-align:center;font-weight:700;color:'+totColor+';">'+fmtH(totMois)+'</td>';
+    h+='<td style="padding:6px 9px;text-align:center;color:var(--mu);">'+(plafH!=null?(Math.round(plafH)+'h'):'35h/sem')+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='<div style="font-size:11px;color:var(--mu);margin-top:8px;">Lissage mensuel : un contrat 24h vise ~104h/mois (réparties ~20–26h/semaine). <span style="color:#3ecf8e;">vert</span>=conforme · <span style="color:#e8a020;">orange</span>=sous le plafond · <span style="color:#e74c3c;">rouge</span>=dépassement.</div>';
+  box.innerHTML=h;
+}
+window.hrRenderEmploiMois=hrRenderEmploiMois;
 
 // Construit l'emploi du temps de la semaine, par équipier (créneaux + total d'heures)
 function hrRenderEmploiSemaine(){
