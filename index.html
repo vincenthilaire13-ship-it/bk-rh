@@ -8,7 +8,7 @@
 <script>
 (function(){
   // Version embarquée dans CE fichier (doit rester identique à APP_VERSION plus bas)
-  var EMBEDDED_VERSION = '2026-06-15 17:40';
+  var EMBEDDED_VERSION = '2026-06-15 18:55';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1237,6 +1237,43 @@ async function dbxUpload(path,blob){
   }
   return link?link.replace('?dl=0','?raw=1').replace('&dl=0','&raw=1'):'';
 }
+// supprimer un fichier dans Dropbox (par chemin)
+async function dbxDelete(path){
+  if(!path)return false;
+  try{
+    var tok=await dbxToken();
+    var r=await fetch('https://api.dropboxapi.com/2/files/delete_v2',{
+      method:'POST',headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+      body:JSON.stringify({path:path})
+    });
+    return r.ok;
+  }catch(e){console.error('Dropbox delete',e);return false;}
+}
+// déplacer un dossier/fichier Dropbox (archivage). Crée le dossier de destination si besoin.
+async function dbxMove(fromPath,toPath){
+  if(!fromPath||!toPath)return false;
+  try{
+    var tok=await dbxToken();
+    // s'assurer que le dossier parent de destination existe
+    var parent=toPath.slice(0,toPath.lastIndexOf('/'));
+    if(parent){
+      await fetch('https://api.dropboxapi.com/2/files/create_folder_v2',{
+        method:'POST',headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+        body:JSON.stringify({path:parent,autorename:false})
+      }).catch(function(){});
+    }
+    var r=await fetch('https://api.dropboxapi.com/2/files/move_v2',{
+      method:'POST',headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+      body:JSON.stringify({from_path:fromPath,to_path:toPath,autorename:true})
+    });
+    return r.ok;
+  }catch(e){console.error('Dropbox move',e);return false;}
+}
+// chemins dossier actif vs archivé pour un salarié
+function dbxEmpFolderArchive(e){
+  var resto=RESTOS[e.restoId]?RESTOS[e.restoId].label:(e.restoId||'Autre');
+  return '/Archives/'+dbxClean(resto)+'/'+dbxClean(e.name);
+}
 // dossier d'un candidat : /BKRH/<Resto>/<Nom Prenom>
 function dbxCandFolder(c){
   var rid=c.restoId||c.resto_id||'';
@@ -1378,7 +1415,7 @@ async function loadAll() {
     sb.get('bks_emp_docs','select=*&order=created_at.desc').catch(function(){return [];}),
   ]);
   DB.empDocs = (empDocs||[]).map(function(d){
-    return {id:d.id,empId:d.emp_id,categorie:d.categorie||'autre',label:d.label||'',link:d.link||'',name:d.name||'',createdAt:d.created_at};
+    return {id:d.id,empId:d.emp_id,categorie:d.categorie||'autre',label:d.label||'',link:d.link||'',name:d.name||'',dbxPath:d.dbx_path||'',createdAt:d.created_at};
   });
   DB.employees = (emps||[]).map(function(e){
     var inf=e.infos||{};
@@ -2115,12 +2152,10 @@ function renderEquipe(){
           +(canView?'<button class="btn btn-gray btn-sm" onclick="openEmpFiche(\''+e.id+'\')">👁️ Fiche</button>':'')
           +(canManage&&!arch?'<button class="btn btn-gray btn-sm" onclick="openEdit(\''+e.id+'\')">✏️</button>':'')
           +(canManage&&!arch?'<button class="btn btn-gray btn-sm" onclick="openHistorique(\''+e.id+'\')">📋 Historique</button>':'')
-          +(canManage&&!arch?'<button class="btn-danger" onclick="openSortie(\''+e.id+'\')" title="Gérer la sortie">'+(enSortie?'🚪':'📤')+'</button>':'')
-          +(canManage&&!arch?'<button class="btn-danger" onclick="delEmp(\''+e.id+'\')">🗑️</button>':'')
+          +(canManage&&!arch?'<button class="btn-danger" onclick="openSortie(\''+e.id+'\')" title="Archiver ce salarié">'+(enSortie?'🚪':'📤')+'</button>':'')
           +(canManage&&arch?'<button class="btn btn-gray btn-sm" onclick="openEdit(\''+e.id+'\')">✏️</button>':'')
           +(canManage&&arch?'<button class="btn btn-gray btn-sm" onclick="openHistorique(\''+e.id+'\')">📋 Historique</button>':'')
           +(canManage&&arch?'<button class="btn btn-gray btn-sm" style="background:#1A3A1A;border-color:#3A7A3A;color:#4CAF50;" onclick="reactivateEmp(\''+e.id+'\')">♻️ Réactiver</button>':'')
-          +(canManage&&arch?'<button class="btn-danger" onclick="delEmp(\''+e.id+'\')">🗑️</button>':'')
           +'</div></div>';
       });
     });
@@ -2155,16 +2190,20 @@ async function reactivateEmp(id){
   if(!e||!confirm('Réactiver '+e.name+' ?'))return;
   try{
     await sb.patch('bks_employees','id=eq.'+id,{archived:false,exit_date:'',exit_motif:'',exit_note:''});
+    // Ramener le dossier Dropbox des Archives vers son emplacement actif
+    try{
+      var dbxReady=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
+      if(dbxReady){ await dbxMove(dbxEmpFolderArchive(e), dbxEmpFolder(e)); }
+    }catch(mvErr){console.error('Dropbox reactivate move',mvErr);}
     await loadAll();empFilter='actif';renderEquipe();
-    toast(e.name+' réactivé(e) ✔','success');
+    toast(e.name+' réactivé(e). Documents remis en place ✔','success');
   }catch(e2){toast('Erreur','error');}
 }
 
 async function delEmp(id){
-  var e=DB.employees.find(function(x){return x.id===id;});
-  if(!e||!confirm('Supprimer définitivement '+e.name+' ?'))return;
-  try {await sb.del('bks_employees','id=eq.'+id);await loadAll();renderEquipe();toast('Membre supprimé','');}
-  catch(e2){toast('Erreur','error');}
+  // Suppression de salarié désactivée : on archive uniquement (on garde tout l'historique et les documents).
+  toast('Les salariés ne se suppriment pas — utilisez l\'archivage (📤).','');
+  return;
 }
 
 function openEdit(id){
@@ -2249,11 +2288,40 @@ function renderEmpDocs(empId,boxId){
   if(!boxId)renderVisiteMedicalePanel(empId);
   var docs=(DB.empDocs||[]).filter(function(d){return d.empId===empId;})
     .sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);});
-  var h='<div style="border-top:1px solid #333;padding-top:14px;">'
-    +'<div style="font-size:.78rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:700;">📁 Documents (lecture seule)</div>';
+  var emp=DB.employees.find(function(x){return x.id===empId;});
+  var h='';
+  // ── Section "Documents du recrutement" (déposés par le candidat) ──
+  var cand=null;
+  if(emp&&emp.fromCandId){cand=DB.candidatures.find(function(c){return c.id===emp.fromCandId;});}
+  if(!cand&&emp){ // secours : retrouver par nom/email si pas de from_cand_id
+    cand=DB.candidatures.find(function(c){
+      var full=((c.nom||'')+' '+(c.prenom||'')).trim().toUpperCase();
+      var full2=((c.prenom||'')+' '+(c.nom||'')).trim().toUpperCase();
+      return (emp.email&&c.email&&emp.email.toLowerCase()===c.email.toLowerCase())
+        || full===(emp.name||'').toUpperCase() || full2===(emp.name||'').toUpperCase();
+    });
+  }
+  if(cand&&cand.documents&&Object.keys(cand.documents).length){
+    h+='<div style="border-top:1px solid #333;padding-top:14px;margin-bottom:6px;">'
+      +'<div style="font-size:.78rem;color:#3ecf8e;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:700;">🎯 Documents du recrutement (déposés par le salarié)</div>';
+    DOC_TYPES.forEach(function(d){
+      function pieceLine(key,lbl){
+        var p=cand.documents[key];if(!p||!(p.link||p.data))return '';
+        return '<div style="display:flex;align-items:center;gap:8px;background:#11160f;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
+          +'<span style="flex:1;min-width:0;font-size:.82rem;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">✓ '+lbl+'</span>'
+          +(p.link?'<button class="btn btn-gray btn-sm" onclick="window.open(\''+p.link+'\',\'_blank\')">👁️ Lire</button>':'<span style="font-size:.72rem;color:#a8460f;">déposé (local)</span>')
+          +'</div>';
+      }
+      if(d.sides){d.sides.forEach(function(s){h+=pieceLine(d.id+'_'+s.toLowerCase(),d.label+' — '+s);});}
+      else{h+=pieceLine(d.id,d.label);}
+    });
+    h+='</div>';
+  }
+  h+='<div style="border-top:1px solid #333;padding-top:14px;">'
+    +'<div style="font-size:.78rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:700;">📁 Documents RH</div>';
   // liste groupée par catégorie
   if(!docs.length){
-    h+='<p style="font-size:.78rem;color:#666;margin-bottom:10px;">Aucun document pour l\'instant.</p>';
+    h+='<p style="font-size:.78rem;color:#666;margin-bottom:10px;">Aucun document RH pour l\'instant.</p>';
   }else{
     EMPDOC_CATS.forEach(function(cat){
       var grp=docs.filter(function(d){return d.categorie===cat.id;});
@@ -2264,7 +2332,7 @@ function renderEmpDocs(empId,boxId){
         h+='<div style="display:flex;align-items:center;gap:8px;background:#141414;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
           +'<span style="flex:1;min-width:0;font-size:.82rem;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(d.label||d.name||'Document')+(dt?' <span style="color:#666;font-size:.72rem;">· '+dt+'</span>':'')+'</span>'
           +(d.link?'<button class="btn btn-gray btn-sm" onclick="viewDoc(\''+d.id+'\')">👁️ Lire</button>':'<span style="font-size:.72rem;color:#a8460f;">non lisible</span>')
-          +(window.__readOnly?'':'<button class="btn-danger" style="padding:3px 8px;" onclick="delEmpDoc(\''+d.id+'\')">🗑️</button>')
+          +((curUser&&curUser.role==='franchise')?'<button class="btn-danger" style="padding:3px 8px;" onclick="delEmpDoc(\''+d.id+'\')">🗑️</button>':'')
           +'</div>';
       });
     });
@@ -2431,6 +2499,7 @@ async function handleEmpDocUpload(input){
     var dataUrl=ev.target.result;
     var dbxReady=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
     var link='';
+    var dbxPath='';
     var dateStr=docDate;
     var ext=(file.name&&file.name.indexOf('.')>=0)?file.name.split('.').pop():'pdf';
     // nom de fichier clair + daté + au nom du salarié
@@ -2438,15 +2507,16 @@ async function handleEmpDocUpload(input){
     if(dbxReady){
       try{
         var folder=dbxEmpFolder(e);
+        dbxPath=folder+'/'+baseName+'.'+ext;
         var blob=_dataUrlToBlob(dataUrl);
-        link=await dbxUpload(folder+'/'+baseName+'.'+ext,blob);
-      }catch(err){console.error('Dropbox empdoc échec',err);}
+        link=await dbxUpload(dbxPath,blob);
+      }catch(err){console.error('Dropbox empdoc échec',err);dbxPath='';}
     }
     var id='d'+Date.now();
     var frDate=new Date(docDate+'T12:00:00').toLocaleDateString('fr-FR');
     var finalLabel=(label||_empDocCatLbl(cat))+' du '+frDate;
     try{
-      await sb.insert('bks_emp_docs',{id:id,emp_id:e.id,categorie:cat,label:finalLabel,link:link,name:file.name});
+      await sb.insert('bks_emp_docs',{id:id,emp_id:e.id,categorie:cat,label:finalLabel,link:link,name:file.name,dbx_path:dbxPath});
       // Si c'est un avis médical, mettre à jour la date de dernière visite
       if(cat==='visite_medicale'){ try{await sb.patch('bks_employees','id=eq.'+e.id,{visite_date:docDate});}catch(_){} }
       // Si c'est la DPAE, garder la date dans infos
@@ -2463,10 +2533,15 @@ async function handleEmpDocUpload(input){
 
 async function delEmpDoc(docId){
   var d=(DB.empDocs||[]).find(function(x){return x.id===docId;});if(!d)return;
-  if(!confirm('Supprimer ce document de la fiche ?\n('+(d.label||d.name)+')\n\nLe fichier reste dans Dropbox.'))return;
+  if(!curUser||curUser.role!=='franchise'){toast('Seul l\'Admin/RH peut supprimer un document.','error');return;}
+  if(!confirm('Supprimer définitivement ce document ?\n('+(d.label||d.name)+')\n\n⚠️ Le fichier sera AUSSI supprimé de Dropbox.'))return;
   try{
+    // 1) supprimer le fichier dans Dropbox si on a le chemin
+    if(d.dbxPath){ try{await dbxDelete(d.dbxPath);}catch(_){} }
+    // 2) retirer de la base
     await sb.del('bks_emp_docs','id=eq.'+docId);
     await loadAll();renderEmpDocs(d.empId,_empDocCtx.boxId);
+    toast('Document supprimé (fiche + Dropbox) ✔','success');
   }catch(e){toast('Erreur','error');}
 }
 
@@ -3024,8 +3099,18 @@ async function confirmExit(){
   var id=document.getElementById('exit-id').value;
   var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
   var data={archived:true,exit_date:document.getElementById('exit-date').value,exit_motif:document.getElementById('exit-motif').value,exit_note:document.getElementById('exit-note').value.trim()};
-  try {await sb.patch('bks_employees','id=eq.'+id,data);await loadAll();closeModal('modal-exit');empFilter='actif';renderEquipe();fillFilters();fillRptPersons();toast(e.name+' archivé(e). Historique conservé ✔','success');}
-  catch(e2){toast('Erreur','error');}
+  var btn=event&&event.target;if(btn){btn.disabled=true;btn.textContent='Archivage…';}
+  try {
+    await sb.patch('bks_employees','id=eq.'+id,data);
+    // Déplacer le dossier Dropbox du salarié vers les Archives
+    try{
+      var dbxReady=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
+      if(dbxReady){ await dbxMove(dbxEmpFolder(e), dbxEmpFolderArchive(e)); }
+    }catch(mvErr){console.error('Dropbox archive move',mvErr);}
+    await loadAll();closeModal('modal-exit');empFilter='actif';renderEquipe();fillFilters();fillRptPersons();
+    toast(e.name+' archivé(e). Documents rangés dans les Archives ✔','success');
+  }
+  catch(e2){toast('Erreur','error');if(btn){btn.disabled=false;btn.textContent='📤 Confirmer';}}
 }
 
 function closeModal(id){document.getElementById(id).classList.remove('open');}
@@ -3227,15 +3312,28 @@ function downloadAffichePdf(){
 }
 
 function updateRBadge(){
-  var n=(DB.candidatures||[]).filter(function(c){return c.statut==='nouveau';}).length;
-  var b=document.getElementById('rbadge');if(b){if(n>0){b.textContent=n;b.style.display='inline-flex';}else{b.style.display='none';}}
-  // badge visites médicales : embauches urgentes/dépassées + périodiques orange/dépassées
+  var cands=DB.candidatures||[];
+  var nNouveau=cands.filter(function(c){return c.statut==='nouveau';}).length;
+  // candidats retenus avec tous les papiers déposés mais vidéos non encore validées
+  var nPapiers=cands.filter(function(c){return c.statut==='retenu'&&c.docsSoumis&&docsComplets(c)&&!c.videosFaites;}).length;
+  // candidats dont les vidéos sont validées (prêts) mais pas encore intégrés
+  var nVideos=cands.filter(function(c){return c.statut==='retenu'&&c.docsSoumis&&docsComplets(c)&&c.videosFaites;}).length;
+  var b=document.getElementById('rbadge');
+  if(b){
+    var col=null,n=0;
+    if(nNouveau>0){col='var(--red)';n=nNouveau;}        // 🔴 nouveau recrutement
+    else if(nPapiers>0){col='#F5A623';n=nPapiers;}        // 🟠 papiers déposés
+    else if(nVideos>0){col='#3ecf8e';n=nVideos;}          // 🟢 vidéos validées
+    if(col){b.textContent=n;b.style.background=col;b.style.display='inline-flex';}
+    else{b.style.display='none';}
+  }
+  // badge visites médicales : embauches urgentes/dépassées + périodiques bientôt/dépassées
   var vn=0;
   (DB.candidatures||[]).filter(function(c){return (c.statut||'')==='essai';}).forEach(function(c){
     var et=visiteInfo(c).etat;if(et==='rouge'||et==='depasse')vn++;
   });
   (DB.employees||[]).filter(function(e){return !e.archived;}).forEach(function(e){
-    var et=visiteEmpInfo(e).etat;if(et==='orange'||et==='depasse')vn++;
+    var et=visiteEmpInfo(e).etat;if(et==='bientot'||et==='depasse')vn++;
   });
   var vb=document.getElementById('vbadge');if(vb){if(vn>0){vb.textContent=vn;vb.style.display='inline-flex';}else{vb.style.display='none';}}
 }
