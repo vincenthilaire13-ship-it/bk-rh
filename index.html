@@ -347,6 +347,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
     <button onclick="goPage('planning',this)">🗓️ Planning</button>
     <button class="desktop-only" onclick="goPage('parametres',this)">⚙️ Paramètres</button>
     <button class="desktop-only" onclick="goPage('alertes',this)">🔔 Alertes <span id="albadge" style="background:var(--red);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
+    <button class="desktop-only" onclick="goPage('salaires',this)">💶 Salaires</button>
   </nav>
   <div id="preview-bar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;background:#2A2A2A;border-bottom:1px solid #444;padding:8px 16px;">
     <span style="font-size:.8rem;color:#F5A623;font-weight:700;">👁️ Voir comme</span>
@@ -948,6 +949,21 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
     <div class="sec-title">🔔 Alertes</div>
     <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Toutes les alertes en cours sont regroupées ici. Cliquez sur une alerte pour ouvrir la fiche concernée.</p>
     <div id="alertes-list"></div>
+  </div>
+</div>
+
+<!-- SALAIRES -->
+<div class="page" id="page-salaires">
+  <div class="card">
+    <div class="sec-title">💶 Grille des salaires</div>
+    <p style="font-size:.82rem;color:#aaa;margin-bottom:6px;">Grille des salaires de la Restauration Rapide (SNARR). Cette grille sert de référence pour pré-remplir le taux horaire des contrats. <strong>Vous pouvez la modifier</strong> : cliquez sur une valeur pour la changer.</p>
+    <p style="font-size:.78rem;color:#666;margin-bottom:14px;">Référence en vigueur : <strong id="sal-ref-date">01/06/2026</strong>. Règle : si un taux de grille est sous le SMIC (12,31 €), c'est le SMIC qui s'applique.</p>
+    <div id="salaires-table"></div>
+    <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-red btn-sm" onclick="addSalaireRow()">+ Ajouter une ligne</button>
+      <button class="btn btn-gray btn-sm" onclick="saveSalaires()">💾 Enregistrer la grille</button>
+    </div>
+    <div id="sal-status" style="font-size:.78rem;color:#888;margin-top:8px;"></div>
   </div>
 </div>
 
@@ -1661,7 +1677,7 @@ function applyRolePermissions(r){
       if (isGlobal) {
         show = true;                                   // Admin/RH : tout
       } else if (isDir) {
-        show = (txt.indexOf('Paramètres')<0 && txt.indexOf('Parametres')<0); // tout sauf Paramètres
+        show = (txt.indexOf('Paramètres')<0 && txt.indexOf('Parametres')<0 && txt.indexOf('Salaires')<0); // tout sauf Paramètres et Salaires
       } else if (isMgr) {
         show = (txt.indexOf('Incidents')>=0);          // Manager : Incidents uniquement
       } else {
@@ -1807,6 +1823,7 @@ function goPage(id, btn) {
   if (id==='recrutement'){setCandFilter(candFilter||'nouveau');}
   if (id==='visite'){renderVisiteList();}
   if (id==='alertes'){renderAlertes();}
+  if (id==='salaires'){renderSalaires();}
   if (id==='planning'){openPlanning();}
   if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();loadSeuilOral();loadMailTpl();renderQr();renderApercuForm();var av=document.getElementById('app-version-badge');if(av){av.textContent='✓ À jour — '+formatMajDate(APP_VERSION);av.style.color='#4CAF50';av.style.borderColor='#2E5E33';}}
 }
@@ -3581,6 +3598,70 @@ function renderAlertes(){
       }).join('')+'</div></details>';
   });
   box.innerHTML=h;
+}
+// ══ GRILLE DES SALAIRES ═══════════════════════════════════════════════════════
+var SMIC_HORAIRE=12.31; // au 01/06/2026
+var SALAIRES_DEFAUT=[
+  {poste:'EQUIPIER',niveau:'Niveau I',echelon:'Echelon A',taux:12.31},
+  {poste:'EQUIPIER + de 8 mois',niveau:'Niveau I',echelon:'Echelon B',taux:12.31},
+  {poste:'LEADER JUNIOR',niveau:'Niveau II',echelon:'Echelon A',taux:12.31},
+  {poste:'LEADER',niveau:'Niveau II',echelon:'Echelon B',taux:12.45},
+  {poste:'MANAGER (Niv III-A)',niveau:'Niveau III',echelon:'Echelon A',taux:12.82},
+  {poste:'MANAGER JUNIOR',niveau:'Niveau III',echelon:'Echelon B',taux:12.93},
+  {poste:'MANAGER',niveau:'Niveau III',echelon:'Echelon C',taux:13.98},
+  {poste:'Agent de maîtrise (Niv IV-A)',niveau:'Niveau IV',echelon:'Echelon A',taux:15.01},
+  {poste:'Agent de maîtrise (Niv IV-B)',niveau:'Niveau IV',echelon:'Echelon B',taux:15.43},
+  {poste:'Cadre (Niv IV-C)',niveau:'Niveau IV',echelon:'Echelon C',taux:16.05},
+  {poste:'Cadre (Niv IV-D)',niveau:'Niveau IV',echelon:'Echelon D',taux:17.34},
+  {poste:'APPRENTI EQUIPIER',niveau:'Apprenti',echelon:'—',taux:8.77},
+  {poste:'APPRENTI LEADER',niveau:'Apprenti',echelon:'—',taux:10.04},
+  {poste:'APPRENTI MANAGER -26 ans',niveau:'Apprenti',echelon:'—',taux:11.53},
+  {poste:'APPRENTI MANAGER +26 ans',niveau:'Apprenti',echelon:'—',taux:12.31}
+];
+var DB_SALAIRES=null;
+function getSalaires(){
+  if(DB_SALAIRES)return DB_SALAIRES;
+  try{var raw=localStorage.getItem('bkrh_salaires');if(raw){DB_SALAIRES=JSON.parse(raw);return DB_SALAIRES;}}catch(e){}
+  DB_SALAIRES=JSON.parse(JSON.stringify(SALAIRES_DEFAUT));
+  return DB_SALAIRES;
+}
+// taux effectif (règle SMIC) pour un poste/niveau
+function tauxEffectif(taux){return Math.max(parseFloat(taux)||0, SMIC_HORAIRE);}
+function renderSalaires(){
+  var box=document.getElementById('salaires-table');if(!box)return;
+  var g=getSalaires();
+  var h='<div style="overflow-x:auto;"><table class="tbl" style="width:100%;border-collapse:collapse;font-size:.85rem;">'
+    +'<thead><tr>'
+    +'<th style="text-align:left;padding:8px;">Poste</th>'
+    +'<th style="text-align:left;padding:8px;">Niveau</th>'
+    +'<th style="text-align:left;padding:8px;">Échelon</th>'
+    +'<th style="text-align:right;padding:8px;">Taux grille</th>'
+    +'<th style="text-align:right;padding:8px;">Taux appliqué*</th>'
+    +'<th></th></tr></thead><tbody>';
+  g.forEach(function(r,i){
+    var eff=tauxEffectif(r.taux);
+    var smicApplique=eff>(parseFloat(r.taux)||0);
+    h+='<tr style="border-top:1px solid #2A2A2A;">'
+      +'<td style="padding:6px 8px;"><input value="'+(r.poste||'')+'" onchange="updSal('+i+',\'poste\',this.value)" style="width:100%;background:#141414;border:1px solid #2A2A2A;color:#ddd;border-radius:4px;padding:4px 6px;font-size:.82rem;"></td>'
+      +'<td style="padding:6px 8px;"><input value="'+(r.niveau||'')+'" onchange="updSal('+i+',\'niveau\',this.value)" style="width:100%;background:#141414;border:1px solid #2A2A2A;color:#ddd;border-radius:4px;padding:4px 6px;font-size:.82rem;"></td>'
+      +'<td style="padding:6px 8px;"><input value="'+(r.echelon||'')+'" onchange="updSal('+i+',\'echelon\',this.value)" style="width:100%;background:#141414;border:1px solid #2A2A2A;color:#ddd;border-radius:4px;padding:4px 6px;font-size:.82rem;"></td>'
+      +'<td style="padding:6px 8px;text-align:right;"><input type="number" step="0.01" value="'+r.taux+'" onchange="updSal('+i+',\'taux\',this.value)" style="width:80px;background:#141414;border:1px solid #2A2A2A;color:#ddd;border-radius:4px;padding:4px 6px;font-size:.82rem;text-align:right;"> €</td>'
+      +'<td style="padding:6px 8px;text-align:right;font-weight:700;color:'+(smicApplique?'#F5A623':'#4CAF50')+';">'+eff.toFixed(2)+' €'+(smicApplique?' <span style="font-size:.68rem;font-weight:400;">(SMIC)</span>':'')+'</td>'
+      +'<td style="padding:6px 8px;"><button class="btn-danger" style="padding:2px 7px;" onclick="delSalaireRow('+i+')">🗑️</button></td>'
+      +'</tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='<p style="font-size:.72rem;color:#666;margin-top:8px;">* Taux appliqué = taux de la grille, relevé au SMIC ('+SMIC_HORAIRE.toFixed(2)+' €) si la grille est en dessous.</p>';
+  box.innerHTML=h;
+}
+function updSal(i,champ,val){var g=getSalaires();if(!g[i])return;g[i][champ]=(champ==='taux')?(parseFloat(val)||0):val;if(champ==='taux')renderSalaires();}
+function addSalaireRow(){getSalaires().push({poste:'Nouveau poste',niveau:'',echelon:'',taux:SMIC_HORAIRE});renderSalaires();}
+function delSalaireRow(i){var g=getSalaires();if(confirm('Supprimer cette ligne de la grille ?')){g.splice(i,1);renderSalaires();}}
+function saveSalaires(){
+  try{
+    localStorage.setItem('bkrh_salaires',JSON.stringify(getSalaires()));
+    var st=document.getElementById('sal-status');if(st){st.textContent='✅ Grille enregistrée';setTimeout(function(){st.textContent='';},3000);}
+  }catch(e){var st=document.getElementById('sal-status');if(st)st.textContent='❌ Erreur d\'enregistrement';}
 }
 function renderVisiteList(){
   var list=document.getElementById('visite-list');if(!list)return;
