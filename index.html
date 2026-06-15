@@ -8,7 +8,7 @@
 <script>
 (function(){
   // Version embarquée dans CE fichier (doit rester identique à APP_VERSION plus bas)
-  var EMBEDDED_VERSION = '2026-06-13 18:55';
+  var EMBEDDED_VERSION = '2026-06-15 14:45';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -767,6 +767,27 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
     <div id="eq-list"></div>
   </div>
 
+  <!-- FICHE SALARIÉ PLEIN ÉCRAN -->
+  <div class="page" id="page-emp-fiche">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+      <button class="btn btn-gray btn-sm" onclick="closeEmpFiche()">← Retour aux employés</button>
+      <div id="empf-title" style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.5rem;color:var(--yellow);text-transform:uppercase;letter-spacing:1px;flex:1;min-width:0;"></div>
+    </div>
+    <div id="empf-tabs" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+      <button class="rtab on" id="empft-infos" onclick="empfTab('infos')">📋 Informations</button>
+      <button class="rtab" id="empft-docs" onclick="empfTab('docs')">📁 Documents</button>
+      <button class="rtab" id="empft-histo" onclick="empfTab('histo')">🕓 Historique</button>
+    </div>
+    <div id="empf-pane-infos"></div>
+    <div id="empf-pane-docs" style="display:none;">
+      <div id="empf-visite"></div>
+      <div id="empf-docs"></div>
+    </div>
+    <div id="empf-pane-histo" style="display:none;">
+      <div id="empf-histo-content"></div>
+    </div>
+  </div>
+
   <!-- PLANNING -->
   <div class="page" id="page-planning">
     <div class="card">
@@ -917,6 +938,17 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
     <div style="display:flex;gap:9px;margin-top:16px;justify-content:flex-end;">
       <button class="btn btn-gray" onclick="closeModal('modal-edit')">Annuler</button>
       <button class="btn btn-red" onclick="saveEdit()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-ov" id="modal-empedit">
+  <div class="modal" style="width:560px;max-width:96vw;">
+    <div class="modal-title">✏️ Modifier la fiche salarié</div>
+    <div id="empedit-body"></div>
+    <div style="display:flex;gap:9px;margin-top:16px;justify-content:flex-end;">
+      <button class="btn btn-gray" onclick="closeModal('modal-empedit')">Annuler</button>
+      <button class="btn btn-red" onclick="empfSave()">💾 Enregistrer</button>
     </div>
   </div>
 </div>
@@ -1315,12 +1347,15 @@ async function loadAll() {
     return {id:d.id,empId:d.emp_id,categorie:d.categorie||'autre',label:d.label||'',link:d.link||'',name:d.name||'',createdAt:d.created_at};
   });
   DB.employees = (emps||[]).map(function(e){
+    var inf=e.infos||{};
+    if(typeof inf==='string'){try{inf=JSON.parse(inf);}catch(_){inf={};}}
     return {id:e.id,name:e.name,role:e.role,restoId:e.resto_id,tileKey:e.tile_key||'',
       email:e.email||'',phone:e.phone||'',archived:!!e.archived,
       exitDate:e.exit_date||'',exitMotif:e.exit_motif||'',exitNote:e.exit_note||'',
       sortieStatut:e.sortie_statut||'',sortieMotif:e.sortie_motif||'',sortieDate:e.sortie_date||'',
       sortieDocs:e.sortie_docs||{},sortieValidee:!!e.sortie_validee,fromCandId:e.from_cand_id||'',transport:e.transport||'',
-      visiteDate:e.visite_date||'',visiteProchaine:e.visite_prochaine||''};
+      visiteDate:e.visite_date||(inf.vm_derniere||''),visiteProchaine:e.visite_prochaine||(inf.vm_expiration||''),
+      infos:inf};
   });
   DB.incidents = (incs||[]).map(function(i){
     return {id:i.id,empId:i.emp_id,restoId:i.resto_id,reporterId:i.reporter_id||'',
@@ -2003,12 +2038,13 @@ function renderEquipe(){
         var enSortie=(e.sortieStatut&&!e.sortieValidee);
         var sortieBadge=enSortie?' <span style="font-size:.66rem;color:#fff;background:#a8460f;padding:1px 7px;border-radius:9px;">🚪 sortie '+_motifLbl(e.sortieMotif)+(e.sortieDate?' '+new Date(e.sortieDate+'T12:00:00').toLocaleDateString('fr-FR'):'')+'</span>':'';
         h+='<div class="emp-card" style="'+(arch?'opacity:.6;border-color:#553300;':(enSortie?'border-color:#a8460f;':''))+'">'
-          +'<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
+          +'<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer;" onclick="openEmpFiche(\''+e.id+'\')">'
           +'<div class="emp-av av-'+ro[0]+'" style="'+(arch?'filter:grayscale(1);':'')+'">'+init+'</div>'
           +'<div style="min-width:0;"><div style="font-weight:600;font-size:.9rem;">'+e.name+(arch?' <span style="font-size:.68rem;color:#888;background:#2A1A00;padding:1px 6px;border-radius:9px;">📁</span>':'')+sortieBadge+'</div>'
-          +'<div style="font-size:.73rem;color:#888;">'+cap(e.role)+' · '+myInc+' incident'+(myInc!==1?'s':'')+(e.email?' · '+e.email:'')+'</div></div></div>'
+          +'<div style="font-size:.73rem;color:#888;">'+cap(e.role)+' · '+myInc+' incident'+(myInc!==1?'s':'')+(e.infos&&e.infos.matricule?' · n°'+e.infos.matricule:'')+(e.email?' · '+e.email:'')+'</div></div></div>'
           +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">'
           +'<span class="role-pill rp-'+ro[0]+'">'+cap(ro)+'</span>'
+          +(canManage?'<button class="btn btn-gray btn-sm" onclick="openEmpFiche(\''+e.id+'\')">👁️ Fiche</button>':'')
           +(canManage&&!arch?'<button class="btn btn-gray btn-sm" onclick="openEdit(\''+e.id+'\')">✏️</button>':'')
           +(canManage&&!arch?'<button class="btn btn-gray btn-sm" onclick="openHistorique(\''+e.id+'\')">📋 Historique</button>':'')
           +(canManage&&!arch?'<button class="btn-danger" onclick="openSortie(\''+e.id+'\')" title="Gérer la sortie">'+(enSortie?'🚪':'📤')+'</button>':'')
@@ -2137,9 +2173,11 @@ function dbxEmpFolder(e){
   return '/'+dbxClean(resto)+'/'+dbxClean(e.name);
 }
 
-function renderEmpDocs(empId){
-  var box=document.getElementById('histo-docs');if(!box)return;
-  renderVisiteMedicalePanel(empId);
+var _empDocCtx={empId:null,boxId:'histo-docs'};
+function renderEmpDocs(empId,boxId){
+  var box=document.getElementById(boxId||'histo-docs');if(!box)return;
+  _empDocCtx={empId:empId,boxId:boxId||'histo-docs'};
+  if(!boxId)renderVisiteMedicalePanel(empId);
   var docs=(DB.empDocs||[]).filter(function(d){return d.empId===empId;})
     .sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);});
   var h='<div style="border-top:1px solid #333;padding-top:14px;">'
@@ -2198,8 +2236,10 @@ function docViewerHtml(link,name){
 }
 
 // ── VISITE MÉDICALE PÉRIODIQUE (fiche salarié) ───────────────────────────────
-function renderVisiteMedicalePanel(empId){
-  var box=document.getElementById('histo-visite');if(!box)return;
+var _visitePanelBox='histo-visite';
+function renderVisiteMedicalePanel(empId,boxId){
+  var box=document.getElementById(boxId||'histo-visite');if(!box)return;
+  _visitePanelBox=boxId||'histo-visite';
   var e=DB.employees.find(function(x){return x.id===empId;});if(!e){box.innerHTML='';return;}
   var v=visiteEmpInfo(e);
   box.innerHTML='<div style="border-top:1px solid #333;padding-top:14px;">'
@@ -2270,7 +2310,8 @@ async function confirmValiderVisite(){
     await sb.patch('bks_employees','id=eq.'+e.id,{visite_date:dVisite,visite_prochaine:dProch});
     await loadAll();
     closeModal('modal-visite-valider');
-    renderVisiteMedicalePanel(e.id);renderEmpDocs(e.id);
+    renderVisiteMedicalePanel(e.id,_visitePanelBox);renderEmpDocs(e.id,_empDocCtx.boxId);
+    if(_empfId===e.id&&_empfTab==='infos')renderEmpFicheInfos(e.id);
     if(typeof renderVisiteList==='function')renderVisiteList();
     if(typeof updateRBadge==='function')updateRBadge();
     toast('Visite médicale validée ✔ Rappel créé pour le '+new Date(dProch+'T12:00:00').toLocaleDateString('fr-FR'),'success');
@@ -2282,7 +2323,8 @@ async function confirmValiderVisite(){
 async function handleEmpDocUpload(input){
   var file=input.files[0];if(!file)return;
   if(file.size>8*1024*1024){alert('Fichier trop volumineux (max 8 Mo).');return;}
-  var e=DB.employees.find(function(x){return x.id===_histoEmpId;});if(!e)return;
+  var ctxEmp=_empDocCtx.empId||_histoEmpId;
+  var e=DB.employees.find(function(x){return x.id===ctxEmp;});if(!e)return;
   var cat=document.getElementById('empdoc-cat').value;
   var label=document.getElementById('empdoc-label').value.trim();
   var status=document.getElementById('empdoc-status');
@@ -2309,7 +2351,7 @@ async function handleEmpDocUpload(input){
       await loadAll();
       status.textContent= link?'✅ Document importé et rangé dans Dropbox':'✅ Document enregistré (Dropbox non configuré)';
       document.getElementById('empdoc-label').value='';
-      renderEmpDocs(e.id);
+      renderEmpDocs(e.id,_empDocCtx.boxId);
     }catch(err){status.textContent='❌ Erreur';console.error(err);}
   };
   reader.readAsDataURL(file);
@@ -2320,7 +2362,7 @@ async function delEmpDoc(docId){
   if(!confirm('Supprimer ce document de la fiche ?\n('+(d.label||d.name)+')\n\nLe fichier reste dans Dropbox.'))return;
   try{
     await sb.del('bks_emp_docs','id=eq.'+docId);
-    await loadAll();renderEmpDocs(d.empId);
+    await loadAll();renderEmpDocs(d.empId,_empDocCtx.boxId);
   }catch(e){toast('Erreur','error');}
 }
 
@@ -2597,6 +2639,213 @@ function pdfEquipier(id,sections){
     doc.save('Rapport_'+strip(e.name).replace(/\s+/g,'_')+'.pdf');
     toast('Rapport PDF généré ✔','success');
   }catch(err){toast('Erreur génération PDF','error');console.error(err);}
+}
+
+// ══ FICHE SALARIÉ PLEIN ÉCRAN ════════════════════════════════════════════════
+var _empfId=null, _empfTab='infos';
+
+// libellés des champs (ordre d'affichage par section)
+var EMPF_SECTIONS=[
+  {title:'Identité',icon:'🪪',fields:[
+    ['matricule','Matricule',true],['sexe','Sexe'],['date_naissance','Date de naissance','date'],
+    ['ville_naissance','Ville de naissance'],['cp_naissance','Code postal de naissance'],
+    ['pays_naissance','Pays de naissance'],['nationalite','Nationalité'],
+  ]},
+  {title:'Coordonnées',icon:'📍',fields:[
+    ['_email','E-mail'],['_phone','Téléphone'],
+    ['adresse','Adresse'],['complement','Complément d\'adresse'],
+    ['code_postal','Code postal'],['ville','Ville'],
+  ]},
+  {title:'Titre de séjour',icon:'🛂',fields:[
+    ['titre_sejour_num','N° de titre de séjour / permis'],
+    ['fin_carte_sejour','Fin de validité du titre de séjour','date'],
+  ]},
+  {title:'Informations bancaires',icon:'🏦',fields:[
+    ['iban','IBAN'],['bic','BIC'],['banque','Nom de la banque'],
+  ]},
+  {title:'Santé & mutuelle',icon:'❤️',fields:[
+    ['num_secu','N° de sécurité sociale'],
+    ['mutuelle','Mutuelle'],['mutuelle_fin','Fin de validité mutuelle','date'],
+    ['urgence_nom','Personne à contacter en cas d\'urgence'],['urgence_tel','N° en cas d\'urgence'],
+  ]},
+  {title:'Emploi & contrat',icon:'💼',fields:[
+    ['_role','Rôle'],['poste','Poste'],['contrat_hebdo','Contrat hebdo (h)'],
+    ['date_anciennete','Date d\'ancienneté','date'],
+  ]},
+];
+
+function _frDate(v){if(!v)return '';try{return new Date(v+'T12:00:00').toLocaleDateString('fr-FR');}catch(_){return v;}}
+
+function openEmpFiche(id){
+  var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
+  _empfId=id;_empfTab='infos';
+  document.getElementById('empf-title').textContent=e.name;
+  goPage('emp-fiche');
+  empfTab('infos');
+}
+function closeEmpFiche(){goPage('equipe');renderEquipe();}
+
+function empfTab(t){
+  _empfTab=t;
+  ['infos','docs','histo'].forEach(function(x){
+    var btn=document.getElementById('empft-'+x);if(btn)btn.className='rtab'+(x===t?' on':'');
+    var pane=document.getElementById('empf-pane-'+x);if(pane)pane.style.display=(x===t?'block':'none');
+  });
+  if(t==='infos')renderEmpFicheInfos(_empfId);
+  else if(t==='docs'){renderVisiteMedicalePanel(_empfId,'empf-visite');renderEmpDocs(_empfId,'empf-docs');}
+  else if(t==='histo')renderEmpFicheHisto(_empfId);
+}
+
+function renderEmpFicheInfos(id){
+  var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
+  var inf=e.infos||{};
+  var resto=RESTOS[e.restoId]?RESTOS[e.restoId].label:(e.restoId||'—');
+  var canEdit=(curUser.role==='franchise'||curUser.role==='directeur');
+  // entête
+  var v=visiteEmpInfo(e);
+  var h='<div class="card" style="margin-bottom:14px;">'
+    +'<div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;">'
+    +'<div><div style="font-size:1.1rem;font-weight:700;color:#fff;">'+e.name+'</div>'
+    +'<div style="font-size:.8rem;color:#999;margin-top:2px;">'+cap(e.role)+' · 🍔 '+resto+(inf.matricule?' · Matricule <b style="color:var(--orange);">'+inf.matricule+'</b>':'')+'</div></div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'
+    +(canEdit?'<button class="btn btn-red btn-sm" onclick="empfEdit()">✏️ Modifier la fiche</button>':'')
+    +'</div></div>'
+    +'<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">'
+    +'<span style="font-size:.74rem;background:#141414;border-left:3px solid '+v.col+';border-radius:0 6px 6px 0;padding:5px 10px;color:#ddd;">🩺 '+v.badge+'</span>'
+    +(inf.fin_carte_sejour?'<span style="font-size:.74rem;background:#141414;border-left:3px solid '+(_isExpired(inf.fin_carte_sejour)?'#D62300':'#3ecf8e')+';border-radius:0 6px 6px 0;padding:5px 10px;color:#ddd;">🛂 Titre séjour : '+_frDate(inf.fin_carte_sejour)+'</span>':'')
+    +(inf.mutuelle_fin?'<span style="font-size:.74rem;background:#141414;border-left:3px solid '+(_isExpired(inf.mutuelle_fin)?'#D62300':'#3ecf8e')+';border-radius:0 6px 6px 0;padding:5px 10px;color:#ddd;">❤️ Mutuelle : '+_frDate(inf.mutuelle_fin)+'</span>':'')
+    +'</div></div>';
+  // sections
+  EMPF_SECTIONS.forEach(function(sec){
+    h+='<div class="card" style="margin-bottom:12px;"><div class="sec-title">'+sec.icon+' '+sec.title+'</div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 18px;">';
+    sec.fields.forEach(function(f){
+      var key=f[0],lbl=f[1],typ=f[2];
+      var val;
+      if(key==='_email')val=e.email;
+      else if(key==='_phone')val=e.phone;
+      else if(key==='_role')val=cap(e.role);
+      else val=inf[key]||'';
+      if(typ==='date')val=_frDate(val);
+      var disp=val||'<span style="color:#555;">—</span>';
+      h+='<div><div style="font-size:.7rem;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">'+lbl+'</div>'
+        +'<div style="font-size:.9rem;color:#eee;word-break:break-word;">'+disp+'</div></div>';
+    });
+    h+='</div></div>';
+  });
+  document.getElementById('empf-pane-infos').innerHTML=h;
+}
+
+function _isExpired(d){try{return new Date(d+'T12:00:00')<new Date();}catch(_){return false;}}
+
+function renderEmpFicheHisto(id){
+  var box=document.getElementById('empf-histo-content');if(!box)return;
+  var incs=DB.incidents.filter(function(i){return i.empId===id;})
+    .sort(function(a,b){return new Date(b.datetime||b.createdAt)-new Date(a.datetime||a.createdAt);});
+  var lets=DB.letters.filter(function(l){return l.empId===id;})
+    .sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);});
+  var docs=(DB.empDocs||[]).filter(function(d){return d.empId===id;})
+    .sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);});
+  var h='<div class="card">';
+  h+='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">'
+    +'<div class="stat-card" style="flex:1;min-width:90px;padding:10px;"><div class="stat-n" style="font-size:1.6rem;">'+incs.length+'</div><div class="stat-l">Incidents</div></div>'
+    +'<div class="stat-card" style="flex:1;min-width:90px;padding:10px;"><div class="stat-n" style="font-size:1.6rem;">'+lets.length+'</div><div class="stat-l">Courriers</div></div>'
+    +'<div class="stat-card" style="flex:1;min-width:90px;padding:10px;"><div class="stat-n" style="font-size:1.6rem;">'+docs.length+'</div><div class="stat-l">Documents</div></div>'
+    +'</div>';
+  if(!incs.length&&!lets.length&&!docs.length){
+    h+='<div class="empty"><div class="ei">🕓</div><p>Aucun historique pour l\'instant</p></div>';
+  }else{
+    if(docs.length){
+      h+='<div style="font-size:.78rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin:4px 0 8px;font-weight:700;">📁 Documents chargés</div>';
+      h+=docs.map(function(d){
+        var dt=d.createdAt?new Date(d.createdAt).toLocaleDateString('fr-FR'):'';
+        return '<div style="display:flex;align-items:center;gap:8px;background:#141414;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
+          +'<span style="flex:1;min-width:0;font-size:.82rem;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+_empDocCatIcon(d.categorie)+' '+(d.label||d.name||'Document')+(dt?' <span style="color:#666;font-size:.72rem;">· '+dt+'</span>':'')+'</span>'
+          +(d.link?'<button class="btn btn-gray btn-sm" onclick="viewDoc(\''+d.id+'\')">👁️ Lire</button>':'')
+          +'</div>';
+      }).join('');
+    }
+    if(incs.length){
+      h+='<div style="font-size:.78rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;font-weight:700;">⚠️ Incidents</div>';
+      h+=incs.map(function(i){
+        var tags=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});return p?'<span class="tag">'+p.icon+' '+p.label+'</span>':'';}).join('');
+        var sanc=SANCTIONS[i.sanctionType];
+        var dt=i.datetime?new Date(i.datetime).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+        return '<div class="inc-item" data-s="'+(i.severity||'2')+'" style="margin-bottom:7px;"><div class="inc-head"><span style="font-size:.8rem;color:#aaa;">'+dt+'</span>'
+          +(sanc?'<span style="border:1px solid '+sanc.color+';color:'+sanc.color+';padding:1px 7px;border-radius:10px;font-size:.7rem;">'+sanc.icon+' '+sanc.label+'</span>':'')+'</div>'
+          +'<div class="inc-tags">'+tags+'</div>'+(i.note?'<div class="inc-note">💬 '+i.note+'</div>':'')+'</div>';
+      }).join('');
+    }
+    if(lets.length){
+      h+='<div style="font-size:.78rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;font-weight:700;">📄 Courriers</div>';
+      h+=lets.map(function(l){
+        var st=SANCTIONS[l.sanctionType]||{label:l.type,icon:'📄',color:'#FF8732'};
+        var ss=l.sigStatus==='signed'?'✍️ Signé':l.sigStatus==='refused'?'❌ Refusé':'⏳ En attente';
+        var dt=new Date(l.createdAt).toLocaleDateString('fr-FR');
+        return '<div style="background:#1A1A1A;border-left:3px solid '+st.color+';border-radius:0 6px 6px 0;padding:9px 12px;margin-bottom:6px;"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:.82rem;font-weight:700;">'+st.icon+' '+st.label+'</span><span style="font-size:.72rem;color:#888;">'+dt+'</span></div><div style="font-size:.75rem;color:#888;margin-top:3px;">'+ss+'</div></div>';
+      }).join('');
+    }
+  }
+  h+='</div>';
+  box.innerHTML=h;
+}
+
+// ── Édition complète de la fiche ──────────────────────────────────────────────
+function empfEdit(){
+  var e=DB.employees.find(function(x){return x.id===_empfId;});if(!e)return;
+  var inf=e.infos||{};
+  var h='<div style="max-height:70vh;overflow:auto;padding-right:4px;">';
+  function fld(key,lbl,typ){
+    var val;
+    if(key==='_email')val=e.email;else if(key==='_phone')val=e.phone;else val=inf[key]||'';
+    var inputType=(typ==='date')?'date':'text';
+    return '<div style="margin-bottom:9px;"><label class="flabel">'+lbl+'</label><input type="'+inputType+'" class="fi" id="ef_'+key+'" value="'+(val?String(val).replace(/"/g,'&quot;'):'')+'"></div>';
+  }
+  h+='<div style="margin-bottom:9px;"><label class="flabel">Nom complet</label><input type="text" class="fi" id="ef__name" value="'+e.name.replace(/"/g,'&quot;')+'"></div>';
+  h+='<div style="margin-bottom:9px;"><label class="flabel">Rôle</label><select class="fi" id="ef__role"><option value="equipier">Équipier</option><option value="leader">Leader</option><option value="manager">Manager</option><option value="directeur">Directeur</option></select></div>';
+  EMPF_SECTIONS.forEach(function(sec){
+    if(sec.title==='Emploi & contrat'){
+      h+='<div style="font-size:.74rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin:14px 0 6px;font-weight:700;">'+sec.icon+' '+sec.title+'</div>';
+      sec.fields.forEach(function(f){if(f[0]==='_role')return;h+=fld(f[0],f[1],f[2]);});
+    }else{
+      h+='<div style="font-size:.74rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin:14px 0 6px;font-weight:700;">'+sec.icon+' '+sec.title+'</div>';
+      sec.fields.forEach(function(f){h+=fld(f[0],f[1],f[2]);});
+    }
+  });
+  h+='</div>';
+  document.getElementById('empedit-body').innerHTML=h;
+  document.getElementById('ef__role').value=e.role;
+  document.getElementById('modal-empedit').classList.add('open');
+}
+
+async function empfSave(){
+  var e=DB.employees.find(function(x){return x.id===_empfId;});if(!e)return;
+  var inf=Object.assign({},e.infos||{});
+  var allKeys=[];
+  EMPF_SECTIONS.forEach(function(sec){sec.fields.forEach(function(f){allKeys.push([f[0],f[2]]);});});
+  var patch={};
+  allKeys.forEach(function(kt){
+    var key=kt[0];var el=document.getElementById('ef_'+key);if(!el)return;
+    var val=el.value.trim();
+    if(key==='_email')patch.email=val;
+    else if(key==='_phone')patch.phone=val;
+    else if(key==='_role'){}
+    else inf[key]=val;
+  });
+  var nm=document.getElementById('ef__name');if(nm&&nm.value.trim())patch.name=nm.value.trim();
+  var rl=document.getElementById('ef__role');if(rl)patch.role=rl.value;
+  // dates de visite médicale reportées sur les colonnes dédiées
+  if(inf.vm_derniere!==undefined)patch.visite_date=inf.vm_derniere||'';
+  if(inf.vm_expiration!==undefined)patch.visite_prochaine=inf.vm_expiration||'';
+  patch.infos=inf;
+  try{
+    await sb.patch('bks_employees','id=eq.'+e.id,patch);
+    await loadAll();
+    closeModal('modal-empedit');
+    renderEmpFicheInfos(_empfId);
+    var et=document.getElementById('empf-title');if(et&&patch.name)et.textContent=patch.name;
+    toast('Fiche mise à jour ✔','success');
+  }catch(err){console.error(err);toast('Erreur','error');}
 }
 
 function openHistorique(id){
