@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-15 20:15 · v27';
+  var EMBEDDED_VERSION = '2026-06-15 20:30 · v28';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -5730,16 +5730,16 @@ async function saveNames(){
 
 function loadMailSettings(){
   var ms=DB.mailSettings||{};
-  document.getElementById('rpt-time').value=ms.time||'22:00';
-  document.getElementById('sch-daily').checked=ms.daily!==false;
-  document.getElementById('sch-weekly').checked=ms.weekly!==false;
-  document.getElementById('sch-monthly').checked=ms.monthly!==false;
+  var t=document.getElementById('rpt-time'); if(t)t.value=ms.time||'22:00';
+  var d=document.getElementById('sch-daily'); if(d)d.checked=ms.daily!==false;
+  var w=document.getElementById('sch-weekly'); if(w)w.checked=ms.weekly!==false;
+  var m=document.getElementById('sch-monthly'); if(m)m.checked=ms.monthly!==false;
 }
 async function saveMailSettings(){
-  DB.mailSettings.time=document.getElementById('rpt-time').value;
-  DB.mailSettings.daily=document.getElementById('sch-daily').checked;
-  DB.mailSettings.weekly=document.getElementById('sch-weekly').checked;
-  DB.mailSettings.monthly=document.getElementById('sch-monthly').checked;
+  var t=document.getElementById('rpt-time'); if(t)DB.mailSettings.time=t.value;
+  var d=document.getElementById('sch-daily'); if(d)DB.mailSettings.daily=d.checked;
+  var w=document.getElementById('sch-weekly'); if(w)DB.mailSettings.weekly=w.checked;
+  var m=document.getElementById('sch-monthly'); if(m)DB.mailSettings.monthly=m.checked;
   await saveDB();toast('Paramètres enregistrés ✔','success');schedReports();
 }
 async function addMailRcp(){
@@ -6589,6 +6589,8 @@ function hrAutoAssignAndRender(){
   var msg='👥 '+r.placed+' / '+r.total+' traits pourvus ('+r.equipiers+' équipiers dispos sur ce resto)';
   var st=document.getElementById('hrx-assign-status'); if(st) st.textContent=msg;
 }
+window.hrAutoAssignAndRender=hrAutoAssignAndRender;
+window.hrAutoAssignDay=hrAutoAssignDay;
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
 const SPAN=DE-DS;
