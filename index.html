@@ -8,7 +8,7 @@
 <script>
 (function(){
   // Version embarquée dans CE fichier (doit rester identique à APP_VERSION plus bas)
-  var EMBEDDED_VERSION = '2026-06-15 16:07';
+  var EMBEDDED_VERSION = '2026-06-15 18:58';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -348,6 +348,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
     <button class="desktop-only" onclick="goPage('parametres',this)">⚙️ Paramètres</button>
     <button class="desktop-only" onclick="goPage('alertes',this)">🔔 Alertes <span id="albadge" style="background:var(--red);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
     <button class="desktop-only" onclick="goPage('salaires',this)">💶 Salaires</button>
+    <button class="desktop-only" onclick="goPage('contrats',this)">📄 Contrats</button>
   </nav>
   <div id="preview-bar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;background:#2A2A2A;border-bottom:1px solid #444;padding:8px 16px;">
     <span style="font-size:.8rem;color:#F5A623;font-weight:700;">👁️ Voir comme</span>
@@ -967,6 +968,35 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
   </div>
 </div>
 
+<!-- CONTRATS (bibliothèque de modèles) -->
+<div class="page" id="page-contrats">
+  <div class="card">
+    <div class="sec-title">📄 Modèles de contrats</div>
+    <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Bibliothèque des modèles de contrats et avenants. Vous pouvez consulter, ajouter ou remplacer un modèle. Les champs entre accolades (ex. {nom}, {taux_horaire}) sont remplis automatiquement lors de la génération depuis la fiche d'un salarié.</p>
+    <div id="contrats-list"></div>
+    <div style="background:#141414;border-radius:8px;padding:12px;margin-top:14px;">
+      <div style="font-size:.8rem;color:#ddd;margin-bottom:9px;">➕ Ajouter un modèle (Word .docx)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:9px;">
+        <div style="flex:2;min-width:160px;"><div style="font-size:.7rem;color:#888;margin-bottom:3px;">Nom du modèle *</div>
+          <input type="text" id="ct-nom" class="fi" placeholder="Ex : CDI Équipier 30h, Avenant horaires…"></div>
+        <div style="flex:1;min-width:130px;"><div style="font-size:.7rem;color:#888;margin-bottom:3px;">Catégorie</div>
+          <select id="ct-cat" class="fi">
+            <option value="contrat">Contrat</option>
+            <option value="avenant">Avenant</option>
+            <option value="autre">Autre</option>
+          </select></div>
+      </div>
+      <div id="ct-drop" onclick="document.getElementById('ct-file').click()" style="border:2px dashed #444;border-radius:10px;padding:18px 12px;text-align:center;cursor:pointer;color:#999;">
+        <div style="font-size:1.4rem;">📄</div>
+        <div style="font-size:.84rem;margin-top:4px;color:#ccc;">Cliquez pour choisir le fichier Word (.docx)</div>
+        <div style="font-size:.72rem;color:#666;margin-top:3px;">Le modèle sera rangé dans Dropbox (dossier Modèles)</div>
+      </div>
+      <input type="file" id="ct-file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none;" onchange="handleContratUpload(this)">
+      <div id="ct-status" style="font-size:.74rem;color:#888;margin-top:8px;"></div>
+    </div>
+  </div>
+</div>
+
 <!-- MODALS -->
 <div class="modal-ov" id="modal-edit">
   <div class="modal">
@@ -1312,7 +1342,7 @@ const sb = {
       headers: { apikey: SUPA_KEY, Authorization: 'Bearer '+SUPA_KEY, 'Content-Type': 'application/json', Prefer: 'return=representation' },
       body: JSON.stringify(data)
     });
-    if (!r.ok) { console.error('INSERT', table, await r.text()); return null; }
+    if (!r.ok) { var _err = await r.text(); window.__lastSbError = _err; console.error('INSERT', table, _err); return null; }
     const d = await r.json(); return Array.isArray(d) ? d[0] : d;
   },
   async patch(table, where, data) {
@@ -1677,7 +1707,7 @@ function applyRolePermissions(r){
       if (isGlobal) {
         show = true;                                   // Admin/RH : tout
       } else if (isDir) {
-        show = (txt.indexOf('Paramètres')<0 && txt.indexOf('Parametres')<0 && txt.indexOf('Salaires')<0); // tout sauf Paramètres et Salaires
+        show = (txt.indexOf('Paramètres')<0 && txt.indexOf('Parametres')<0 && txt.indexOf('Salaires')<0 && txt.indexOf('Contrats')<0); // tout sauf Paramètres, Salaires et Contrats
       } else if (isMgr) {
         show = (txt.indexOf('Incidents')>=0);          // Manager : Incidents uniquement
       } else {
@@ -1824,6 +1854,7 @@ function goPage(id, btn) {
   if (id==='visite'){renderVisiteList();}
   if (id==='alertes'){renderAlertes();}
   if (id==='salaires'){renderSalaires();}
+  if (id==='contrats'){renderContrats();}
   if (id==='planning'){openPlanning();}
   if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();loadSeuilOral();loadMailTpl();renderQr();renderApercuForm();var av=document.getElementById('app-version-badge');if(av){av.textContent='✓ À jour — '+formatMajDate(APP_VERSION);av.style.color='#4CAF50';av.style.borderColor='#2E5E33';}}
 }
@@ -1981,6 +2012,12 @@ async function submitInc(){
       created_at:new Date().toISOString()
     };
     var savedInc = await sb.insert('bks_incidents', incData);
+    if (!savedInc) {
+      var det = window.__lastSbError ? (' : '+String(window.__lastSbError).slice(0,200)) : '';
+      toast('Erreur sauvegarde'+det,'error');
+      console.error('Incident non enregistré', window.__lastSbError, incData);
+      return;
+    }
     if (savedInc) {
       var inc = Object.assign({},incData,{id:savedInc.id,empId:empId,datetime:incData.inc_datetime,extraData:extraData,sanctionType:selSanction});
       DB.incidents.unshift(inc);
@@ -3662,6 +3699,72 @@ function saveSalaires(){
     localStorage.setItem('bkrh_salaires',JSON.stringify(getSalaires()));
     var st=document.getElementById('sal-status');if(st){st.textContent='✅ Grille enregistrée';setTimeout(function(){st.textContent='';},3000);}
   }catch(e){var st=document.getElementById('sal-status');if(st)st.textContent='❌ Erreur d\'enregistrement';}
+}
+// ══ BIBLIOTHÈQUE DES MODÈLES DE CONTRATS ══════════════════════════════════════
+var CONTRATS_DEFAUT=[
+  {id:'mod_24h',nom:'CDI Équipier temps partiel 24h',cat:'contrat',type_heures:24,fichier:'MODELE_CONTRAT_24H.docx',link:'',builtin:true},
+  {id:'mod_20h',nom:'CDI Équipier temps partiel 20h',cat:'contrat',type_heures:20,fichier:'MODELE_CONTRAT_20H.docx',link:'',builtin:true},
+  {id:'mod_15h',nom:'CDI Équipier temps partiel 15h',cat:'contrat',type_heures:15,fichier:'MODELE_CONTRAT_15H.docx',link:'',builtin:true},
+  {id:'mod_35h',nom:'CDI Manager 35h (temps complet)',cat:'contrat',type_heures:35,fichier:'MODELE_CONTRAT_MANAGER_35H.docx',link:'',builtin:true}
+];
+var DB_CONTRATS=null;
+function getContrats(){
+  if(DB_CONTRATS)return DB_CONTRATS;
+  try{var raw=localStorage.getItem('bkrh_contrats');if(raw){DB_CONTRATS=JSON.parse(raw);return DB_CONTRATS;}}catch(e){}
+  DB_CONTRATS=JSON.parse(JSON.stringify(CONTRATS_DEFAUT));
+  return DB_CONTRATS;
+}
+function saveContratsLib(){try{localStorage.setItem('bkrh_contrats',JSON.stringify(getContrats()));}catch(e){}}
+function renderContrats(){
+  var box=document.getElementById('contrats-list');if(!box)return;
+  var list=getContrats();
+  var catLabels={contrat:'Contrat',avenant:'Avenant',autre:'Autre'};
+  var catColors={contrat:'#4CAF50',avenant:'#F5A623',autre:'#888'};
+  var h='';
+  ['contrat','avenant','autre'].forEach(function(cat){
+    var items=list.filter(function(m){return m.cat===cat;});
+    if(items.length===0)return;
+    h+='<div style="font-size:.78rem;color:'+catColors[cat]+';font-weight:700;margin:12px 0 6px;text-transform:uppercase;letter-spacing:.04em;">'+catLabels[cat]+'s</div>';
+    items.forEach(function(m){
+      h+='<div style="display:flex;align-items:center;gap:10px;background:#141414;border:1px solid #2A2A2A;border-radius:8px;padding:10px 12px;margin-bottom:7px;">'
+        +'<div style="font-size:1.3rem;">📄</div>'
+        +'<div style="flex:1;min-width:0;">'
+          +'<div style="font-size:.88rem;color:#eee;">'+m.nom+(m.builtin?' <span style="font-size:.65rem;color:#4CAF50;border:1px solid #2E5E33;border-radius:4px;padding:1px 5px;margin-left:4px;">modèle de base</span>':'')+'</div>'
+          +'<div style="font-size:.72rem;color:#777;">'+(m.fichier||'fichier Word')+'</div>'
+        +'</div>';
+      if(m.link){h+='<a href="'+m.link+'" target="_blank" class="btn btn-gray btn-sm" style="text-decoration:none;">Ouvrir</a>';}
+      if(!m.builtin){h+='<button class="btn-danger" style="padding:3px 8px;" onclick="delContrat(\''+m.id+'\')">🗑️</button>';}
+      h+='</div>';
+    });
+  });
+  box.innerHTML=h||'<p style="color:#777;font-size:.82rem;">Aucun modèle pour le moment.</p>';
+}
+function delContrat(id){
+  if(!confirm('Supprimer ce modèle de la bibliothèque ?'))return;
+  var list=getContrats();var i=list.findIndex(function(m){return m.id===id;});
+  if(i>=0){list.splice(i,1);saveContratsLib();renderContrats();}
+}
+async function handleContratUpload(input){
+  var file=input.files&&input.files[0];if(!file)return;
+  var nom=(document.getElementById('ct-nom').value||'').trim()||file.name.replace(/\.docx$/i,'');
+  var cat=document.getElementById('ct-cat').value||'contrat';
+  var st=document.getElementById('ct-status');
+  if(st)st.textContent='⏳ Envoi du modèle…';
+  var link='';
+  try{
+    var dbxReady=(typeof DBX_APP_KEY!=='undefined'&&DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
+    if(dbxReady&&typeof dbxUpload==='function'){
+      var buf=await file.arrayBuffer();var blob=new Blob([buf]);
+      var clean=(typeof dbxClean==='function')?dbxClean(nom):nom.replace(/[^a-zA-Z0-9_-]/g,'_');
+      link=await dbxUpload('/Modeles/'+clean+'.docx',blob);
+    }
+  }catch(e){console.error('Upload modèle Dropbox échec',e);}
+  var list=getContrats();
+  list.push({id:'mod_'+Date.now(),nom:nom,cat:cat,fichier:file.name,link:link,builtin:false});
+  saveContratsLib();renderContrats();
+  document.getElementById('ct-nom').value='';input.value='';
+  if(st)st.textContent=link?'✅ Modèle ajouté et rangé dans Dropbox':'✅ Modèle ajouté (Dropbox non configuré : lien non généré)';
+  setTimeout(function(){if(st)st.textContent='';},5000);
 }
 function renderVisiteList(){
   var list=document.getElementById('visite-list');if(!list)return;
