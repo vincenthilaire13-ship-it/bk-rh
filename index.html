@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-15 21:45 · v32';
+  var EMBEDDED_VERSION = '2026-06-15 22:05 · v33';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -406,9 +406,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
         <select id="hrx-sem-sel2" onchange="hrGenFromWeek(this.value);document.getElementById('hrx-sem-sel')&&(document.getElementById('hrx-sem-sel').value=this.value)"></select>
       </div>
       <button class="hr-btn hr-btn-ac" id="hrx-refresh-btn" onclick="hrRefreshWeek()" title="Recalcule le planning des 7 jours de la semaine">🔄 Actualiser</button>
-      <button class="hr-btn" onclick="hrAutoAssignAndRender()" title="Place automatiquement les équipiers disponibles et qualifiés sur les traits du jour affiché">👥 Placer les équipiers (auto)</button>
-      <button class="hr-btn hr-btn-ac" onclick="hrAutoAssignWeek()" title="Place les équipiers sur les 7 jours et affiche l'emploi du temps de la semaine">📅 Placer la semaine</button>
-      <button class="hr-btn hr-btn-ac" onclick="hrAutoAssignMonth()" title="Place les équipiers sur tout le mois en respectant le plafond mensuel (24h → 104h/mois)">🗓️ Placer le mois</button>
+      <button class="hr-btn hr-btn-ac" onclick="hrAutoAssignMonth()" title="Place les équipiers sur tout le mois en respectant le plafond mensuel (24h → 104h/mois) et les pose sur les traits">🗓️ Placer le mois (auto)</button>
       <span id="hrx-assign-status" style="font-size:11px;color:#60a5fa;align-self:center;margin-left:4px"></span>
       <span id="hrx-valid-status" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--mu);align-self:center;margin-left:4px"></span>
     </div>
@@ -422,7 +420,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
   </div></div>
   <div style="margin-top:1.4rem;">
     <div class="hr-stitle" style="margin:0 0 .3rem;">📋 Emploi du temps de la semaine — équipiers</div>
-    <div class="hr-ssub" style="margin:0 0 .8rem;">Créneaux placés par jour et total d'heures de chaque équipier. Cliquez sur « Placer la semaine » pour le générer.</div>
+    <div class="hr-ssub" style="margin:0 0 .8rem;">Heures par semaine et total du mois de chaque équipier. Cliquez sur « Placer le mois » pour le générer.</div>
     <div id="hrx-emploi-semaine"></div>
   </div>
 </div>
@@ -6689,6 +6687,27 @@ function hrReserverReposConsecutifs(ctx){
 window.hrAutoAssignWeek=hrAutoAssignWeek;
 
 // ══ PLACEMENT SUR LE MOIS (lissage : 24h -> 104h/mois max) ════════════════════
+// Mémoire des affectations par date ISO : { 'AAAA-MM-JJ': [ {l,s,e,emp,empId}, ... ] }
+var HR_AFFECT={};
+// Réapplique les noms mémorisés sur les traits de la semaine actuellement affichée
+function hrReappliquerAffectations(){
+  for(var d=0;d<7;d++){
+    var iso=(DAY_DATES&&DAY_DATES[d])?DAY_DATES[d]:null;
+    var aff=iso?HR_AFFECT[iso]:null;
+    if(!aff){ continue; }
+    (ROWS_BY_DAY[d]||[]).forEach(function(row){
+      row.bars.forEach(function(b){
+        // retrouver l'affectation correspondante (même poste + mêmes heures)
+        var m=aff.find(function(a){return a.l===b.l && a.s===b.s && a.e===b.e && !a._used;});
+        if(m){ b.emp=m.emp; b.empId=m.empId; m._used=true; }
+        else { b.emp=null; b.empId=null; }
+      });
+    });
+    // réinitialiser les marqueurs _used pour le prochain passage
+    aff.forEach(function(a){delete a._used;});
+  }
+}
+window.hrReappliquerAffectations=hrReappliquerAffectations;
 // Pour le mois de la semaine affichée : place les équipiers semaine par semaine
 // en respectant un plafond MENSUEL (contrat*4,33), jamais dépassé.
 var HR_MONTH_RESULT=null; // {label, semaines:[{lundi,parEmp:{id:{name,jours,totalMin}}}], moisMin:{id:min}}
@@ -6745,9 +6764,11 @@ function hrAutoAssignMonth(){
       return Math.min(hebdo,resteMois);
     };
     for(var d=0;d<7;d++){ hrAutoAssignDay(d, ctx); }
-    // cumuler dans le mois + mémoriser le détail de la semaine
+    // cumuler dans le mois + mémoriser le détail de la semaine + MÉMORISER PAR DATE (pour les traits)
     var parEmp={};
     for(var dd=0;dd<7;dd++){
+      var isoJour=(DAY_DATES&&DAY_DATES[dd])?DAY_DATES[dd]:null;
+      var affJour=[];
       (ROWS_BY_DAY[dd]||[]).forEach(function(row){
         row.bars.forEach(function(b){
           if(!b.empId) return;
@@ -6755,8 +6776,10 @@ function hrAutoAssignMonth(){
           parEmp[b.empId].jours[dd].push({l:b.l,s:b.s,e:b.e});
           parEmp[b.empId].totalMin+=(b.e-b.s);
           moisMin[b.empId]=(moisMin[b.empId]||0)+(b.e-b.s);
+          affJour.push({l:b.l,s:b.s,e:b.e,emp:b.emp,empId:b.empId});
         });
       });
+      if(isoJour) HR_AFFECT[isoJour]=affJour; // mémoire des placements de ce jour
     }
     semaines.push({lundi:lundi, parEmp:parEmp});
   });
@@ -6884,6 +6907,7 @@ function pct(m){return((m-DS)/SPAN*100).toFixed(4)+'%';}
 function pctW(s,e){return((e-s)/SPAN*100).toFixed(4)+'%';}
 
 function renderTimeline(){
+  if(typeof hrReappliquerAffectations==='function') hrReappliquerAffectations();
   const ruler=document.getElementById('hrx-ruler');ruler.innerHTML='';
   // CA prévu par heure = somme des 4 tranches de 15 min de cette heure (du jour affiché)
   const caJour = CA_DAYS[curDay] || {};
