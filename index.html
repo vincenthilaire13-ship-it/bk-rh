@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-16 20:00 · v72';
+  var EMBEDDED_VERSION = '2026-06-16 18:03 · v86';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -48,6 +48,55 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap');
 :root{--red:#D62300;--orange:#FF8732;--yellow:#F5A623;--dark:#1A1A1A;--gray:#2C2C2C;--r:8px;}
+/* ════ POINTAGE — écran d'accueil salarié ════ */
+#page-pointage{max-width:1000px;margin:0 auto;}
+.ptg-hero{background:linear-gradient(135deg,#D62300 0%,#FF8732 100%);border-radius:22px;padding:26px 30px;color:#fff;box-shadow:0 10px 30px rgba(214,35,0,.28);margin-bottom:22px;}
+.ptg-hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;}
+.ptg-hero-hello{font-size:1rem;font-weight:600;opacity:.92;letter-spacing:.3px;}
+.ptg-hero-title{font-size:2.5rem;font-weight:800;line-height:1.05;margin:2px 0 6px;}
+.ptg-hero-resto{font-size:1.05rem;font-weight:600;opacity:.95;}
+.ptg-hero-clock{text-align:right;}
+.ptg-clock-time{font-size:2.7rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:1px;}
+.ptg-clock-date{font-size:.9rem;opacity:.9;margin-top:6px;text-transform:capitalize;}
+.ptg-resto-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px;}
+.ptg-resto-tabs .rtab{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);color:#fff;padding:7px 16px;border-radius:30px;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .15s;}
+.ptg-resto-tabs .rtab:hover{background:rgba(255,255,255,.28);}
+.ptg-resto-tabs .rtab.on{background:#fff;color:#D62300;border-color:#fff;}
+.ptg-resto-solo{font-size:.9rem;font-weight:600;opacity:.95;margin-top:18px;}
+.ptg-search-wrap{margin-bottom:20px;}
+.ptg-search{width:100%;background:#1A1A1A;border:2px solid #333;border-radius:16px;padding:16px 20px;font-size:1.05rem;color:#fff;outline:none;transition:border-color .15s;box-sizing:border-box;}
+.ptg-search:focus{border-color:#FF8732;}
+.ptg-search::placeholder{color:#888;}
+.ptg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;}
+.ptg-tile{position:relative;text-align:left;background:#1A1A1A;border:1px solid #2e2e2e;border-radius:18px;padding:18px 18px 16px;cursor:pointer;transition:transform .12s,border-color .15s,box-shadow .15s;overflow:hidden;}
+.ptg-tile:hover{transform:translateY(-3px);border-color:#FF8732;box-shadow:0 8px 22px rgba(0,0,0,.35);}
+.ptg-tile-av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.15rem;font-weight:800;color:#fff;margin-bottom:12px;}
+.ptg-tile-nm{font-size:1.02rem;font-weight:700;color:#f4f4f4;line-height:1.2;}
+.ptg-tile-role{font-size:.72rem;color:#888;margin-top:2px;text-transform:capitalize;}
+.ptg-tile-state{font-size:.76rem;margin-top:10px;display:flex;align-items:center;gap:6px;font-weight:600;}
+.ptg-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0;}
+.ptg-empty{grid-column:1/-1;text-align:center;color:#777;font-size:.95rem;padding:40px 10px;}
+/* Modale pointage */
+.ptg-modal{text-align:center;}
+.ptg-modal-name{font-size:1.5rem;font-weight:800;color:#fff;margin-bottom:4px;}
+.ptg-modal-hint{font-size:.84rem;color:#aaa;margin-bottom:16px;line-height:1.4;}
+.ptg-pin-in{font-size:1.8rem;letter-spacing:14px;text-align:center;width:200px;max-width:80%;background:#111;border:2px solid #333;border-radius:14px;padding:12px 0 12px 14px;color:#fff;outline:none;}
+.ptg-pin-in:focus{border-color:#FF8732;}
+.ptg-pin-msg{font-size:.8rem;min-height:18px;margin:10px 0;}
+.ptg-bigbtn{display:block;width:100%;border:none;border-radius:16px;padding:18px;font-size:1.1rem;font-weight:800;cursor:pointer;color:#fff;transition:filter .12s,transform .12s;box-sizing:border-box;}
+.ptg-bigbtn:hover{filter:brightness(1.08);transform:translateY(-1px);}
+.ptg-bigbtn:active{transform:translateY(0);}
+.ptg-bigbtn.go{background:linear-gradient(135deg,#2e9e5b,#3ecf8e);}
+.ptg-bigbtn.stop{background:linear-gradient(135deg,#c0392b,#e8623a);}
+.ptg-bigbtn.pause{background:#2C2C2C;border:1px solid #444;}
+.ptg-bigbtn.val{background:linear-gradient(135deg,#D62300,#FF8732);}
+.ptg-recap{background:#161616;border:1px solid #2a2a2a;border-radius:14px;padding:14px 16px;margin-bottom:16px;font-size:.9rem;text-align:left;}
+.ptg-recap .rline{display:flex;justify-content:space-between;padding:3px 0;color:#ccc;}
+.ptg-recap .rline b{color:#fff;}
+.ptg-done{color:#3ecf8e;font-size:1.05rem;font-weight:700;padding:18px 0;}
+.ptg-close{background:none;border:none;color:#888;font-size:.9rem;cursor:pointer;padding:8px 16px;}
+.ptg-close:hover{color:#fff;}
+@media(max-width:560px){.ptg-hero-title{font-size:2rem;}.ptg-clock-time{font-size:2.1rem;}.ptg-hero{padding:22px;}}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{font-family:Barlow,sans-serif;background:var(--dark);color:#F5F0E8;min-height:100vh;}
 header{background:linear-gradient(135deg,var(--red),#A01800);padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:58px;box-shadow:0 4px 20px rgba(0,0,0,.5);position:sticky;top:0;z-index:100;}
@@ -385,6 +434,8 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
     <button class="desktop-only" onclick="goPage('salaires',this)">💶 Salaires</button>
     <button class="desktop-only" onclick="goPage('contrats',this)">📄 Contrats</button>
     <button class="desktop-only" onclick="goPage('reglementation',this)">⚖️ Réglementation</button>
+    <button onclick="goPage('pointage',this)">⏱️ Pointage</button>
+    <button class="desktop-only" onclick="goPage('suivipointage',this)">📋 Suivi pointage</button>
   </nav>
 
   <!-- HORAIRES (module porté depuis BK administratif) -->
@@ -1057,6 +1108,53 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
       <button class="btn btn-red btn-sm" onclick="saveReglements()">💾 Enregistrer la réglementation</button>
     </div>
     <div id="regl-status" style="font-size:.78rem;color:#888;margin-top:8px;"></div>
+  </div>
+</div>
+
+<!-- POINTAGE (les salariés pointent arrivée / départ / pause) -->
+<div class="page" id="page-pointage">
+  <div class="ptg-hero">
+    <div class="ptg-hero-top">
+      <div>
+        <div class="ptg-hero-hello">👋 Bonjour</div>
+        <div class="ptg-hero-title">Pointage</div>
+        <div class="ptg-hero-resto" id="ptg-hero-resto">—</div>
+      </div>
+      <div class="ptg-hero-clock">
+        <div class="ptg-clock-time" id="ptg-clock-time">--:--</div>
+        <div class="ptg-clock-date" id="ptg-clock-date">—</div>
+      </div>
+    </div>
+    <div class="ptg-resto-tabs" id="ptg-resto-tabs"></div>
+  </div>
+
+  <div class="ptg-search-wrap">
+    <input type="text" id="ptg-search" class="ptg-search" placeholder="🔎 Tapez les premières lettres de votre nom…" oninput="ptgRenderList()">
+  </div>
+
+  <div id="ptg-list" class="ptg-grid"></div>
+</div>
+
+<!-- Modale pointage salarié -->
+<div class="modal-ov" id="modal-ptg">
+  <div class="modal ptg-modal" style="width:420px;max-width:96vw;">
+    <div id="ptg-modal-body"></div>
+    <div style="display:flex;justify-content:center;margin-top:8px;"><button class="ptg-close" onclick="closeModal('modal-ptg')">Fermer</button></div>
+  </div>
+</div>
+
+<!-- SUIVI POINTAGE (réservé RH / direction) -->
+<div class="page" id="page-suivipointage">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+      <div class="sec-title" style="margin:0;">📋 Suivi des pointages</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;" id="ptgs-resto-tabs"></div>
+        <input type="date" id="ptgs-date" class="fi" style="max-width:170px;" onchange="ptgRenderSuivi()">
+      </div>
+    </div>
+    <p style="font-size:.8rem;color:#aaa;margin:0 0 14px;">Pointages réels des salariés (arrivée, pauses, départ et total d'heures travaillées). Cet écran est réservé à la direction et au RH.</p>
+    <div id="ptg-suivi"></div>
   </div>
 </div>
 
@@ -1956,6 +2054,8 @@ function goPage(id, btn) {
   if (id==='salaires'){renderSalaires();}
   if (id==='contrats'){renderContrats();}
   if (id==='reglementation'){renderReglement();}
+  if (id==='pointage'){ptgInit();}
+  if (id==='suivipointage'){ptgSuiviInit();}
   if (id==='planning'){openPlanning();}
   if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();loadSeuilOral();loadMailTpl();renderQr();renderApercuForm();var av=document.getElementById('app-version-badge');if(av){av.textContent='✓ À jour — '+formatMajDate(APP_VERSION);av.style.color='#4CAF50';av.style.borderColor='#2E5E33';}}
 }
@@ -3943,7 +4043,12 @@ var REGLEMENT_DEFAUT={
   viseContratExact:true, // chaque semaine vise le contrat exact
   traitMiniHeures:2,     // [perso] durée minimale d'un trait (créneau)
   traitMaxiHeures:4,     // [perso] durée maximale d'un trait (créneau)
-  maxTraitsJour:2        // [perso] nombre maximum de traits par jour et par personne
+  maxTraitsJour:2,       // [perso] nombre maximum de traits par jour et par personne
+  groupementFermeture:true,    // [perso] journée groupée pour ceux qui ferment
+  coupureMaxFermetureMin:30,   // [perso] coupure maxi (min) entre les 2 créneaux d'un fermant
+  heureFermetureDepuisH:22,    // [perso] un créneau finissant à partir de cette heure = fermeture
+  petitsContratsWeekend:true,  // [perso] les petits contrats ne travaillent que le week-end
+  petitsContratsSeuilH:15      // [perso] seuil (h) en-dessous duquel = petit contrat (week-end only)
 };
 var REGLEMENT=null;
 function getReglement(){
@@ -3963,14 +4068,19 @@ var REGL_LABELS={
   viseContratExact:['Viser le contrat exact chaque semaine','oui/non','Si activé, chaque semaine vise pile le contrat.'],
   traitMiniHeures:['◆ Durée minimale d\'un trait (créneau)','h','Votre règle : un créneau dure au moins ce temps.'],
   traitMaxiHeures:['◆ Durée maximale d\'un trait (créneau)','h','Votre règle : un créneau ne dépasse pas ce temps.'],
-  maxTraitsJour:['◆ Nombre de traits max par jour','','Votre règle : nombre de créneaux maximum par personne et par jour.']
+  maxTraitsJour:['◆ Nombre de traits max par jour','','Votre règle : nombre de créneaux maximum par personne et par jour.'],
+  groupementFermeture:['◆ Journée groupée pour les fermetures','oui/non','Votre règle : pour ceux qui ferment (créneau finissant tard), regrouper leurs créneaux du jour au lieu de faire midi + soir.'],
+  coupureMaxFermetureMin:['◆ Coupure maxi un jour de fermeture','min','Votre règle : pour un fermant, coupure maximale entre ses deux créneaux (ex : 30 min).'],
+  heureFermetureDepuisH:['◆ Heure à partir de laquelle c\'est une fermeture','h','Votre règle : un créneau qui finit à partir de cette heure est considéré comme une fermeture.'],
+  petitsContratsWeekend:['◆ Petits contrats : week-end obligatoire','oui/non','Votre règle : les petits contrats (étudiants) ne travaillent que le week-end (ven/sam/dim). À désactiver pendant les vacances scolaires.'],
+  petitsContratsSeuilH:['◆ Seuil "petit contrat" (week-end only)','h','Votre règle : en-dessous de ce contrat hebdo, l\'équipier ne travaille que le week-end.']
 };
 function renderReglement(){
   var box=document.getElementById('regl-list'); if(!box) return;
   var R=getReglement();
   var canEdit=(curUser&&(curUser.role==='franchise'||curUser.role==='directeur'))&&!window.__readOnly;
   // clés "personnelles" (modifiables/ajoutables par l'utilisateur) vs convention
-  var clesPerso=['traitMiniHeures','traitMaxiHeures','maxTraitsJour'];
+  var clesPerso=['traitMiniHeures','traitMaxiHeures','maxTraitsJour','groupementFermeture','coupureMaxFermetureMin','heureFermetureDepuisH','petitsContratsWeekend','petitsContratsSeuilH'];
   var clesConvention=Object.keys(REGL_LABELS).filter(function(k){return clesPerso.indexOf(k)<0;});
   function ligneRegle(k){
     var lab=REGL_LABELS[k]; if(!lab) return ''; var val=R[k];
@@ -4047,6 +4157,242 @@ function delReglCustom(i){
   var R=getReglement(); if(!R._custom) return;
   R._custom.splice(i,1); renderReglement();
 }
+// ══════════════════ POINTAGE (arrivée / départ / pause) ══════════════════
+// Stockage local (sera branché à Supabase plus tard). Clé par jour+resto.
+var PTG_RESTO = null;            // resto sélectionné (écran salarié)
+var PTGS_RESTO = null;           // resto sélectionné (écran suivi RH)
+var _ptgSel = null;              // employé en cours de pointage
+var _ptgClockTimer = null;       // horloge live
+function ptgStoreKey(){ return 'bkrh_pointages'; }
+function ptgGetAll(){ try{ return JSON.parse(localStorage.getItem(ptgStoreKey())||'{}'); }catch(e){ return {}; } }
+function ptgSaveAll(o){ try{ localStorage.setItem(ptgStoreKey(), JSON.stringify(o)); }catch(e){} }
+function ptgTodayISO(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function ptgNowHM(){ var d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+function ptgRec(empId, dateISO){
+  var all=ptgGetAll(); var k=empId+'_'+dateISO;
+  if(!all[k]) all[k]={empId:empId, date:dateISO, arrivee:'', depart:'', pauses:[]};
+  return {all:all, k:k, rec:all[k]};
+}
+
+// Restos visibles selon le rôle
+function ptgRestosVisibles(){
+  var rolesTous=['admin','rh','franchise'];
+  var r=(curUser&&curUser.role)||'';
+  if(rolesTous.indexOf(r)>=0){ return ['bk500','bk509','bk526']; }
+  var rid=(curUser&&curUser.restoId)||'';
+  return rid?[rid]:['bk500','bk509','bk526'];
+}
+
+// Initiales + couleur d'avatar
+function ptgInitials(name){
+  var p=(name||'').trim().split(/\s+/);
+  var a=(p[0]||'')[0]||''; var b=(p.length>1?(p[p.length-1][0]||''):'');
+  return (a+b).toUpperCase()||'?';
+}
+function ptgAvColor(name){
+  var pal=['#D62300','#FF8732','#3ecf8e','#5b9bd5','#9b59b6','#e8a020','#16a085','#e84393'];
+  var s=0; for(var i=0;i<(name||'').length;i++) s+=name.charCodeAt(i);
+  return pal[s%pal.length];
+}
+function ptgRoleLabel(r){
+  return ({directeur:'Directeur',manager:'Manager',leader:'Leader',equipier:'Équipier',rh:'RH',superviseur:'Superviseur'})[r]||r||'';
+}
+
+// ─── Écran salarié ───
+function ptgInit(){
+  var vis=ptgRestosVisibles();
+  if(!PTG_RESTO || vis.indexOf(PTG_RESTO)<0) PTG_RESTO=vis[0];
+  var hr=document.getElementById('ptg-hero-resto');
+  if(hr) hr.textContent=RESTOS[PTG_RESTO]?RESTOS[PTG_RESTO].label:PTG_RESTO;
+  // onglets resto
+  var tabs=document.getElementById('ptg-resto-tabs');
+  if(tabs){
+    if(vis.length>1){
+      tabs.className='ptg-resto-tabs';
+      tabs.innerHTML=vis.map(function(r){
+        return '<button class="rtab'+(r===PTG_RESTO?' on':'')+'" onclick="ptgSetResto(\''+r+'\')">'+(RESTOS[r]?RESTOS[r].label:r)+'</button>';
+      }).join('');
+    } else { tabs.innerHTML=''; }
+  }
+  // horloge live
+  ptgTickClock();
+  if(_ptgClockTimer) clearInterval(_ptgClockTimer);
+  _ptgClockTimer=setInterval(ptgTickClock,1000*20);
+  ptgRenderList();
+}
+function ptgTickClock(){
+  var t=document.getElementById('ptg-clock-time'); var d=document.getElementById('ptg-clock-date');
+  if(t) t.textContent=ptgNowHM();
+  if(d){
+    try{ d.textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}); }
+    catch(e){ d.textContent=ptgTodayISO(); }
+  }
+}
+function ptgSetResto(r){ PTG_RESTO=r; ptgInit(); }
+
+function ptgEmployesResto(resto){
+  var rid=resto||PTG_RESTO;
+  var list=(DB&&DB.employees)?DB.employees:[];
+  return list.filter(function(e){ return !e.archived && (e.restoId===rid); })
+             .sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+}
+
+function ptgRenderList(){
+  var box=document.getElementById('ptg-list'); if(!box) return;
+  var q=((document.getElementById('ptg-search')||{}).value||'').toLowerCase().trim();
+  var emps=ptgEmployesResto().filter(function(e){ return !q || (e.name||'').toLowerCase().indexOf(q)>=0; });
+  if(!emps.length){ box.innerHTML='<div class="ptg-empty">Aucun salarié trouvé.</div>'; return; }
+  var dateISO=ptgTodayISO();
+  box.innerHTML=emps.map(function(e){
+    var rec=ptgRec(e.id,dateISO).rec;
+    var dot,txt;
+    if(rec.arrivee && !rec.depart){ dot='#3ecf8e'; txt='Présent depuis '+rec.arrivee; }
+    else if(rec.arrivee && rec.depart){ dot='#888'; txt='Parti à '+rec.depart; }
+    else { dot='#555'; txt='Pas encore pointé'; }
+    return '<div class="ptg-tile" onclick="ptgOpen(\''+e.id+'\')">'
+      +'<div class="ptg-tile-av" style="background:'+ptgAvColor(e.name)+'">'+ptgInitials(e.name)+'</div>'
+      +'<div class="ptg-tile-nm">'+e.name+'</div>'
+      +'<div class="ptg-tile-role">'+ptgRoleLabel(e.role)+'</div>'
+      +'<div class="ptg-tile-state" style="color:'+dot+'"><span class="ptg-dot" style="background:'+dot+'"></span>'+txt+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+// Modale : saisie du code puis actions
+function ptgOpen(empId){
+  var e=(DB.employees||[]).find(function(x){return x.id===empId;});
+  if(!e) return;
+  _ptgSel=e;
+  var body=document.getElementById('ptg-modal-body');
+  body.innerHTML='<div class="ptg-tile-av" style="background:'+ptgAvColor(e.name)+';margin:0 auto 12px;width:56px;height:56px;font-size:1.3rem;">'+ptgInitials(e.name)+'</div>'
+    +'<div class="ptg-modal-name">'+e.name+'</div>'
+    +'<div class="ptg-modal-hint">Saisissez votre code : jour + mois de naissance<br>(4 chiffres — ex. 0309 pour le 3 septembre)</div>'
+    +'<input type="tel" id="ptg-pin" maxlength="4" inputmode="numeric" class="ptg-pin-in" placeholder="••••" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');if(this.value.length===4)ptgCheckPin();">'
+    +'<div id="ptg-pin-msg" class="ptg-pin-msg"></div>'
+    +'<button class="ptg-bigbtn val" onclick="ptgCheckPin()">Valider mon code</button>';
+  document.getElementById('modal-ptg').classList.add('open');
+  setTimeout(function(){ var p=document.getElementById('ptg-pin'); if(p) p.focus(); },120);
+}
+
+function ptgCodeAttendu(e){
+  var dn=(e.infos&&e.infos.date_naissance)||e.dateNaissance||'';
+  if(!dn) return null;
+  var m1=dn.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  var m2=dn.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+  if(m1) return m1[3]+m1[2];
+  if(m2) return m2[1]+m2[2];
+  return null;
+}
+function ptgCheckPin(){
+  var e=_ptgSel; if(!e) return;
+  var pin=((document.getElementById('ptg-pin')||{}).value||'').trim();
+  var msg=document.getElementById('ptg-pin-msg');
+  var attendu=ptgCodeAttendu(e);
+  if(!attendu){ msg.style.color='#F5A623'; msg.textContent="Date de naissance non renseignée : prévenez le RH."; return; }
+  if(pin.length<4){ return; }
+  if(pin!==attendu){ msg.style.color='#e8623a'; msg.textContent='Code incorrect, réessayez.'; return; }
+  ptgShowActions();
+}
+
+function ptgShowActions(){
+  var e=_ptgSel; var dateISO=ptgTodayISO();
+  var rec=ptgRec(e.id,dateISO).rec;
+  var estEncadrant=(e.role==='manager'||e.role==='leader'||e.role==='directeur');
+  var body=document.getElementById('ptg-modal-body');
+  var h='<div class="ptg-modal-name" style="font-size:1.2rem;">'+e.name+'</div>';
+  // récap perso (le salarié voit SA journée)
+  h+='<div class="ptg-recap">';
+  h+='<div class="rline"><span>Arrivée</span><b>'+(rec.arrivee||'—')+'</b></div>';
+  if(rec.pauses && rec.pauses.length){
+    rec.pauses.forEach(function(p){ h+='<div class="rline"><span>Pause</span><b>'+(p.debut||'?')+' → '+(p.fin||'…')+'</b></div>'; });
+  }
+  h+='<div class="rline"><span>Départ</span><b>'+(rec.depart||'—')+'</b></div>';
+  var ht=ptgHeuresTravaillees(rec);
+  if(ht!=null) h+='<div class="rline" style="border-top:1px solid #2a2a2a;margin-top:4px;padding-top:6px;"><span>Total</span><b>'+(Math.round(ht*100)/100)+' h</b></div>';
+  h+='</div>';
+  // boutons
+  if(!rec.arrivee){
+    h+='<button class="ptg-bigbtn go" onclick="ptgAction(\'arrivee\')">🟢 Pointer mon ARRIVÉE — '+ptgNowHM()+'</button>';
+  } else if(!rec.depart){
+    if(estEncadrant){
+      var po = rec.pauses && rec.pauses.length && !rec.pauses[rec.pauses.length-1].fin;
+      h+='<button class="ptg-bigbtn pause" style="margin-bottom:10px;" onclick="ptgAction(\''+(po?'pause_fin':'pause_debut')+'\')">'+(po?'⏯️ Fin de ma pause':'⏸️ Début de ma pause')+'</button>';
+    }
+    h+='<button class="ptg-bigbtn stop" onclick="ptgAction(\'depart\')">🔴 Pointer mon DÉPART — '+ptgNowHM()+'</button>';
+  } else {
+    h+='<div class="ptg-done">✅ Vous avez bien pointé votre journée. Bonne soirée !</div>';
+  }
+  body.innerHTML=h;
+}
+
+function ptgAction(type){
+  var e=_ptgSel; if(!e) return;
+  var dateISO=ptgTodayISO(); var now=ptgNowHM();
+  var ctx=ptgRec(e.id,dateISO); var rec=ctx.rec;
+  if(type==='arrivee'){ rec.arrivee=now; }
+  else if(type==='depart'){
+    if(rec.pauses && rec.pauses.length && !rec.pauses[rec.pauses.length-1].fin) rec.pauses[rec.pauses.length-1].fin=now;
+    rec.depart=now;
+  }
+  else if(type==='pause_debut'){ rec.pauses=rec.pauses||[]; rec.pauses.push({debut:now,fin:''}); }
+  else if(type==='pause_fin'){ if(rec.pauses && rec.pauses.length) rec.pauses[rec.pauses.length-1].fin=now; }
+  ptgSaveAll(ctx.all);
+  ptgShowActions();
+  ptgRenderList();
+}
+
+function ptgHeuresTravaillees(rec){
+  if(!rec.arrivee || !rec.depart) return null;
+  function m(hm){ var p=hm.split(':'); return (+p[0])*60+(+p[1]); }
+  var tot=m(rec.depart)-m(rec.arrivee); if(tot<0) tot+=1440;
+  (rec.pauses||[]).forEach(function(p){ if(p.debut&&p.fin){ var d=m(p.fin)-m(p.debut); if(d<0)d+=1440; tot-=d; } });
+  return tot/60;
+}
+
+// ─── Écran suivi (RH / direction) ───
+function ptgSuiviInit(){
+  var vis=ptgRestosVisibles();
+  if(!PTGS_RESTO || vis.indexOf(PTGS_RESTO)<0) PTGS_RESTO=vis[0];
+  var tabs=document.getElementById('ptgs-resto-tabs');
+  if(tabs){
+    if(vis.length>1){
+      tabs.innerHTML=vis.map(function(r){
+        return '<button class="rtab'+(r===PTGS_RESTO?' on':'')+'" onclick="ptgsSetResto(\''+r+'\')" style="background:'+(r===PTGS_RESTO?'#D62300':'#2C2C2C')+';color:#fff;border:1px solid #444;padding:6px 13px;border-radius:20px;font-size:.8rem;cursor:pointer;">'+(RESTOS[r]?RESTOS[r].label:r)+'</button>';
+      }).join('');
+    } else { tabs.innerHTML=''; }
+  }
+  var sd=document.getElementById('ptgs-date'); if(sd && !sd.value) sd.value=ptgTodayISO();
+  ptgRenderSuivi();
+}
+function ptgsSetResto(r){ PTGS_RESTO=r; ptgSuiviInit(); }
+
+function ptgRenderSuivi(){
+  var box=document.getElementById('ptg-suivi'); if(!box) return;
+  var dateISO=((document.getElementById('ptgs-date')||{}).value)||ptgTodayISO();
+  var emps=ptgEmployesResto(PTGS_RESTO||PTG_RESTO);
+  var all=ptgGetAll();
+  var rows=emps.map(function(e){
+    var rec=all[e.id+'_'+dateISO];
+    var arr=rec&&rec.arrivee?rec.arrivee:'—';
+    var dep=rec&&rec.depart?rec.depart:'—';
+    var h=rec?ptgHeuresTravaillees(rec):null;
+    var pauses=(rec&&rec.pauses&&rec.pauses.length)?rec.pauses.map(function(p){return (p.debut||'?')+'→'+(p.fin||'…');}).join(' '):'—';
+    var col=(rec&&rec.arrivee&&!rec.depart)?'#3ecf8e':(rec&&rec.depart?'#aaa':'#666');
+    return '<tr style="border-bottom:1px solid #2a2a2a;">'
+      +'<td style="padding:7px 10px;color:#eee;">'+e.name+'</td>'
+      +'<td style="padding:7px 10px;color:'+col+';">'+arr+'</td>'
+      +'<td style="padding:7px 10px;color:'+col+';">'+dep+'</td>'
+      +'<td style="padding:7px 10px;color:#bbb;font-size:.8rem;">'+pauses+'</td>'
+      +'<td style="padding:7px 10px;color:#eee;font-weight:700;">'+(h!=null?(Math.round(h*100)/100)+'h':'—')+'</td>'
+      +'</tr>';
+  }).join('');
+  box.innerHTML='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.85rem;">'
+    +'<thead><tr style="color:#888;text-align:left;border-bottom:1px solid #333;">'
+    +'<th style="padding:7px 10px;">Salarié</th><th style="padding:7px 10px;">Arrivée</th><th style="padding:7px 10px;">Départ</th><th style="padding:7px 10px;">Pauses</th><th style="padding:7px 10px;">Total</th>'
+    +'</tr></thead><tbody>'+(rows||'<tr><td style="padding:12px;color:#888;" colspan="5">Aucun salarié.</td></tr>')+'</tbody></table></div>';
+}
+
+
 function setReglement(k,v){ var R=getReglement(); R[k]=v; }
 function saveReglements(){
   try{
@@ -7103,29 +7449,68 @@ function hrAutoAssignDay(dayIdx, ctx){
   });
   allBars.sort(function(a,b){return a.s-b.s;});
 
+  // DIAGNOSTIC : compteurs de raisons de rejet (pour comprendre les traits vides)
+  ctx._diag=ctx._diag||{dispo:0,libre:0,repos:0,max5j:0,plafond:0,conv:0,traitsVides:0,placeOK:0};
+
   allBars.forEach(function(b){
     if(b.empId){ return; } // déjà pourvu lors d'une passe précédente : on garde
     total++;
     b.emp=null; b.empId=null;
     var duree=b.e-b.s;
     var cands=equipiers.filter(function(e){
-      if(!dispoOk(e,b.s,b.e)||!qualifOk(e,b.l)||!libre(e.id,b.s,b.e)) return false;
-      // jour de repos réservé (2 jours consécutifs) : on ne place pas
-      if(ctx.repos&&ctx.repos[e.id]&&ctx.repos[e.id].indexOf(dayIdx)>=0) return false;
-      // PLAFOND CONTRAT : ne pas dépasser le contrat hebdo
+      if(!dispoOk(e,b.s,b.e)){ ctx._diag.dispo++; return false; }
+      if(!qualifOk(e,b.l)){ return false; }
+      if(!libre(e.id,b.s,b.e)){ ctx._diag.libre++; return false; }
+      // jour de repos réservé
+      if(ctx.repos&&ctx.repos[e.id]&&ctx.repos[e.id].indexOf(dayIdx)>=0){ ctx._diag.repos++; return false; }
+      // REPOS : le bloc de 2 jours consécutifs est fixé à l'avance (ctx.repos[id]).
+      // On ne place donc personne sur ses jours de repos (déjà testé plus haut via ctx.repos),
+      // et on n'a plus besoin du calcul glissant ici.
+      var _Rrep=(typeof getReglement==='function')?getReglement():null;
+      var nbRepos=(_Rrep&&_Rrep.joursRepos!=null)?parseInt(_Rrep.joursRepos,10):2;
+      if(isNaN(nbRepos)||nbRepos<0) nbRepos=2;
+      var joursMax=7-nbRepos;
+      var jt=ctx.joursTravailles&&ctx.joursTravailles[e.id]?ctx.joursTravailles[e.id]:null;
+      if(jt){
+        var nbJours=0; for(var _jk in jt){ if(jt[_jk]) nbJours++; }
+        if(nbJours>=joursMax && !jt[dayIdx]){ ctx._diag.max5j++; return false; }
+      }
+      // PLAFOND CONTRAT
       var plaf=plafondMin(e);
-      if(plaf!=null && (minFaits(e.id)+duree)>plaf) return false;
-      // RÈGLES CONVENTION RESTAURATION RAPIDE (IDCC 1501) :
-      if(!hrReglesConvention(e,dayIdx,b,ctx,duree)) return false;
+      if(plaf!=null && (minFaits(e.id)+duree)>plaf){ ctx._diag.plafond++; return false; }
+      // RÈGLES CONVENTION
+      if(!hrReglesConvention(e,dayIdx,b,ctx,duree)){ ctx._diag.conv++; return false; }
       return true;
     }).sort(function(a,c){
-      // 1) priorité forte à ceux sous leur plancher / loin du contrat
+      // 0) RÉPARTITION PAR CONTRAT selon le jour :
+      //    - week-end (ven/sam/dim) : on favorise les PETITS contrats (étudiants).
+      //    - semaine (lun→jeu) : on favorise les GROS contrats (24h et +).
+      var estWeekend=(dayIdx>=4);
+      var ha=hrContratHebdo(a)||0, hc=hrContratHebdo(c)||0;
+      function nbCreneauxJour(id){ return (((ctx.busyJour||{})[id]||{})[dayIdx]||[]).length; }
+      function nbJours(id){var o=ctx.joursTravailles[id]||{},n=0;for(var k in o){if(o[k])n++;}return n;}
       var ra=hrResteMin(a,ctx), rc=hrResteMin(c,ctx);
-      if(Math.abs(rc-ra)>30) return rc-ra; // écart significatif (>30 min)
-      // 2) à priorité proche : privilégier la CONTINUITÉ (coller à un créneau existant)
-      var ca=hrColleAuJour(a.id,dayIdx,b.s,b.e,ctx)?1:0;
-      var cc=hrColleAuJour(c.id,dayIdx,b.s,b.e,ctx)?1:0;
-      if(ca!==cc) return cc-ca;
+      // 1) priorité ABSOLUE : ne pas empiler. Celui qui n'a PAS encore de créneau
+      //    ce jour-là passe avant celui qui en a déjà un (on étale sur les jours).
+      var na0=nbCreneauxJour(a.id), nc0=nbCreneauxJour(c.id);
+      var aVide=(na0===0)?1:0, cVide=(nc0===0)?1:0;
+      if(aVide!==cVide) return cVide-aVide;
+      // 2) répartition par contrat selon le jour
+      if(ha!==hc){
+        if(estWeekend) return ha-hc;
+        else return hc-ha;
+      }
+      // 3) ceux loin de leur contrat d'abord
+      if(Math.abs(rc-ra)>30) return rc-ra;
+      // 4) si les deux ont déjà un créneau ce jour : privilégier la CONTINUITÉ (coller)
+      if(na0>0 && nc0>0){
+        var ca=hrColleAuJour(a.id,dayIdx,b.s,b.e,ctx)?1:0;
+        var cc=hrColleAuJour(c.id,dayIdx,b.s,b.e,ctx)?1:0;
+        if(ca!==cc) return cc-ca;
+      }
+      // 5) sinon : celui qui a le MOINS de jours travaillés dans la semaine
+      var na=nbJours(a.id), nc=nbJours(c.id);
+      if(na!==nc) return na-nc;
       return rc-ra;
     });
     if(cands.length){
@@ -7143,6 +7528,156 @@ function hrAutoAssignDay(dayIdx, ctx){
     }
   });
   return {placed:placed,total:total,equipiers:equipiers.length};
+}
+// ══ PASSE DE RATTRAPAGE ══════════════════════════════════════════════════════
+// Raisonne par PERSONNE (pas par créneau) : pour chaque équipier encore SOUS son
+// contrat, on cherche activement des créneaux VIDES compatibles (dispo, pas en repos,
+// max traits/jour, coupure, fermeture groupée, plafond) et on les lui attribue.
+// C'est ce qu'on ferait à la main : "il manque X à Alexandra, tiens, il reste de la
+// cuisine vendredi qu'elle peut prendre".
+function hrRattrapageContrats(ctx){
+  var resto=((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto())||'');
+  var equipiers=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto;});
+  var R=(typeof getReglement==='function')?getReglement():{};
+  var nbRepos=(R&&R.joursRepos!=null)?parseInt(R.joursRepos,10):2; if(isNaN(nbRepos)||nbRepos<0) nbRepos=2;
+  var joursMax=7-nbRepos;
+  // dispo autonome (ne dépend pas des fonctions internes de hrAutoAssignDay)
+  function dispoOkJ(emp,dayIdx,s,e){
+    var jk=JOURS_KEYS[dayIdx];
+    var d=(emp.infos&&emp.infos.dispos&&emp.infos.dispos[jk])||null;
+    if(!d||!d.on) return false;
+    var from=_dispoMin(d.from), to=_dispoMin(d.to);
+    if(from==null||to==null) return false;
+    return s>=from && e<=to;
+  }
+  function occupe(empId,s,e){
+    var arr=ctx.busy&&ctx.busy[empId]?ctx.busy[empId]:[];
+    for(var i=0;i<arr.length;i++){ if(s<arr[i].e && e>arr[i].s) return true; }
+    return false;
+  }
+  function progresse(){
+    var bouge=false;
+    // traiter d'abord les plus sous contrat
+    var liste=equipiers.slice().sort(function(a,b){ return hrResteMin(b,ctx)-hrResteMin(a,ctx); });
+    liste.forEach(function(e){
+      var plaf=hrPlafondHebdoMin(e);
+      for(var d=0;d<7;d++){
+        if(ctx.repos&&ctx.repos[e.id]&&ctx.repos[e.id].indexOf(d)>=0) continue; // jour de repos
+        var jt=ctx.joursTravailles&&ctx.joursTravailles[e.id]?ctx.joursTravailles[e.id]:null;
+        if(jt){ var nj=0; for(var k in jt){ if(jt[k]) nj++; } if(nj>=joursMax && !jt[d]) continue; }
+        var rows=ROWS_BY_DAY[d]; if(!rows) continue;
+        var vides=[];
+        rows.forEach(function(r){ r.bars.forEach(function(b){ if(!b.empId && !estTraitEncadrement(b.l)) vides.push(b); }); });
+        vides.sort(function(a,b){return a.s-b.s;});
+        for(var vi=0;vi<vides.length;vi++){
+          var b=vides[vi]; var duree=b.e-b.s;
+          if(plaf!=null && (ctx.minSemaine[e.id]||0)+duree>plaf) continue;
+          if(!dispoOkJ(e,d,b.s,b.e)) continue;
+          if(occupe(e.id,b.s,b.e)) continue;
+          if(!hrReglesConvention(e,d,b,ctx,duree)) continue;
+          b.emp=e.name; b.empId=e.id;
+          ctx.busy[e.id]=ctx.busy[e.id]||[]; ctx.busy[e.id].push({s:b.s,e:b.e});
+          ctx.busyJour=ctx.busyJour||{}; ctx.busyJour[e.id]=ctx.busyJour[e.id]||{}; ctx.busyJour[e.id][d]=ctx.busyJour[e.id][d]||[];
+          ctx.busyJour[e.id][d].push({s:b.s,e:b.e});
+          ctx.minSemaine[e.id]=(ctx.minSemaine[e.id]||0)+duree;
+          ctx.joursTravailles[e.id]=ctx.joursTravailles[e.id]||{}; ctx.joursTravailles[e.id][d]=true;
+          bouge=true;
+        }
+      }
+    });
+    return bouge;
+  }
+  var garde=0;
+  while(progresse() && garde<10){ garde++; }
+}
+// ══ SÉCURITÉ FINALE : force le respect des règles dures sur la semaine affichée ══
+// Quel que soit le chemin de placement, on garantit pour CHAQUE équipier :
+//   - jamais plus que son contrat hebdo (on retire les créneaux en trop)
+//   - jamais plus de maxTraitsJour créneaux par jour (lu dans la Réglementation)
+// Les créneaux retirés libèrent le trait (b.empId=null) -> ils restent "à couvrir".
+function hrSecuriteReglesSemaine(){
+  var R=(typeof getReglement==='function')?getReglement():{};
+  var maxTraits=(R.maxTraitsJour!=null)?parseInt(R.maxTraitsJour,10):2;
+  if(isNaN(maxTraits)||maxTraits<1) maxTraits=2;
+  var resto=((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:hrCurrentResto()||'').toLowerCase();
+  // Rassembler tous les traits attribués de la semaine, par employé
+  var parEmp={}; // id -> [{day, bar}]
+  for(var d=0;d<7;d++){
+    (ROWS_BY_DAY[d]||[]).forEach(function(row){
+      row.bars.forEach(function(b){
+        if(!b.empId) return;
+        (parEmp[b.empId]=parEmp[b.empId]||[]).push({day:d, bar:b});
+      });
+    });
+  }
+  Object.keys(parEmp).forEach(function(id){
+    var e=(DB.employees||[]).find(function(x){return x.id===id;});
+    var plafMin=e?hrPlafondHebdoMin(e):null; // contrat exact en minutes
+    var items=parEmp[id];
+    // 1) limiter le nombre de créneaux par jour
+    var parJour={};
+    items.forEach(function(it){ (parJour[it.day]=parJour[it.day]||[]).push(it); });
+    Object.keys(parJour).forEach(function(dk){
+      var list=parJour[dk].sort(function(a,b){return a.bar.s-b.bar.s;});
+      // garder les maxTraits premiers (en privilégiant ceux qui se touchent), retirer le reste
+      for(var i=maxTraits;i<list.length;i++){ list[i].bar.emp=null; list[i].bar.empId=null; list[i]._removed=true; }
+    });
+    // 2) ne pas dépasser le contrat : retirer les derniers créneaux qui débordent
+    if(plafMin!=null){
+      var restants=items.filter(function(it){return !it._removed;})
+                        .sort(function(a,b){return (a.day-b.day)|| (a.bar.s-b.bar.s);});
+      var cumul=0;
+      restants.forEach(function(it){
+        var dur=it.bar.e-it.bar.s;
+        if(cumul+dur>plafMin){ it.bar.emp=null; it.bar.empId=null; it._removed=true; }
+        else { cumul+=dur; }
+      });
+    }
+    // 3) REPOS CONSÉCUTIFS : si les jours travaillés ne laissent pas nbRepos jours de
+    //    repos qui se suivent, on retire les créneaux des jours les moins chargés (pour
+    //    cette personne) jusqu'à obtenir un bloc de repos consécutif.
+    var Rr=(typeof getReglement==='function')?getReglement():null;
+    var nbRepos=(Rr&&Rr.joursRepos!=null)?parseInt(Rr.joursRepos,10):2;
+    if(isNaN(nbRepos)||nbRepos<1) nbRepos=2;
+    function joursTravaillesDe(){
+      var t=[0,0,0,0,0,0,0];
+      items.filter(function(it){return !it._removed;}).forEach(function(it){ t[it.day]+=(it.bar.e-it.bar.s); });
+      return t;
+    }
+    function aReposConsecutif(t){
+      for(var start=0;start<7;start++){
+        var ok=true;
+        for(var k=0;k<nbRepos;k++){ if(t[(start+k)%7]>0){ ok=false; break; } }
+        if(ok) return true;
+      }
+      return false;
+    }
+    var garde=0;
+    while(!aReposConsecutif(joursTravaillesDe()) && garde<7){
+      garde++;
+      var t=joursTravaillesDe();
+      // jour travaillé le moins chargé (le plus facile à libérer)
+      var jourMin=-1, minH=1e9;
+      for(var dd=0;dd<7;dd++){ if(t[dd]>0 && t[dd]<minH){ minH=t[dd]; jourMin=dd; } }
+      if(jourMin<0) break;
+      items.forEach(function(it){ if(!it._removed && it.day===jourMin){ it.bar.emp=null; it.bar.empId=null; it._removed=true; } });
+    }
+  });
+  // mémoriser les affectations nettoyées + les créneaux RESTANT À PRENDRE, par date
+  for(var d2=0;d2<7;d2++){
+    var iso=(typeof DAY_DATES!=='undefined'&&DAY_DATES[d2])?DAY_DATES[d2]:null;
+    if(!iso) continue;
+    var aff=[]; var reste=[];
+    (ROWS_BY_DAY[d2]||[]).forEach(function(row){
+      row.bars.forEach(function(b){
+        if(estTraitEncadrement(b.l)) return; // on ne liste pas l'encadrement
+        if(b.empId) aff.push({l:b.l,s:b.s,e:b.e,emp:b.emp,empId:b.empId});
+        else reste.push({l:b.l,s:b.s,e:b.e});
+      });
+    });
+    HR_AFFECT[iso]=aff;
+    HR_RESTE[iso]=reste;
+  }
 }
 // L'équipier a-t-il déjà un créneau qui TOUCHE [s,e] ce jour (pour faire continu) ?
 function hrColleAuJour(empId,dayIdx,s,e,ctx){
@@ -7171,6 +7706,28 @@ function hrNbCreneauxApres(empId,dayIdx,s,e,ctx){
 //  - chaque séquence de travail ≥ 2h
 //  - coupure (interruption) ≤ 5h
 //  - aucune coupure si contrat < 12h/semaine
+// Vérifie qu'il reste possible d'avoir joursRepos jours de repos CONSÉCUTIFS
+// dans la semaine si on fait travailler l'équipier le jour dayIdx.
+// joursRepos est lu depuis la RÉGLEMENTATION (rien en dur).
+function hrReposConsecutifsPossible(empId, dayIdx, ctx){
+  var R=(typeof getReglement==='function')?getReglement():null;
+  var nbRepos=(R&&R.joursRepos!=null)?parseInt(R.joursRepos,10):2;
+  if(isNaN(nbRepos)||nbRepos<=0) return true;
+  var jt=(ctx.joursTravailles&&ctx.joursTravailles[empId])?ctx.joursTravailles[empId]:{};
+  var travaille=[];
+  for(var d=0;d<7;d++){ travaille[d]=!!jt[d]; }
+  travaille[dayIdx]=true;
+  // existe-t-il une fenêtre de nbRepos jours consécutifs tous NON travaillés ?
+  // (semaine glissante : on autorise dim->lun en bouclant)
+  for(var start=0;start<7;start++){
+    var ok=true;
+    for(var k=0;k<nbRepos;k++){
+      if(travaille[(start+k)%7]){ ok=false; break; }
+    }
+    if(ok) return true;
+  }
+  return false;
+}
 function hrReglesConvention(emp,dayIdx,b,ctx,duree){
   var R=(typeof getReglement==='function')?getReglement():{maxHeuresJour:10,maxSequences:2,seqMiniHeures:2,coupureMaxHeures:5,seuilSansCoupureH:12};
   var arr=(((ctx.busyJour||{})[emp.id]||{})[dayIdx]||[]).map(function(p){return {s:p.s,e:p.e};});
@@ -7194,6 +7751,18 @@ function hrReglesConvention(emp,dayIdx,b,ctx,duree){
     if((seqs[1].e-seqs[1].s)<(R.seqMiniHeures||2)*60) return false; // séquence 2 mini
     var ch=hrContratHebdo(emp);
     if(ch!=null && ch<(R.seuilSansCoupureH||12)) return false;      // pas de coupure si petit contrat
+    // [perso] JOURNÉE GROUPÉE POUR LES FERMETURES :
+    // si l'un des créneaux du jour finit tard (= fermeture), on n'autorise pas
+    // un midi + un soir éclatés : la coupure doit rester très courte (ex. 30 min).
+    if(R.groupementFermeture){
+      var hFerm=(R.heureFermetureDepuisH!=null?parseFloat(R.heureFermetureDepuisH):22)*60;
+      var finJournee=seqs[seqs.length-1].e; // fin du dernier créneau (peut être >24h)
+      var ferme=(finJournee>=hFerm)||(finJournee>=hFerm+24*60); // gère l'après-minuit
+      if(ferme){
+        var coupMaxFerm=(R.coupureMaxFermetureMin!=null?parseFloat(R.coupureMaxFermetureMin):30);
+        if(coupure>coupMaxFerm) return false; // fermant : créneaux à regrouper (≤ 30 min de coupure)
+      }
+    }
   }
   // ── Règles personnalisées appliquées ──
   if(R._custom && R._custom.length){
@@ -7232,33 +7801,102 @@ function hrAutoAssignAndRender(){
 window.hrAutoAssignAndRender=hrAutoAssignAndRender;
 window.hrAutoAssignDay=hrAutoAssignDay;
 
+// Charge d'un jour = somme des durées des traits équipiers (productifs + NP), hors encadrement.
+function hrChargeJour(dayIdx){
+  var rows=ROWS_BY_DAY[dayIdx]; if(!rows) return 0;
+  var tot=0;
+  rows.forEach(function(r){ r.bars.forEach(function(b){ if(!estTraitEncadrement(b.l)) tot+=(b.e-b.s); }); });
+  return tot;
+}
 // Place les équipiers sur les 7 jours de la semaine, puis affiche l'emploi du temps
 function hrAutoAssignWeek(){
-  // contexte partagé sur toute la semaine : heures cumulées, jours travaillés, occupation
-  var ctx={minSemaine:{},joursTravailles:{},busy:{}};
-  // Règle des 2 jours de repos consécutifs : on choisit pour chaque équipier 2 jours OFF qui se suivent.
-  // Stratégie simple : on réserve le repos AVANT de placer, en bloquant ces jours.
+  // contexte partagé sur toute la semaine
+  var ctx={minSemaine:{},joursTravailles:{},busy:{},repos:{}};
   hrReserverReposConsecutifs(ctx);
   var totalPlaced=0,totalTraits=0,nbEq=0;
-  for(var d=0;d<7;d++){
-    var r=hrAutoAssignDay(d, ctx);
-    totalPlaced+=r.placed; totalTraits+=r.total; nbEq=r.equipiers;
+  // ORDRE DES JOURS : on commence par les jours les PLUS CHARGÉS (souvent le week-end),
+  // pas dans l'ordre lundi→dimanche. Ça évite que les derniers jours restent vides.
+  var ordreJours=[0,1,2,3,4,5,6].sort(function(a,b){ return hrChargeJour(b)-hrChargeJour(a); });
+  ctx._ordreJours=ordreJours;
+  // Plusieurs passes : on répète tant qu'on place du monde, en re-priorisant ceux
+  // qui sont le plus loin de leur contrat (via hrResteMin).
+  var passe=0, encore=true;
+  while(encore && passe<8){
+    var avant=0; for(var kid in ctx.minSemaine){ avant+=ctx.minSemaine[kid]; }
+    totalPlaced=0; totalTraits=0;
+    for(var oi=0;oi<ordreJours.length;oi++){
+      var r=hrAutoAssignDay(ordreJours[oi], ctx);
+      totalPlaced+=r.placed; totalTraits+=r.total; nbEq=r.equipiers;
+    }
+    var apres=0; for(var kid2 in ctx.minSemaine){ apres+=ctx.minSemaine[kid2]; }
+    encore=(apres>avant);
+    passe++;
   }
+  hrRattrapageContrats(ctx); // place les gens encore sous contrat sur les créneaux vides compatibles
+  hrSecuriteReglesSemaine(); // garantit contrat + 2 traits/jour max, quel que soit le placement
   renderTimeline();
   hrRenderEmploiSemaine();
   var st=document.getElementById('hrx-assign-status');
-  if(st) st.textContent='👥 Semaine : '+totalPlaced+' / '+totalTraits+' traits pourvus ('+nbEq+' équipiers · contrats respectés)';
+  if(st){
+    var d=ctx._diag||{};
+    st.innerHTML='👥 Semaine : '+totalPlaced+' / '+totalTraits+' traits pourvus ('+nbEq+' équipiers · contrats respectés)'
+      +'<br><span style="color:#9a9aaa;font-size:11px;">Rejets candidats — dispo:'+(d.dispo||0)+' · occupé:'+(d.libre||0)+' · repos5j:'+(d.max5j||0)+' · plafond contrat:'+(d.plafond||0)+' · règle convention:'+(d.conv||0)+'</span>';
+  }
 }
 // Réserve 2 jours de repos consécutifs par équipier (les bloque pour qu'on n'y place personne)
 function hrReserverReposConsecutifs(ctx){
-  var resto=((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:hrCurrentResto()||'').toLowerCase();
-  var equipiers=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto;});
+  // On attribue à CHAQUE équipier un bloc fixe de N jours de repos CONSÉCUTIFS,
+  // choisi selon son profil de contrat :
+  //  - petits contrats (étudiants) : repos en SEMAINE (pour être dispo le week-end)
+  //  - gros contrats : repos répartis, en évitant de tous les mettre le week-end
+  // jours: 0=lun 1=mar 2=mer 3=jeu 4=ven 5=sam 6=dim
   ctx.repos=ctx.repos||{};
-  equipiers.forEach(function(e,idx){
-    // on répartit les paires de repos sur la semaine pour ne pas vider les mêmes jours
-    // paires possibles : (lun,mar)=0,(mar,mer)=1,...(sam,dim)=5, (dim,lun)=6
-    var paire=idx%6; // 0..5 -> début du repos
-    ctx.repos[e.id]=[paire,(paire+1)%7];
+  var R=(typeof getReglement==='function')?getReglement():null;
+  var nbRepos=(R&&R.joursRepos!=null)?parseInt(R.joursRepos,10):2;
+  if(isNaN(nbRepos)||nbRepos<1) nbRepos=2;
+  var resto=((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto())||'');
+  var equipiers=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto;});
+  // blocs de repos possibles EN SEMAINE (pour étudiants) : lun-mar, mar-mer, mer-jeu, dim-lun
+  var blocsSemaine=[[0,1],[1,2],[2,3],[3,0/*placeholder*/]];
+  // on construit dynamiquement des blocs consécutifs de longueur nbRepos
+  function blocsConsecutifs(){
+    var res=[];
+    for(var start=0;start<7;start++){
+      var b=[]; for(var k=0;k<nbRepos;k++){ b.push((start+k)%7); }
+      res.push(b);
+    }
+    return res; // 7 blocs (lun-mar, mar-mer, ..., dim-lun)
+  }
+  var tousBlocs=blocsConsecutifs();
+  // CHARGE de chaque jour (somme des durées des traits équipiers) : on met les repos
+  // sur les jours les MOINS chargés, pour laisser les gens dispo les jours de forte affluence.
+  var chargeJour=[]; for(var dj=0;dj<7;dj++){ chargeJour[dj]=hrChargeJour(dj); }
+  function chargeBloc(b){ var s=0; b.forEach(function(d){ s+=chargeJour[d]||0; }); return s; }
+  // blocs triés du moins chargé au plus chargé
+  var blocsParCharge=tousBlocs.slice().sort(function(a,b){ return chargeBloc(a)-chargeBloc(b); });
+  // compteur d'occupation des blocs pour répartir (ne pas mettre tout le monde le même jour)
+  var usageBloc={};
+  function choisirBlocGros(){
+    // parmi les blocs les moins chargés, prendre celui le moins déjà utilisé
+    var meilleurs=blocsParCharge.slice(0,4); // les 4 blocs les plus creux
+    meilleurs.sort(function(a,b){ return (usageBloc[a.join(',')]||0)-(usageBloc[b.join(',')]||0); });
+    var b=meilleurs[0];
+    usageBloc[b.join(',')]=(usageBloc[b.join(',')]||0)+1;
+    return b;
+  }
+  // Règle perso lue depuis la RÉGLEMENTATION (rien en dur) :
+  var weekendOnly=(R&&R.petitsContratsWeekend!==false); // activé par défaut
+  var seuilPetit=(R&&R.petitsContratsSeuilH!=null)?parseFloat(R.petitsContratsSeuilH):15;
+  if(isNaN(seuilPetit)) seuilPetit=15;
+  equipiers.forEach(function(e){
+    var ch=hrContratHebdo(e)||0;
+    if(weekendOnly && ch>0 && ch<=seuilPetit){
+      // ÉTUDIANT / petit contrat : ne travaille QUE le week-end (règle réglementation).
+      ctx.repos[e.id]=[0,1,2,3];
+    } else {
+      // gros contrat : repos sur les jours les MOINS chargés (laisse le week-end libre)
+      ctx.repos[e.id]=choisirBlocGros().slice();
+    }
   });
 }
 window.hrAutoAssignWeek=hrAutoAssignWeek;
@@ -7266,6 +7904,7 @@ window.hrAutoAssignWeek=hrAutoAssignWeek;
 // ══ PLACEMENT SUR LE MOIS (lissage : 24h -> 104h/mois max) ════════════════════
 // Mémoire des affectations par date ISO : { 'AAAA-MM-JJ': [ {l,s,e,emp,empId}, ... ] }
 var HR_AFFECT={};
+var HR_RESTE={}; // créneaux non pourvus (restant à prendre) par date ISO
 // Réapplique les noms mémorisés sur les traits de la semaine actuellement affichée
 function hrReappliquerAffectations(){
   for(var d=0;d<7;d++){
@@ -7340,11 +7979,14 @@ function hrAutoAssignMonth(){
     var passe=0, encore=true;
     while(encore && passe<6){
       var avant=0; for(var kid in ctx.minSemaine){ avant+=ctx.minSemaine[kid]; }
-      for(var d=0;d<7;d++){ hrAutoAssignDay(d, ctx); }
+      var _ordreM=[0,1,2,3,4,5,6].sort(function(a,b){ return hrChargeJour(b)-hrChargeJour(a); });
+      for(var _oi=0;_oi<_ordreM.length;_oi++){ hrAutoAssignDay(_ordreM[_oi], ctx); }
       var apres=0; for(var kid2 in ctx.minSemaine){ apres+=ctx.minSemaine[kid2]; }
       encore=(apres>avant); // on continue tant qu'on progresse
       passe++;
     }
+    hrRattrapageContrats(ctx); // rattrapage : place les gens sous contrat sur les vides compatibles
+    hrSecuriteReglesSemaine(); // garantit contrat + 2 traits/jour max sur cette semaine
     // cumuler dans le mois + mémoriser le détail de la semaine + MÉMORISER PAR DATE (pour les traits)
     var parEmp={};
     var traitsMinSem=0, posesMinSem=0; // total heures de traits (hors encadrement) et heures positionnées
@@ -7558,6 +8200,30 @@ function hrRenderPlanningHebdo(){
     h+='<td style="padding:7px 10px;text-align:center;font-weight:700;color:'+col+';border-left:2px solid #333;white-space:nowrap;">'+planTxt+' / '+contTxt+'</td>';
     h+='</tr>';
   });
+  // ── Ligne : CRÉNEAUX RESTANT À PRENDRE (traits non pourvus) par jour ──
+  (function(){
+    var resteParJour=[]; var total=0;
+    for(var jj=0;jj<7;jj++){
+      var dd=dates[jj];
+      var isoJ=dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0');
+      var arr=(HR_RESTE&&HR_RESTE[isoJ])?HR_RESTE[isoJ].slice():[];
+      arr.sort(function(a,b){return a.s-b.s;});
+      resteParJour[jj]=arr; total+=arr.length;
+    }
+    h+='<tr style="border-top:2px solid #333;background:#fff8f6;">';
+    h+='<td style="padding:8px 10px;font-weight:700;color:#D62300;white-space:nowrap;vertical-align:top;">⚠️ Créneaux restant à prendre</td>';
+    for(var jj2=0;jj2<7;jj2++){
+      var arr2=resteParJour[jj2];
+      var cell;
+      if(!arr2.length){ cell='<span style="color:#1A9850;">✓</span>'; }
+      else {
+        cell=arr2.map(function(p){return '<div style="white-space:nowrap;color:#D62300;font-size:10.5px;">'+hhmm(p.s)+'-'+hhmm(p.e)+' <span style="color:#999;">'+p.l+'</span></div>';}).join('');
+      }
+      h+='<td style="padding:6px 6px;text-align:center;vertical-align:top;border-left:1px solid #eee;">'+cell+'</td>';
+    }
+    h+='<td style="padding:7px 10px;text-align:center;font-weight:700;color:#D62300;border-left:2px solid #333;">'+(total||'✓')+'</td>';
+    h+='</tr>';
+  })();
   h+='</tbody></table></div>';
   // ── TOTAUX (bas à droite) : traits / positionné / contrats ──
   (function(){
