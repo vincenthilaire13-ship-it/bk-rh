@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-15 22:05 · v33';
+  var EMBEDDED_VERSION = '2026-06-16 00:30 · v40';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -210,7 +210,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 .pl-cell:hover{outline:2px solid var(--orange);outline-offset:-2px;}
 
 /* MODULE HORAIRE */
-#sec-horaires{--bg:#0f0f11;--s1:#1a1a1e;--s2:#222228;--bd:#2e2e36;--bd2:#3a3a44;--tx:#f0f0f2;--mu:#7a7a8a;--ac:#e8e020;}#sec-horaires *{box-sizing:border-box;margin:0;padding:0;}#sec-horaires{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;}#sec-horaires .hr-hdr{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1.5rem;border-bottom:1px solid var(--bd);background:var(--s1);position:sticky;top:0;z-index:100;}#sec-horaires .hr-hdr-title{font-size:15px;font-weight:600;}#sec-horaires .hr-hdr-sub{font-size:11px;color:var(--mu);font-family:'DM Mono',monospace;}#sec-horaires .hr-nav{display:flex;gap:4px;}#sec-horaires .hr-nt{padding:6px 13px;border-radius:8px;font-size:13px;cursor:pointer;color:var(--mu);border:1px solid transparent;transition:all .15s;}#sec-horaires .hr-nt:hover{color:var(--tx);background:var(--s2);}#sec-horaires .hr-nt.hr-on{color:var(--ac);border-color:var(--bd2);background:var(--s2);}#sec-horaires .hr-hdr-r{display:flex;gap:8px;}#sec-horaires .hr-btn{padding:6px 13px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid var(--bd2);background:var(--s2);color:var(--tx);transition:all .15s;}#sec-horaires .hr-btn:hover{background:var(--bd);}#sec-horaires .hr-btn-ac{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}#sec-horaires .hr-btn-ac:hover{background:#f5e820;}#sec-horaires .hr-sec{display:none;padding:1.2rem 1.5rem;}#sec-horaires .hr-sec.hr-on{display:block;}#sec-horaires .hr-mrow{display:flex;gap:10px;margin-bottom:1.2rem;flex-wrap:wrap;}#sec-horaires .hr-mc{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:.7rem 1rem;flex:1;min-width:110px;}#sec-horaires .hr-mc-l{font-size:10px;color:var(--mu);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}#sec-horaires .hr-mc-v{font-size:22px;font-weight:500;}#sec-horaires .hr-mc-s{font-size:11px;color:var(--mu);margin-top:1px;}#sec-horaires .hr-plan-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:10px;}#sec-horaires .hr-days{display:flex;gap:5px;flex-wrap:wrap;}#sec-horaires .hr-db{padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid var(--bd);background:var(--s2);color:var(--mu);cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:135px;}#sec-horaires .hr-db:hover{color:var(--tx);border-color:var(--bd2);}#sec-horaires .hr-db.hr-on{color:var(--ac);border-color:var(--ac);background:rgba(232,224,32,.07);}#sec-horaires .hr-db-day{font-size:13px;font-weight:600;}#sec-horaires .hr-db-ca{font-size:10px;font-family:'DM Mono',monospace;opacity:.7;}#sec-horaires .hr-scx{overflow-x:auto;}#sec-horaires .hr-tl-wrap{background:var(--s1);border:1px solid var(--bd);border-radius:14px;overflow:hidden;}#sec-horaires .hr-tl-top{display:flex;border-bottom:1px solid var(--bd);position:sticky;top:53px;z-index:50;background:var(--s1);}#sec-horaires .hr-tl-lh{display:none;}#sec-horaires .hr-tl-hh{flex:1;display:flex;min-width:920px;}#sec-horaires .hr-tl-h{flex:1;text-align:center;font-size:10px;color:var(--mu);font-family:'DM Mono',monospace;padding:12px 0;border-right:1px solid var(--bd);}#sec-horaires .hr-tl-h:last-child{border-right:none;}#sec-horaires .hr-tl-row{display:flex;border-bottom:1px solid var(--bd);min-height:28px;}#sec-horaires .hr-tl-row:last-child{border-bottom:none;}#sec-horaires .hr-tl-row:hover{background:rgba(255,255,255,.015);}#sec-horaires .hr-tl-i{display:none;}#sec-horaires .hr-tl-b{flex:1;position:relative;display:flex;align-items:center;min-width:920px;}#sec-horaires .hr-tl-gl{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;pointer-events:none;}#sec-horaires .hr-tl-gl div{flex:1;border-right:1px solid rgba(255,255,255,.025);}#sec-horaires .hr-tl-gl div:last-child{border-right:none;}#sec-horaires .hr-bar{position:absolute;height:19px;border-radius:4px;display:flex;align-items:center;padding:0 5px;font-size:9px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;top:50%;transform:translateY(-50%);letter-spacing:.3px;transition:filter .12s;}#sec-horaires .hr-bar:hover{filter:brightness(1.2);z-index:20;}#sec-horaires .hr-leg{display:flex;flex-wrap:wrap;gap:8px;padding:.7rem 1.2rem;border-top:1px solid var(--bd);}#sec-horaires .hr-li{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--mu);}#sec-horaires .hr-ld{width:9px;height:9px;border-radius:2px;}#sec-horaires .hr-ca-ctrl{display:flex;gap:12px;margin-bottom:1.2rem;flex-wrap:wrap;align-items:flex-end;}#sec-horaires .hr-cc{display:flex;flex-direction:column;gap:4px;}#sec-horaires .hr-cc label{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);text-transform:uppercase;}#sec-horaires .hr-cc select{background:var(--s1);border:1px solid var(--bd2);border-radius:8px;padding:6px 11px;font-size:13px;color:var(--tx);font-family:'DM Sans',sans-serif;outline:none;}#sec-horaires .hr-ca-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;margin-bottom:1.2rem;}#sec-horaires .hr-ca-cell{background:var(--s1);border:1px solid var(--bd);border-radius:9px;padding:.5rem .8rem;}#sec-horaires .hr-ca-cell label{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);display:flex;justify-content:space-between;margin-bottom:4px;}#sec-horaires .hr-ca-cell label span{color:var(--ac);font-size:9px;}#sec-horaires .hr-ca-cell input{width:100%;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:4px 7px;font-size:12px;color:var(--tx);font-family:'DM Mono',monospace;outline:none;}#sec-horaires .hr-ca-cell input:focus{border-color:var(--ac);}#sec-horaires .hr-ca-bar{height:3px;border-radius:2px;margin-top:4px;background:var(--ac);min-width:1px;}#sec-horaires .hr-ca-cell.hr-hi{border-color:rgba(232,224,32,.4);}#sec-horaires .hr-gt-wrap{overflow-x:auto;border:1px solid var(--bd);border-radius:12px;}#sec-horaires .hr-gt{width:100%;border-collapse:collapse;font-size:11px;font-family:'DM Mono',monospace;}#sec-horaires .hr-gt th{background:var(--s2);color:var(--mu);padding:6px 9px;border-bottom:1px solid var(--bd);border-right:1px solid var(--bd);text-align:center;font-weight:500;white-space:nowrap;}#sec-horaires .hr-gt td{padding:4px 7px;border-bottom:1px solid var(--bd);border-right:1px solid var(--bd);text-align:center;color:var(--tx);}#sec-horaires .hr-gt tr:last-child td{border-bottom:none;}#sec-horaires .hr-gt td:first-child, #sec-horaires .hr-gt th:first-child{text-align:left;padding-left:12px;}#sec-horaires .hr-cv{display:inline-block;padding:2px 6px;border-radius:4px;font-weight:600;}#sec-horaires .hr-np-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;}#sec-horaires .hr-np-card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:.9rem 1.1rem;display:flex;flex-direction:column;gap:6px;}#sec-horaires .hr-np-top{display:flex;align-items:center;justify-content:space-between;}#sec-horaires .hr-np-nm{font-size:14px;font-weight:500;}#sec-horaires .hr-np-bg{font-size:9px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px;background:rgba(120,144,156,.15);color:#78909c;border:1px solid rgba(120,144,156,.3);}#sec-horaires .hr-np-ds{font-size:12px;color:var(--mu);line-height:1.5;}#sec-horaires .hr-np-ft{display:flex;gap:6px;align-items:center;}#sec-horaires .hr-np-dt{width:8px;height:8px;border-radius:2px;flex-shrink:0;}#sec-horaires .hr-np-tm{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);}#sec-horaires .hr-stitle{font-size:16px;font-weight:500;margin-bottom:.4rem;}#sec-horaires .hr-ssub{font-size:12px;color:var(--mu);margin-bottom:1.2rem;}#sec-horaires .hr-db.hr-ok{border-color:#3ecf8e!important;background:rgba(62,207,142,.14)!important;color:#3ecf8e!important;transition:all .25s;}#sec-horaires .hr-db.hr-ok .hr-db-day{color:#3ecf8e!important;}#sec-horaires .hr-db.hr-ok::after{content:'✓';position:absolute;top:6px;right:8px;color:#3ecf8e;font-weight:700;font-size:12px;}#sec-horaires .hr-db.hr-warn{border-color:#f5a623!important;background:rgba(245,166,35,.12)!important;color:#f5a623!important;transition:all .25s;}#sec-horaires .hr-db.hr-warn .hr-db-day{color:#f5a623!important;}#sec-horaires .hr-db.hr-warn::after{content:'⚠';position:absolute;top:6px;right:8px;color:#f5a623;font-weight:700;font-size:12px;}#sec-horaires .hr-db{position:relative;}@keyframes hrSpin{to{transform:rotate(360deg)}}#sec-horaires .hr-btn.hr-spinning{opacity:.7;pointer-events:none;}#sec-horaires .hr-btn .hr-spin-ico{display:inline-block;}#sec-horaires .hr-btn.hr-spinning .hr-spin-ico{animation:hrSpin .7s linear infinite;}#sec-horaires #hrx-rows{padding-top:62px;}#sec-horaires #hrx-rows .hr-tl-row:first-child{min-height:34px;}#sec-horaires .hr-np-jour{padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--bd2);background:var(--s2);color:var(--mu);font-family:'DM Sans',sans-serif;transition:all .12s;}#sec-horaires .hr-np-jour:hover{color:var(--tx);border-color:var(--mu);}#sec-horaires .hr-np-jour.hr-j-on{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}#sec-horaires .hr-np-freq{padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--bd2);background:var(--s2);color:var(--mu);font-family:'DM Sans',sans-serif;transition:all .12s;}#sec-horaires .hr-np-freq:hover{color:var(--tx);border-color:var(--mu);}#sec-horaires .hr-np-freq.hr-f-on{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}
+#sec-horaires{--bg:#3a3a44;--s1:#44444f;--s2:#4e4e59;--bd:#5e5e6a;--bd2:#6e6e7a;--tx:#f7f7f9;--mu:#c2c2cf;--ac:#e8e020;}#sec-horaires *{box-sizing:border-box;margin:0;padding:0;}#sec-horaires{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;}#sec-horaires .hr-hdr{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1.5rem;border-bottom:1px solid var(--bd);background:var(--s1);position:sticky;top:0;z-index:100;}#sec-horaires .hr-hdr-title{font-size:15px;font-weight:600;}#sec-horaires .hr-hdr-sub{font-size:11px;color:var(--mu);font-family:'DM Mono',monospace;}#sec-horaires .hr-nav{display:flex;gap:4px;}#sec-horaires .hr-nt{padding:6px 13px;border-radius:8px;font-size:13px;cursor:pointer;color:var(--mu);border:1px solid transparent;transition:all .15s;}#sec-horaires .hr-nt:hover{color:var(--tx);background:var(--s2);}#sec-horaires .hr-nt.hr-on{color:var(--ac);border-color:var(--bd2);background:var(--s2);}#sec-horaires .hr-hdr-r{display:flex;gap:8px;}#sec-horaires .hr-btn{padding:6px 13px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid var(--bd2);background:var(--s2);color:var(--tx);transition:all .15s;}#sec-horaires .hr-btn:hover{background:var(--bd);}#sec-horaires .hr-btn-ac{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}#sec-horaires .hr-btn-ac:hover{background:#f5e820;}#sec-horaires .hr-sec{display:none;padding:1.2rem 1.5rem;}#sec-horaires .hr-sec.hr-on{display:block;}#sec-horaires .hr-mrow{display:flex;gap:10px;margin-bottom:1.2rem;flex-wrap:wrap;}#sec-horaires .hr-mc{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:.7rem 1rem;flex:1;min-width:110px;}#sec-horaires .hr-mc-l{font-size:10px;color:var(--mu);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}#sec-horaires .hr-mc-v{font-size:22px;font-weight:500;}#sec-horaires .hr-mc-s{font-size:11px;color:var(--mu);margin-top:1px;}#sec-horaires .hr-plan-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:10px;}#sec-horaires .hr-days{display:flex;gap:5px;flex-wrap:wrap;}#sec-horaires .hr-db{padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid var(--bd);background:var(--s2);color:var(--mu);cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:135px;}#sec-horaires .hr-db:hover{color:var(--tx);border-color:var(--bd2);}#sec-horaires .hr-db.hr-on{color:var(--ac);border-color:var(--ac);background:rgba(232,224,32,.07);}#sec-horaires .hr-db-day{font-size:13px;font-weight:600;}#sec-horaires .hr-db-ca{font-size:10px;font-family:'DM Mono',monospace;opacity:.7;}#sec-horaires .hr-scx{overflow-x:auto;}#sec-horaires .hr-tl-wrap{background:var(--s1);border:1px solid var(--bd);border-radius:14px;overflow:hidden;}#sec-horaires .hr-tl-top{display:flex;border-bottom:1px solid var(--bd);position:sticky;top:53px;z-index:50;background:var(--s1);}#sec-horaires .hr-tl-lh{display:none;}#sec-horaires .hr-tl-hh{flex:1;display:flex;min-width:920px;}#sec-horaires .hr-tl-h{flex:1;text-align:center;font-size:10px;color:var(--mu);font-family:'DM Mono',monospace;padding:12px 0;border-right:1px solid var(--bd);}#sec-horaires .hr-tl-h:last-child{border-right:none;}#sec-horaires .hr-tl-row{display:flex;border-bottom:1px solid var(--bd);min-height:28px;}#sec-horaires .hr-tl-row:last-child{border-bottom:none;}#sec-horaires .hr-tl-row:hover{background:rgba(255,255,255,.015);}#sec-horaires .hr-tl-i{display:none;}#sec-horaires .hr-tl-b{flex:1;position:relative;display:flex;align-items:center;min-width:920px;}#sec-horaires .hr-tl-gl{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;pointer-events:none;}#sec-horaires .hr-tl-gl div{flex:1;border-right:1px solid rgba(255,255,255,.025);}#sec-horaires .hr-tl-gl div:last-child{border-right:none;}#sec-horaires .hr-bar{position:absolute;height:19px;border-radius:4px;display:flex;align-items:center;padding:0 5px;font-size:9px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;top:50%;transform:translateY(-50%);letter-spacing:.3px;transition:filter .12s;}#sec-horaires .hr-bar:hover{filter:brightness(1.2);z-index:20;}#sec-horaires .hr-leg{display:flex;flex-wrap:wrap;gap:8px;padding:.7rem 1.2rem;border-top:1px solid var(--bd);}#sec-horaires .hr-li{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--mu);}#sec-horaires .hr-ld{width:9px;height:9px;border-radius:2px;}#sec-horaires .hr-ca-ctrl{display:flex;gap:12px;margin-bottom:1.2rem;flex-wrap:wrap;align-items:flex-end;}#sec-horaires .hr-cc{display:flex;flex-direction:column;gap:4px;}#sec-horaires .hr-cc label{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);text-transform:uppercase;}#sec-horaires .hr-cc select{background:var(--s1);border:1px solid var(--bd2);border-radius:8px;padding:6px 11px;font-size:13px;color:var(--tx);font-family:'DM Sans',sans-serif;outline:none;}#sec-horaires .hr-ca-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;margin-bottom:1.2rem;}#sec-horaires .hr-ca-cell{background:var(--s1);border:1px solid var(--bd);border-radius:9px;padding:.5rem .8rem;}#sec-horaires .hr-ca-cell label{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);display:flex;justify-content:space-between;margin-bottom:4px;}#sec-horaires .hr-ca-cell label span{color:var(--ac);font-size:9px;}#sec-horaires .hr-ca-cell input{width:100%;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:4px 7px;font-size:12px;color:var(--tx);font-family:'DM Mono',monospace;outline:none;}#sec-horaires .hr-ca-cell input:focus{border-color:var(--ac);}#sec-horaires .hr-ca-bar{height:3px;border-radius:2px;margin-top:4px;background:var(--ac);min-width:1px;}#sec-horaires .hr-ca-cell.hr-hi{border-color:rgba(232,224,32,.4);}#sec-horaires .hr-gt-wrap{overflow-x:auto;border:1px solid var(--bd);border-radius:12px;}#sec-horaires .hr-gt{width:100%;border-collapse:collapse;font-size:11px;font-family:'DM Mono',monospace;}#sec-horaires .hr-gt th{background:var(--s2);color:var(--mu);padding:6px 9px;border-bottom:1px solid var(--bd);border-right:1px solid var(--bd);text-align:center;font-weight:500;white-space:nowrap;}#sec-horaires .hr-gt td{padding:4px 7px;border-bottom:1px solid var(--bd);border-right:1px solid var(--bd);text-align:center;color:var(--tx);}#sec-horaires .hr-gt tr:last-child td{border-bottom:none;}#sec-horaires .hr-gt td:first-child, #sec-horaires .hr-gt th:first-child{text-align:left;padding-left:12px;}#sec-horaires .hr-cv{display:inline-block;padding:2px 6px;border-radius:4px;font-weight:600;}#sec-horaires .hr-np-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;}#sec-horaires .hr-np-card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:.9rem 1.1rem;display:flex;flex-direction:column;gap:6px;}#sec-horaires .hr-np-top{display:flex;align-items:center;justify-content:space-between;}#sec-horaires .hr-np-nm{font-size:14px;font-weight:500;}#sec-horaires .hr-np-bg{font-size:9px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px;background:rgba(120,144,156,.15);color:#78909c;border:1px solid rgba(120,144,156,.3);}#sec-horaires .hr-np-ds{font-size:12px;color:var(--mu);line-height:1.5;}#sec-horaires .hr-np-ft{display:flex;gap:6px;align-items:center;}#sec-horaires .hr-np-dt{width:8px;height:8px;border-radius:2px;flex-shrink:0;}#sec-horaires .hr-np-tm{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);}#sec-horaires .hr-stitle{font-size:16px;font-weight:500;margin-bottom:.4rem;}#sec-horaires .hr-ssub{font-size:12px;color:var(--mu);margin-bottom:1.2rem;}#sec-horaires .hr-db.hr-ok{border-color:#3ecf8e!important;background:rgba(62,207,142,.14)!important;color:#3ecf8e!important;transition:all .25s;}#sec-horaires .hr-db.hr-ok .hr-db-day{color:#3ecf8e!important;}#sec-horaires .hr-db.hr-ok::after{content:'✓';position:absolute;top:6px;right:8px;color:#3ecf8e;font-weight:700;font-size:12px;}#sec-horaires .hr-db.hr-warn{border-color:#f5a623!important;background:rgba(245,166,35,.12)!important;color:#f5a623!important;transition:all .25s;}#sec-horaires .hr-db.hr-warn .hr-db-day{color:#f5a623!important;}#sec-horaires .hr-db.hr-warn::after{content:'⚠';position:absolute;top:6px;right:8px;color:#f5a623;font-weight:700;font-size:12px;}#sec-horaires .hr-db{position:relative;}@keyframes hrSpin{to{transform:rotate(360deg)}}#sec-horaires .hr-btn.hr-spinning{opacity:.7;pointer-events:none;}#sec-horaires .hr-btn .hr-spin-ico{display:inline-block;}#sec-horaires .hr-btn.hr-spinning .hr-spin-ico{animation:hrSpin .7s linear infinite;}#sec-horaires #hrx-rows{padding-top:62px;}#sec-horaires #hrx-rows .hr-tl-row:first-child{min-height:34px;}#sec-horaires .hr-np-jour{padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--bd2);background:var(--s2);color:var(--mu);font-family:'DM Sans',sans-serif;transition:all .12s;}#sec-horaires .hr-np-jour:hover{color:var(--tx);border-color:var(--mu);}#sec-horaires .hr-np-jour.hr-j-on{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}#sec-horaires .hr-np-freq{padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--bd2);background:var(--s2);color:var(--mu);font-family:'DM Sans',sans-serif;transition:all .12s;}#sec-horaires .hr-np-freq:hover{color:var(--tx);border-color:var(--mu);}#sec-horaires .hr-np-freq.hr-f-on{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}
 #sec-horaires #hrx-taux-input::-webkit-outer-spin-button,#sec-horaires #hrx-taux-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
 #sec-horaires .hr-np-card.hr-np-editing{border-color:var(--ac);box-shadow:0 0 0 1px rgba(232,224,32,.25);}
 #sec-horaires .hr-qh{position:absolute;top:6px;left:8px;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;cursor:help;line-height:1}
@@ -346,19 +346,6 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
       <button id="btn-logout" onclick="logout()">Déconnexion</button>
     </div>
   </header>
-  <nav id="main-nav">
-    <button class="active desktop-only" onclick="goPage('equipe',this)">👥 Équipe</button>
-    <button onclick="goPage('horaires',this)">🕐 Horaires</button>
-    <button onclick="goPage('recrutement',this)">🎯 Recrutement <span id="rbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
-    <button class="desktop-only" onclick="goPage('visite',this)">🩺 Visite médicale <span id="vbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
-    <button onclick="goPage('incidents',this)">📋 Incidents</button>
-    <button class="desktop-only" onclick="goPage('rapports',this)">📊 Rapports</button>
-    <button onclick="goPage('planning',this)">🗓️ Planning</button>
-    <button class="desktop-only" onclick="goPage('parametres',this)">⚙️ Paramètres</button>
-    <button class="desktop-only" onclick="goPage('alertes',this)">🔔 Alertes <span id="albadge" style="background:var(--red);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
-    <button class="desktop-only" onclick="goPage('salaires',this)">💶 Salaires</button>
-    <button class="desktop-only" onclick="goPage('contrats',this)">📄 Contrats</button>
-  </nav>
   <div id="preview-bar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;background:#2A2A2A;border-bottom:1px solid #444;padding:8px 16px;">
     <span style="font-size:.8rem;color:#F5A623;font-weight:700;">👁️ Voir comme</span>
     <select id="preview-role" onchange="onPreviewChange()" style="background:#1A1A1A;color:#fff;border:1px solid #555;border-radius:6px;padding:5px 10px;font-size:.82rem;">
@@ -376,6 +363,19 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
     <span id="preview-status" style="font-size:.78rem;color:#aaa;"></span>
     <button id="preview-back" onclick="stopPreview()" style="display:none;background:#F5A623;color:#1A1A1A;border:none;border-radius:6px;padding:5px 12px;font-size:.8rem;font-weight:700;cursor:pointer;">↩ Revenir à ma vue</button>
   </div>
+  <nav id="main-nav">
+    <button class="active desktop-only" onclick="goPage('equipe',this)">👥 Équipe</button>
+    <button onclick="goPage('horaires',this)">🕐 Horaires</button>
+    <button onclick="goPage('recrutement',this)">🎯 Recrutement <span id="rbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
+    <button class="desktop-only" onclick="goPage('visite',this)">🩺 Visite médicale <span id="vbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
+    <button onclick="goPage('incidents',this)">📋 Incidents</button>
+    <button class="desktop-only" onclick="goPage('rapports',this)">📊 Rapports</button>
+    <button onclick="goPage('planning',this)">🗓️ Planning</button>
+    <button class="desktop-only" onclick="goPage('parametres',this)">⚙️ Paramètres</button>
+    <button class="desktop-only" onclick="goPage('alertes',this)">🔔 Alertes <span id="albadge" style="background:var(--red);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
+    <button class="desktop-only" onclick="goPage('salaires',this)">💶 Salaires</button>
+    <button class="desktop-only" onclick="goPage('contrats',this)">📄 Contrats</button>
+  </nav>
 
   <!-- HORAIRES (module porté depuis BK administratif) -->
   <div class="page" id="page-horaires">
@@ -6568,12 +6568,17 @@ function hrPlancherHebdoMin(emp){
 function hrAutoAssignDay(dayIdx, ctx){
   var rows=ROWS_BY_DAY[dayIdx]; if(!rows) return {placed:0,total:0,equipiers:0};
   var jourKey=JOURS_KEYS[dayIdx]||'lun';
-  var resto=hrCurrentResto();
+  var resto=(typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:hrCurrentResto();
   var restoId=(resto||'').toLowerCase();
   var equipiers=(DB.employees||[]).filter(function(e){
     return e.role==='equipier' && !e.archived && (e.restoId===restoId);
   });
   var npSet=(typeof hrNpLabels==='function')?hrNpLabels():new Set();
+  // Traits réservés à l'encadrement (managers/leaders) : on n'y place PAS d'équipier.
+  function estTraitEncadrement(label){
+    var u=(label||'').toUpperCase();
+    return u.indexOf('MANA')>=0 || u.indexOf('MANAGER')>=0 || u.indexOf('LEADER')>=0 || u.indexOf('LEAD')>=0;
+  }
 
   // Contexte partagé sur la semaine (créé si absent = placement d'un seul jour)
   ctx=ctx||{minSemaine:{},joursTravailles:{},busy:{}};
@@ -6593,18 +6598,28 @@ function hrAutoAssignDay(dayIdx, ctx){
     return s>=from && e<=to;
   }
   function qualifOk(emp,poste){
-    var q=(emp.infos&&emp.infos.qualifs)||[];
-    return q.indexOf(poste)>=0;
+    // TEMPORAIRE : tous les équipiers sont considérés qualifiés pour tout.
+    // (On réactivera la vérification des qualifications plus tard.)
+    return true;
+    /* version future :
+    var u=(poste||'').toUpperCase();
+    if(POSTES_PRODUCTIFS.indexOf(u)>=0){
+      var q=(emp.infos&&emp.infos.qualifs)||[];
+      return q.indexOf(u)>=0;
+    }
+    return true;
+    */
   }
 
   var placed=0,total=0;
   var allBars=[];
   rows.forEach(function(r){
-    r.bars.forEach(function(b){ if(!npSet.has((b.l||'').toUpperCase())) allBars.push(b); });
+    r.bars.forEach(function(b){ if(!estTraitEncadrement(b.l)) allBars.push(b); });
   });
   allBars.sort(function(a,b){return a.s-b.s;});
 
   allBars.forEach(function(b){
+    if(b.empId){ return; } // déjà pourvu lors d'une passe précédente : on garde
     total++;
     b.emp=null; b.empId=null;
     var duree=b.e-b.s;
@@ -6615,16 +6630,27 @@ function hrAutoAssignDay(dayIdx, ctx){
       // PLAFOND CONTRAT : ne pas dépasser le contrat hebdo
       var plaf=plafondMin(e);
       if(plaf!=null && (minFaits(e.id)+duree)>plaf) return false;
+      // RÈGLES CONVENTION RESTAURATION RAPIDE (IDCC 1501) :
+      if(!hrReglesConvention(e,dayIdx,b,ctx,duree)) return false;
       return true;
     }).sort(function(a,c){
-      // priorité à ceux qui sont le plus loin de leur contrat (pour viser le contrat)
+      // 1) priorité forte à ceux sous leur plancher / loin du contrat
       var ra=hrResteMin(a,ctx), rc=hrResteMin(c,ctx);
+      if(Math.abs(rc-ra)>30) return rc-ra; // écart significatif (>30 min)
+      // 2) à priorité proche : privilégier la CONTINUITÉ (coller à un créneau existant)
+      var ca=hrColleAuJour(a.id,dayIdx,b.s,b.e,ctx)?1:0;
+      var cc=hrColleAuJour(c.id,dayIdx,b.s,b.e,ctx)?1:0;
+      if(ca!==cc) return cc-ca;
       return rc-ra;
     });
     if(cands.length){
       var chosen=cands[0];
       b.emp=chosen.name; b.empId=chosen.id;
       ctx.busy[chosen.id]=ctx.busy[chosen.id]||[]; ctx.busy[chosen.id].push({s:b.s,e:b.e});
+      ctx.busyJour=ctx.busyJour||{};
+      ctx.busyJour[chosen.id]=ctx.busyJour[chosen.id]||{};
+      ctx.busyJour[chosen.id][dayIdx]=ctx.busyJour[chosen.id][dayIdx]||[];
+      ctx.busyJour[chosen.id][dayIdx].push({s:b.s,e:b.e});
       ctx.minSemaine[chosen.id]=(ctx.minSemaine[chosen.id]||0)+duree;
       ctx.joursTravailles[chosen.id]=ctx.joursTravailles[chosen.id]||{};
       ctx.joursTravailles[chosen.id][dayIdx]=true;
@@ -6632,6 +6658,55 @@ function hrAutoAssignDay(dayIdx, ctx){
     }
   });
   return {placed:placed,total:total,equipiers:equipiers.length};
+}
+// L'équipier a-t-il déjà un créneau qui TOUCHE [s,e] ce jour (pour faire continu) ?
+function hrColleAuJour(empId,dayIdx,s,e,ctx){
+  var arr=((ctx.busyJour||{})[empId]||{})[dayIdx]||[];
+  for(var i=0;i<arr.length;i++){ if(arr[i].e===s || arr[i].s===e) return true; }
+  return false;
+}
+// Nombre de créneaux DISTINCTS (plages continues) qu'aurait l'équipier ce jour
+// SI on lui ajoutait le trait [s,e]. Deux traits qui se touchent = 1 seul créneau.
+function hrNbCreneauxApres(empId,dayIdx,s,e,ctx){
+  var arr=((ctx.busyJour||{})[empId]||{})[dayIdx]||[];
+  var plages=arr.map(function(p){return {s:p.s,e:p.e};});
+  plages.push({s:s,e:e});
+  plages.sort(function(a,b){return a.s-b.s;});
+  // fusionner les plages qui se touchent ou se chevauchent (tolérance 0 min)
+  var n=0,cur=null;
+  plages.forEach(function(p){
+    if(cur && p.s<=cur.e){ cur.e=Math.max(cur.e,p.e); }
+    else { cur={s:p.s,e:p.e}; n++; }
+  });
+  return n;
+}
+// ══ RÈGLES CONVENTION RESTAURATION RAPIDE (IDCC 1501) appliquées au placement ══
+//  - max 10h de travail par jour
+//  - max 1 coupure/jour (donc 2 séquences max)
+//  - chaque séquence de travail ≥ 2h
+//  - coupure (interruption) ≤ 5h
+//  - aucune coupure si contrat < 12h/semaine
+function hrReglesConvention(emp,dayIdx,b,ctx,duree){
+  var arr=(((ctx.busyJour||{})[emp.id]||{})[dayIdx]||[]).map(function(p){return {s:p.s,e:p.e};});
+  arr.push({s:b.s,e:b.e});
+  arr.sort(function(x,y){return x.s-y.s;});
+  var seqs=[],cur=null;
+  arr.forEach(function(p){
+    if(cur && p.s<=cur.e){ cur.e=Math.max(cur.e,p.e); }
+    else { cur={s:p.s,e:p.e}; seqs.push(cur); }
+  });
+  if(seqs.length>2) return false;                 // max 1 coupure => 2 séquences
+  var totJour=0; seqs.forEach(function(s){ totJour+=(s.e-s.s); });
+  if(totJour>10*60) return false;                 // max 10h/jour
+  if(seqs.length===2){
+    var coupure=seqs[1].s-seqs[0].e;
+    if(coupure>5*60) return false;                // coupure max 5h
+    if((seqs[0].e-seqs[0].s)<2*60) return false;  // séquence 1 >= 2h
+    if((seqs[1].e-seqs[1].s)<2*60) return false;  // séquence 2 >= 2h
+    var ch=hrContratHebdo(emp);
+    if(ch!=null && ch<12) return false;           // pas de coupure si < 12h/sem
+  }
+  return true;
 }
 // Priorité de placement : ceux sous leur plancher (contrat-2h) passent devant.
 // Renvoie un score : plus c'est grand, plus l'équipier est prioritaire.
@@ -6674,7 +6749,7 @@ function hrAutoAssignWeek(){
 }
 // Réserve 2 jours de repos consécutifs par équipier (les bloque pour qu'on n'y place personne)
 function hrReserverReposConsecutifs(ctx){
-  var resto=(hrCurrentResto()||'').toLowerCase();
+  var resto=((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:hrCurrentResto()||'').toLowerCase();
   var equipiers=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto;});
   ctx.repos=ctx.repos||{};
   equipiers.forEach(function(e,idx){
@@ -6740,7 +6815,7 @@ function hrAutoAssignMonth(){
   var lundis=hrLundisDuMois(isoRef);
   var moisNoms=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
   var moisLabel=moisNoms[parseInt(isoRef.slice(5,7),10)-1]+' '+isoRef.slice(0,4);
-  var resto=(hrCurrentResto()||'').toLowerCase();
+  var resto=((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:hrCurrentResto()||'').toLowerCase();
   var equipiers=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto;});
 
   // contexte MENSUEL : minMois cumulé sur tout le mois
@@ -6763,7 +6838,16 @@ function hrAutoAssignMonth(){
       if(hebdo==null) return resteMois;
       return Math.min(hebdo,resteMois);
     };
-    for(var d=0;d<7;d++){ hrAutoAssignDay(d, ctx); }
+    // Placement en plusieurs passes : on répète tant qu'on arrive à placer du monde
+    // (chaque passe re-priorise ceux qui sont le plus loin de leur contrat).
+    var passe=0, encore=true;
+    while(encore && passe<6){
+      var avant=0; for(var kid in ctx.minSemaine){ avant+=ctx.minSemaine[kid]; }
+      for(var d=0;d<7;d++){ hrAutoAssignDay(d, ctx); }
+      var apres=0; for(var kid2 in ctx.minSemaine){ apres+=ctx.minSemaine[kid2]; }
+      encore=(apres>avant); // on continue tant qu'on progresse
+      passe++;
+    }
     // cumuler dans le mois + mémoriser le détail de la semaine + MÉMORISER PAR DATE (pour les traits)
     var parEmp={};
     for(var dd=0;dd<7;dd++){
@@ -6785,22 +6869,150 @@ function hrAutoAssignMonth(){
   });
 
   HR_MONTH_RESULT={label:moisLabel, semaines:semaines, moisMin:moisMin};
+  // DIAGNOSTIC : heures de traits disponibles vs heures de contrats à pourvoir
+  var totalTraitsMin=0;
+  semaines.forEach(function(s,wi){
+    // recharger pour compter les traits (déjà chargés pendant le placement)
+  });
+  // recompter sur la dernière génération mémorisée par date
+  var totalPlaceMin=0, totalContratMin=0;
+  equipiers.forEach(function(e){
+    totalPlaceMin+=(moisMin[e.id]||0);
+    var pm=hrPlafondMensuelMin(e); var h=hrContratHebdo(e);
+    totalContratMin += pm!=null?pm:(h?Math.round(h*4.33*60):0);
+  });
+  function H(min){return (min/60).toFixed(0)+'h';}
   // restaurer la semaine d'origine à l'écran
   if(lundiCourant) hrGenFromWeek(lundiCourant, true);
   renderTimeline();
   hrRenderEmploiMois();
   var st=document.getElementById('hrx-assign-status');
-  if(st) st.textContent='🗓️ Mois '+moisLabel+' : '+lundis.length+' semaines placées (plafond mensuel respecté)';
+  if(st) st.innerHTML='🗓️ '+moisLabel+' · '+(resto.toUpperCase())+' · '+equipiers.length+' équipiers · '+lundis.length+' sem.<br>'
+    +'<span style="color:#9a9aaa">Heures placées : '+H(totalPlaceMin)+' / contrats à pourvoir : '+H(totalContratMin)
+    +(totalPlaceMin<totalContratMin*0.9?' → <span style="color:#e8a020">pas assez de traits pour remplir tous les contrats</span>':' ✓')+'</span>';
 }
 window.hrAutoAssignMonth=hrAutoAssignMonth;
 
 // Tableau récap MENSUEL : par équipier, heures de chaque semaine + total mois
+var HR_HEBDO_SEM=0; // index de la semaine affichée dans le planning hebdo
 function hrRenderEmploiMois(){
+  // affiche le planning hebdomadaire imprimable (une semaine à la fois)
+  hrRenderPlanningHebdo();
+}
+window.hrRenderEmploiMois=hrRenderEmploiMois;
+
+function hrSetHebdoSem(i){ HR_HEBDO_SEM=i; hrRenderPlanningHebdo(); }
+window.hrSetHebdoSem=hrSetHebdoSem;
+
+// Planning hebdomadaire imprimable, façon document RH (fond blanc)
+function hrRenderPlanningHebdo(){
+  var box=document.getElementById('hrx-emploi-semaine'); if(!box) return;
+  if(!HR_MONTH_RESULT||!HR_MONTH_RESULT.semaines.length){ box.innerHTML='<div style="color:var(--mu);font-size:13px;padding:12px;">Cliquez sur « Placer le mois » pour générer le planning.</div>'; return; }
+  var R=HR_MONTH_RESULT;
+  // Synchroniser sur la semaine affichée en haut (les traits) si elle fait partie du mois calculé
+  if(typeof HR_WEEK_LUNDI!=='undefined' && HR_WEEK_LUNDI){
+    var idx=R.semaines.findIndex(function(s){return s.lundi===HR_WEEK_LUNDI;});
+    if(idx>=0){ HR_HEBDO_SEM=idx; }
+    else {
+      // la semaine affichée en haut n'a pas été calculée (autre mois) : on prévient
+      box.innerHTML='<div style="background:#fff;color:#333;border-radius:10px;padding:18px;text-align:center;font-size:13px;">La semaine affichée en haut n\'a pas encore été calculée.<br>Cliquez sur « 🗓️ Placer le mois » pour générer le planning de cette période.</div>';
+      return;
+    }
+  }
+  if(HR_HEBDO_SEM>=R.semaines.length) HR_HEBDO_SEM=0;
+  var sem=R.semaines[HR_HEBDO_SEM];
+  var moisNoms=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var joursN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+
+  // dates de la semaine (lundi -> dimanche)
+  var lundi=hrParse(sem.lundi);
+  var dates=[]; for(var i=0;i<7;i++){ var d=new Date(lundi); d.setDate(lundi.getDate()+i); dates.push(d); }
+  var dimanche=dates[6];
+  function jjmm(d){ return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0'); }
+  function hhmm(min){ var h=Math.floor(min/60)%24,m=min%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
+  function fmtHC(min){ var h=Math.floor(min/60),m=min%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
+
+  // équipiers présents ce mois (toutes semaines), triés par nom
+  var ids={}; R.semaines.forEach(function(s){ Object.keys(s.parEmp).forEach(function(id){ ids[id]=s.parEmp[id].name; }); });
+  var liste=Object.keys(ids).map(function(id){return {id:id,name:ids[id]};});
+  liste.sort(function(a,b){return a.name.localeCompare(b.name);});
+
+  function matriculeDe(id){ var e=(DB.employees||[]).find(function(x){return x.id===id;}); return (e&&e.infos&&e.infos.matricule)?e.infos.matricule:''; }
+  function contratDe(id){ var e=(DB.employees||[]).find(function(x){return x.id===id;}); return hrContratHebdo(e); }
+
+  // barre d'onglets semaines
+  var tabs='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">';
+  R.semaines.forEach(function(s,i){
+    var l=hrParse(s.lundi); var di=new Date(l); di.setDate(l.getDate()+6);
+    var lab='Sem. '+jjmm(l)+'→'+jjmm(di);
+    tabs+='<button onclick="hrSetHebdoSem('+i+')" style="cursor:pointer;font-size:12px;padding:5px 11px;border-radius:7px;border:1px solid '+(i===HR_HEBDO_SEM?'#D62300':'#ccc')+';background:'+(i===HR_HEBDO_SEM?'#D62300':'#fff')+';color:'+(i===HR_HEBDO_SEM?'#fff':'#333')+';font-weight:600;">'+lab+'</button>';
+  });
+  tabs+='</div>';
+
+  // document blanc
+  var h='<div style="background:#fff;color:#222;border-radius:10px;padding:22px 20px;box-shadow:0 2px 14px rgba(0,0,0,.25);">';
+  h+='<div style="text-align:center;margin-bottom:14px;">';
+  h+='<div style="font-size:17px;font-weight:700;color:#111;">Planning hebdomadaire</div>';
+  h+='<div style="font-size:12.5px;color:#D62300;font-weight:600;margin-top:2px;">du '+jjmm(lundi)+'/'+lundi.getFullYear()+' au '+jjmm(dimanche)+'/'+dimanche.getFullYear()+'</div>';
+  h+='<div style="font-size:12px;color:#666;margin-top:2px;">'+(R.label?R.label.charAt(0).toUpperCase()+R.label.slice(1):'')+' — '+(hrCurrentResto?(HR_GRILLE_RESTO||''):'')+'</div>';
+  h+='</div>';
+
+  h+='<div style="overflow-x:auto;"><table style="border-collapse:collapse;width:100%;min-width:900px;font-size:11.5px;">';
+  // en-tête
+  h+='<thead><tr style="border-bottom:2px solid #333;">';
+  h+='<th style="text-align:left;padding:8px 10px;color:#444;font-weight:700;white-space:nowrap;">NOM Prénom</th>';
+  for(var j=0;j<7;j++){
+    h+='<th style="padding:8px 6px;color:#444;font-weight:600;border-left:1px solid #eee;">'+joursN[j]+'<br><span style="font-size:10px;color:#999;font-weight:400;">'+jjmm(dates[j])+'</span></th>';
+  }
+  h+='<th style="padding:8px 10px;color:#444;font-weight:700;border-left:2px solid #333;white-space:nowrap;">PLAN / CONTRAT</th>';
+  h+='</tr></thead><tbody>';
+
+  liste.forEach(function(e){
+    var pe=sem.parEmp[e.id];
+    var mat=matriculeDe(e.id); var contrat=contratDe(e.id);
+    h+='<tr style="border-bottom:1px solid #eee;">';
+    h+='<td style="padding:7px 10px;font-weight:600;color:#222;white-space:nowrap;">'+e.name+(mat?' <span style="color:#999;font-weight:400;">('+mat+')</span>':'')+'</td>';
+    var totMin=0;
+    for(var jj=0;jj<7;jj++){
+      var cren=(pe&&pe.jours[jj])?pe.jours[jj].slice():[];
+      // fusionner les créneaux contigus du même jour et trier
+      cren.sort(function(a,b){return a.s-b.s;});
+      var cellHtml;
+      if(!cren.length){
+        cellHtml='<span style="color:#aaa;">Repos</span>';
+      } else {
+        // regrouper en plages continues
+        var plages=[]; var cur=null;
+        cren.forEach(function(b){
+          totMin+=(b.e-b.s);
+          if(cur && b.s<=cur.e){ cur.e=Math.max(cur.e,b.e); }
+          else { cur={s:b.s,e:b.e}; plages.push(cur); }
+        });
+        cellHtml=plages.map(function(p){return '<div style="white-space:nowrap;color:#222;">'+hhmm(p.s)+' - '+hhmm(p.e)+'</div>';}).join('');
+      }
+      h+='<td style="padding:6px 6px;text-align:center;vertical-align:middle;border-left:1px solid #eee;">'+cellHtml+'</td>';
+    }
+    // PLAN / CONTRAT
+    var planTxt=fmtHC(totMin);
+    var contTxt=contrat!=null?fmtHC(Math.round(contrat*60)):'—';
+    var col= contrat!=null ? (totMin/60>contrat+0.01?'#D62300':(totMin/60<contrat-0.01?'#E08600':'#1A9850')) : '#222';
+    h+='<td style="padding:7px 10px;text-align:center;font-weight:700;color:'+col+';border-left:2px solid #333;white-space:nowrap;">'+planTxt+' / '+contTxt+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='<div style="font-size:10.5px;color:#888;margin-top:12px;">Repos = jour non travaillé · PLAN/CONTRAT = heures planifiées / heures du contrat. <span style="color:#1A9850;">vert</span>=conforme · <span style="color:#E08600;">orange</span>=sous le contrat · <span style="color:#D62300;">rouge</span>=au-dessus. (Les CP, absences et arrêts seront ajoutés ensuite.)</div>';
+  h+='</div>';
+
+  box.innerHTML=tabs+h;
+}
+window.hrRenderPlanningHebdo=hrRenderPlanningHebdo;
+
+// (ancien récap conservé plus bas si besoin)
+function hrRenderEmploiMois_OLD(){
   var box=document.getElementById('hrx-emploi-semaine'); if(!box) return;
   if(!HR_MONTH_RESULT){ box.innerHTML=''; return; }
   var R=HR_MONTH_RESULT;
   function fmtH(min){ var h=Math.floor(min/60), m=min%60; return m?(h+'h'+String(m).padStart(2,'0')):(h+'h'); }
-  // liste des équipiers présents
   var ids={};
   R.semaines.forEach(function(s){ Object.keys(s.parEmp).forEach(function(id){ ids[id]=s.parEmp[id].name; }); });
   var liste=Object.keys(ids).map(function(id){return {id:id,name:ids[id]};});
@@ -6831,10 +7043,8 @@ function hrRenderEmploiMois(){
     h+='</tr>';
   });
   h+='</tbody></table></div>';
-  h+='<div style="font-size:11px;color:var(--mu);margin-top:8px;">Lissage mensuel : un contrat 24h vise ~104h/mois (réparties ~20–26h/semaine). <span style="color:#3ecf8e;">vert</span>=conforme · <span style="color:#e8a020;">orange</span>=sous le plafond · <span style="color:#e74c3c;">rouge</span>=dépassement.</div>';
   box.innerHTML=h;
 }
-window.hrRenderEmploiMois=hrRenderEmploiMois;
 
 // Construit l'emploi du temps de la semaine, par équipier (créneaux + total d'heures)
 function hrRenderEmploiSemaine(){
@@ -8621,6 +8831,10 @@ function hrGenFromWeek(lundi, garderOnglet){
   buildCAGrid();
   if(!garderOnglet) hrShow('planning');
   renderAll();
+  // si un placement mois a été fait, garder le tableau du bas synchronisé sur la semaine affichée
+  if(typeof HR_MONTH_RESULT!=='undefined' && HR_MONTH_RESULT && typeof hrRenderPlanningHebdo==='function'){
+    try{ hrRenderPlanningHebdo(); }catch(e){}
+  }
 }
 window.hrGenFromWeek=hrGenFromWeek;
 
