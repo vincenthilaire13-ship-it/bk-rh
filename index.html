@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-17 10:18 · v95';
+  var EMBEDDED_VERSION = '2026-06-17 10:30 · v96';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -281,6 +281,60 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 .ct-viewer .champ-auto{background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd;}
 .ct-viewer .l0[contenteditable="true"],.ct-viewer .l1[contenteditable="true"]{outline:none;border-radius:4px;}
 .ct-viewer .l0[contenteditable="true"]:focus,.ct-viewer .l1[contenteditable="true"]:focus{background:#fffbe6;box-shadow:0 0 0 1px #f0c000;}
+/* ════════ DASHBOARD / ACCUEIL ÉQUIPE ════════ */
+body.tv-mode #main-nav{display:none!important;}
+body.tv-mode #eye-viewas{display:none!important;}
+#page-dashboard{max-width:1400px;}
+#dash-root{min-height:60vh;}
+.dash-pick{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:7vh 16px 4vh;text-align:center;}
+.dash-pick-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:2.6rem;letter-spacing:3px;color:var(--yellow);text-transform:uppercase;}
+.dash-pick-sub{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1.1rem;letter-spacing:2px;color:#bbb;text-transform:uppercase;margin:6px 0 26px;}
+.dash-pick-grid{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;}
+.dash-pick-card{width:200px;height:150px;border-radius:18px;border:2px solid var(--orange);background:linear-gradient(150deg,#2A1500,#160C00);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:transform .15s,box-shadow .15s;}
+.dash-pick-card:hover{transform:translateY(-4px) scale(1.03);box-shadow:0 12px 30px rgba(214,35,0,.35);}
+.dash-pick-card .pc-em{font-size:2.4rem;}
+.dash-pick-card .pc-lb{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:2px;color:#fff;text-transform:uppercase;}
+.dash-pick-card .pc-sub{font-size:.74rem;color:#caa;}
+.dash-pick-note{font-size:.8rem;color:#777;margin-top:24px;max-width:420px;}
+.dash-top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:linear-gradient(135deg,var(--red),#A01800);border-radius:16px;padding:16px 22px;margin-bottom:18px;box-shadow:0 6px 24px rgba(0,0,0,.4);}
+.dash-top-l{display:flex;align-items:center;gap:14px;}
+.dash-resto-badge{width:54px;height:54px;border-radius:14px;background:rgba(0,0,0,.25);border:2px solid var(--yellow);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.1rem;color:var(--yellow);}
+.dash-hello{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1.05rem;letter-spacing:1px;color:#ffe;text-transform:uppercase;}
+.dash-resto-name{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.7rem;letter-spacing:1px;color:#fff;line-height:1;}
+.dash-top-r{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
+.dash-clock{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:2.3rem;color:var(--yellow);line-height:1;letter-spacing:1px;}
+.dash-date{font-size:.82rem;color:#ffd;text-transform:capitalize;}
+.dash-change{margin-top:5px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:20px;padding:5px 13px;font-size:.76rem;cursor:pointer;font-family:Barlow,sans-serif;}
+.dash-change:hover{background:rgba(0,0,0,.45);}
+.dash-banner{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#2A1800,#1A0F00);border:1px solid var(--orange);border-radius:14px;padding:13px 18px;margin-bottom:18px;}
+.dash-banner-ico{font-size:1.5rem;}
+.dash-banner-txt{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1.05rem;letter-spacing:1px;color:var(--yellow);}
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;}
+.dash-tile{position:relative;border-radius:18px;padding:22px 18px;min-height:150px;border:1px solid #3a3a3a;background:linear-gradient(155deg,#2E2E2E,#1E1E1E);cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;}
+.dash-tile:hover{transform:translateY(-5px);box-shadow:0 14px 34px rgba(0,0,0,.5);border-color:var(--orange);}
+.dash-tile .dt-em{font-size:2.6rem;line-height:1;}
+.dash-tile .dt-tt{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:1px;color:#fff;text-transform:uppercase;margin-top:14px;}
+.dash-tile .dt-ds{font-size:.8rem;color:#9a9a9a;margin-top:3px;line-height:1.35;}
+.dash-tile .dt-accent{position:absolute;top:0;left:0;width:100%;height:5px;}
+.dash-tile.dt-soon{opacity:.62;}
+.dash-tile.dt-soon::after{content:'BIENTÔT';position:absolute;top:12px;right:12px;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:.66rem;letter-spacing:1px;color:#1A1A1A;background:#777;padding:2px 8px;border-radius:10px;}
+.dash-panel{background:var(--gray);border-radius:16px;border:1px solid #333;overflow:hidden;}
+.dash-panel-hdr{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;background:linear-gradient(135deg,var(--red),#A01800);}
+.dash-back{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:20px;padding:7px 15px;font-size:.85rem;cursor:pointer;font-family:Barlow,sans-serif;}
+.dash-back:hover{background:rgba(0,0,0,.45);}
+.dash-panel-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.35rem;letter-spacing:2px;color:#fff;text-transform:uppercase;}
+.dash-panel-body{padding:18px;}
+@media(max-width:600px){
+  .dash-top{padding:13px 15px;}
+  .dash-resto-name{font-size:1.35rem;}
+  .dash-clock{font-size:1.8rem;}
+  .dash-grid{grid-template-columns:repeat(2,1fr);gap:11px;}
+  .dash-tile{min-height:120px;padding:16px 13px;border-radius:15px;}
+  .dash-tile .dt-em{font-size:2rem;}
+  .dash-tile .dt-tt{font-size:1.05rem;margin-top:9px;}
+  .dash-tile .dt-ds{font-size:.72rem;}
+  .dash-pick-card{width:44vw;height:120px;}
+}
 </style>
 </head>
 <body>
@@ -299,9 +353,15 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
       <p style="color:#888;font-size:.83rem;margin-top:4px;">Sélectionnez votre accès</p>
       <div id="login-maj" style="display:inline-block;margin-top:12px;background:rgba(76,175,80,.12);border:1px solid #4CAF50;color:#4CAF50;padding:5px 16px;border-radius:20px;font-size:.8rem;font-weight:600;"></div>
     </div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:20px;">
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:14px;">
       <div class="tile tile-admin" onclick="pickGlobal('admin')"><div class="tile-icon">🛡️</div><div class="tile-label">Admin</div><div class="tile-sub">Accès total</div></div>
       <div class="tile tile-rh" onclick="pickGlobal('rh')"><div class="tile-icon">👩‍💼</div><div class="tile-label">Superviseure</div><div class="tile-sub">RH / Supervision</div></div>
+    </div>
+    <p style="color:#555;font-size:.76rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;">📺 Écrans TV restaurant</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:20px;">
+      <div class="tile tile-tv" onclick="pickTV('bk500')" style="border-color:#42a5f5;"><div class="tile-icon">📺</div><div class="tile-label">Écran TV 500</div><div class="tile-sub">Dashboard BK 500</div></div>
+      <div class="tile tile-tv" onclick="pickTV('bk509')" style="border-color:#42a5f5;"><div class="tile-icon">📺</div><div class="tile-label">Écran TV 509</div><div class="tile-sub">Dashboard BK 509</div></div>
+      <div class="tile tile-tv" onclick="pickTV('bk526')" style="border-color:#42a5f5;"><div class="tile-icon">📺</div><div class="tile-label">Écran TV 526</div><div class="tile-sub">Dashboard BK 526</div></div>
     </div>
     <div style="width:100%;max-width:620px;height:1px;background:#333;margin-bottom:18px;"></div>
     <p style="color:#555;font-size:.76rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;">Restaurants</p>
@@ -422,6 +482,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
     <button id="preview-back" onclick="stopPreview()" style="display:none;background:#F5A623;color:#1A1A1A;border:none;border-radius:6px;padding:6px 12px;font-size:.8rem;font-weight:700;cursor:pointer;">↩ Revenir à ma vue</button>
   </div>
   <nav id="main-nav">
+    <button onclick="goPage('dashboard',this)">🏠 Accueil</button>
     <button class="active desktop-only" onclick="goPage('equipe',this)">👥 Équipe</button>
     <button onclick="goPage('horaires',this)">🕐 Horaires</button>
     <button onclick="goPage('recrutement',this)">🎯 Recrutement <span id="rbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
@@ -437,6 +498,47 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
     <button onclick="goPage('pointage',this)">⏱️ Pointage</button>
     <button class="desktop-only" onclick="goPage('suivipointage',this)">📋 Suivi pointage</button>
   </nav>
+
+  <!-- ════════ DASHBOARD / ACCUEIL ÉQUIPE ════════ -->
+  <div class="page" id="page-dashboard">
+    <div id="dash-root">
+      <div id="dash-resto-pick" class="dash-pick">
+        <div class="dash-pick-logo">BURGER KING</div>
+        <div class="dash-pick-sub">Choisissez votre restaurant</div>
+        <div class="dash-pick-grid" id="dash-pick-grid"></div>
+        <p class="dash-pick-note">L'écran restera sur ce restaurant. Vous pourrez en changer à tout moment.</p>
+      </div>
+      <div id="dash-board" style="display:none;">
+        <div class="dash-top">
+          <div class="dash-top-l">
+            <div class="dash-resto-badge" id="dash-resto-badge">BK</div>
+            <div>
+              <div class="dash-hello" id="dash-hello">Bienvenue 👋</div>
+              <div class="dash-resto-name" id="dash-resto-name">—</div>
+            </div>
+          </div>
+          <div class="dash-top-r">
+            <div class="dash-clock" id="dash-clock">--:--</div>
+            <div class="dash-date" id="dash-date">—</div>
+            <button class="dash-change" onclick="dashChangeResto()">⟲ Changer de resto</button>
+          </div>
+        </div>
+        <div class="dash-banner" id="dash-banner" style="display:none;">
+          <span class="dash-banner-ico">📢</span>
+          <span class="dash-banner-txt" id="dash-banner-txt"></span>
+        </div>
+        <div class="dash-grid" id="dash-grid"></div>
+      </div>
+      <div id="dash-panel" class="dash-panel" style="display:none;">
+        <div class="dash-panel-hdr">
+          <button class="dash-back" onclick="dashClosePanel()">← Retour</button>
+          <div class="dash-panel-title" id="dash-panel-title">—</div>
+          <div style="width:90px;"></div>
+        </div>
+        <div class="dash-panel-body" id="dash-panel-body"></div>
+      </div>
+    </div>
+  </div>
 
   <!-- HORAIRES (module porté depuis BK administratif) -->
   <div class="page" id="page-horaires">
@@ -1409,7 +1511,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-13 18:55';
+const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-17 12:58';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM' éventuellement suivi de ' · vN'
   try{
@@ -1519,6 +1621,13 @@ function dbxCandFolder(c){
   var resto=RESTOS[rid]?RESTOS[rid].label:(rid||'Autre');
   return '/'+dbxClean(resto)+'/'+dbxClean((c.nom||'')+' '+(c.prenom||''));
 }
+// dossier RECRUTEMENT d'un candidat : /<Resto>/Recrutement/<Nom Prenom>
+function dbxRecrutFolder(rid,nom,prenom){
+  var resto=RESTOS[rid]?RESTOS[rid].label:(rid||'Autre');
+  return '/'+dbxClean(resto)+'/Recrutement/'+dbxClean((nom||'')+' '+(prenom||''));
+}
+// date du jour AAAA-MM-JJ pour nommer les fichiers
+function dbxDateStr(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 
 
 const sb = {
@@ -1650,7 +1759,7 @@ async function loadAll() {
     sb.get('bks_incidents','select=*&order=created_at.desc'),
     sb.get('bks_letters','select=*&order=created_at.desc'),
     sb.get('bks_settings','select=*&id=eq.main'),
-    sb.get('bks_candidatures','select=*&order=created_at.desc').catch(function(){return [];}),
+    sb.get('bks_candidatures','select=id,prenom,nom,email,phone,resto_id,restos,poste,niveau_apprentissage,dispos,questionnaire,motivation,statut,entretien_date,note_interne,created_at,date_naissance,etudiant,rqth,dernier_emploi,transport,trajet,adresse,code_postal,ville,nationalite,sexe,photo,contrat_type,contrat_label,contrat_heures,cv_name,onboarding,date_debut,essai_rappels,avis_managers,refus_motif,documents,contact_urgence,tailles_tenue,bku_identifiant,bku_motdepasse,docs_soumis,videos_faites,essai_alerte,contrat_signe,visite_faite,visite_date,contrat_signe_doc&order=created_at.desc').catch(function(){return [];}),
     sb.get('bks_emp_docs','select=*&order=created_at.desc').catch(function(){return [];}),
   ]);
   DB.empDocs = (empDocs||[]).map(function(d){
@@ -1821,6 +1930,14 @@ function pickGlobal(key) {
   openPin();
 }
 
+function pickTV(restoId) {
+  // Écran TV d'un restaurant : code 0000, ouvre directement le dashboard du resto
+  curResto = restoId;
+  var label = (RESTOS[restoId]&&RESTOS[restoId].label)||restoId;
+  pinProf = {key:'tv_'+restoId,icon:'📺',title:'Écran TV — '+label,sub:'Code 0000',role:'tv',pin:'0000',restoId:restoId,tvResto:restoId};
+  openPin();
+}
+
 function pickResto(restoId) {
   curResto = restoId;
   var names = DB.restoNames[restoId] || {};
@@ -1981,6 +2098,17 @@ function checkPin() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     document.getElementById('uname').textContent = pinProf.title;
+
+    // ── MODE ÉCRAN TV : dashboard d'un resto, sans menu ──
+    if (r==='tv') {
+      var tvResto = pinProf.tvResto || pinProf.restoId;
+      try{ localStorage.setItem('dash_resto', tvResto); }catch(e){}
+      document.body.classList.add('tv-mode');
+      try{ var eye=document.getElementById('eye-viewas'); if(eye) eye.style.display='none'; }catch(e){}
+      try{ goPage('dashboard'); }catch(e){console.warn('tv dash',e);}
+      return;
+    }
+
     applyRolePermissions(r);
     // Page de départ selon le rôle
     var startPage;
@@ -2044,6 +2172,9 @@ function goPage(id, btn) {
     fillRptPersons();genReport();
   }
   if (id==='equipe') renderEquipe();
+  if (id==='dashboard'){ try{ initDashboard(); dashStartAutoRefresh(); }catch(e){console.warn('dash',e);} }
+  else { try{ dashStopAutoRefresh(); }catch(e){} }
+  if (id==='incidents'){ try{ initForm(); }catch(e){} }
   if (id==='horaires'){ try{
     if(!window.__hrDone && window.__hrInit){ window.__hrInit(); }
     else if(window.hrSelectResto){ var rs=document.getElementById('hrx-resto-sel'); window.hrSelectResto((rs&&rs.value)||'BK526'); }
@@ -2117,10 +2248,29 @@ function initForm(){
   // Manager : pas de choix de sanction, toujours "observation orale"
   var isMgr=(curUser&&curUser.role==='manager');
   var lbl=document.getElementById('sanction-label'),row=document.getElementById('sanction-row'),mgrNote=document.getElementById('sanction-mgr-note');
-  if(lbl)lbl.style.display=isMgr?'none':'';
-  if(row)row.style.display=isMgr?'none':'flex';
-  if(mgrNote)mgrNote.style.display=isMgr?'block':'none';
-  if(isMgr){selSanction='verbal';selSev='2';}
+  if(isMgr){
+    // On garde le libellé et on n'affiche QUE le bouton "Observation orale", déjà sélectionné
+    if(lbl){lbl.style.display='';lbl.textContent="Type d'observation";}
+    if(row)row.style.display='flex';
+    document.querySelectorAll('.sev-btn[data-sanc]').forEach(function(b){
+      if(b.dataset.sanc==='verbal'){
+        b.style.display='';
+        // état sélectionné (orange plein)
+        b.style.background='#F5A623';b.style.color='#fff';b.style.fontWeight='900';
+        b.style.transform='scale(1.04)';b.style.boxShadow='0 4px 16px #F5A62388';
+        b.style.cursor='default';b.onclick=null; // non modifiable
+      } else {
+        b.style.display='none';
+      }
+    });
+    if(mgrNote)mgrNote.style.display='block';
+    selSanction='verbal';selSev='2';
+  } else {
+    if(lbl){lbl.style.display='';lbl.textContent='Type de sanction';}
+    if(row)row.style.display='flex';
+    if(mgrNote)mgrNote.style.display='none';
+    document.querySelectorAll('.sev-btn[data-sanc]').forEach(function(b){ b.style.display=''; });
+  }
 }
 
 function toggleProb(div,p){
@@ -2167,7 +2317,19 @@ function resetForm(){
     b.style.color=b.dataset.sanc==='verbal'?'#F5A623':b.dataset.sanc==='ecrit'?'#5BA3F5':b.dataset.sanc==='avert'?'#FF8732':'#D62300';
     b.style.fontWeight='';b.style.transform='';b.style.boxShadow='';
   });
-  // Reset champs spéciaux
+  // Manager : ne réafficher QUE "Observation orale" (sélectionnée), masquer les autres
+  if(curUser&&curUser.role==='manager'){
+    document.querySelectorAll('.sev-btn[data-sanc]').forEach(function(b){
+      if(b.dataset.sanc==='verbal'){
+        b.style.display='';
+        b.style.background='#F5A623';b.style.color='#fff';b.style.fontWeight='900';
+        b.style.transform='scale(1.04)';b.style.boxShadow='0 4px 16px #F5A62388';
+        b.style.cursor='default';b.onclick=null;
+      } else { b.style.display='none'; }
+    });
+    selSanction='verbal';selSev='2';
+    var _mn=document.getElementById('sanction-mgr-note');if(_mn)_mn.style.display='block';
+  }
   ['retard-prev','retard-arr','retard-result'].forEach(function(s){var el=document.getElementById('ex-'+s);if(el)el.value!==undefined?el.value='':el.textContent='';});
   var tags=document.getElementById('ex-absence-tags');if(tags)tags.innerHTML='';
   var ainp=document.getElementById('ex-absence-input');if(ainp)ainp.value='';
@@ -2222,7 +2384,8 @@ async function submitInc(){
     if (savedInc) {
       var inc = Object.assign({},incData,{id:savedInc.id,empId:empId,datetime:incData.inc_datetime,extraData:extraData,sanctionType:selSanction});
       DB.incidents.unshift(inc);
-      var lid = await createLetterNew(inc);
+      // Observation orale (verbal) : aucun courrier, aucun mail — seulement l'enregistrement de l'incident.
+      var lid = (selSanction!=='verbal') ? await createLetterNew(inc) : null;
       // Document de sanction joint -> Dropbox + fiche salarié
       if(_incSanctionDoc&&_incSanctionDoc.data&&emp){
         try{
@@ -2241,7 +2404,8 @@ async function submitInc(){
       _incSanctionDoc=null;
       toast('Signalement enregistré ✔','success');
       resetForm();renderHistory();updateVBadge();await loadAll();
-      if(emp&&emp.email&&lid) setTimeout(function(){sendLetterEmail(lid);},700);
+      // Pas d'envoi de mail pour une observation orale (verbal) : mail uniquement pour les sanctions écrites
+      if(emp&&emp.email&&lid&&selSanction!=='verbal') setTimeout(function(){sendLetterEmail(lid);},700);
     }
   } catch(e) { toast('Erreur sauvegarde','error'); console.error(e); }
 }
@@ -2933,12 +3097,21 @@ async function validerSortie(){
   var e=DB.employees.find(function(x){return x.id===_sortieEmpId;});if(!e)return;
   if(!(_sortieDocs['solde']&&(_sortieDocs['solde'].data||_sortieDocs['solde'].link))){alert('Le solde de tout compte est obligatoire.');return;}
   if(!confirm('Valider la sortie définitive de '+e.name+' ?\n\nLes documents seront archivés dans Dropbox et le salarié quittera l\'équipe active (historique conservé).'))return;
-  // upload Dropbox dans dossier de sortie daté
+  // Archivage Dropbox : on harmonise sur /Archives/<Resto>/<Nom Prenom>/
   var dbxReady=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
   var rid=e.restoId||'';
-  var restoCode=({bk500:'BK500',bk509:'BK509',bk526:'BK526'})[rid]||dbxClean(rid).toUpperCase();
+  var restoLbl=RESTOS[rid]?RESTOS[rid].label:(rid||'Autre');
   var dateStr=(e.sortieDate||new Date().toISOString().slice(0,10));
-  var folder='/'+restoCode+'_OUT/'+dbxClean(e.name)+'_'+dateStr;
+  // 1) déplacer le dossier "en poste" vers Archives (s'il existe)
+  if(dbxReady){
+    try{
+      var _fromPoste='/'+dbxClean(restoLbl)+'/'+dbxClean(e.name);
+      var _toArch='/Archives/'+dbxClean(restoLbl)+'/'+dbxClean(e.name);
+      await dbxMove(_fromPoste,_toArch);
+    }catch(mvErr){console.warn('Bascule dossier sortie',mvErr);}
+  }
+  // 2) les documents de sortie (solde, etc.) sont déposés dans le dossier Archives
+  var folder='/Archives/'+dbxClean(restoLbl)+'/'+dbxClean(e.name);
   if(dbxReady){
     for(var key in _sortieDocs){
       if(!_sortieDocs.hasOwnProperty(key))continue;
@@ -3110,16 +3283,33 @@ var EMPF_SECTIONS=[
 
 function _frDate(v){if(!v)return '';try{return new Date(v+'T12:00:00').toLocaleDateString('fr-FR');}catch(_){return v;}}
 
+function empEstEncadrement(e){
+  // Managers / Leaders / Directeurs : compétences gérées dans le planning encadrement, pas ici.
+  if(!e) return false;
+  var p=((e.infos&&e.infos.poste)||'').toLowerCase();
+  var r=(e.role||'').toLowerCase();
+  if(/manager|leader|directeur|cadre|ma[iî]trise/.test(p)) return true;
+  if(/directeur|manager/.test(r)) return true;
+  return false;
+}
 function openEmpFiche(id){
   var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
   _empfId=id;_empfTab='infos';
   document.getElementById('empf-title').textContent=e.name;
+  // Masquer l'onglet "Compétences & Dispos" pour l'encadrement (managers / leaders / directeurs)
+  var qbtn=document.getElementById('empft-qualif');
+  if(qbtn) qbtn.style.display = empEstEncadrement(e) ? 'none' : '';
   goPage('emp-fiche');
   empfTab('infos');
 }
 function closeEmpFiche(){goPage('equipe');renderEquipe();}
 
 function empfTab(t){
+  // Sécurité : si l'onglet compétences est masqué (encadrement), on reste sur Infos
+  if(t==='qualif'){
+    var qb=document.getElementById('empft-qualif');
+    if(qb && qb.style.display==='none') t='infos';
+  }
   _empfTab=t;
   ['infos','docs','qualif','histo'].forEach(function(x){
     var btn=document.getElementById('empft-'+x);if(btn)btn.className='rtab'+(x===t?' on':'');
@@ -3135,8 +3325,16 @@ var POSTES_PRODUCTIFS=['CUISINE','FRITES','SNACK','BROILER','BOARD VOLANT','BORN
 function postesNonProductifs(){
   // récupère les non-productifs définis (dans BASE_MIN), sinon liste vide
   var arr=[];
-  try{(BASE_MIN||[]).forEach(function(b){if(b[3]==='np'){var u=(b[0]||'').toUpperCase();if(u&&arr.indexOf(u)<0)arr.push(u);}});}catch(e){}
+  var EXCL=['OUVERTURE MANA','CLOSE MANA']; // managers gérés autrement, on ne les propose pas ici
+  try{((typeof BASE_MIN!=='undefined'?BASE_MIN:null)||window.BASE_MIN||[]).forEach(function(b){if(b[3]==='np'){var u=(b[0]||'').toUpperCase();if(u&&EXCL.indexOf(u)<0&&arr.indexOf(u)<0)arr.push(u);}});}catch(e){}
   return arr;
+}
+function hexA(hex,a){
+  if(!hex||hex[0]!=='#') return hex;
+  var h=hex.replace('#','');
+  if(h.length===3){ h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2]; }
+  var r=parseInt(h.substr(0,2),16),g=parseInt(h.substr(2,2),16),b=parseInt(h.substr(4,2),16);
+  return 'rgba('+r+','+g+','+b+','+a+')';
 }
 function renderEmpQualif(id){
   var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
@@ -3151,22 +3349,23 @@ function renderEmpQualif(id){
   h+='<div class="card" style="margin-bottom:14px;">';
   h+='<div class="sec-title">🎯 Qualifications — postes maîtrisés</div>';
   h+='<p style="font-size:.8rem;color:#aaa;margin-bottom:12px;">Cochez les postes que '+e.name+' sait tenir. Ils servent à placer la personne sur le planning uniquement sur des postes qu\'elle maîtrise.</p>';
-  h+='<div style="font-size:.74rem;color:#7FB3FF;font-weight:700;margin-bottom:7px;text-transform:uppercase;letter-spacing:.04em;">Postes productifs</div>';
+  h+='<div style="font-size:.74rem;color:#aaa;font-weight:700;margin-bottom:7px;text-transform:uppercase;letter-spacing:.04em;">Postes productifs</div>';
   h+='<div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;">';
   POSTES_PRODUCTIFS.forEach(function(p){
     var on=qualifs.indexOf(p)>=0;
-    var cc=(typeof col==='function')?col(p):{bg:'#2E6FC2',tx:'#fff'};
-    var bg=on?cc.bg:'#141414', bord=on?cc.bg:'#333', txt=on?(cc.tx||'#fff'):'#999';
+    var cc=(typeof window.colFor==='function')?window.colFor(p):((typeof window.col==='function')?window.col(p):{bg:'#2E6FC2',tx:'#fff'});
+    // couleur du trait visible en permanence : pleine si coché, pâle (transparente) sinon
+    var bg=on?cc.bg:hexA(cc.bg,0.16), bord=cc.bg, txt=on?(cc.tx||'#fff'):cc.bg;
     h+='<span onclick="'+(canEdit?'toggleQualif(\''+id+'\',\''+p.replace(/'/g,"\\'")+'\')':'')+'" style="font-size:.8rem;padding:6px 11px;border-radius:18px;cursor:'+(canEdit?'pointer':'default')+';user-select:none;border:1px solid '+bord+';background:'+bg+';color:'+txt+';">'+(on?'✓ ':'')+p+'</span>';
   });
   h+='</div>';
   if(np.length){
-    h+='<div style="font-size:.74rem;color:#F5A623;font-weight:700;margin-bottom:7px;text-transform:uppercase;letter-spacing:.04em;">Postes non productifs</div>';
+    h+='<div style="font-size:.74rem;color:#aaa;font-weight:700;margin-bottom:7px;text-transform:uppercase;letter-spacing:.04em;">Postes non productifs</div>';
     h+='<div style="display:flex;flex-wrap:wrap;gap:7px;">';
     np.forEach(function(p){
       var on=qualifs.indexOf(p)>=0;
-      var cc=(typeof col==='function')?col(p):{bg:'#A86A00',tx:'#fff'};
-      var bg=on?cc.bg:'#141414', bord=on?cc.bg:'#333', txt=on?(cc.tx||'#fff'):'#999';
+      var cc=(typeof window.colFor==='function')?window.colFor(p):((typeof window.col==='function')?window.col(p):{bg:'#A86A00',tx:'#fff'});
+      var bg=on?cc.bg:hexA(cc.bg,0.16), bord=cc.bg, txt=on?(cc.tx||'#fff'):cc.bg;
       h+='<span onclick="'+(canEdit?'toggleQualif(\''+id+'\',\''+p.replace(/'/g,"\\'")+'\')':'')+'" style="font-size:.8rem;padding:6px 11px;border-radius:18px;cursor:'+(canEdit?'pointer':'default')+';user-select:none;border:1px solid '+bord+';background:'+bg+';color:'+txt+';">'+(on?'✓ ':'')+p+'</span>';
     });
     h+='</div>';
@@ -4720,9 +4919,18 @@ function openCand(id){
   document.getElementById('modal-cand').classList.add('open');
 }
 
-function viewCV(id){
+async function viewCV(id){
   var c=DB.candidatures.find(function(x){return x.id===id;});
-  if(!c||!c.cvData)return;
+  if(!c)return;
+  // Chargement à la demande : on ne télécharge le CV (base64) que pour ce candidat,
+  // et seulement s'il n'est pas déjà en mémoire. Évite de tirer tous les CV au démarrage.
+  if(!c.cvData){
+    try{
+      var rows=await sb.get('bks_candidatures','select=cv_data,cv_name&id=eq.'+id);
+      if(rows&&rows[0]){ c.cvData=rows[0].cv_data||''; if(rows[0].cv_name) c.cvName=rows[0].cv_name; }
+    }catch(e){ console.warn('viewCV load',e); }
+  }
+  if(!c.cvData){alert('CV introuvable pour ce candidat.');return;}
   document.getElementById('docview-title').textContent='📄 CV — '+c.prenom+' '+c.nom;
   document.getElementById('docview-body').innerHTML=docViewerHtml(c.cvData,c.cvName||'CV');
   document.getElementById('modal-docview').classList.add('open');
@@ -5200,22 +5408,30 @@ async function candContratSigne(){
   var c=curCand();if(!c)return;
   if(!(c.contratSigneDoc&&(c.contratSigneDoc.data||c.contratSigneDoc.link))){alert('Importez d\'abord le contrat signé.');return;}
   if(!confirm('Démarrer la période d\'essai de '+c.prenom+' '+c.nom+' ?\n\nLe salarié sera ajouté à l\'équipe et le contrat archivé dans Dropbox.'))return;
-  // Upload du contrat signé dans Dropbox (dossier du candidat)
   var dbxReady=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
+  var restoLbl=RESTOS[c.restoId]?RESTOS[c.restoId].label:(c.restoId||'Autre');
+  var postePath='/'+dbxClean(restoLbl)+'/'+dbxClean((c.nom||'')+' '+(c.prenom||''));
+  // 1) BASCULE DOSSIER : Recrutement -> En poste (déplace CV + photo + docs déjà présents)
+  if(dbxReady){
+    try{
+      var _from=dbxRecrutFolder(c.restoId,c.nom,c.prenom);
+      await dbxMove(_from,postePath);
+    }catch(e){console.warn('Bascule dossier embauche',e);}
+  }
+  // 2) Upload du contrat signé dans le dossier "en poste" (après la bascule)
   if(dbxReady&&c.contratSigneDoc&&c.contratSigneDoc.data&&!c.contratSigneDoc.link){
     try{
-      var folder=dbxCandFolder(c);
       var ext=(c.contratSigneDoc.name&&c.contratSigneDoc.name.indexOf('.')>=0)?c.contratSigneDoc.name.split('.').pop():'pdf';
       var fname='Contrat_signe_'+new Date().toISOString().slice(0,10)+'.'+ext;
       var blob=_dataUrlToBlob(c.contratSigneDoc.data);
-      var link=await dbxUpload(folder+'/'+fname,blob);
+      var link=await dbxUpload(postePath+'/'+fname,blob);
       c.contratSigneDoc={link:link,name:c.contratSigneDoc.name||fname};
       await sb.patch('bks_candidatures','id=eq.'+_candId,{contrat_signe_doc:c.contratSigneDoc});
     }catch(e){console.error('Dropbox contrat échec',e);}
   }
-  // Créer le salarié dans l'équipe
+  // 3) Créer le salarié dans l'équipe
+  var nom=((c.prenom||'')+' '+(c.nom||'')).trim();
   try{
-    var nom=((c.prenom||'')+' '+(c.nom||'')).trim();
     var deja=DB.employees.find(function(e){return e.fromCandId===c.id;});
     if(!deja){
       var eid='u'+Date.now();
@@ -5892,10 +6108,32 @@ async function submitPostuler(){
     dernier_emploi:dernier,
     transport:transport,trajet:trajet,
     dispos:dispos,motivation:motivation,
-    photo:window._photoData||'',
-    cv_data:window._cvData||'',cv_name:window._cvName||'',
     statut:'nouveau',created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
   var btn=event&&event.target;if(btn){btn.disabled=true;btn.textContent='Envoi...';}
+  // ── UPLOAD CV + PHOTO SUR DROPBOX (lien en base, plus de base64) ──────────────
+  // Dossier : /<Resto>/Recrutement/<Nom Prenom>/  — fichiers nommés avec la date.
+  // Filet de sécurité : si Dropbox échoue, on retombe sur le base64 pour ne JAMAIS
+  // perdre une candidature.
+  var _folder=dbxRecrutFolder(resto,nom,prenom);
+  var _ds=dbxDateStr();
+  // -- CV --
+  if(window._cvData){
+    try{
+      var _cvExt=(window._cvName&&window._cvName.indexOf('.')>=0)?window._cvName.split('.').pop():((window._cvType&&window._cvType.indexOf('pdf')>=0)?'pdf':'jpg');
+      var _cvBlob=_dataUrlToBlob(window._cvData);
+      var _cvLink=await dbxUpload(_folder+'/CV_'+dbxClean(nom+'_'+prenom)+'_'+_ds+'.'+_cvExt,_cvBlob);
+      if(_cvLink){ data.cv_data=_cvLink; data.cv_name=window._cvName||('CV.'+_cvExt); }
+      else { data.cv_data=window._cvData; data.cv_name=window._cvName||''; }
+    }catch(e){ console.warn('Dropbox CV upload, fallback base64',e); data.cv_data=window._cvData; data.cv_name=window._cvName||''; }
+  } else { data.cv_data=''; data.cv_name=''; }
+  // -- PHOTO --
+  if(window._photoData){
+    try{
+      var _phBlob=_dataUrlToBlob(window._photoData);
+      var _phLink=await dbxUpload(_folder+'/Photo_'+dbxClean(nom+'_'+prenom)+'_'+_ds+'.jpg',_phBlob);
+      data.photo=_phLink||window._photoData;
+    }catch(e){ console.warn('Dropbox photo upload, fallback base64',e); data.photo=window._photoData; }
+  } else { data.photo=''; }
   try{
     await sb.insert('bks_candidatures',data);
     window._photoData=null;window._cvData=null;window._cvName=null;
@@ -6856,6 +7094,104 @@ function toast(msg,type){
 }
 
 window.onload=function(){schedReports();};
+
+/* ════════ DASHBOARD / ACCUEIL ÉQUIPE ════════ */
+var DASH_RESTO=null,_dashClockTm=null,_dashRefreshTm=null,_dashOpenTile=null;
+var DASH_TILES=[
+  {id:'horaires',  em:'🗓️', tt:'Mes horaires',     ds:'Planning de la semaine', color:'#1565c0', action:'dashOpenHoraires'},
+  {id:'pointer',   em:'⏱️', tt:'Pointer',           ds:'Arrivée / départ',       color:'#2e7d32', action:'dashOpenPointer'},
+  {id:'conges',    em:'🏖️', tt:'Mes congés',        ds:'Demander des vacances',  color:'#F5A623', action:null},
+  {id:'indispo',   em:'🚫', tt:'Indisponibilités', ds:'Jours où je ne peux pas',color:'#FF8732', action:null},
+  {id:'produits',  em:'🍔', tt:'Nouveaux produits', ds:'À connaître en service', color:'#D62300', action:null},
+  {id:'marchandise',em:'📦',tt:'Marchandises',      ds:'Produits & références',  color:'#8e6a00', action:null},
+  {id:'memo',      em:'📌', tt:'Mémos',             ds:'Infos de la direction',  color:'#546e7a', action:null},
+  {id:'contact',   em:'☎️', tt:'Contacts',          ds:'Manager & resto',        color:'#455a64', action:null}
+];
+function dashRestoList(){
+  try{return Object.keys(RESTOS).map(function(k){return {id:k,label:RESTOS[k].label};});}
+  catch(e){return [{id:'bk500',label:'BK 500'},{id:'bk509',label:'BK 509'},{id:'bk526',label:'BK 526'}];}
+}
+function initDashboard(){
+  var saved=null;try{saved=localStorage.getItem('dash_resto');}catch(e){}
+  if(saved&&dashRestoList().some(function(r){return r.id===saved;})){DASH_RESTO=saved;dashShowBoard();}
+  else{dashShowPick();}
+  dashStartClock();
+}
+function dashShowPick(){
+  var pick=document.getElementById('dash-resto-pick'),board=document.getElementById('dash-board'),panel=document.getElementById('dash-panel');
+  if(panel)panel.style.display='none';if(board)board.style.display='none';if(pick)pick.style.display='flex';
+  var g=document.getElementById('dash-pick-grid');if(!g)return;
+  g.innerHTML=dashRestoList().map(function(r){
+    return '<div class="dash-pick-card" onclick="dashSelectResto(\''+r.id+'\')"><div class="pc-em">🍔</div><div class="pc-lb">'+r.label+'</div><div class="pc-sub">Appuyer pour ouvrir</div></div>';
+  }).join('');
+}
+function dashSelectResto(id){DASH_RESTO=id;try{localStorage.setItem('dash_resto',id);}catch(e){}dashShowBoard();}
+function dashChangeResto(){dashShowPick();}
+function dashShowBoard(){
+  var pick=document.getElementById('dash-resto-pick'),board=document.getElementById('dash-board'),panel=document.getElementById('dash-panel');
+  if(pick)pick.style.display='none';if(panel)panel.style.display='none';if(board)board.style.display='block';
+  var r=dashRestoList().find(function(x){return x.id===DASH_RESTO;})||{label:'—'};
+  var badge=document.getElementById('dash-resto-badge');if(badge)badge.textContent=(r.label||'BK').replace(/[^0-9]/g,'')||'BK';
+  var nm=document.getElementById('dash-resto-name');if(nm)nm.textContent=r.label;
+  var hello=document.getElementById('dash-hello');if(hello){var h=new Date().getHours();hello.textContent=(h<12?'Bonjour':(h<18?'Bon après-midi':'Bonsoir'))+' 👋';}
+  dashRenderTiles();
+  var b=document.getElementById('dash-banner');if(b)b.style.display='none';
+}
+function dashRenderTiles(){
+  var g=document.getElementById('dash-grid');if(!g)return;
+  g.innerHTML=DASH_TILES.map(function(t){
+    var soon=!t.action;
+    return '<div class="dash-tile'+(soon?' dt-soon':'')+'" '+(t.action?('onclick="'+t.action+'()"'):'')+'>'
+      +'<div class="dt-accent" style="background:'+t.color+'"></div><div class="dt-em">'+t.em+'</div>'
+      +'<div><div class="dt-tt">'+t.tt+'</div><div class="dt-ds">'+t.ds+'</div></div></div>';
+  }).join('');
+}
+function dashStartClock(){
+  if(_dashClockTm)clearInterval(_dashClockTm);
+  function tick(){
+    var now=new Date(),c=document.getElementById('dash-clock');
+    if(c)c.textContent=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    var d=document.getElementById('dash-date');
+    if(d)d.textContent=now.toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long'});
+  }
+  tick();_dashClockTm=setInterval(tick,20000);
+}
+function dashStartAutoRefresh(){
+  if(_dashRefreshTm)clearInterval(_dashRefreshTm);
+  _dashRefreshTm=setInterval(function(){
+    var pg=document.getElementById('page-dashboard');
+    if(!pg||!pg.classList.contains('active')){clearInterval(_dashRefreshTm);_dashRefreshTm=null;return;}
+    if(typeof loadAll==='function'){loadAll().then(function(){dashRefreshOpenPanel();}).catch(function(){});}
+  },30000);
+}
+function dashStopAutoRefresh(){if(_dashRefreshTm){clearInterval(_dashRefreshTm);_dashRefreshTm=null;}}
+function dashRefreshOpenPanel(){
+  var p=document.getElementById('dash-panel');
+  if(p&&p.style.display!=='none'&&_dashOpenTile&&typeof window[_dashOpenTile]==='function'){try{window[_dashOpenTile]();}catch(e){}}
+}
+function dashOpenPanel(title){
+  document.getElementById('dash-board').style.display='none';
+  var p=document.getElementById('dash-panel');
+  document.getElementById('dash-panel-title').textContent=title;
+  p.style.display='block';
+  return document.getElementById('dash-panel-body');
+}
+function dashClosePanel(){_dashOpenTile=null;document.getElementById('dash-panel').style.display='none';document.getElementById('dash-board').style.display='block';}
+function dashOpenHoraires(){
+  _dashOpenTile='dashOpenHoraires';
+  var lbl=(dashRestoList().find(function(x){return x.id===DASH_RESTO;})||{}).label;
+  var body=dashOpenPanel('Mes horaires — '+lbl);
+  body.innerHTML='<div style="color:#aaa;font-size:.9rem;padding:8px 2px;">Le planning hebdomadaire du restaurant s\'affichera ici (prochaine étape).</div>';
+}
+function dashOpenPointer(){
+  _dashOpenTile='dashOpenPointer';
+  var lbl=(dashRestoList().find(function(x){return x.id===DASH_RESTO;})||{}).label;
+  var body=dashOpenPanel('Pointer — '+lbl);
+  body.innerHTML='<div style="color:#aaa;font-size:.9rem;padding:8px 2px;">La pointeuse s\'affichera ici (prochaine étape).</div>';
+}
+window.initDashboard=initDashboard;window.dashSelectResto=dashSelectResto;window.dashChangeResto=dashChangeResto;
+window.dashOpenHoraires=dashOpenHoraires;window.dashOpenPointer=dashOpenPointer;window.dashClosePanel=dashClosePanel;
+window.dashStartAutoRefresh=dashStartAutoRefresh;window.dashStopAutoRefresh=dashStopAutoRefresh;
 </script>
 
 <!-- ===== MODULE HORAIRE COMPLET (porté depuis BK administratif) ===== -->
@@ -6957,6 +7293,7 @@ function hrSwitchRestoGrille(resto){
   // Charger l'état du nouveau resto (ou défaut)
   GRILLE_EDIT = (GRILLE_BY_RESTO[resto] || GRILLE_DEFAULT).map(r=>[...r]);
   BASE_MIN    = (BASEMIN_BY_RESTO[resto] || BASEMIN_DEFAULT).map(b=>[...b]);
+  try{ window.BASE_MIN = BASE_MIN; }catch(e){}
   // Mettre GRILLE (utilisée par getEff) à jour
   GRILLE.length = 0; GRILLE_EDIT.forEach(r=>GRILLE.push([...r]));
 }
@@ -7019,6 +7356,9 @@ const C={
   'NON PROD':         {bg:'#78909c',tx:'#fff'},
 };
 function col(l){const u=(l||'').toUpperCase(),k=Object.keys(C).find(k=>u.includes(k));return k?C[k]:{bg:'#555',tx:'#eee'};}
+// Rendre la table de couleurs et la fonction col accessibles depuis l'autre bloc <script>
+// (le bloc Compétences/Qualifications est défini dans un script séparé et n'y avait pas accès → tout sortait en bleu).
+try{ window.C=C; window.col=col; }catch(e){}
 
 // ── COULEURS DES NON PRODUCTIFS (managers inclus) ──────────────────────────────
 // Demande métier : TOUS les non productifs (et les postes managers OUVERTURE/CLOSE MANA)
@@ -7047,6 +7387,7 @@ function colFor(label){
   // 3) sinon couleur standard du poste
   return col(label);
 }
+try{ window.colFor=colFor; }catch(e){}
 
 // Choisir/persister la couleur d'un NP
 function hrSetNpColor(label, hex){
@@ -7135,6 +7476,8 @@ let BASE_MIN=[
 ];
 // Mémoriser la base minimum par défaut (maintenant que BASE_MIN existe)
 BASEMIN_DEFAULT = BASE_MIN.map(b=>[...b]);
+// Rendre BASE_MIN accessible depuis l'autre bloc <script> (bloc Compétences/Qualifications)
+try{ window.BASE_MIN = BASE_MIN; }catch(e){}
 
 // ── CA RÉELS 15min ───────────────────────────────────────────────────────────
 const CA_DAYS=[
@@ -9468,6 +9811,7 @@ function hrNpSave(){
   // Si on édite, on retire d'abord toutes les lignes np de ce nom
   if(HR_NP_EDIT_NOM){
     BASE_MIN = BASE_MIN.filter(b=>!(b[3]==='np' && b[0]===HR_NP_EDIT_NOM));
+    try{ window.BASE_MIN = BASE_MIN; }catch(e){}
   }
   // On enregistre une ligne par créneau : [nom, début, fin, 'np', jours, freq]
   slots.forEach(([s,e])=>{ BASE_MIN.push([nom, s, e, 'np', jours, freq]); });
@@ -9521,6 +9865,7 @@ function hrNpEdit(nom){
 function hrNpDelete(nom){
   if(!confirm('Supprimer le poste non productif « '+nom+' » ?')) return;
   BASE_MIN = BASE_MIN.filter(b=>!(b[3]==='np' && b[0]===nom));
+  try{ window.BASE_MIN = BASE_MIN; }catch(e){}
   BASEMIN_BY_RESTO[HR_GRILLE_RESTO] = BASE_MIN.map(b=>[...b]);
   hrSauverGrille(); // sauvegarde en base (Supabase)
   renderNP();
@@ -10356,6 +10701,7 @@ async function hrChargerGrilles(){
     }
     if(typeof HR_GRILLE_RESTO!=='undefined' && BASEMIN_BY_RESTO[HR_GRILLE_RESTO]){
       BASE_MIN = BASEMIN_BY_RESTO[HR_GRILLE_RESTO].map(b=>[...b]);
+      try{ window.BASE_MIN = BASE_MIN; }catch(e){}
     }
   }catch(e){
     console.warn('Grilles planning : lecture impossible (table planning_grilles ?).', e.message||e);
