@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-17 22:05 · v100';
+  var EMBEDDED_VERSION = '2026-06-17 22:55 · v102';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -4737,7 +4737,7 @@ var REGLEMENT_DEFAUT={
   viseContratExact:true, // chaque semaine vise le contrat exact
   traitMiniHeures:2,     // [perso] durée minimale d'un trait (créneau)
   traitMaxiHeures:4,     // [perso] durée maximale d'un trait (créneau)
-  maxTraitsJour:2,       // [perso] nombre maximum de traits par jour et par personne
+  maxTraitsJour:3,       // [perso] nombre maximum de traits par jour et par personne (3 pour atteindre les gros contrats)
   groupementFermeture:true,    // [perso] journée groupée pour ceux qui ferment
   coupureMaxFermetureMin:30,   // [perso] coupure maxi (min) entre les 2 créneaux d'un fermant
   heureFermetureDepuisH:22,    // [perso] un créneau finissant à partir de cette heure = fermeture
@@ -8452,8 +8452,9 @@ function hrPlacerPersonne(e, ctx, joursAutorises){
   }
   // ordre des jours : les plus chargés d'abord (pour servir là où il y a du besoin)
   var jours=[0,1,2,3,4,5,6].sort(function(a,b){ return hrChargeJour(b)-hrChargeJour(a); });
-  // 2 tours : tour 1 = un seul créneau par jour (étaler) ; tour 2 = autoriser le 2e créneau
-  for(var tour=1; tour<=2; tour++){
+  var _maxTJ=(R&&R.maxTraitsJour!=null)?parseInt(R.maxTraitsJour,10):3; if(isNaN(_maxTJ)||_maxTJ<1) _maxTJ=3;
+  // 3 tours : tour 1 = 1 créneau/jour (étaler) ; tour 2 = 2e créneau ; tour 3 = créneaux qui se collent pour finir le contrat
+  for(var tour=1; tour<=3; tour++){
     var avance=true;
     while(avance){
       avance=false;
@@ -8465,9 +8466,9 @@ function hrPlacerPersonne(e, ctx, joursAutorises){
         var rows=ROWS_BY_DAY[d]; if(!rows) continue;
         var vides=[];
         rows.forEach(function(r){ r.bars.forEach(function(b){ if(!b.empId && !estTraitEncadrement(b.l)) vides.push(b); }); });
-        // au tour 2, privilégier les créneaux qui se collent à un créneau existant du jour
+        // tours 2 et 3 : privilégier les créneaux qui se collent à un créneau existant du jour
         vides.sort(function(a,b){
-          if(tour===2){
+          if(tour>=2){
             var ca=hrColleAuJour(e.id,d,a.s,a.e,ctx)?0:1;
             var cb=hrColleAuJour(e.id,d,b.s,b.e,ctx)?0:1;
             if(ca!==cb) return ca-cb;
@@ -8477,7 +8478,9 @@ function hrPlacerPersonne(e, ctx, joursAutorises){
         for(var vi=0;vi<vides.length;vi++){
           var b=vides[vi]; var duree=b.e-b.s;
           if(plaf!=null && (ctx.minSemaine[e.id]||0)+duree>plaf) continue;
-          if(nbCreneauxJour(d)>=2) break;
+          if(nbCreneauxJour(d)>=_maxTJ) break;
+          // au tour 3 : n'accepter QUE des créneaux qui se collent (pour ne pas créer de coupures)
+          if(tour===3 && !hrColleAuJour(e.id,d,b.s,b.e,ctx)) continue;
           if(!dispoOkJ(d,b.s,b.e)) continue;
           if(occupe(b.s,b.e)) continue;
           if(!hrReglesConvention(e,d,b,ctx,duree)) continue;
@@ -8937,11 +8940,13 @@ function hrReserverReposConsecutifs(ctx){
   // on construit dynamiquement des blocs consécutifs de longueur nbRepos
   function blocsConsecutifs(){
     var res=[];
-    for(var start=0;start<7;start++){
-      var b=[]; for(var k=0;k<nbRepos;k++){ b.push((start+k)%7); }
+    // blocs de nbRepos jours qui se suivent DANS la semaine lun(0)->dim(6),
+    // SANS bouclage dimanche->lundi (dim et lun ne sont PAS consécutifs).
+    for(var start=0;start+nbRepos<=7;start++){
+      var b=[]; for(var k=0;k<nbRepos;k++){ b.push(start+k); }
       res.push(b);
     }
-    return res; // 7 blocs (lun-mar, mar-mer, ..., dim-lun)
+    return res; // ex nbRepos=2 : [lun,mar],[mar,mer],[mer,jeu],[jeu,ven],[ven,sam],[sam,dim]
   }
   var tousBlocs=blocsConsecutifs();
   // CHARGE de chaque jour (somme des durées des traits équipiers) : on met les repos
