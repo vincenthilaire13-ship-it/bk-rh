@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-16 18:03 · v86';
+  var EMBEDDED_VERSION = '2026-06-16 20:32 · v89';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -479,6 +479,14 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
     <div id="hrx-rows"></div>
     <div class="hr-leg" id="hrx-leg"></div>
   </div></div>
+  <div style="margin-top:1.4rem;">
+    <div class="hr-stitle" style="margin:0 0 .3rem;">👤 Disponibilités du jour — par salarié</div>
+    <div class="hr-ssub" style="margin:0 0 .6rem;">Pour chaque salarié qui travaille ce jour : ses créneaux en couleur, et en <span style="color:#9aa0a6;">gris clair</span> les heures où il n'est <strong>pas</strong> disponible. Aide au placement.</div>
+    <div class="hr-scx"><div class="hr-tl-wrap">
+      <div class="hr-tl-top"><div class="hr-tl-lh"></div><div class="hr-tl-hh" id="hrx-dispo-ruler"></div></div>
+      <div id="hrx-dispo-rows"></div>
+    </div></div>
+  </div>
   <div style="margin-top:1.4rem;">
     <div class="hr-stitle" style="margin:0 0 .3rem;">📋 Emploi du temps de la semaine — équipiers</div>
     <div class="hr-ssub" style="margin:0 0 .8rem;">Heures par semaine et total du mois de chaque équipier. Cliquez sur « Placer le mois » pour le générer.</div>
@@ -3155,7 +3163,9 @@ function renderEmpQualif(id){
   h+='<div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;">';
   POSTES_PRODUCTIFS.forEach(function(p){
     var on=qualifs.indexOf(p)>=0;
-    h+='<span onclick="'+(canEdit?'toggleQualif(\''+id+'\',\''+p.replace(/'/g,"\\'")+'\')':'')+'" style="font-size:.8rem;padding:6px 11px;border-radius:18px;cursor:'+(canEdit?'pointer':'default')+';user-select:none;border:1px solid '+(on?'#2E6FC2':'#333')+';background:'+(on?'#1E3A5F':'#141414')+';color:'+(on?'#7FB3FF':'#999')+';">'+(on?'✓ ':'')+p+'</span>';
+    var cc=(typeof col==='function')?col(p):{bg:'#2E6FC2',tx:'#fff'};
+    var bg=on?cc.bg:'#141414', bord=on?cc.bg:'#333', txt=on?(cc.tx||'#fff'):'#999';
+    h+='<span onclick="'+(canEdit?'toggleQualif(\''+id+'\',\''+p.replace(/'/g,"\\'")+'\')':'')+'" style="font-size:.8rem;padding:6px 11px;border-radius:18px;cursor:'+(canEdit?'pointer':'default')+';user-select:none;border:1px solid '+bord+';background:'+bg+';color:'+txt+';">'+(on?'✓ ':'')+p+'</span>';
   });
   h+='</div>';
   if(np.length){
@@ -3163,7 +3173,9 @@ function renderEmpQualif(id){
     h+='<div style="display:flex;flex-wrap:wrap;gap:7px;">';
     np.forEach(function(p){
       var on=qualifs.indexOf(p)>=0;
-      h+='<span onclick="'+(canEdit?'toggleQualif(\''+id+'\',\''+p.replace(/'/g,"\\'")+'\')':'')+'" style="font-size:.8rem;padding:6px 11px;border-radius:18px;cursor:'+(canEdit?'pointer':'default')+';user-select:none;border:1px solid '+(on?'#A86A00':'#333')+';background:'+(on?'#3A2A0A':'#141414')+';color:'+(on?'#F5A623':'#999')+';">'+(on?'✓ ':'')+p+'</span>';
+      var cc=(typeof col==='function')?col(p):{bg:'#A86A00',tx:'#fff'};
+      var bg=on?cc.bg:'#141414', bord=on?cc.bg:'#333', txt=on?(cc.tx||'#fff'):'#999';
+      h+='<span onclick="'+(canEdit?'toggleQualif(\''+id+'\',\''+p.replace(/'/g,"\\'")+'\')':'')+'" style="font-size:.8rem;padding:6px 11px;border-radius:18px;cursor:'+(canEdit?'pointer':'default')+';user-select:none;border:1px solid '+bord+';background:'+bg+';color:'+txt+';">'+(on?'✓ ':'')+p+'</span>';
     });
     h+='</div>';
   }
@@ -7529,6 +7541,86 @@ function hrAutoAssignDay(dayIdx, ctx){
   });
   return {placed:placed,total:total,equipiers:equipiers.length};
 }
+// ══ PLACEMENT PAR PERSONNE ═══════════════════════════════════════════════════
+// Remplit UNE personne jusqu'à son contrat, sur les jours autorisés (joursAutorises =
+// tableau d'index de jours 0..6, ou null = tous sauf ses repos). On respecte : dispo,
+// pas en repos, max traits/jour, coupure, fermeture groupée, plafond contrat.
+// Stratégie : on étale d'abord (1 créneau par jour), puis on autorise un 2e créneau/jour.
+function hrPlacerPersonne(e, ctx, joursAutorises){
+  var R=(typeof getReglement==='function')?getReglement():{};
+  var nbRepos=(R&&R.joursRepos!=null)?parseInt(R.joursRepos,10):2; if(isNaN(nbRepos)||nbRepos<0) nbRepos=2;
+  var joursMax=7-nbRepos;
+  var plaf=hrPlafondHebdoMin(e);
+  function dispoOkJ(dayIdx,s,en){
+    var jk=JOURS_KEYS[dayIdx];
+    var d=(e.infos&&e.infos.dispos&&e.infos.dispos[jk])||null;
+    if(!d||!d.on) return false;
+    var from=_dispoMin(d.from), to=_dispoMin(d.to);
+    if(from==null||to==null) return false;
+    return s>=from && en<=to;
+  }
+  function occupe(s,en){
+    var arr=ctx.busy&&ctx.busy[e.id]?ctx.busy[e.id]:[];
+    for(var i=0;i<arr.length;i++){ if(s<arr[i].e && en>arr[i].s) return true; }
+    return false;
+  }
+  function nbCreneauxJour(d){ return (((ctx.busyJour||{})[e.id]||{})[d]||[]).length; }
+  function nbJoursTrav(){ var o=ctx.joursTravailles[e.id]||{},n=0; for(var k in o){ if(o[k]) n++; } return n; }
+  function jourOk(d){
+    if(ctx.repos&&ctx.repos[e.id]&&ctx.repos[e.id].indexOf(d)>=0) return false; // repos
+    if(joursAutorises && joursAutorises.indexOf(d)<0) return false;              // hors périmètre
+    var jt=ctx.joursTravailles[e.id]||{};
+    if(!jt[d] && nbJoursTrav()>=joursMax) return false;                          // trop de jours
+    return true;
+  }
+  function attribue(b,d){
+    b.emp=e.name; b.empId=e.id;
+    ctx.busy[e.id]=ctx.busy[e.id]||[]; ctx.busy[e.id].push({s:b.s,e:b.e});
+    ctx.busyJour=ctx.busyJour||{}; ctx.busyJour[e.id]=ctx.busyJour[e.id]||{}; ctx.busyJour[e.id][d]=ctx.busyJour[e.id][d]||[];
+    ctx.busyJour[e.id][d].push({s:b.s,e:b.e});
+    ctx.minSemaine[e.id]=(ctx.minSemaine[e.id]||0)+(b.e-b.s);
+    ctx.joursTravailles[e.id]=ctx.joursTravailles[e.id]||{}; ctx.joursTravailles[e.id][d]=true;
+  }
+  // ordre des jours : les plus chargés d'abord (pour servir là où il y a du besoin)
+  var jours=[0,1,2,3,4,5,6].sort(function(a,b){ return hrChargeJour(b)-hrChargeJour(a); });
+  // 2 tours : tour 1 = un seul créneau par jour (étaler) ; tour 2 = autoriser le 2e créneau
+  for(var tour=1; tour<=2; tour++){
+    var avance=true;
+    while(avance){
+      avance=false;
+      if(plaf!=null && (ctx.minSemaine[e.id]||0)>=plaf) return; // contrat atteint
+      for(var ji=0;ji<jours.length;ji++){
+        var d=jours[ji];
+        if(!jourOk(d)) continue;
+        if(tour===1 && nbCreneauxJour(d)>=1) continue; // tour 1 : un seul créneau/jour
+        var rows=ROWS_BY_DAY[d]; if(!rows) continue;
+        var vides=[];
+        rows.forEach(function(r){ r.bars.forEach(function(b){ if(!b.empId && !estTraitEncadrement(b.l)) vides.push(b); }); });
+        // au tour 2, privilégier les créneaux qui se collent à un créneau existant du jour
+        vides.sort(function(a,b){
+          if(tour===2){
+            var ca=hrColleAuJour(e.id,d,a.s,a.e,ctx)?0:1;
+            var cb=hrColleAuJour(e.id,d,b.s,b.e,ctx)?0:1;
+            if(ca!==cb) return ca-cb;
+          }
+          return a.s-b.s;
+        });
+        for(var vi=0;vi<vides.length;vi++){
+          var b=vides[vi]; var duree=b.e-b.s;
+          if(plaf!=null && (ctx.minSemaine[e.id]||0)+duree>plaf) continue;
+          if(nbCreneauxJour(d)>=2) break;
+          if(!dispoOkJ(d,b.s,b.e)) continue;
+          if(occupe(b.s,b.e)) continue;
+          if(!hrReglesConvention(e,d,b,ctx,duree)) continue;
+          attribue(b,d);
+          avance=true;
+          if(plaf!=null && (ctx.minSemaine[e.id]||0)>=plaf) return;
+          if(tour===1) break; // tour 1 : un seul créneau par jour, on passe au jour suivant
+        }
+      }
+    }
+  }
+}
 // ══ PASSE DE RATTRAPAGE ══════════════════════════════════════════════════════
 // Raisonne par PERSONNE (pas par créneau) : pour chaque équipier encore SOUS son
 // contrat, on cherche activement des créneaux VIDES compatibles (dispo, pas en repos,
@@ -7813,34 +7905,39 @@ function hrAutoAssignWeek(){
   // contexte partagé sur toute la semaine
   var ctx={minSemaine:{},joursTravailles:{},busy:{},repos:{}};
   hrReserverReposConsecutifs(ctx);
-  var totalPlaced=0,totalTraits=0,nbEq=0;
-  // ORDRE DES JOURS : on commence par les jours les PLUS CHARGÉS (souvent le week-end),
-  // pas dans l'ordre lundi→dimanche. Ça évite que les derniers jours restent vides.
-  var ordreJours=[0,1,2,3,4,5,6].sort(function(a,b){ return hrChargeJour(b)-hrChargeJour(a); });
-  ctx._ordreJours=ordreJours;
-  // Plusieurs passes : on répète tant qu'on place du monde, en re-priorisant ceux
-  // qui sont le plus loin de leur contrat (via hrResteMin).
-  var passe=0, encore=true;
-  while(encore && passe<8){
-    var avant=0; for(var kid in ctx.minSemaine){ avant+=ctx.minSemaine[kid]; }
-    totalPlaced=0; totalTraits=0;
-    for(var oi=0;oi<ordreJours.length;oi++){
-      var r=hrAutoAssignDay(ordreJours[oi], ctx);
-      totalPlaced+=r.placed; totalTraits+=r.total; nbEq=r.equipiers;
-    }
-    var apres=0; for(var kid2 in ctx.minSemaine){ apres+=ctx.minSemaine[kid2]; }
-    encore=(apres>avant);
-    passe++;
-  }
-  hrRattrapageContrats(ctx); // place les gens encore sous contrat sur les créneaux vides compatibles
-  hrSecuriteReglesSemaine(); // garantit contrat + 2 traits/jour max, quel que soit le placement
+  var resto=((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto())||'');
+  var equipiers=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto;});
+  // ORDRE DE SERVICE (le 1er servi réserve ses créneaux en priorité) :
+  //  1) petits contrats / étudiants -> UNIQUEMENT le week-end (ven=4, sam=5, dim=6)
+  //  2) gros contrats 35h -> toute la semaine
+  //  3) contrats 24h (et le reste) -> partout
+  var R0=(typeof getReglement==='function')?getReglement():{};
+  var seuilPetit=(R0&&R0.petitsContratsSeuilH!=null)?parseFloat(R0.petitsContratsSeuilH):15; if(isNaN(seuilPetit)) seuilPetit=15;
+  function ch(e){ return hrContratHebdo(e)||0; }
+  var petits=equipiers.filter(function(e){ return ch(e)>0 && ch(e)<=seuilPetit; });
+  var gros35 =equipiers.filter(function(e){ return ch(e)>=30; });
+  var moyens =equipiers.filter(function(e){ return ch(e)>seuilPetit && ch(e)<30; });
+  // tri interne : du plus gros contrat au plus petit (les plus durs à remplir d'abord)
+  function parContratDesc(a,b){ return ch(b)-ch(a); }
+  gros35.sort(parContratDesc); moyens.sort(parContratDesc); petits.sort(parContratDesc);
+  // 1) petits contrats sur le week-end uniquement
+  petits.forEach(function(e){ hrPlacerPersonne(e, ctx, [4,5,6]); });
+  // 2) gros contrats 35h sur toute la semaine
+  gros35.forEach(function(e){ hrPlacerPersonne(e, ctx, null); });
+  // 3) 24h et intermédiaires, partout
+  moyens.forEach(function(e){ hrPlacerPersonne(e, ctx, null); });
+  // 4) deuxième passe générale : on repasse sur tout le monde encore sous contrat
+  equipiers.slice().sort(function(a,b){ return hrResteMin(b,ctx)-hrResteMin(a,ctx); })
+           .forEach(function(e){ hrPlacerPersonne(e, ctx, null); });
+  var totalPlaced=0,totalTraits=0,nbEq=equipiers.length;
+  hrRattrapageContrats(ctx); // rattrapage final sur les créneaux vides compatibles
+  hrSecuriteReglesSemaine(); // garantit contrat + 2 traits/jour max + repos consécutifs
   renderTimeline();
   hrRenderEmploiSemaine();
   var st=document.getElementById('hrx-assign-status');
   if(st){
-    var d=ctx._diag||{};
-    st.innerHTML='👥 Semaine : '+totalPlaced+' / '+totalTraits+' traits pourvus ('+nbEq+' équipiers · contrats respectés)'
-      +'<br><span style="color:#9a9aaa;font-size:11px;">Rejets candidats — dispo:'+(d.dispo||0)+' · occupé:'+(d.libre||0)+' · repos5j:'+(d.max5j||0)+' · plafond contrat:'+(d.plafond||0)+' · règle convention:'+(d.conv||0)+'</span>';
+    var totMin=0; for(var kk in ctx.minSemaine){ totMin+=ctx.minSemaine[kk]; }
+    st.innerHTML='👥 Semaine placée — '+Math.round(totMin/60)+'h positionnées ('+nbEq+' équipiers · contrats respectés)';
   }
 }
 // Réserve 2 jours de repos consécutifs par équipier (les bloque pour qu'on n'y place personne)
@@ -7974,17 +8071,19 @@ function hrAutoAssignMonth(){
     ctx._plafondOverride=function(emp){
       return hrPlafondHebdoMin(emp);
     };
-    // Placement en plusieurs passes : on répète tant qu'on arrive à placer du monde
-    // (chaque passe re-priorise ceux qui sont le plus loin de leur contrat).
-    var passe=0, encore=true;
-    while(encore && passe<6){
-      var avant=0; for(var kid in ctx.minSemaine){ avant+=ctx.minSemaine[kid]; }
-      var _ordreM=[0,1,2,3,4,5,6].sort(function(a,b){ return hrChargeJour(b)-hrChargeJour(a); });
-      for(var _oi=0;_oi<_ordreM.length;_oi++){ hrAutoAssignDay(_ordreM[_oi], ctx); }
-      var apres=0; for(var kid2 in ctx.minSemaine){ apres+=ctx.minSemaine[kid2]; }
-      encore=(apres>avant); // on continue tant qu'on progresse
-      passe++;
-    }
+    // Placement PAR PERSONNE, dans l'ordre : petits (week-end) -> 35h (semaine) -> 24h (partout)
+    var _resto=((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto())||'');
+    var _eq=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===_resto;});
+    var _R0=(typeof getReglement==='function')?getReglement():{};
+    var _seuil=(_R0&&_R0.petitsContratsSeuilH!=null)?parseFloat(_R0.petitsContratsSeuilH):15; if(isNaN(_seuil)) _seuil=15;
+    function _ch(e){ return hrContratHebdo(e)||0; }
+    var _petits=_eq.filter(function(e){return _ch(e)>0&&_ch(e)<=_seuil;}).sort(function(a,b){return _ch(b)-_ch(a);});
+    var _gros =_eq.filter(function(e){return _ch(e)>=30;}).sort(function(a,b){return _ch(b)-_ch(a);});
+    var _moy  =_eq.filter(function(e){return _ch(e)>_seuil&&_ch(e)<30;}).sort(function(a,b){return _ch(b)-_ch(a);});
+    _petits.forEach(function(e){ hrPlacerPersonne(e, ctx, [4,5,6]); });
+    _gros.forEach(function(e){ hrPlacerPersonne(e, ctx, null); });
+    _moy.forEach(function(e){ hrPlacerPersonne(e, ctx, null); });
+    _eq.slice().sort(function(a,b){return hrResteMin(b,ctx)-hrResteMin(a,ctx);}).forEach(function(e){ hrPlacerPersonne(e, ctx, null); });
     hrRattrapageContrats(ctx); // rattrapage : place les gens sous contrat sur les vides compatibles
     hrSecuriteReglesSemaine(); // garantit contrat + 2 traits/jour max sur cette semaine
     // cumuler dans le mois + mémoriser le détail de la semaine + MÉMORISER PAR DATE (pour les traits)
@@ -8372,6 +8471,75 @@ window.hrRenderEmploiSemaine=hrRenderEmploiSemaine;
 const SPAN=DE-DS;
 function pct(m){return((m-DS)/SPAN*100).toFixed(4)+'%';}
 function pctW(s,e){return((e-s)/SPAN*100).toFixed(4)+'%';}
+// ══ VUE DISPONIBILITÉS DU JOUR PAR SALARIÉ ═══════════════════════════════════
+// Pour le jour affiché (curDay) : une ligne par salarié QUI TRAVAILLE ce jour.
+// On affiche ses créneaux en couleur + en gris clair les plages où il n'est PAS dispo.
+function hrRenderDispoJour(){
+  var rul=document.getElementById('hrx-dispo-ruler');
+  var body=document.getElementById('hrx-dispo-rows');
+  if(!body) return;
+  // règle horaire identique à la timeline
+  if(rul){ rul.innerHTML=''; if(typeof RULER_H!=='undefined'){ RULER_H.forEach(function(hh){ var d=document.createElement('div'); d.textContent=String(hh%24).padStart(2,'0'); rul.appendChild(d); }); } }
+  body.innerHTML='';
+  // rassembler par salarié les créneaux du jour affiché
+  var parEmp={};
+  (ROWS_BY_DAY[curDay]||[]).forEach(function(row){
+    row.bars.forEach(function(b){
+      if(!b.empId) return;
+      (parEmp[b.empId]=parEmp[b.empId]||{name:b.emp,bars:[]}).bars.push(b);
+    });
+  });
+  var ids=Object.keys(parEmp);
+  if(!ids.length){ body.innerHTML='<div style="color:var(--mu);font-size:12px;padding:10px;">Aucun salarié placé ce jour. Cliquez sur « Placer la semaine » ou « Placer le mois ».</div>'; return; }
+  // tri par nom
+  ids.sort(function(a,b){ return (parEmp[a].name||'').localeCompare(parEmp[b].name||''); });
+  var jourKey=(typeof JOURS_KEYS!=='undefined')?JOURS_KEYS[curDay]:null;
+  ids.forEach(function(id){
+    var emp=(DB.employees||[]).find(function(x){return x.id===id;});
+    var info=parEmp[id];
+    var tr=document.createElement('div'); tr.className='hr-tl-row';
+    var lab=document.createElement('div'); lab.className='hr-tl-i';
+    lab.textContent=info.name||''; lab.style.fontWeight='600';
+    tr.appendChild(lab);
+    var bd=document.createElement('div'); bd.className='hr-tl-b';
+    var gl=document.createElement('div'); gl.className='hr-tl-gl';
+    if(typeof RULER_H!=='undefined') RULER_H.forEach(function(){ gl.appendChild(document.createElement('div')); });
+    bd.appendChild(gl);
+    // 1) TRAITS GRIS d'INDISPONIBILITÉ : tout l'intervalle [DS,DE] hors de la dispo du jour
+    var dispo=(emp&&emp.infos&&emp.infos.dispos&&jourKey)?emp.infos.dispos[jourKey]:null;
+    var indispos=[]; // liste de [s,e] grisés
+    if(!dispo||!dispo.on){
+      indispos.push([DS,DE]); // pas dispo du tout ce jour -> tout gris
+    } else {
+      var from=_dispoMin(dispo.from), to=_dispoMin(dispo.to);
+      if(from==null) from=DS; if(to==null) to=DE;
+      if(from>DS) indispos.push([DS,Math.min(from,DE)]);   // avant la dispo
+      if(to<DE)   indispos.push([Math.max(to,DS),DE]);     // après la dispo
+    }
+    indispos.forEach(function(iv){
+      var s=Math.max(iv[0],DS), e=Math.min(iv[1],DE); if(e<=s) return;
+      var g=document.createElement('div'); g.className='hr-bar';
+      g.style.cssText='left:'+pct(s)+';width:'+pctW(s,e)+';background:repeating-linear-gradient(45deg,#e9ecef,#e9ecef 6px,#f3f5f7 6px,#f3f5f7 12px);color:#9aa0a6;border:1px dashed #cfd4da;font-size:9px;z-index:2;';
+      g.textContent='indispo';
+      g.title='Indisponible '+fmt(s)+' – '+fmt(e);
+      bd.appendChild(g);
+    });
+    // 2) CRÉNEAUX DE TRAVAIL en couleur (par-dessus)
+    info.bars.forEach(function(b){
+      var s=b.s, e=b.e||s+60; if(e<=DS||s>=DE) return;
+      var cs=Math.max(s,DS), ce=Math.min(e,DE);
+      var c=(typeof colFor==='function')?colFor(b.l):((typeof col==='function')?col(b.l):{bg:'#1E3A5F',tx:'#fff'});
+      var bar=document.createElement('div'); bar.className='hr-bar';
+      bar.style.cssText='left:'+pct(cs)+';width:'+pctW(cs,ce)+';background:'+c.bg+';color:'+(c.tx||'#fff')+';font-weight:600;z-index:6;';
+      bar.textContent=b.l+' '+fmt(s)+'–'+fmt(e);
+      bar.title=b.l+'\n'+fmt(s)+' – '+fmt(e);
+      bd.appendChild(bar);
+    });
+    tr.appendChild(bd);
+    body.appendChild(tr);
+  });
+}
+window.hrRenderDispoJour=hrRenderDispoJour;
 
 function renderTimeline(){
   if(typeof hrReappliquerAffectations==='function') hrReappliquerAffectations();
@@ -8544,6 +8712,7 @@ function renderTimeline(){
   rows.forEach(r=>r.bars.forEach(b=>{
     if(!seen.has(b.l)){seen.add(b.l);const c=colFor(b.l);const it=document.createElement('div');it.className='hr-li';it.innerHTML=`<div class="hr-ld" style="background:${c.bg}"></div>${b.l}`;leg.appendChild(it);}
   }));
+  try{ if(typeof hrRenderDispoJour==='function') hrRenderDispoJour(); }catch(e){}
 }
 
 function calcHeures(dayIdx){
