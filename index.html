@@ -1039,6 +1039,36 @@ body.tv-mode #eye-viewas{display:none!important;}
 
   <!-- PARAMÈTRES -->
   <div class="page" id="page-parametres">
+    <div class="card">
+      <div class="sec-title">🎯 Importer les compétences (grille BK)</div>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:10px;">Collez une ligne par salarié. Format : <b style="color:#fff;">NOM Prénom : poste1, poste2, poste3</b>. Exemple :<br>
+      <span style="font-family:monospace;font-size:.78rem;color:#9ad;">ACAKPO MOREL : cuisine, frites, snack, broiler, board volant, filtrage</span></p>
+      <p style="font-size:.78rem;color:#888;margin-bottom:6px;">Postes reconnus : cuisine, frites, snack, broiler, board volant, borne, drive, sat salle, premiere cabine, tablette drive, emporter, comptoir volant, uber, sat emporter uber — et non productifs : march(andise), prep(aration), plonge, filt(rage), open broiler, open caisse, open salle, ferm/close caisse, ferm salle, ferm couloir, rh horaire, livraison.</p>
+      <label class="flabel">Restaurant ciblé</label>
+      <select id="imp-qualif-resto" class="fi" style="margin-bottom:10px;max-width:240px;">
+        <option value="bk500">BK 500</option><option value="bk509">BK 509</option><option value="bk526" selected>BK 526</option>
+      </select>
+      <textarea id="imp-qualif-text" class="fi" rows="8" style="resize:vertical;font-family:monospace;font-size:.82rem;" placeholder="ACAKPO MOREL : cuisine, frites, snack, broiler, board volant&#10;ADAMOWSKI CLAIRE : borne, drive, sat salle, premiere cabine, emporter, comptoir volant, uber, sat emporter uber"></textarea>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+        <button class="btn btn-gray btn-sm" onclick="impQualifAnalyse()">🔍 Analyser (vérifier avant)</button>
+        <button class="btn btn-red btn-sm" onclick="impQualifApply()" id="imp-qualif-apply" style="display:none;">💾 Importer dans la base</button>
+      </div>
+      <div id="imp-qualif-report" style="font-size:.82rem;margin-top:12px;"></div>
+    </div>
+    <div class="card">
+      <div class="sec-title">📅 Importer les disponibilités (depuis Excel)</div>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:10px;">Dans le fichier Excel, sélectionnez les lignes (colonnes <b style="color:#fff;">Nom, Prénom, Lundi → Dimanche</b>), copiez, puis collez ci-dessous. Les horaires au format <span style="font-family:monospace;color:#9ad;">11:00 - 23:00</span>. Une case vide = pas disponible ce jour-là.</p>
+      <label class="flabel">Restaurant ciblé</label>
+      <select id="imp-dispo-resto" class="fi" style="margin-bottom:10px;max-width:240px;">
+        <option value="bk500">BK 500</option><option value="bk509">BK 509</option><option value="bk526" selected>BK 526</option>
+      </select>
+      <textarea id="imp-dispo-text" class="fi" rows="8" style="resize:vertical;font-family:monospace;font-size:.8rem;" placeholder="Collez ici les lignes copiées depuis Excel (Nom, Prénom, puis les 7 jours)"></textarea>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+        <button class="btn btn-gray btn-sm" onclick="impDispoAnalyse()">🔍 Analyser (vérifier avant)</button>
+        <button class="btn btn-red btn-sm" onclick="impDispoApply()" id="imp-dispo-apply" style="display:none;">💾 Importer dans la base</button>
+      </div>
+      <div id="imp-dispo-report" style="font-size:.82rem;margin-top:12px;"></div>
+    </div>
     <div class="card" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <div class="sec-title" style="margin-bottom:0;">ℹ️ Version de l'application</div>
       <span id="app-version-badge" style="background:#1A1A1A;border:1px solid #444;color:var(--orange);padding:5px 14px;border-radius:20px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px;"></span>
@@ -2589,6 +2619,28 @@ function genReport(){
 }
 
 // ── ÉQUIPE ────────────────────────────────────────────────────────────────────
+function empCardHtml(e,ro,canView,canManage){
+  var init=e.name.split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);
+  var myInc=DB.incidents.filter(function(i){return i.empId===e.id;}).length;
+  var arch=!!e.archived;
+  var enSortie=(e.sortieStatut&&!e.sortieValidee);
+  var sortieBadge=enSortie?' <span style="font-size:.66rem;color:#fff;background:#a8460f;padding:1px 7px;border-radius:9px;">🚪 sortie '+_motifLbl(e.sortieMotif)+(e.sortieDate?' '+new Date(e.sortieDate+'T12:00:00').toLocaleDateString('fr-FR'):'')+'</span>':'';
+  return '<div class="emp-card" style="'+(arch?'opacity:.6;border-color:#553300;':(enSortie?'border-color:#a8460f;':''))+'">'
+    +'<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer;" onclick="openEmpFiche(\''+e.id+'\')">'
+    +'<div class="emp-av av-'+ro[0]+'" style="'+(arch?'filter:grayscale(1);':'')+'">'+init+'</div>'
+    +'<div style="min-width:0;"><div style="font-weight:600;font-size:.9rem;">'+e.name+(arch?' <span style="font-size:.68rem;color:#888;background:#2A1A00;padding:1px 6px;border-radius:9px;">📁</span>':'')+sortieBadge+'</div>'
+    +'<div style="font-size:.73rem;color:#888;">'+cap(e.role)+' · '+myInc+' incident'+(myInc!==1?'s':'')+(e.infos&&e.infos.matricule?' · n°'+e.infos.matricule:'')+(e.email?' · '+e.email:'')+'</div></div></div>'
+    +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">'
+    +'<span class="role-pill rp-'+ro[0]+'">'+cap(ro)+'</span>'
+    +(canView?'<button class="btn btn-gray btn-sm" onclick="openEmpFiche(\''+e.id+'\')">👁️ Fiche</button>':'')
+    +(canManage&&!arch?'<button class="btn btn-gray btn-sm" onclick="openEdit(\''+e.id+'\')">✏️</button>':'')
+    +(canManage&&!arch?'<button class="btn btn-gray btn-sm" onclick="openHistorique(\''+e.id+'\')">📋 Historique</button>':'')
+    +(canManage&&!arch?'<button class="btn-danger" onclick="openSortie(\''+e.id+'\')" title="Archiver ce salarié">'+(enSortie?'🚪':'📤')+'</button>':'')
+    +(canManage&&arch?'<button class="btn btn-gray btn-sm" onclick="openEdit(\''+e.id+'\')">✏️</button>':'')
+    +(canManage&&arch?'<button class="btn btn-gray btn-sm" onclick="openHistorique(\''+e.id+'\')">📋 Historique</button>':'')
+    +(canManage&&arch?'<button class="btn btn-gray btn-sm" style="background:#1A3A1A;border-color:#3A7A3A;color:#4CAF50;" onclick="reactivateEmp(\''+e.id+'\')">♻️ Réactiver</button>':'')
+    +'</div></div>';
+}
 function renderEquipe(){
   var list=document.getElementById('eq-list');if(!list)return;
   var r=curUser.role;var isGlobal=(r==='franchise');
@@ -2613,29 +2665,40 @@ function renderEquipe(){
     ['directeur','manager','leader','equipier'].forEach(function(ro){
       var grp=emps.filter(function(e){return e.role===ro;});if(!grp.length)return;
       var ico=ro==='directeur'?'👑':ro==='manager'?'⭐':ro==='leader'?'🎖️':'👤';
+
+      // Cas spécial ÉQUIPIERS : on sépare en 3 sous-groupes selon les compétences
+      if(ro==='equipier'){
+        var ARR=['CUISINE','FRITES','SNACK','BROILER','BOARD VOLANT'];                 // arrière / cuisine
+        var AVA=['BORNE','DRIVE','SAT SALLE','PREMIERE CABINE','TABLETTE DRIVE','EMPORTER','COMPTOIR VOLANT','UBER','SAT EMPORTER UBER']; // avant / comptoir
+        function classe(e){
+          var q=(e.infos&&e.infos.qualifs)||[];
+          var hasArr=q.some(function(p){return ARR.indexOf(p)>=0;});
+          var hasAva=q.some(function(p){return AVA.indexOf(p)>=0;});
+          if(hasArr&&hasAva)return 'poly';
+          if(hasArr)return 'arr';
+          if(hasAva)return 'ava';
+          return 'autre';
+        }
+        var sousGroupes=[
+          {key:'poly', titre:'✅ Polyvalents — savent tout faire'},
+          {key:'arr',  titre:'🍳 Cuisine / Arrière'},
+          {key:'ava',  titre:'🛎️ Comptoir / Avant'},
+          {key:'autre',titre:'👤 Équipiers — postes non renseignés'}
+        ];
+        sousGroupes.forEach(function(sg){
+          var sgrp=grp.filter(function(e){return classe(e)===sg.key;});
+          if(!sgrp.length)return;
+          // tri alphabétique
+          sgrp.sort(function(a,b){return a.name.localeCompare(b.name,'fr');});
+          h+='<div style="font-size:.76rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin:12px 0 5px;">'+sg.titre+' <span style="opacity:.6;">('+sgrp.length+')</span></div>';
+          sgrp.forEach(function(e){ h+=empCardHtml(e,ro,canView,canManage); });
+        });
+        return;
+      }
+
       h+='<div style="font-size:.76rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin:10px 0 5px;">'+ico+' '+cap(ro)+'s</div>';
-      grp.forEach(function(e){
-        var init=e.name.split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);
-        var myInc=DB.incidents.filter(function(i){return i.empId===e.id;}).length;
-        var arch=!!e.archived;
-        var enSortie=(e.sortieStatut&&!e.sortieValidee);
-        var sortieBadge=enSortie?' <span style="font-size:.66rem;color:#fff;background:#a8460f;padding:1px 7px;border-radius:9px;">🚪 sortie '+_motifLbl(e.sortieMotif)+(e.sortieDate?' '+new Date(e.sortieDate+'T12:00:00').toLocaleDateString('fr-FR'):'')+'</span>':'';
-        h+='<div class="emp-card" style="'+(arch?'opacity:.6;border-color:#553300;':(enSortie?'border-color:#a8460f;':''))+'">'
-          +'<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer;" onclick="openEmpFiche(\''+e.id+'\')">'
-          +'<div class="emp-av av-'+ro[0]+'" style="'+(arch?'filter:grayscale(1);':'')+'">'+init+'</div>'
-          +'<div style="min-width:0;"><div style="font-weight:600;font-size:.9rem;">'+e.name+(arch?' <span style="font-size:.68rem;color:#888;background:#2A1A00;padding:1px 6px;border-radius:9px;">📁</span>':'')+sortieBadge+'</div>'
-          +'<div style="font-size:.73rem;color:#888;">'+cap(e.role)+' · '+myInc+' incident'+(myInc!==1?'s':'')+(e.infos&&e.infos.matricule?' · n°'+e.infos.matricule:'')+(e.email?' · '+e.email:'')+'</div></div></div>'
-          +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">'
-          +'<span class="role-pill rp-'+ro[0]+'">'+cap(ro)+'</span>'
-          +(canView?'<button class="btn btn-gray btn-sm" onclick="openEmpFiche(\''+e.id+'\')">👁️ Fiche</button>':'')
-          +(canManage&&!arch?'<button class="btn btn-gray btn-sm" onclick="openEdit(\''+e.id+'\')">✏️</button>':'')
-          +(canManage&&!arch?'<button class="btn btn-gray btn-sm" onclick="openHistorique(\''+e.id+'\')">📋 Historique</button>':'')
-          +(canManage&&!arch?'<button class="btn-danger" onclick="openSortie(\''+e.id+'\')" title="Archiver ce salarié">'+(enSortie?'🚪':'📤')+'</button>':'')
-          +(canManage&&arch?'<button class="btn btn-gray btn-sm" onclick="openEdit(\''+e.id+'\')">✏️</button>':'')
-          +(canManage&&arch?'<button class="btn btn-gray btn-sm" onclick="openHistorique(\''+e.id+'\')">📋 Historique</button>':'')
-          +(canManage&&arch?'<button class="btn btn-gray btn-sm" style="background:#1A3A1A;border-color:#3A7A3A;color:#4CAF50;" onclick="reactivateEmp(\''+e.id+'\')">♻️ Réactiver</button>':'')
-          +'</div></div>';
-      });
+      grp.sort(function(a,b){return a.name.localeCompare(b.name,'fr');});
+      grp.forEach(function(e){ h+=empCardHtml(e,ro,canView,canManage); });
     });
     if(restosToShow.length>1)h+='<div style="height:10px;"></div>';
   });
@@ -3504,6 +3567,201 @@ async function saveEmpQualif(id){
     setTimeout(function(){var s=document.getElementById('qualif-status');if(s)s.textContent='';},3000);
   }catch(err){console.error(err);if(st)st.textContent='❌ Erreur : '+(window.__lastSbError||err);}
 }
+
+/* ════════ IMPORT DES COMPÉTENCES (coller la grille) ════════ */
+// dictionnaire : mot tapé (sans accent, minuscule) -> libellé exact stocké
+var IMP_POSTE_MAP={
+  // productifs
+  'cuisine':'CUISINE','frites':'FRITES','frite':'FRITES','snack':'SNACK','broiler':'BROILER',
+  'board volant':'BOARD VOLANT','board vol':'BOARD VOLANT','board':'BOARD VOLANT',
+  'borne':'BORNE','drive':'DRIVE','sat salle':'SAT SALLE',
+  'premiere cabine':'PREMIERE CABINE','premiere ca':'PREMIERE CABINE','premiere':'PREMIERE CABINE','cabine':'PREMIERE CABINE',
+  'tablette drive':'TABLETTE DRIVE','tablette':'TABLETTE DRIVE','tablette d':'TABLETTE DRIVE',
+  'emporter':'EMPORTER','comptoir volant':'COMPTOIR VOLANT','comptoir':'COMPTOIR VOLANT','comptoir v':'COMPTOIR VOLANT',
+  'uber':'UBER','sat emporter uber':'SAT EMPORTER UBER','sat emport':'SAT EMPORTER UBER','sat emporter':'SAT EMPORTER UBER',
+  // non productifs (synonymes grille -> libellé réel)
+  'march':'MARCH','marchandise':'MARCH','marchandises':'MARCH',
+  'prep':'PREP','preparation':'PREP','préparation':'PREP',
+  'plonge':'PLONGE','filt':'FILT','filtrage':'FILT','filtre':'FILT',
+  'open broiler':'OPEN BROILER','ouv broiler':'OPEN BROILER','ouverture broiler':'OPEN BROILER',
+  'open caisse':'OPEN CAISSE','ouv caisse':'OPEN CAISSE','ouverture caisse':'OPEN CAISSE',
+  'open salle':'OPEN SALLE','ouv salle':'OPEN SALLE','ouverture salle':'OPEN SALLE',
+  'close caisse':'CLOSE CAISSE','ferm caisse':'CLOSE CAISSE','fermeture caisse':'CLOSE CAISSE',
+  'ferm salle':'FERM SALLE','close salle':'FERM SALLE','fermeture salle':'FERM SALLE',
+  'ferm couloir':'FERM COULOIR','close couloir':'FERM COULOIR','fermeture couloir':'FERM COULOIR',
+  'rh horaire':'RH HORAIRE','rh':'RH HORAIRE',
+  'livraison':'LIVRAISON'
+};
+function impNorm(s){
+  return (s||'').toString().trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')   // enlève les accents
+    .replace(/\s+/g,' ');
+}
+function impParse(text){
+  // renvoie [{nomBrut, postesBruts:[...], }]
+  var out=[];
+  (text||'').split(/\r?\n/).forEach(function(line){
+    if(!line.trim())return;
+    var sep=line.indexOf(':');if(sep<0)sep=line.indexOf('-');
+    if(sep<0){ out.push({nom:line.trim(),postes:[],erreur:'pas de « : » pour séparer nom et postes'}); return; }
+    var nom=line.slice(0,sep).trim();
+    var rest=line.slice(sep+1);
+    var postes=rest.split(/[,;]+/).map(function(x){return x.trim();}).filter(Boolean);
+    out.push({nom:nom,postes:postes});
+  });
+  return out;
+}
+function impMatchEmp(nomBrut,resto){
+  var n=impNorm(nomBrut);
+  var list=DB.employees.filter(function(e){return e.restoId===resto && !e.archived;});
+  // 1) correspondance exacte sur le nom normalisé
+  var exact=list.filter(function(e){return impNorm(e.name)===n;});
+  if(exact.length===1)return {emp:exact[0]};
+  if(exact.length>1)return {ambigu:exact};
+  // 2) correspondance souple : tous les mots tapés présents dans le nom
+  var mots=n.split(' ').filter(Boolean);
+  var soft=list.filter(function(e){var en=impNorm(e.name);return mots.every(function(m){return en.indexOf(m)>=0;});});
+  if(soft.length===1)return {emp:soft[0]};
+  if(soft.length>1)return {ambigu:soft};
+  return {introuvable:true};
+}
+var _impResult=null;
+function impQualifAnalyse(){
+  var resto=document.getElementById('imp-qualif-resto').value;
+  var rows=impParse(document.getElementById('imp-qualif-text').value);
+  var report='', okCount=0, problems=0;
+  _impResult=[];
+  rows.forEach(function(r){
+    if(r.erreur){ report+='<div style="color:#e57373;">⚠️ '+r.nom+' — '+r.erreur+'</div>'; problems++; return; }
+    // postes
+    var postesOk=[], postesKO=[];
+    r.postes.forEach(function(p){
+      var key=impNorm(p);
+      if(IMP_POSTE_MAP[key])postesOk.push(IMP_POSTE_MAP[key]);
+      else postesKO.push(p);
+    });
+    var m=impMatchEmp(r.nom,resto);
+    if(m.introuvable){ report+='<div style="color:#e57373;">❌ <b>'+r.nom+'</b> — salarié introuvable dans '+resto.toUpperCase()+'</div>'; problems++; return; }
+    if(m.ambigu){ report+='<div style="color:#e57373;">❓ <b>'+r.nom+'</b> — plusieurs correspondances ('+m.ambigu.map(function(e){return e.name;}).join(', ')+'). Précisez.</div>'; problems++; return; }
+    _impResult.push({empId:m.emp.id, empName:m.emp.name, postes:postesOk});
+    okCount++;
+    report+='<div style="color:#81c784;">✅ <b>'+m.emp.name+'</b> → '+(postesOk.join(', ')||'(aucun poste)')
+      +(postesKO.length?(' <span style="color:#e57373;">— postes non reconnus : '+postesKO.join(', ')+'</span>'):'')+'</div>';
+    if(postesKO.length)problems++;
+  });
+  report='<div style="margin-bottom:8px;font-weight:700;color:#fff;">'+okCount+' salarié(s) prêt(s)'+(problems?(' · '+problems+' point(s) à vérifier'):'')+'</div>'+report;
+  document.getElementById('imp-qualif-report').innerHTML=report;
+  document.getElementById('imp-qualif-apply').style.display=(okCount>0)?'inline-block':'none';
+}
+async function impQualifApply(){
+  if(!_impResult||!_impResult.length){toast('Analysez d\'abord','error');return;}
+  if(!confirm('Importer les compétences pour '+_impResult.length+' salarié(s) ? Cela REMPLACE leurs compétences actuelles.'))return;
+  var rep=document.getElementById('imp-qualif-report');
+  var done=0,fail=0;
+  for(var i=0;i<_impResult.length;i++){
+    var it=_impResult[i];
+    var e=DB.employees.find(function(x){return x.id===it.empId;});
+    if(!e){fail++;continue;}
+    if(!e.infos)e.infos={};
+    e.infos.qualifs=it.postes.slice();   // remplace
+    try{ await sb.patch('bks_employees','id=eq.'+e.id,{infos:e.infos}); done++; }
+    catch(err){ console.error(err); fail++; }
+  }
+  rep.innerHTML='<div style="color:#81c784;font-weight:700;">✅ Import terminé : '+done+' enregistré(s)'+(fail?(' · '+fail+' échec(s)'):'')+'</div>';
+  toast('Compétences importées ('+done+')','success');
+  try{ await loadAll(); }catch(e){}
+}
+window.impQualifAnalyse=impQualifAnalyse;window.impQualifApply=impQualifApply;
+
+/* ════════ IMPORT DES DISPONIBILITÉS (coller depuis Excel) ════════ */
+var IMP_JOURS=['lun','mar','mer','jeu','ven','sam','dim'];  // ordre des colonnes Lundi→Dimanche
+function impHeure(v){
+  // "11:00 - 23:00" -> {from:'11:00',to:'23:00'} ; tolère espaces multiples et "11:00 -23:00"
+  if(!v)return null;
+  var s=v.toString().trim();
+  if(!s)return null;
+  var m=s.match(/(\d{1,2})\s*[:hH]\s*(\d{0,2})\s*[-–à]+\s*(\d{1,2})\s*[:hH]\s*(\d{0,2})/);
+  if(!m)return null;
+  function pad(h,mn){return String(parseInt(h,10)).padStart(2,'0')+':'+String(mn?parseInt(mn,10):0).padStart(2,'0');}
+  return {from:pad(m[1],m[2]),to:pad(m[3],m[4])};
+}
+function impDispoParse(text){
+  // chaque ligne : Nom <tab> Prénom <tab> 7 colonnes jours (tab). On ignore les lignes d'en-tête.
+  var rows=[];
+  (text||'').split(/\r?\n/).forEach(function(line){
+    if(!line.trim())return;
+    var cells=line.split('\t');
+    if(cells.length<3)return;                       // pas assez de colonnes
+    var nom=(cells[0]||'').trim(), prenom=(cells[1]||'').trim();
+    var low=(nom+' '+prenom).toLowerCase();
+    if(!nom)return;
+    if(low.indexOf('nom')>=0 && low.indexOf('prénom')>=0)return; // ligne d'en-tête
+    if(low.indexOf('restaurant')>=0||low.indexOf('liste des employ')>=0||low.indexOf('disponibilit')>=0||low.indexOf('date :')>=0)return;
+    var jours=[];
+    for(var k=0;k<7;k++){ jours.push(impHeure(cells[2+k])); }
+    rows.push({nom:nom,prenom:prenom,jours:jours});
+  });
+  return rows;
+}
+function impMatchEmpNomPrenom(nom,prenom,resto){
+  // dans la base, e.name = "NOM Prénom" (parfois). On teste plusieurs combinaisons.
+  var list=DB.employees.filter(function(e){return e.restoId===resto && !e.archived;});
+  var full=impNorm(nom+' '+prenom), full2=impNorm(prenom+' '+nom), justNom=impNorm(nom);
+  var exact=list.filter(function(e){var en=impNorm(e.name);return en===full||en===full2;});
+  if(exact.length===1)return {emp:exact[0]};
+  if(exact.length>1)return {ambigu:exact};
+  // souple : tous les mots du nom + prénom présents
+  var mots=(impNorm(nom)+' '+impNorm(prenom)).split(' ').filter(Boolean);
+  var soft=list.filter(function(e){var en=impNorm(e.name);return mots.every(function(m){return en.indexOf(m)>=0;});});
+  if(soft.length===1)return {emp:soft[0]};
+  if(soft.length>1)return {ambigu:soft};
+  return {introuvable:true};
+}
+var _impDispoResult=null;
+function impDispoAnalyse(){
+  var resto=document.getElementById('imp-dispo-resto').value;
+  var rows=impDispoParse(document.getElementById('imp-dispo-text').value);
+  var report='', ok=0, problems=0;
+  _impDispoResult=[];
+  if(!rows.length){ document.getElementById('imp-dispo-report').innerHTML='<div style="color:#e57373;">Aucune ligne exploitable. Collez bien depuis Excel (colonnes séparées).</div>'; return; }
+  rows.forEach(function(r){
+    var m=impMatchEmpNomPrenom(r.nom,r.prenom,resto);
+    var nbJours=r.jours.filter(Boolean).length;
+    if(m.introuvable){ report+='<div style="color:#e57373;">❌ <b>'+r.nom+' '+r.prenom+'</b> — introuvable dans '+resto.toUpperCase()+'</div>'; problems++; return; }
+    if(m.ambigu){ report+='<div style="color:#e57373;">❓ <b>'+r.nom+' '+r.prenom+'</b> — plusieurs correspondances ('+m.ambigu.map(function(e){return e.name;}).join(', ')+')</div>'; problems++; return; }
+    var dispos={};
+    IMP_JOURS.forEach(function(jk,i){
+      var h=r.jours[i];
+      if(h) dispos[jk]={on:true,from:h.from,to:h.to,creneaux:[{from:h.from,to:h.to}]};
+      else  dispos[jk]={on:false};
+    });
+    _impDispoResult.push({empId:m.emp.id,empName:m.emp.name,dispos:dispos});
+    ok++;
+    report+='<div style="color:#81c784;">✅ <b>'+m.emp.name+'</b> → '+nbJours+' jour(s) dispo</div>';
+  });
+  report='<div style="margin-bottom:8px;font-weight:700;color:#fff;">'+ok+' salarié(s) prêt(s)'+(problems?(' · '+problems+' à vérifier'):'')+'</div>'+report;
+  document.getElementById('imp-dispo-report').innerHTML=report;
+  document.getElementById('imp-dispo-apply').style.display=(ok>0)?'inline-block':'none';
+}
+async function impDispoApply(){
+  if(!_impDispoResult||!_impDispoResult.length){toast('Analysez d\'abord','error');return;}
+  if(!confirm('Importer les disponibilités pour '+_impDispoResult.length+' salarié(s) ? Cela REMPLACE leurs disponibilités actuelles.'))return;
+  var rep=document.getElementById('imp-dispo-report');
+  var done=0,fail=0;
+  for(var i=0;i<_impDispoResult.length;i++){
+    var it=_impDispoResult[i];
+    var e=DB.employees.find(function(x){return x.id===it.empId;});
+    if(!e){fail++;continue;}
+    if(!e.infos)e.infos={};
+    e.infos.dispos=it.dispos;   // remplace
+    try{ await sb.patch('bks_employees','id=eq.'+e.id,{infos:e.infos}); done++; }
+    catch(err){ console.error(err); fail++; }
+  }
+  rep.innerHTML='<div style="color:#81c784;font-weight:700;">✅ Import terminé : '+done+' enregistré(s)'+(fail?(' · '+fail+' échec(s)'):'')+'</div>';
+  toast('Disponibilités importées ('+done+')','success');
+  try{ await loadAll(); }catch(e){}
+}
+window.impDispoAnalyse=impDispoAnalyse;window.impDispoApply=impDispoApply;
 
 function renderEmpFicheInfos(id){
   var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
