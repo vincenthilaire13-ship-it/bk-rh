@@ -1753,13 +1753,18 @@ const SANCTIONS = {
 function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):'';}
 
 // ── CHARGEMENT SUPABASE ───────────────────────────────────────────────────────
-async function loadAll() {
+async function loadAll(light) {
+  // light=true : synchro de fond — on évite la colonne lourde "photo" des candidats
+  // (les photos restent celles déjà en mémoire ; rechargées au 1er chargement et à l'ouverture du recrutement)
+  var candCols = light
+    ? 'id,prenom,nom,email,phone,resto_id,restos,poste,niveau_apprentissage,dispos,questionnaire,motivation,statut,entretien_date,note_interne,created_at,date_naissance,etudiant,rqth,dernier_emploi,transport,trajet,adresse,code_postal,ville,nationalite,sexe,contrat_type,contrat_label,contrat_heures,cv_name,onboarding,date_debut,essai_rappels,avis_managers,refus_motif,documents,contact_urgence,tailles_tenue,bku_identifiant,bku_motdepasse,docs_soumis,videos_faites,essai_alerte,contrat_signe,visite_faite,visite_date,contrat_signe_doc'
+    : 'id,prenom,nom,email,phone,resto_id,restos,poste,niveau_apprentissage,dispos,questionnaire,motivation,statut,entretien_date,note_interne,created_at,date_naissance,etudiant,rqth,dernier_emploi,transport,trajet,adresse,code_postal,ville,nationalite,sexe,photo,contrat_type,contrat_label,contrat_heures,cv_name,onboarding,date_debut,essai_rappels,avis_managers,refus_motif,documents,contact_urgence,tailles_tenue,bku_identifiant,bku_motdepasse,docs_soumis,videos_faites,essai_alerte,contrat_signe,visite_faite,visite_date,contrat_signe_doc';
   const [emps, incs, lets, settArr, cands, empDocs] = await Promise.all([
     sb.get('bks_employees','select=*&order=name.asc'),
     sb.get('bks_incidents','select=*&order=created_at.desc'),
     sb.get('bks_letters','select=*&order=created_at.desc'),
     sb.get('bks_settings','select=*&id=eq.main'),
-    sb.get('bks_candidatures','select=id,prenom,nom,email,phone,resto_id,restos,poste,niveau_apprentissage,dispos,questionnaire,motivation,statut,entretien_date,note_interne,created_at,date_naissance,etudiant,rqth,dernier_emploi,transport,trajet,adresse,code_postal,ville,nationalite,sexe,photo,contrat_type,contrat_label,contrat_heures,cv_name,onboarding,date_debut,essai_rappels,avis_managers,refus_motif,documents,contact_urgence,tailles_tenue,bku_identifiant,bku_motdepasse,docs_soumis,videos_faites,essai_alerte,contrat_signe,visite_faite,visite_date,contrat_signe_doc&order=created_at.desc').catch(function(){return [];}),
+    sb.get('bks_candidatures','select='+candCols+'&order=created_at.desc').catch(function(){return [];}),
     sb.get('bks_emp_docs','select=*&order=created_at.desc').catch(function(){return [];}),
   ]);
   DB.empDocs = (empDocs||[]).map(function(d){
@@ -1789,15 +1794,17 @@ async function loadAll() {
       createdAt:l.created_at,createdBy:l.created_by||'',sentAt:l.sent_at||null,
       signedAt:l.signed_at||null,refusedAt:l.refused_at||null};
   });
+  var _prevCands = {}; try{ (DB.candidatures||[]).forEach(function(p){ _prevCands[p.id]=p; }); }catch(e){}
   DB.candidatures = (cands||[]).map(function(c){
+    var _prev=_prevCands[c.id]||{};
     return {id:c.id,prenom:c.prenom||'',nom:c.nom||'',email:c.email||'',phone:c.phone||'',
       restoId:c.resto_id||'',restos:c.restos||'',poste:c.poste||'',niveauApprentissage:c.niveau_apprentissage||'',dispos:c.dispos||{},questionnaire:c.questionnaire||{},
       motivation:c.motivation||'',statut:c.statut||'nouveau',entretienDate:c.entretien_date||null,
       noteInterne:c.note_interne||'',createdAt:c.created_at,
       dateNaissance:c.date_naissance||'',etudiant:!!c.etudiant,rqth:c.rqth||'',dernierEmploi:c.dernier_emploi||'',
-      transport:c.transport||'',trajet:c.trajet||'',adresse:c.adresse||'',codePostal:c.code_postal||'',ville:c.ville||'',nationalite:c.nationalite||'',sexe:c.sexe||'',photo:c.photo||'',
+      transport:c.transport||'',trajet:c.trajet||'',adresse:c.adresse||'',codePostal:c.code_postal||'',ville:c.ville||'',nationalite:c.nationalite||'',sexe:c.sexe||'',photo:(c.photo!==undefined?(c.photo||''):(_prev.photo||'')),
       contratType:c.contrat_type||'',contratLabel:c.contrat_label||'',contratHeures:c.contrat_heures||0,
-      cvData:c.cv_data||'',cvName:c.cv_name||'',
+      cvData:(c.cv_data!==undefined?(c.cv_data||''):(_prev.cvData||'')),cvName:c.cv_name||'',
       onboarding:c.onboarding||{},dateDebut:c.date_debut||'',essaiRappels:c.essai_rappels||{},
       avisManagers:c.avis_managers||[],refusMotif:c.refus_motif||'',
       documents:c.documents||{},contactUrgence:c.contact_urgence||{},taillesTenue:c.tailles_tenue||'',
@@ -1828,19 +1835,71 @@ async function saveDB() {
   } catch(e) { console.warn('saveDB',e); }
 }
 
+// Rafraîchissement léger commun (appelé par le Temps réel ou par le filet de sécurité)
+var _syncBusy=false, _syncQueued=false;
+async function doSoftRefresh(){
+  if(!curUser) return;
+  if(_syncBusy){ _syncQueued=true; return; }   // évite les rafraîchissements qui se chevauchent
+  _syncBusy=true;
+  try{
+    await loadAll(true);   // version allégée (ne recharge pas les photos candidats)
+    renderHistory();
+    updateVBadge();
+    updateRBadge();
+    if(typeof updateAlBadge==="function")updateAlBadge();
+    if(document.getElementById("page-recrutement").classList.contains('active')){renderCandidatures();if(candFilter==='entretien')renderAgenda();}
+    if(document.getElementById("page-dashboard")&&document.getElementById("page-dashboard").classList.contains('active')&&typeof dashRefreshOpenPanel==='function'){ dashRefreshOpenPanel(); }
+  }catch(e){ console.warn('refresh',e); }
+  _syncBusy=false;
+  if(_syncQueued){ _syncQueued=false; doSoftRefresh(); }
+}
+
+var _rtSocket=null, _rtOk=false, _rtPingTm=null, _rtDebounce=null;
 function startSync() {
   if (syncInterval) clearInterval(syncInterval);
-  syncInterval = setInterval(async function() {
-    if (!curUser) return;
-    try {
-      await loadAll();
-      renderHistory();
-      updateVBadge();
-      updateRBadge();
-      if(typeof updateAlBadge==="function")updateAlBadge();
-      if(document.getElementById("page-recrutement").classList.contains('active')){renderCandidatures();if(candFilter==='entretien')renderAgenda();}
-    } catch(e) { console.warn('sync',e); }
-  }, 5000);
+  // 1) On tente le TEMPS RÉEL (Realtime) : la base prévient quand une donnée change.
+  startRealtime();
+  // 2) Filet de sécurité : si le temps réel n'est pas disponible, rafraîchir doucement toutes les 30 s.
+  syncInterval = setInterval(function(){
+    if(!curUser) return;
+    if(_rtOk) return;          // temps réel actif → pas besoin du filet
+    doSoftRefresh();
+  }, 30000);
+}
+
+function startRealtime(){
+  try{
+    if(_rtSocket){ try{_rtSocket.close();}catch(e){} _rtSocket=null; }
+    _rtOk=false;
+    var url = SUPA_URL.replace('https://','wss://') + '/realtime/v1/websocket?apikey=' + SUPA_KEY + '&vsn=1.0.0';
+    var ws = new WebSocket(url);
+    _rtSocket = ws;
+    var ref=0;
+    ws.onopen = function(){
+      // s'abonner aux changements de la base (schéma public)
+      ws.send(JSON.stringify({topic:'realtime:public',event:'phx_join',payload:{config:{postgres_changes:[{event:'*',schema:'public'}]}},ref:String(++ref)}));
+      // ping régulier pour garder la connexion vivante
+      if(_rtPingTm)clearInterval(_rtPingTm);
+      _rtPingTm=setInterval(function(){ try{ ws.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:String(++ref)})); }catch(e){} }, 25000);
+    };
+    ws.onmessage = function(msg){
+      try{
+        var data=JSON.parse(msg.data);
+        if(data.event==='phx_reply' && data.payload && data.payload.status==='ok'){ _rtOk=true; }
+        if(data.event==='postgres_changes' || (data.payload && data.payload.data)){
+          // un changement est arrivé → on rafraîchit, mais en regroupant les changements rapprochés
+          if(_rtDebounce)clearTimeout(_rtDebounce);
+          _rtDebounce=setTimeout(doSoftRefresh, 800);
+        }
+      }catch(e){}
+    };
+    ws.onclose = function(){
+      _rtOk=false; if(_rtPingTm){clearInterval(_rtPingTm);_rtPingTm=null;}
+      // tentative de reconnexion après 10 s tant qu'on est connecté
+      setTimeout(function(){ if(curUser) startRealtime(); }, 10000);
+    };
+    ws.onerror = function(){ _rtOk=false; };
+  }catch(e){ console.warn('realtime indisponible, filet 30s actif',e); _rtOk=false; }
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
@@ -7161,7 +7220,7 @@ function dashStartAutoRefresh(){
   _dashRefreshTm=setInterval(function(){
     var pg=document.getElementById('page-dashboard');
     if(!pg||!pg.classList.contains('active')){clearInterval(_dashRefreshTm);_dashRefreshTm=null;return;}
-    if(typeof loadAll==='function'){loadAll().then(function(){dashRefreshOpenPanel();}).catch(function(){});}
+    if(typeof loadAll==='function'){loadAll(true).then(function(){dashRefreshOpenPanel();}).catch(function(){});}
   },30000);
 }
 function dashStopAutoRefresh(){if(_dashRefreshTm){clearInterval(_dashRefreshTm);_dashRefreshTm=null;}}
