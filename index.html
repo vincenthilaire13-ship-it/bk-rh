@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-17 22:06 · v104';
+  var EMBEDDED_VERSION = '2026-06-17 22:12 · v105';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -922,7 +922,7 @@ body.tv-mode #eye-viewas{display:none!important;}
             <div id="rpt-opt-person-wrap"><label class="flabel">Membre</label>
               <select id="rpt-person" class="fi" style="width:auto;" onchange="rptRefresh()"><option value="all">Toute l'équipe</option></select>
             </div>
-            <button class="btn btn-gray btn-sm" id="rpt-pdf-btn" onclick="pdfEquipierFromRpt()">📄 PDF de l'équipier</button>
+            <button class="btn btn-gray btn-sm" id="rpt-pdf-btn" onclick="rptPdf()">📄 Exporter en PDF</button>
           </div>
         </div>
         <div id="rpt-out"></div>
@@ -2618,6 +2618,8 @@ var RPT_TILES=[
   {id:'incidents', em:'⚠️', tt:'Incidents',       ds:'Suivi disciplinaire', color:'#D62300'},
   {id:'dispos',    em:'📅', tt:'Disponibilités',  ds:'Créneaux par équipier', color:'#1565c0'},
   {id:'competences',em:'🎯',tt:'Compétences',     ds:'Qui sait faire quoi', color:'#2e7d32'},
+  {id:'traits',    em:'📋', tt:'Traits de la semaine', ds:'Tous les créneaux à couvrir, jour par jour', color:'#8e24aa'},
+  {id:'planhebdo', em:'🗓️', tt:'Planning de la semaine', ds:'Qui travaille quand (planning fait)', color:'#00897b'},
 ];
 var _rptCurrent=null;
 function renderRptTiles(){
@@ -2635,7 +2637,8 @@ function rptOpen(type){
   var t=RPT_TILES.find(function(x){return x.id===type;})||{tt:'Rapport'};
   document.getElementById('rpt-panel-title').textContent=t.tt;
   // options visibles selon le type
-  var showPeriod=(type==='incidents'), showPerson=(type==='incidents'), showPdf=(type==='incidents');
+  var showPeriod=(type==='incidents'), showPerson=(type==='incidents');
+  var showPdf=(type==='incidents'||type==='traits'||type==='planhebdo');
   document.getElementById('rpt-opt-period-wrap').style.display=showPeriod?'block':'none';
   document.getElementById('rpt-opt-person-wrap').style.display=showPerson?'block':'none';
   document.getElementById('rpt-pdf-btn').style.display=showPdf?'inline-block':'none';
@@ -2650,6 +2653,8 @@ function rptRefresh(){
   if(_rptCurrent==='incidents'){ genReport(); }
   else if(_rptCurrent==='dispos'){ genDispoReport(); }
   else if(_rptCurrent==='competences'){ genCompetReport(); }
+  else if(_rptCurrent==='traits'){ genTraitsReport(); }
+  else if(_rptCurrent==='planhebdo'){ genPlanHebdoReport(); }
 }
 
 // Liste des équipiers ciblés selon le rôle et l'onglet resto
@@ -2702,6 +2707,210 @@ function genCompetReport(){
   h+='</tbody></table></div>';
   out.innerHTML=h;
 }
+
+/* — RAPPORT TRAITS DE LA SEMAINE (créneaux à couvrir, jour par jour) — */
+function _rptSemaineDates(){
+  // dates de la semaine actuellement affichée dans Horaires
+  var dts=[];
+  if(typeof DAY_DATES!=='undefined' && DAY_DATES[0]){
+    for(var i=0;i<7;i++){ dts.push(DAY_DATES[i]||''); }
+  }
+  return dts;
+}
+function _hhmm(min){ var h=Math.floor(min/60)%24,m=min%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
+function genTraitsReport(){
+  var out=document.getElementById('rpt-out');
+  var joursN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  var dts=_rptSemaineDates();
+  var resto=(typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto?hrCurrentResto():'');
+  // rassembler, par jour, tous les traits (besoin) depuis ROWS_BY_DAY
+  var parJour=[];
+  var aucun=true;
+  for(var d=0;d<7;d++){
+    var arr=[];
+    (ROWS_BY_DAY[d]||[]).forEach(function(r){ r.bars.forEach(function(b){
+      if(estTraitEncadrement(b.l)) return;
+      arr.push({s:b.s,e:b.e,l:b.l,emp:b.emp||null});
+    }); });
+    arr.sort(function(a,b){return a.s-b.s || (a.l||'').localeCompare(b.l||'');});
+    if(arr.length) aucun=false;
+    parJour[d]=arr;
+  }
+  var titre='du '+(dts[0]||'?')+' au '+(dts[6]||'?');
+  var h='<div style="text-align:center;padding:14px;background:linear-gradient(135deg,#1A1A1A,#2C2C2C);border-radius:var(--r);margin-bottom:14px;border:1px solid #333;">'
+    +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.4rem;color:var(--yellow);text-transform:uppercase;letter-spacing:2px;">📋 Traits de la semaine</div>'
+    +'<p style="color:#888;margin-top:4px;font-size:.82rem;">'+titre+(resto?(' · '+(RESTOS[resto.toLowerCase()]?RESTOS[resto.toLowerCase()].label:resto)):'')+'</p></div>';
+  if(aucun){
+    h+='<div style="color:#aaa;padding:14px;">Aucun trait sur la semaine affichée. Va dans Horaires, choisis la semaine, puis reviens ici.</div>';
+    out.innerHTML=h; return;
+  }
+  // tableau : une colonne par jour, les créneaux empilés
+  h+='<div style="overflow-x:auto;"><table class="rpt-table" style="font-size:.8rem;"><thead><tr>';
+  for(var j=0;j<7;j++){ h+='<th>'+joursN[j]+(dts[j]?'<br><span style="font-weight:400;color:#888;font-size:.72rem;">'+dts[j].slice(8,10)+'/'+dts[j].slice(5,7)+'</span>':'')+'</th>'; }
+  h+='</tr></thead><tbody><tr style="vertical-align:top;">';
+  for(var j2=0;j2<7;j2++){
+    var arr=parJour[j2];
+    if(!arr.length){ h+='<td style="color:#666;">—</td>'; continue; }
+    var cell=arr.map(function(b){
+      return '<div style="margin-bottom:3px;white-space:nowrap;"><b>'+_hhmm(b.s)+'–'+_hhmm(b.e)+'</b> '+b.l+(b.emp?(' <span style="color:#1A9850;">· '+b.emp+'</span>'):'')+'</div>';
+    }).join('');
+    h+='<td style="text-align:left;">'+cell+'</td>';
+  }
+  h+='</tr></tbody></table></div>';
+  out.innerHTML=h;
+}
+
+/* — RAPPORT PLANNING HEBDOMADAIRE (réutilise le tableau de Horaires) — */
+function genPlanHebdoReport(){
+  var out=document.getElementById('rpt-out');
+  if(typeof HR_MONTH_RESULT==='undefined' || !HR_MONTH_RESULT || !HR_MONTH_RESULT.semaines || !HR_MONTH_RESULT.semaines.length){
+    out.innerHTML='<div style="color:#aaa;padding:14px;">Aucun planning calculé. Va dans Horaires, clique « 🗓️ Placer le mois », puis reviens ici.</div>';
+    return;
+  }
+  // hrRenderPlanningHebdo écrit dans #hrx-emploi-semaine : on le génère puis on copie son contenu
+  var tmp=document.getElementById('hrx-emploi-semaine');
+  var stash=tmp?tmp.innerHTML:null;
+  if(tmp){
+    try{ hrRenderPlanningHebdo(); out.innerHTML=tmp.innerHTML; tmp.innerHTML=stash; }
+    catch(e){ out.innerHTML='<div style="color:#aaa;padding:14px;">Impossible de générer le planning. Recalcule-le dans Horaires.</div>'; }
+  } else {
+    out.innerHTML='<div style="color:#aaa;padding:14px;">Ouvre d\'abord Horaires pour générer le planning.</div>';
+  }
+}
+
+/* — Aiguillage du bouton PDF selon la tuile ouverte — */
+function rptPdf(){
+  if(_rptCurrent==='incidents'){ if(typeof pdfEquipierFromRpt==='function') pdfEquipierFromRpt(); return; }
+  if(_rptCurrent==='traits'){ rptPdfTraits(); return; }
+  if(_rptCurrent==='planhebdo'){ rptPdfPlanHebdo(); return; }
+}
+
+function _pdfDoc(orient){
+  var JS=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF;
+  return new JS({unit:'mm',format:'a4',orientation:orient||'landscape'});
+}
+function _strip(s){return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+
+function rptPdfTraits(){
+  try{
+    var joursN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+    var dts=_rptSemaineDates();
+    var doc=_pdfDoc('landscape');
+    var W=297,H=210,M=10,y=16;
+    doc.setFillColor(142,36,170);doc.rect(0,0,W,12,'F');
+    doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(13);
+    doc.text('TRAITS DE LA SEMAINE',M,8);
+    doc.setFontSize(9);doc.setFont('helvetica','normal');
+    doc.text('du '+(dts[0]||'?')+' au '+(dts[6]||'?'),W-M,8,{align:'right'});
+    y=18;
+    var colW=(W-2*M)/7, x0=M;
+    doc.setFontSize(8);
+    // entêtes jours
+    doc.setFont('helvetica','bold');doc.setTextColor(30,30,30);
+    for(var j=0;j<7;j++){ doc.text(joursN[j]+(dts[j]?(' '+dts[j].slice(8,10)+'/'+dts[j].slice(5,7)):''), x0+j*colW+1, y); }
+    y+=2; doc.setDrawColor(180,180,180); doc.line(M,y,W-M,y); y+=4;
+    // contenu par colonne
+    var lignes=[[],[],[],[],[],[],[]], maxL=0;
+    for(var d=0;d<7;d++){
+      var arr=[];
+      (ROWS_BY_DAY[d]||[]).forEach(function(r){ r.bars.forEach(function(b){
+        if(estTraitEncadrement(b.l))return;
+        arr.push({s:b.s,e:b.e,l:b.l,emp:b.emp||null});
+      }); });
+      arr.sort(function(a,b){return a.s-b.s;});
+      lignes[d]=arr.map(function(b){ return _hhmm(b.s)+'-'+_hhmm(b.e)+' '+_strip(b.l)+(b.emp?(' ('+_strip(b.emp)+')'):''); });
+      if(lignes[d].length>maxL) maxL=lignes[d].length;
+    }
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);
+    var yStart=y;
+    for(var d2=0;d2<7;d2++){
+      var yy=yStart;
+      lignes[d2].forEach(function(t){
+        if(yy>H-8){ return; }
+        var wrapped=doc.splitTextToSize(t, colW-2);
+        doc.text(wrapped, x0+d2*colW+1, yy);
+        yy+=wrapped.length*3+1;
+      });
+    }
+    doc.save('traits_semaine_'+(dts[0]||'')+'.pdf');
+    if(typeof toast==='function') toast('PDF des traits généré','success');
+  }catch(e){ if(typeof toast==='function') toast('Erreur PDF : '+e.message,'error'); }
+}
+
+function rptPdfPlanHebdo(){
+  try{
+    if(typeof HR_MONTH_RESULT==='undefined' || !HR_MONTH_RESULT || !HR_MONTH_RESULT.semaines || !HR_MONTH_RESULT.semaines.length){
+      if(typeof toast==='function') toast('Calcule d\'abord le planning dans Horaires','error'); return;
+    }
+    var R=HR_MONTH_RESULT;
+    var semIdx=(typeof HR_HEBDO_SEM!=='undefined')?HR_HEBDO_SEM:0;
+    if(semIdx>=R.semaines.length) semIdx=0;
+    var sem=R.semaines[semIdx];
+    var joursN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+    var lundi=hrParse(sem.lundi); var dates=[]; for(var i=0;i<7;i++){var dd=new Date(lundi);dd.setDate(lundi.getDate()+i);dates.push(dd);}
+    function jjmm(d){return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');}
+    function hhmm(min){var h=Math.floor(min/60)%24,m=min%60;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
+    function fmtHC(min){var h=Math.floor(min/60),m=min%60;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
+    var ids={}; R.semaines.forEach(function(s){ Object.keys(s.parEmp).forEach(function(id){ ids[id]=s.parEmp[id].name; }); });
+    var liste=Object.keys(ids).map(function(id){return {id:id,name:ids[id]};}).sort(function(a,b){return a.name.localeCompare(b.name);});
+    function contratDe(id){var e=(DB.employees||[]).find(function(x){return x.id===id;});return hrContratHebdo(e);}
+
+    var doc=_pdfDoc('landscape');
+    var W=297,H=210,M=8,y=14;
+    doc.setFillColor(0,137,123);doc.rect(0,0,W,12,'F');
+    doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(13);
+    doc.text('PLANNING HEBDOMADAIRE',M,8);
+    doc.setFontSize(9);doc.setFont('helvetica','normal');
+    doc.text('du '+jjmm(dates[0])+'/'+dates[0].getFullYear()+' au '+jjmm(dates[6])+'/'+dates[6].getFullYear(),W-M,8,{align:'right'});
+    y=17;
+    // colonnes : nom + 7 jours + plan/contrat
+    var nameW=42, dayW=(W-2*M-nameW-26)/7, x0=M;
+    doc.setFontSize(7);doc.setTextColor(40,40,40);doc.setFont('helvetica','bold');
+    doc.text('NOM Prenom',x0+1,y);
+    for(var j=0;j<7;j++){ doc.text(joursN[j].slice(0,3)+' '+jjmm(dates[j]), x0+nameW+j*dayW+1, y); }
+    doc.text('PLAN/CONTRAT',x0+nameW+7*dayW+1,y);
+    y+=1.5; doc.setDrawColor(120,120,120); doc.line(M,y,W-M,y); y+=3.5;
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);
+    liste.forEach(function(e){
+      if(y>H-8){ doc.addPage('a4','landscape'); y=14; }
+      var pe=sem.parEmp[e.id]; var contrat=contratDe(e.id);
+      doc.setTextColor(20,20,20);doc.setFont('helvetica','bold');
+      doc.text(_strip(e.name).slice(0,28), x0+1, y);
+      doc.setFont('helvetica','normal');
+      var totMin=0; var rowH=4;
+      for(var jj=0;jj<7;jj++){
+        var cren=(pe&&pe.jours[jj])?pe.jours[jj].slice():[];
+        cren.sort(function(a,b){return a.s-b.s;});
+        var txt;
+        if(!cren.length){ txt='Repos'; doc.setTextColor(150,150,150); }
+        else {
+          var plages=[],cur=null;
+          cren.forEach(function(b){ totMin+=(b.e-b.s); if(cur&&b.s<=cur.e){cur.e=Math.max(cur.e,b.e);}else{cur={s:b.s,e:b.e};plages.push(cur);} });
+          txt=plages.map(function(p){return hhmm(p.s)+'-'+hhmm(p.e);}).join('  ');
+          doc.setTextColor(20,20,20);
+        }
+        var wr=doc.splitTextToSize(txt, dayW-1);
+        doc.text(wr, x0+nameW+jj*dayW+1, y);
+        if(wr.length*3>rowH) rowH=wr.length*3;
+      }
+      // plan/contrat
+      var planTxt=fmtHC(totMin)+' / '+(contrat!=null?fmtHC(Math.round(contrat*60)):'-');
+      if(contrat!=null && totMin/60<contrat-0.01) doc.setTextColor(224,134,0);
+      else if(contrat!=null && totMin/60>contrat+0.01) doc.setTextColor(214,35,0);
+      else doc.setTextColor(26,152,80);
+      doc.setFont('helvetica','bold');
+      doc.text(planTxt, x0+nameW+7*dayW+1, y);
+      doc.setFont('helvetica','normal');
+      y+=rowH+2.5;
+      doc.setDrawColor(230,230,230); doc.line(M,y-1.5,W-M,y-1.5);
+    });
+    doc.save('planning_'+sem.lundi+'.pdf');
+    if(typeof toast==='function') toast('PDF du planning généré','success');
+  }catch(e){ if(typeof toast==='function') toast('Erreur PDF : '+e.message,'error'); }
+}
+window.genTraitsReport=genTraitsReport;
+window.genPlanHebdoReport=genPlanHebdoReport;
+window.rptPdf=rptPdf;
 
 /* — EXPORT EXCEL du rapport ouvert — */
 function rptExportExcel(){
