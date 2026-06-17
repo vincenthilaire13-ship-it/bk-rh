@@ -44,6 +44,7 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <title>BKRH</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap');
@@ -281,6 +282,13 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 .ct-viewer .champ-auto{background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd;}
 .ct-viewer .l0[contenteditable="true"],.ct-viewer .l1[contenteditable="true"]{outline:none;border-radius:4px;}
 .ct-viewer .l0[contenteditable="true"]:focus,.ct-viewer .l1[contenteditable="true"]:focus{background:#fffbe6;box-shadow:0 0 0 1px #f0c000;}
+/* — Tableaux de rapports — */
+.rpt-table{width:100%;border-collapse:collapse;font-size:.82rem;background:#161616;border-radius:10px;overflow:hidden;}
+.rpt-table th,.rpt-table td{border:1px solid #2c2c2c;padding:7px 9px;text-align:center;}
+.rpt-table thead th{background:#222;color:var(--yellow);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.5px;position:sticky;top:0;}
+.rpt-table tbody tr:nth-child(even){background:#1b1b1b;}
+.rpt-table-compact th,.rpt-table-compact td{padding:4px 5px;font-size:.72rem;}
+.rpt-vert{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;font-size:.66rem;margin:0 auto;max-height:90px;}
 /* ════════ DASHBOARD / ACCUEIL ÉQUIPE ════════ */
 body.tv-mode #main-nav{display:none!important;}
 body.tv-mode #eye-viewas{display:none!important;}
@@ -570,6 +578,7 @@ body.tv-mode #eye-viewas{display:none!important;}
       </div>
       <button class="hr-btn hr-btn-ac" id="hrx-refresh-btn" onclick="hrRefreshWeek()" title="Recalcule le planning des 7 jours de la semaine">🔄 Actualiser</button>
       <button class="hr-btn hr-btn-ac" onclick="hrAutoAssignMonth()" title="Place les équipiers sur tout le mois en respectant le plafond mensuel (24h → 104h/mois) et les pose sur les traits">🗓️ Placer le mois (auto)</button>
+      <button class="hr-btn hr-btn-ac" onclick="hrAnalyseTraits()" title="Analyse les créneaux restés vides et explique pourquoi personne n'a été placé" style="background:#3a2a5a;border-color:#6d4aad;">🔍 Analyser</button>
       <span id="hrx-assign-status" style="font-size:11px;color:#60a5fa;align-self:center;margin-left:4px"></span>
       <span id="hrx-valid-status" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--mu);align-self:center;margin-left:4px"></span>
     </div>
@@ -885,26 +894,40 @@ body.tv-mode #eye-viewas{display:none!important;}
       <button class="rtab" onclick="setRptTab(this,'bk509')">🍔 BK 509</button>
       <button class="rtab" onclick="setRptTab(this,'bk526')">🍔 BK 526</button>
     </div>
-    <div class="card">
-      <div class="sec-title">📊 Paramètres</div>
-      <div style="display:flex;gap:11px;flex-wrap:wrap;align-items:flex-end;">
-        <div><label class="flabel">Période</label>
-          <select id="rpt-period" class="fi" style="width:auto;">
-            <option value="today">Aujourd'hui</option>
-            <option value="week" selected>Cette semaine</option>
-            <option value="month">Ce mois</option>
-            <option value="all">Tout</option>
-          </select>
-        </div>
-        <div><label class="flabel">Membre</label>
-          <select id="rpt-person" class="fi" style="width:auto;"><option value="all">Toute l'équipe</option></select>
-        </div>
-        <button class="btn btn-red" onclick="genReport()">📊 Générer</button>
-        <button class="btn btn-gray" onclick="pdfEquipierFromRpt()">📄 PDF de l'équipier</button>
-      </div>
-      <p style="font-size:.74rem;color:#666;margin-top:8px;">Le PDF par équipier reprend tous ses incidents et courriers. Sélectionnez un membre dans la liste ci-dessus.</p>
+
+    <!-- Choix du rapport (tuiles) -->
+    <div id="rpt-pick">
+      <div class="dash-grid" id="rpt-grid"></div>
     </div>
-    <div id="rpt-out"></div>
+
+    <!-- Panneau du rapport ouvert -->
+    <div id="rpt-panel" class="dash-panel" style="display:none;margin-top:4px;">
+      <div class="dash-panel-hdr">
+        <button class="dash-back" onclick="rptClosePanel()">← Retour</button>
+        <div class="dash-panel-title" id="rpt-panel-title">—</div>
+        <button class="btn btn-gray btn-sm" id="rpt-xls-btn" onclick="rptExportExcel()" style="background:#1d7a3a;border-color:#1d7a3a;color:#fff;">⬇️ Excel</button>
+      </div>
+      <div class="dash-panel-body">
+        <!-- barre d'options (période / membre) — visible selon le rapport -->
+        <div id="rpt-options" class="card" style="margin-bottom:14px;">
+          <div style="display:flex;gap:11px;flex-wrap:wrap;align-items:flex-end;">
+            <div id="rpt-opt-period-wrap"><label class="flabel">Période</label>
+              <select id="rpt-period" class="fi" style="width:auto;" onchange="rptRefresh()">
+                <option value="today">Aujourd'hui</option>
+                <option value="week" selected>Cette semaine</option>
+                <option value="month">Ce mois</option>
+                <option value="all">Tout</option>
+              </select>
+            </div>
+            <div id="rpt-opt-person-wrap"><label class="flabel">Membre</label>
+              <select id="rpt-person" class="fi" style="width:auto;" onchange="rptRefresh()"><option value="all">Toute l'équipe</option></select>
+            </div>
+            <button class="btn btn-gray btn-sm" id="rpt-pdf-btn" onclick="pdfEquipierFromRpt()">📄 PDF de l'équipier</button>
+          </div>
+        </div>
+        <div id="rpt-out"></div>
+      </div>
+    </div>
   </div>
 
   <!-- PAS D'ACCÈS (leader / équipier) -->
@@ -2258,7 +2281,9 @@ function goPage(id, btn) {
       rptTab=curUser.restoId;
       document.getElementById('rpt-tabs').style.display='none';
     }
-    fillRptPersons();genReport();
+    fillRptPersons();
+    rptClosePanel();      // revenir à l'écran des tuiles
+    renderRptTiles();
   }
   if (id==='equipe') renderEquipe();
   if (id==='dashboard'){ try{ initDashboard(); dashStartAutoRefresh(); }catch(e){console.warn('dash',e);} }
@@ -2286,7 +2311,7 @@ function setEqTab(btn,r){
   document.getElementById('add-emp-card').style.display='none';
   renderEquipe();
 }
-function setRptTab(btn,r){rptTab=r;document.querySelectorAll('#rpt-tabs .rtab').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');fillRptPersons();genReport();}
+function setRptTab(btn,r){rptTab=r;document.querySelectorAll('#rpt-tabs .rtab').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');fillRptPersons();if(_rptCurrent){rptRefresh();}else{renderRptTiles();}}
 function setEmpFilter(btn,f){empFilter=f;document.querySelectorAll('#page-equipe .rtab').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');renderEquipe();}
 
 // ── FORM INCIDENT ─────────────────────────────────────────────────────────────
@@ -2588,6 +2613,155 @@ function buildRestoBlock(restoId,incs,targets){
   if(total>0){h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:8px;margin-bottom:8px;">';PROBS.forEach(function(p){var cnt=rIncs.filter(function(i){return i.problems.indexOf(p.id)>=0;}).length;if(!cnt)return;var pct=Math.round(cnt/total*100);h+='<div style="background:#1A1A1A;border-radius:8px;padding:10px;"><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span style="font-size:.8rem;">'+p.icon+' '+p.label+'</span><strong style="color:var(--orange);">'+cnt+'</strong></div><div class="score-bar"><div class="score-fill" style="width:'+pct+'%;background:var(--orange);"></div></div></div>';});h+='</div>';}
   h+='</div>';return h;
 }
+/* ════════ RAPPORTS — TUILES (style dashboard) ════════ */
+var RPT_TILES=[
+  {id:'incidents', em:'⚠️', tt:'Incidents',       ds:'Suivi disciplinaire', color:'#D62300'},
+  {id:'dispos',    em:'📅', tt:'Disponibilités',  ds:'Créneaux par équipier', color:'#1565c0'},
+  {id:'competences',em:'🎯',tt:'Compétences',     ds:'Qui sait faire quoi', color:'#2e7d32'},
+];
+var _rptCurrent=null;
+function renderRptTiles(){
+  var g=document.getElementById('rpt-grid');if(!g)return;
+  g.innerHTML=RPT_TILES.map(function(t){
+    return '<div class="dash-tile" onclick="rptOpen(\''+t.id+'\')">'
+      +'<div class="dt-accent" style="background:'+t.color+'"></div><div class="dt-em">'+t.em+'</div>'
+      +'<div><div class="dt-tt">'+t.tt+'</div><div class="dt-ds">'+t.ds+'</div></div></div>';
+  }).join('');
+}
+function rptOpen(type){
+  _rptCurrent=type;
+  document.getElementById('rpt-pick').style.display='none';
+  document.getElementById('rpt-panel').style.display='block';
+  var t=RPT_TILES.find(function(x){return x.id===type;})||{tt:'Rapport'};
+  document.getElementById('rpt-panel-title').textContent=t.tt;
+  // options visibles selon le type
+  var showPeriod=(type==='incidents'), showPerson=(type==='incidents'), showPdf=(type==='incidents');
+  document.getElementById('rpt-opt-period-wrap').style.display=showPeriod?'block':'none';
+  document.getElementById('rpt-opt-person-wrap').style.display=showPerson?'block':'none';
+  document.getElementById('rpt-pdf-btn').style.display=showPdf?'inline-block':'none';
+  rptRefresh();
+}
+function rptClosePanel(){
+  document.getElementById('rpt-panel').style.display='none';
+  document.getElementById('rpt-pick').style.display='block';
+  _rptCurrent=null;
+}
+function rptRefresh(){
+  if(_rptCurrent==='incidents'){ genReport(); }
+  else if(_rptCurrent==='dispos'){ genDispoReport(); }
+  else if(_rptCurrent==='competences'){ genCompetReport(); }
+}
+
+// Liste des équipiers ciblés selon le rôle et l'onglet resto
+function rptTargets(){
+  var r=curUser.role;
+  if(r==='franchise'){ var rf=rptTab==='all'?null:rptTab; return DB.employees.filter(function(e){return e.role!=='franchise'&&!e.archived&&(rf?e.restoId===rf:true);}); }
+  if(r==='directeur'){ return DB.employees.filter(function(e){return e.restoId===curUser.restoId&&e.role!=='directeur'&&!e.archived;}); }
+  return DB.employees.filter(function(e){return e.restoId===curUser.restoId&&(e.role==='equipier'||e.role==='leader')&&!e.archived;});
+}
+
+/* — RAPPORT DISPONIBILITÉS — */
+function genDispoReport(){
+  var emps=rptTargets().slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+  var out=document.getElementById('rpt-out');
+  var h='<div style="text-align:center;padding:14px;background:linear-gradient(135deg,#1A1A1A,#2C2C2C);border-radius:var(--r);margin-bottom:14px;border:1px solid #333;">'
+    +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.4rem;color:var(--yellow);text-transform:uppercase;letter-spacing:2px;">📅 Disponibilités</div>'
+    +'<p style="color:#888;margin-top:4px;font-size:.82rem;">'+emps.length+' équipier(s)'+(curUser.role==='franchise'&&rptTab!=='all'?' · '+RESTOS[rptTab].label:'')+'</p></div>';
+  h+='<div style="overflow-x:auto;"><table class="rpt-table"><thead><tr><th>Nom</th>'+JOURS.map(function(j){return '<th>'+j[1]+'</th>';}).join('')+'</tr></thead><tbody>';
+  emps.forEach(function(e){
+    var d=(e.infos&&e.infos.dispos)||{};
+    h+='<tr><td style="text-align:left;font-weight:600;">'+e.name+'</td>';
+    JOURS.forEach(function(j){
+      var x=d[j[0]];
+      var txt=(x&&x.on&&x.from&&x.to)?(x.from+' - '+x.to):'—';
+      h+='<td style="'+(txt==='—'?'color:#555;':'color:#cfe;')+'">'+txt+'</td>';
+    });
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  out.innerHTML=h;
+}
+
+/* — RAPPORT COMPÉTENCES — */
+function genCompetReport(){
+  var emps=rptTargets().slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+  var postesProd=(typeof POSTES_PRODUCTIFS!=='undefined')?POSTES_PRODUCTIFS:[];
+  var postesNP=(typeof postesNonProductifs==='function')?postesNonProductifs():[];
+  var cols=postesProd.concat(postesNP);
+  var out=document.getElementById('rpt-out');
+  var h='<div style="text-align:center;padding:14px;background:linear-gradient(135deg,#1A1A1A,#2C2C2C);border-radius:var(--r);margin-bottom:14px;border:1px solid #333;">'
+    +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.4rem;color:var(--yellow);text-transform:uppercase;letter-spacing:2px;">🎯 Compétences</div>'
+    +'<p style="color:#888;margin-top:4px;font-size:.82rem;">'+emps.length+' équipier(s) · '+cols.length+' postes'+(curUser.role==='franchise'&&rptTab!=='all'?' · '+RESTOS[rptTab].label:'')+'</p></div>';
+  h+='<div style="overflow-x:auto;"><table class="rpt-table rpt-table-compact"><thead><tr><th style="text-align:left;">Nom</th>'+cols.map(function(p){return '<th><div class="rpt-vert">'+p+'</div></th>';}).join('')+'</tr></thead><tbody>';
+  emps.forEach(function(e){
+    var q=(e.infos&&e.infos.qualifs)||[];
+    h+='<tr><td style="text-align:left;font-weight:600;white-space:nowrap;">'+e.name+'</td>';
+    cols.forEach(function(p){ var on=q.indexOf(p)>=0; h+='<td style="'+(on?'background:#1d7a3a;color:#fff;font-weight:800;':'color:#444;')+'">'+(on?'✓':'')+'</td>'; });
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  out.innerHTML=h;
+}
+
+/* — EXPORT EXCEL du rapport ouvert — */
+function rptExportExcel(){
+  if(!_rptCurrent){return;}
+  var rows=[], filename='rapport.xlsx', sheet='Rapport';
+  var emps=rptTargets().slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+  var restoTag=(curUser.role==='franchise'&&rptTab!=='all')?('_'+rptTab):'';
+  if(_rptCurrent==='dispos'){
+    sheet='Disponibilités'; filename='disponibilites'+restoTag+'.xlsx';
+    rows.push(['Nom'].concat(JOURS.map(function(j){return j[1];})));
+    emps.forEach(function(e){
+      var d=(e.infos&&e.infos.dispos)||{};
+      rows.push([e.name].concat(JOURS.map(function(j){var x=d[j[0]];return (x&&x.on&&x.from&&x.to)?(x.from+' - '+x.to):'';})));
+    });
+  } else if(_rptCurrent==='competences'){
+    sheet='Compétences'; filename='competences'+restoTag+'.xlsx';
+    var postesProd=(typeof POSTES_PRODUCTIFS!=='undefined')?POSTES_PRODUCTIFS:[];
+    var postesNP=(typeof postesNonProductifs==='function')?postesNonProductifs():[];
+    var cols=postesProd.concat(postesNP);
+    rows.push(['Nom'].concat(cols));
+    emps.forEach(function(e){
+      var q=(e.infos&&e.infos.qualifs)||[];
+      rows.push([e.name].concat(cols.map(function(p){return q.indexOf(p)>=0?'X':'';})));
+    });
+  } else if(_rptCurrent==='incidents'){
+    sheet='Incidents'; filename='incidents'+restoTag+'.xlsx';
+    var period=document.getElementById('rpt-period').value;
+    var incs=filterIncsByPeriod(period);
+    var ids=emps.map(function(e){return e.id;});
+    incs=incs.filter(function(i){return ids.indexOf(i.empId)>=0;});
+    rows.push(['Date','Équipier','Type','Gravité','Problèmes','Note']);
+    incs.forEach(function(i){
+      var e=DB.employees.find(function(x){return x.id===i.empId;});
+      var probs=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});return p?p.label:pid;}).join(', ');
+      var sevTxt={'1':'Léger','2':'Observation','3':'Sérieux','4':'Grave'}[i.severity]||'';
+      rows.push([ (i.datetime||i.created_at||'').toString().slice(0,16).replace('T',' '), e?e.name:'?', i.sanctionType||'', sevTxt, probs, (i.note||'').replace(/\n/g,' ') ]);
+    });
+  }
+  exportRowsToExcel(rows, sheet, filename);
+}
+
+function exportRowsToExcel(rows, sheetName, filename){
+  try{
+    if(window.XLSX){
+      var ws=XLSX.utils.aoa_to_sheet(rows);
+      var wb=XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb,ws,sheetName.slice(0,31));
+      XLSX.writeFile(wb,filename);
+      toast('Export Excel réussi','success');
+      return;
+    }
+  }catch(e){ console.warn('xlsx ko, repli CSV',e); }
+  // repli CSV (s'ouvre dans Excel)
+  var csv=rows.map(function(r){return r.map(function(c){c=(c==null?'':String(c));return '"'+c.replace(/"/g,'""')+'"';}).join(';');}).join('\r\n');
+  var blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename.replace('.xlsx','.csv');a.click();
+  toast('Export CSV (ouvrable dans Excel)','success');
+}
+window.rptOpen=rptOpen;window.rptClosePanel=rptClosePanel;window.rptRefresh=rptRefresh;window.rptExportExcel=rptExportExcel;window.renderRptTiles=renderRptTiles;
+
 function genReport(){
   var period=document.getElementById('rpt-period').value;var personId=document.getElementById('rpt-person').value;
   var pl={today:"Aujourd'hui",week:'7 derniers jours',month:'30 derniers jours',all:'Tout'};
@@ -8574,6 +8748,109 @@ function hrAutoAssignAndRender(){
 }
 window.hrAutoAssignAndRender=hrAutoAssignAndRender;
 window.hrAutoAssignDay=hrAutoAssignDay;
+
+/* ════════ ANALYSEUR DE TRAITS VIDES — explique pourquoi un créneau n'est pas pris ════════ */
+function hrAnalyseTraits(){
+  function hhmm(min){ var h=Math.floor(min/60)%24,m=min%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
+  var dayIdx=(typeof curDay!=='undefined')?curDay:0;
+  var jourKey=JOURS_KEYS[dayIdx]||'lun';
+  var jourLabel=(JOURS[dayIdx]&&JOURS[dayIdx][1])||jourKey;
+  var resto=(typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:hrCurrentResto();
+  var restoId=(resto||'').toLowerCase();
+  var equipiers=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===restoId;});
+
+  // reconstruire l'état "busy" et heures faites depuis les traits déjà placés ce jour
+  var busy={}, minJour={};
+  var rows=ROWS_BY_DAY[dayIdx]||[];
+  rows.forEach(function(r){ r.bars.forEach(function(b){
+    if(b.empId && !estTraitEncadrement(b.l)){
+      (busy[b.empId]=busy[b.empId]||[]).push({s:b.s,e:b.e});
+      minJour[b.empId]=(minJour[b.empId]||0)+(b.e-b.s);
+    }
+  }); });
+  function libre(id,s,e){var a=busy[id]||[];for(var i=0;i<a.length;i++){if(s<a[i].e&&e>a[i].s)return false;}return true;}
+  function dispoOk(emp,s,e){
+    var d=(emp.infos&&emp.infos.dispos&&emp.infos.dispos[jourKey])||null;
+    if(!d||!d.on)return false;
+    var from=_dispoMin(d.from),to=_dispoMin(d.to);
+    if(from==null||to==null)return false;
+    return s>=from&&e<=to;
+  }
+
+  // collecter les traits vides (équipier, non encadrement)
+  var vides=[];
+  rows.forEach(function(r){ r.bars.forEach(function(b){
+    if(!b.empId && !estTraitEncadrement(b.l)) vides.push(b);
+  }); });
+  vides.sort(function(a,b){return a.s-b.s;});
+
+  // équipiers sans contrat renseigné (cause fréquente de non-placement)
+  var sansContrat=equipiers.filter(function(e){return hrContratHebdo(e)==null;});
+
+  var H='<div style="font-family:Barlow,sans-serif;">';
+  H+='<div style="font-size:1.05rem;font-weight:800;color:#fff;margin-bottom:4px;">🔍 Analyse — '+jourLabel+' · '+(RESTOS[restoId]?RESTOS[restoId].label:restoId)+'</div>';
+  H+='<div style="font-size:.85rem;color:#aaa;margin-bottom:12px;">'+equipiers.length+' équipier(s) sur ce resto · '+vides.length+' créneau(x) vide(s)</div>';
+
+  if(sansContrat.length){
+    H+='<div style="background:#3a2a00;border:1px solid #b8860b;border-radius:8px;padding:10px;margin-bottom:12px;">'
+      +'<b style="color:#ffd54f;">⚠️ '+sansContrat.length+' équipier(s) sans contrat renseigné</b>'
+      +'<div style="font-size:.82rem;color:#ddd;margin-top:5px;">Sans contrat (heures/semaine) dans leur fiche, le calcul ne sait pas combien d\'heures leur donner — ils peuvent être mal placés. Concernés : '
+      +sansContrat.map(function(e){return e.name;}).join(', ')+'</div></div>';
+  }
+
+  if(!vides.length){
+    H+='<div style="color:#81c784;font-weight:700;">✅ Aucun créneau vide sur ce jour. Tout est pourvu.</div>';
+  } else {
+    H+='<table class="rpt-table" style="font-size:.8rem;"><thead><tr><th>Créneau</th><th>Poste</th><th>Pourquoi vide ?</th></tr></thead><tbody>';
+    vides.forEach(function(b){
+      var raisons={dispo:0,occupe:0,plafond:0,repos:0,total:equipiers.length};
+      var dispoNoms=[];
+      equipiers.forEach(function(e){
+        if(!dispoOk(e,b.s,b.e)){ raisons.dispo++; return; }
+        if(!libre(e.id,b.s,b.e)){ raisons.occupe++; return; }
+        var plaf=hrPlafondHebdoMin(e);
+        if(plaf!=null && (minJour[e.id]||0)+(b.e-b.s)>plaf){ raisons.plafond++; return; }
+        dispoNoms.push(e.name);
+      });
+      var explic;
+      if(dispoNoms.length){
+        explic='<span style="color:#ffb74d;">'+dispoNoms.length+' équipier(s) POURRAIENT le prendre ('+dispoNoms.slice(0,4).join(', ')+(dispoNoms.length>4?'…':'')+') — non placés par le calcul (priorité/équilibrage).</span>';
+      } else {
+        var parts=[];
+        if(raisons.dispo)parts.push(raisons.dispo+' pas dispo ce créneau');
+        if(raisons.occupe)parts.push(raisons.occupe+' déjà sur un autre trait');
+        if(raisons.plafond)parts.push(raisons.plafond+' contrat atteint');
+        explic='<span style="color:#e57373;">Personne de dispo : '+(parts.join(' · ')||'aucun équipier éligible')+'</span>';
+      }
+      H+='<tr><td style="white-space:nowrap;">'+hhmm(b.s)+'–'+hhmm(b.e)+'</td><td>'+b.l+'</td><td style="text-align:left;">'+explic+'</td></tr>';
+    });
+    H+='</tbody></table>';
+    H+='<div style="font-size:.8rem;color:#999;margin-top:10px;">💡 « POURRAIENT le prendre » = des équipiers sont dispos et libres, mais le calcul ne les a pas posés (souvent parce qu\'ils ont atteint leur contrat ailleurs, ou pour équilibrer). « Personne de dispo » = à corriger côté disponibilités ou effectif.</div>';
+  }
+  H+='</div>';
+
+  hrShowAnalyseModal(H);
+}
+function hrShowAnalyseModal(html){
+  var ov=document.getElementById('hr-analyse-ov');
+  if(!ov){
+    ov=document.createElement('div');ov.id='hr-analyse-ov';
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    ov.onclick=function(e){if(e.target===ov)ov.style.display='none';};
+    var box=document.createElement('div');box.id='hr-analyse-box';
+    box.style.cssText='background:#1a1a1a;border:1px solid #444;border-radius:14px;max-width:820px;width:100%;max-height:85vh;overflow:auto;padding:20px;position:relative;';
+    var close=document.createElement('button');close.textContent='✕';
+    close.style.cssText='position:absolute;top:12px;right:14px;background:#333;border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:15px;';
+    close.onclick=function(){ov.style.display='none';};
+    box.appendChild(close);
+    var content=document.createElement('div');content.id='hr-analyse-content';content.style.marginTop='6px';
+    box.appendChild(content);ov.appendChild(box);document.body.appendChild(ov);
+  }
+  ov.style.display='flex';
+  document.getElementById('hr-analyse-content').innerHTML=html;
+}
+window.hrAnalyseTraits=hrAnalyseTraits;
+
 
 // Charge d'un jour = somme des durées des traits équipiers (productifs + NP), hors encadrement.
 function hrChargeJour(dayIdx){
