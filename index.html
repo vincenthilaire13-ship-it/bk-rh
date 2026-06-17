@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-17 16:45 · v97';
+  var EMBEDDED_VERSION = '2026-06-17 17:20 · v99';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -2302,7 +2302,7 @@ function goPage(id, btn) {
   if (id==='pointage'){ptgInit();}
   if (id==='suivipointage'){ptgSuiviInit();}
   if (id==='planning'){openPlanning();}
-  if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();loadSeuilOral();loadMailTpl();renderQr();renderApercuForm();var av=document.getElementById('app-version-badge');if(av){av.textContent='✓ À jour — '+formatMajDate(APP_VERSION);av.style.color='#4CAF50';av.style.borderColor='#2E5E33';}}
+  if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();loadSeuilOral();loadMailTpl();renderQr();renderApercuForm();var av=document.getElementById('app-version-badge');if(av){var _now=new Date();var _hd=_now.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})+' à '+String(_now.getHours()).padStart(2,'0')+'h'+String(_now.getMinutes()).padStart(2,'0');av.innerHTML='✓ À jour — '+formatMajDate(APP_VERSION)+' <span style="color:#888;font-weight:400;">· consulté le '+_hd+'</span>';av.style.color='#4CAF50';av.style.borderColor='#2E5E33';}}
 }
 function setEqTab(btn,r){
   eqTab=r;
@@ -8224,9 +8224,22 @@ function _dispoMin(hhmm){
   return min;
 }
 function hrContratHebdo(emp){
-  // lit le contrat hebdo depuis la fiche salarié (infos.contrat_hebdo)
-  var h=emp&&emp.infos&&emp.infos.contrat_hebdo?parseFloat(emp.infos.contrat_hebdo):null;
-  return (h&&!isNaN(h)&&h>0)?h:null;
+  // lit le contrat hebdo où qu'il soit stocké : infos.contrat_hebdo, contratHeures, ou contrat_heures
+  if(!emp) return null;
+  var cand=[
+    emp.infos&&emp.infos.contrat_hebdo,
+    emp.infos&&emp.infos.contratHeures,
+    emp.infos&&emp.infos.contrat_heures,
+    emp.contratHeures,
+    emp.contrat_heures
+  ];
+  for(var i=0;i<cand.length;i++){
+    if(cand[i]!=null&&cand[i]!==''){
+      var h=parseFloat(cand[i]);
+      if(!isNaN(h)&&h>0) return h;
+    }
+  }
+  return null;
 }
 // Nombre de lundis (semaines) dans le mois de la semaine actuellement affichée
 function hrSemainesDuMois(){
@@ -8814,7 +8827,14 @@ function hrAnalyseTraits(){
       });
       var explic;
       if(dispoNoms.length){
-        explic='<span style="color:#ffb74d;">'+dispoNoms.length+' équipier(s) POURRAIENT le prendre ('+dispoNoms.slice(0,4).join(', ')+(dispoNoms.length>4?'…':'')+') — non placés par le calcul (priorité/équilibrage).</span>';
+        var sansC=dispoNoms.filter(function(nm){var e=equipiers.find(function(x){return x.name===nm;});return e&&hrContratHebdo(e)==null;});
+        if(sansC.length===dispoNoms.length && sansC.length>0){
+          explic='<span style="color:#e57373;">'+dispoNoms.length+' équipier(s) dispos mais SANS contrat renseigné → le calcul ne sait pas combien d\'heures leur donner, donc il ne les place pas. À corriger : renseigner leur contrat hebdo.</span>';
+        } else {
+          explic='<span style="color:#ffb74d;">'+dispoNoms.length+' équipier(s) POURRAIENT le prendre ('+dispoNoms.slice(0,4).join(', ')+(dispoNoms.length>4?'…':'')+')'
+            +(sansC.length?(' — dont '+sansC.length+' sans contrat renseigné'):'')
+            +'. Non placés (contrat déjà atteint ailleurs, repos, ou équilibrage).</span>';
+        }
       } else {
         var parts=[];
         if(raisons.dispo)parts.push(raisons.dispo+' pas dispo ce créneau');
@@ -9415,11 +9435,10 @@ function hrRenderEmploiSemaine(){
   emps.sort(function(a,b){return a.name.localeCompare(b.name);});
   if(!emps.length){ box.innerHTML='<div style="color:var(--mu);font-size:13px;padding:12px;">Cliquez sur « Placer la semaine » pour générer l\'emploi du temps des équipiers.</div>'; return; }
 
-  // contrat hebdo (depuis infos.contrat_hebdo) pour comparer aux heures placées
+  // contrat hebdo (lecture robuste, tous champs) pour comparer aux heures placées
   function contratDe(id){
     var e=(DB.employees||[]).find(function(x){return x.id===id;});
-    var h=e&&e.infos&&e.infos.contrat_hebdo?parseFloat(e.infos.contrat_hebdo):null;
-    return (h&&!isNaN(h))?h:null;
+    return hrContratHebdo(e);
   }
   function fmtH(min){ var h=Math.floor(min/60), m=min%60; return m?(h+'h'+String(m).padStart(2,'0')):(h+'h'); }
 
