@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-17 09:28 · v92';
+  var EMBEDDED_VERSION = '2026-06-17 10:18 · v95';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -4696,7 +4696,7 @@ function openCand(id){
     }
     return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #2A2A2A;opacity:.4;"><span>'+j[1]+'</span><span style="color:#666;">indisponible</span></div>';
   }).join('');
-  var photoHtml=c.photo?'<img src="'+c.photo+'" style="width:64px;height:64px;border-radius:10px;object-fit:cover;border:2px solid var(--orange);">':'<div style="width:64px;height:64px;border-radius:10px;background:#1A1A1A;border:2px solid #444;display:flex;align-items:center;justify-content:center;font-size:1.6rem;color:#555;">👤</div>';
+  var photoHtml=c.photo?'<img src="'+c.photo+'" onclick="candPhotoZoom(this.src)" title="Cliquer pour agrandir" style="width:64px;height:64px;border-radius:10px;object-fit:cover;border:2px solid var(--orange);cursor:zoom-in;">':'<div style="width:64px;height:64px;border-radius:10px;background:#1A1A1A;border:2px solid #444;display:flex;align-items:center;justify-content:center;font-size:1.6rem;color:#555;">👤</div>';
   document.getElementById('cand-detail').innerHTML=
     '<div style="display:flex;gap:14px;align-items:center;margin-bottom:14px;">'+photoHtml
     +'<div style="flex:1;"><div style="font-weight:700;font-size:1.05rem;color:#fff;">'+c.prenom+' '+c.nom+'</div>'
@@ -4728,6 +4728,17 @@ function viewCV(id){
   document.getElementById('modal-docview').classList.add('open');
 }
 
+function candPhotoZoom(src){
+  if(!src) return;
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;padding:20px;';
+  ov.onclick=function(){ document.body.removeChild(ov); };
+  var img=document.createElement('img');
+  img.src=src;
+  img.style.cssText='max-width:95%;max-height:95%;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.6);object-fit:contain;';
+  ov.appendChild(img);
+  document.body.appendChild(ov);
+}
 function renderCandActions(c){
   var box=document.getElementById('cand-actions');if(!box)return;
   var st=c.statut||'nouveau';
@@ -5564,7 +5575,14 @@ function showPostulerPage(presetResto){
     +'<div class="form-row"><div><label class="flabel">Prénom *</label><input type="text" id="p-prenom" class="fi"></div>'
     +'<div><label class="flabel">Nom *</label><input type="text" id="p-nom" class="fi"></div></div>'
     +'<div class="form-row"><div><label class="flabel">Sexe *</label><select id="p-sexe" class="fi"><option value="">— Choisir —</option><option value="Homme">Homme</option><option value="Femme">Femme</option></select></div>'
-    +'<div><label class="flabel">Date de naissance *</label><input type="date" id="p-naissance" class="fi"></div></div>'
+    +'<div><label class="flabel">Date de naissance *</label>'
+      +'<div style="display:flex;gap:6px;">'
+        +'<input type="text" inputmode="numeric" maxlength="2" id="p-naiss-j" class="fi" placeholder="JJ" style="text-align:center;" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');if(this.value.length===2){var m=document.getElementById(\'p-naiss-m\');if(m)m.focus();}">'
+        +'<input type="text" inputmode="numeric" maxlength="2" id="p-naiss-m" class="fi" placeholder="MM" style="text-align:center;" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');if(this.value.length===2){var a=document.getElementById(\'p-naiss-a\');if(a)a.focus();}">'
+        +'<input type="text" inputmode="numeric" maxlength="4" id="p-naiss-a" class="fi" placeholder="AAAA" style="text-align:center;" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');">'
+      +'</div>'
+      +'<div style="font-size:.68rem;color:#888;margin-top:3px;">Exemple : 03 / 09 / 2001</div>'
+    +'</div></div>'
     +'<div class="form-row"><div><label class="flabel">Téléphone *</label><input type="tel" id="p-phone" class="fi" placeholder="06 00 00 00 00"></div>'
     +'<div><label class="flabel">Email *</label><input type="email" id="p-email" class="fi" placeholder="vous@email.com"></div></div>'
     +'<div class="form-row"><div><label class="flabel">Nationalité *</label><select id="p-nationalite" class="fi" onchange="toggleNatAutre()"><option value="">— Choisir —</option><option value="Française">Française</option><option value="Autre">Autre</option></select></div>'
@@ -5784,7 +5802,15 @@ async function submitPostuler(){
   var prenom=document.getElementById('p-prenom').value.trim();
   var nom=document.getElementById('p-nom').value.trim();
   var sexe=document.getElementById('p-sexe').value;
-  var naissance=document.getElementById('p-naissance').value;
+  var nJ=(document.getElementById('p-naiss-j')||{}).value||'';
+  var nM=(document.getElementById('p-naiss-m')||{}).value||'';
+  var nA=(document.getElementById('p-naiss-a')||{}).value||'';
+  nJ=nJ.replace(/[^0-9]/g,''); nM=nM.replace(/[^0-9]/g,''); nA=nA.replace(/[^0-9]/g,'');
+  // reconstruire au format ISO YYYY-MM-DD (utilisé partout : âge, PIN, contrat)
+  var naissance='';
+  if(nJ&&nM&&nA){
+    naissance=nA.padStart(4,'0')+'-'+nM.padStart(2,'0')+'-'+nJ.padStart(2,'0');
+  }
   var phone=document.getElementById('p-phone').value.trim();
   var email=document.getElementById('p-email').value.trim();
   var transport=document.getElementById('p-transport').value;
@@ -5817,7 +5843,11 @@ async function submitPostuler(){
   var dernier=dejaBk==='oui'?('Oui — '+dejaBkOu):(dejaBk==='non'?'Non, première expérience':'');
   if(!prenom||!nom){alert('Merci d\'indiquer votre prénom et nom.');return;}
   if(!sexe){alert('Merci d\'indiquer votre sexe.');return;}
-  if(!naissance){alert('Merci d\'indiquer votre date de naissance.');return;}
+  if(!naissance){alert('Merci d\'indiquer votre date de naissance (jour, mois et année).');return;}
+  var _jj=parseInt(nJ,10),_mm=parseInt(nM,10),_aa=parseInt(nA,10);
+  if(_jj<1||_jj>31||_mm<1||_mm>12||_aa<1900||_aa>(new Date()).getFullYear()){
+    alert('Date de naissance invalide. Vérifiez le jour (01-31), le mois (01-12) et l\'année.');return;
+  }
   var _bd=new Date(naissance);var _today=new Date();
   var _age=_today.getFullYear()-_bd.getFullYear();
   var _m=_today.getMonth()-_bd.getMonth();
@@ -7542,7 +7572,7 @@ function hrPlacerPersonne(e, ctx, joursAutorises){
   var R=(typeof getReglement==='function')?getReglement():{};
   var nbRepos=(R&&R.joursRepos!=null)?parseInt(R.joursRepos,10):2; if(isNaN(nbRepos)||nbRepos<0) nbRepos=2;
   var joursMax=7-nbRepos;
-  var plaf=hrPlafondHebdoMin(e);
+  var plaf=(ctx&&typeof ctx._plafondOverride==='function')?ctx._plafondOverride(e):hrPlafondHebdoMin(e);
   function dispoOkJ(dayIdx,s,en){
     var jk=JOURS_KEYS[dayIdx];
     var d=(e.infos&&e.infos.dispos&&e.infos.dispos[jk])||null;
@@ -7644,7 +7674,7 @@ function hrRattrapageContrats(ctx){
     // traiter d'abord les plus sous contrat
     var liste=equipiers.slice().sort(function(a,b){ return hrResteMin(b,ctx)-hrResteMin(a,ctx); });
     liste.forEach(function(e){
-      var plaf=hrPlafondHebdoMin(e);
+      var plaf=(ctx&&typeof ctx._plafondOverride==='function')?ctx._plafondOverride(e):hrPlafondHebdoMin(e);
       for(var d=0;d<7;d++){
         if(ctx.repos&&ctx.repos[e.id]&&ctx.repos[e.id].indexOf(d)>=0) continue; // jour de repos
         var jt=ctx.joursTravailles&&ctx.joursTravailles[e.id]?ctx.joursTravailles[e.id]:null;
@@ -8059,9 +8089,22 @@ function hrAutoAssignMonth(){
     // contexte hebdo, mais le plafond tient compte du reste MENSUEL
     var ctx={minSemaine:{},joursTravailles:{},busy:{},repos:{}};
     hrReserverReposConsecutifs(ctx);
-    // Chaque semaine vise le CONTRAT : plafond hebdo = contrat (pas de lissage mensuel)
+    // Plafond de CETTE semaine = lissage pour atteindre le CONTRAT MENSUEL légal
+    // (contrat hebdo × 52/12). On répartit ce qui reste à faire sur le mois sur les
+    // semaines restantes, pour tomber pile sur le contrat mensuel à la fin.
+    var _nbSemMois=lundis.length;
+    var _semRestantes=_nbSemMois-wi; // semaines restantes (incluant celle-ci)
     ctx._plafondOverride=function(emp){
-      return hrPlafondHebdoMin(emp);
+      var ch=hrContratHebdo(emp);
+      if(ch==null) return null;
+      var contratMoisMin=Math.round(ch*60*52/12);     // ex 24h -> 104h
+      var dejaFait=(moisMin[emp.id]||0);               // cumul des semaines précédentes
+      var reste=contratMoisMin-dejaFait;
+      if(reste<=0) return 0;                           // contrat mensuel déjà atteint
+      var cibleSemaine=Math.round(reste/_semRestantes); // part lissée pour cette semaine
+      // borne haute de sécurité : on ne dépasse pas le max hebdo + marge (heures compl. 33%)
+      var maxHebdo=Math.round(ch*60*1.33);
+      return Math.min(cibleSemaine, maxHebdo);
     };
     // Placement PAR PERSONNE, dans l'ordre : petits (week-end) -> 35h (semaine) -> 24h (partout)
     var _resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'').toLowerCase();
@@ -8253,6 +8296,7 @@ function hrRenderPlanningHebdo(){
     h+='<th style="padding:8px 6px;color:'+thCol+';font-weight:'+(estAujourdhui?'700':'600')+';border-left:1px solid #eee;'+thBg+'">'+joursN[j]+(estAujourdhui?' 📍':'')+'<br><span style="font-size:10px;color:'+dtCol+';font-weight:400;">'+jjmm(dates[j])+'</span></th>';
   }
   h+='<th style="padding:8px 10px;color:#444;font-weight:700;border-left:2px solid #333;white-space:nowrap;">PLAN / CONTRAT</th>';
+  h+='<th style="padding:8px 10px;color:#444;font-weight:700;border-left:2px solid #333;white-space:nowrap;">SUIVI MOIS</th>';
   h+='</tr></thead><tbody>';
 
   // index du jour d'aujourd'hui dans la semaine affichée (-1 si pas dans cette semaine)
@@ -8289,6 +8333,25 @@ function hrRenderPlanningHebdo(){
     var contTxt=contrat!=null?fmtHC(Math.round(contrat*60)):'—';
     var col= contrat!=null ? (totMin/60>contrat+0.01?'#D62300':(totMin/60<contrat-0.01?'#E08600':'#1A9850')) : '#222';
     h+='<td style="padding:7px 10px;text-align:center;font-weight:700;color:'+col+';border-left:2px solid #333;white-space:nowrap;">'+planTxt+' / '+contTxt+'</td>';
+    // SUIVI MOIS : cumul des heures placées DE LA 1re SEMAINE JUSQU'À LA SEMAINE AFFICHÉE,
+    // comparé au contrat MENSUEL légal = contrat hebdo × 52/12 (≈ 4,333).
+    // Ex : 24h→104h, 35h→151h67, 20h→86h67.
+    var cumulMois=0;
+    for(var ws=0; ws<=HR_HEBDO_SEM && ws<R.semaines.length; ws++){
+      var peW=R.semaines[ws].parEmp[e.id];
+      if(peW && peW.totalMin) cumulMois+=peW.totalMin;
+    }
+    var moisTxt, contMoisTxt, colMois='#222';
+    if(contrat!=null){
+      var contMoisMin=Math.round(contrat*60*52/12); // contrat mensuel légal en minutes
+      moisTxt=fmtHC(cumulMois); contMoisTxt=fmtHC(contMoisMin);
+      // couleur sur la base du dernier point : vert si on est dans les clous du prorata attendu
+      var attenduMin=Math.round(contMoisMin*(HR_HEBDO_SEM+1)/R.semaines.length);
+      colMois=(cumulMois>attenduMin+60)?'#D62300':(cumulMois<attenduMin-60?'#E08600':'#1A9850');
+    } else {
+      moisTxt='—'; contMoisTxt='—';
+    }
+    h+='<td style="padding:7px 10px;text-align:center;font-weight:700;color:'+colMois+';border-left:2px solid #333;white-space:nowrap;">'+moisTxt+' / '+contMoisTxt+'</td>';
     h+='</tr>';
   });
   // ── Ligne : CRÉNEAUX RESTANT À PRENDRE (traits non pourvus) par jour ──
@@ -8313,6 +8376,7 @@ function hrRenderPlanningHebdo(){
       h+='<td style="padding:6px 6px;text-align:center;vertical-align:top;border-left:1px solid #eee;">'+cell+'</td>';
     }
     h+='<td style="padding:7px 10px;text-align:center;font-weight:700;color:#D62300;border-left:2px solid #333;">'+(total||'✓')+'</td>';
+    h+='<td style="border-left:2px solid #333;"></td>';
     h+='</tr>';
   })();
   h+='</tbody></table></div>';
@@ -8348,7 +8412,7 @@ function hrRenderPlanningHebdo(){
     h+='</table></div>';
     h+='<div style="text-align:right;font-size:11.5px;color:'+diagCol+';margin-top:8px;font-weight:600;">'+diag+'</div>';
   })();
-  h+='<div style="font-size:10.5px;color:#888;margin-top:12px;">Repos = jour non travaillé · PLAN/CONTRAT = heures planifiées / heures du contrat. <span style="color:#1A9850;">vert</span>=conforme · <span style="color:#E08600;">orange</span>=sous le contrat · <span style="color:#D62300;">rouge</span>=au-dessus. (Les CP, absences et arrêts seront ajoutés ensuite.)</div>';
+  h+='<div style="font-size:10.5px;color:#888;margin-top:12px;">Repos = jour non travaillé · PLAN/CONTRAT = heures de la semaine / contrat hebdo · SUIVI MOIS = heures cumulées depuis le début du mois / contrat mensuel (contrat hebdo × 52/12 : 24h→104h, 35h→151h67, 20h→86h67). <span style="color:#1A9850;">vert</span>=dans les clous · <span style="color:#E08600;">orange</span>=en retard · <span style="color:#D62300;">rouge</span>=en avance. (Les CP, absences et arrêts seront ajoutés ensuite.)</div>';
   h+='</div>';
 
   box.innerHTML=tabs+h;
