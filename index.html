@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-17 21:54 · v103';
+  var EMBEDDED_VERSION = '2026-06-17 22:06 · v104';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -578,7 +578,7 @@ body.tv-mode #eye-viewas{display:none!important;}
       </div>
       <button class="hr-btn hr-btn-ac" id="hrx-refresh-btn" onclick="hrRefreshWeek()" title="Recalcule le planning des 7 jours de la semaine">🔄 Actualiser</button>
       <button class="hr-btn hr-btn-ac" onclick="hrAutoAssignMonth()" title="Place les équipiers sur tout le mois en respectant le plafond mensuel (24h → 104h/mois) et les pose sur les traits">🗓️ Placer le mois (auto)</button>
-      <button class="hr-btn hr-btn-ac" onclick="hrAnalyseTraits()" title="Analyse les créneaux restés vides et explique pourquoi personne n'a été placé" style="background:#3a2a5a;border-color:#6d4aad;">🔍 Analyser</button>
+      <button class="hr-btn hr-btn-ac" onclick="hrAnalyseOuvrir('jour')" title="Analyse par jour ou sur la semaine : pourquoi des créneaux restent vides et pourquoi certains n'atteignent pas leur contrat" style="background:#3a2a5a;border-color:#6d4aad;">🔍 Analyser</button>
       <span id="hrx-assign-status" style="font-size:11px;color:#60a5fa;align-self:center;margin-left:4px"></span>
       <span id="hrx-valid-status" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--mu);align-self:center;margin-left:4px"></span>
     </div>
@@ -8965,25 +8965,136 @@ function hrAnalyseTraits(){
   }
   H+='</div>';
 
-  hrShowAnalyseModal(H);
+  hrShowAnalyseModal(H,'jour');
 }
-function hrShowAnalyseModal(html){
+
+/* ── ANALYSE SEMAINE ENTIÈRE : pourquoi chacun n'atteint pas son contrat ── */
+function hrAnalyseSemaine(){
+  function hhmmH(min){ var h=Math.floor(min/60),m=min%60; return h+'h'+(m?String(m).padStart(2,'0'):''); }
+  var resto=(typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:hrCurrentResto();
+  var restoId=(resto||'').toLowerCase();
+  var equipiers=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===restoId;});
+  var R=(typeof getReglement==='function')?getReglement():{};
+  var nbRepos=(R&&R.joursRepos!=null)?parseInt(R.joursRepos,10):2; if(isNaN(nbRepos)||nbRepos<0) nbRepos=2;
+
+  // heures placées sur la semaine + busy par jour, par employé
+  var minSem={}, busySem={}, joursTrav={};
+  for(var d=0;d<7;d++){
+    (ROWS_BY_DAY[d]||[]).forEach(function(r){ r.bars.forEach(function(b){
+      if(b.empId && !estTraitEncadrement(b.l)){
+        minSem[b.empId]=(minSem[b.empId]||0)+(b.e-b.s);
+        (busySem[b.empId]=busySem[b.empId]||{}); (busySem[b.empId][d]=busySem[b.empId][d]||[]).push({s:b.s,e:b.e});
+        (joursTrav[b.empId]=joursTrav[b.empId]||{})[d]=true;
+      }
+    }); });
+  }
+  function dispoJour(emp,d){ var jk=JOURS_KEYS[d]; var dd=(emp.infos&&emp.infos.dispos&&emp.infos.dispos[jk])||null; if(!dd||!dd.on)return null; var f=_dispoMin(dd.from),t=_dispoMin(dd.to); if(f==null||t==null)return null; return {f:f,t:t}; }
+  function dispoOkJ(emp,d,s,e){ var dj=dispoJour(emp,d); return dj&&s>=dj.f&&e<=dj.t; }
+  function libreJ(empId,d,s,e){ var a=(busySem[empId]||{})[d]||[]; for(var i=0;i<a.length;i++){ if(s<a[i].e&&e>a[i].s)return false; } return true; }
+
+  var jourLab=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  var lignes=[]; var okCount=0;
+  equipiers.forEach(function(e){
+    var c=hrContratHebdo(e);
+    var place=(minSem[e.id]||0);
+    if(c==null){ lignes.push({nom:e.name,sansContrat:true,place:place}); return; }
+    var contratMin=Math.round(c*60);
+    if(place>=contratMin-60){ okCount++; return; } // à moins d'1h : OK, on n'affiche pas
+    // nb jours dispo (hors repos déjà affecté) et heures de créneaux vides compatibles
+    var nbJoursDispo=0, compatMin=0, joursDispoNoms=[];
+    for(var dd=0;dd<7;dd++){
+      var dj=dispoJour(e,dd);
+      if(dj){ nbJoursDispo++; joursDispoNoms.push(jourLab[dd]); }
+      (ROWS_BY_DAY[dd]||[]).forEach(function(r){ r.bars.forEach(function(b){
+        if(b.empId||estTraitEncadrement(b.l))return;
+        if(!dispoOkJ(e,dd,b.s,b.e))return;
+        if(!libreJ(e.id,dd,b.s,b.e))return;
+        compatMin+=(b.e-b.s);
+      }); });
+    }
+    var nbJoursTrav=Object.keys(joursTrav[e.id]||{}).length;
+    var manque=contratMin-place;
+    lignes.push({nom:e.name,contrat:contratMin,place:place,manque:manque,compat:compatMin,
+                 nbJoursDispo:nbJoursDispo,joursDispo:joursDispoNoms,nbJoursTrav:nbJoursTrav});
+  });
+  lignes.sort(function(a,b){ return (b.manque||0)-(a.manque||0); });
+
+  var lundi=(typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?DAY_DATES[0]:'';
+  var dim=(typeof DAY_DATES!=='undefined'&&DAY_DATES[6])?DAY_DATES[6]:'';
+  var H='<div style="font-family:Barlow,sans-serif;">';
+  H+='<div style="font-size:1.05rem;font-weight:800;color:#fff;margin-bottom:2px;">🔍 Analyse de la semaine — '+(RESTOS[restoId]?RESTOS[restoId].label:restoId)+'</div>';
+  H+='<div style="font-size:.82rem;color:#aaa;margin-bottom:12px;">'+(lundi?('du '+lundi+' au '+dim+' · '):'')+okCount+' équipier(s) à leur contrat · '+lignes.length+' à examiner</div>';
+
+  if(!lignes.length){
+    H+='<div style="color:#81c784;font-weight:700;">✅ Tout le monde est à son contrat cette semaine.</div>';
+  } else {
+    H+='<table class="rpt-table" style="font-size:.78rem;"><thead><tr><th style="text-align:left;">Équipier</th><th>Placé</th><th>Contrat</th><th>Manque</th><th>Jours dispo</th><th>Créneaux vides compatibles</th><th>Verdict</th></tr></thead><tbody>';
+    lignes.forEach(function(x){
+      if(x.sansContrat){
+        H+='<tr><td style="text-align:left;font-weight:600;">'+x.nom+'</td><td>'+hhmmH(x.place)+'</td><td colspan="4" style="color:#ffd54f;">Pas de contrat renseigné</td><td style="text-align:left;color:#ffd54f;">Renseigner le contrat hebdo dans sa fiche</td></tr>';
+        return;
+      }
+      var verdict,col;
+      var joursUtiles=7-nbRepos;
+      if(x.compat<=0){
+        verdict='Plus aucun créneau libre compatible avec ses dispos → limite des disponibilités'; col='#ffb74d';
+      } else if(x.nbJoursDispo<joursUtiles){
+        verdict='Dispo seulement '+x.nbJoursDispo+' jour(s) ('+x.joursDispo.join(',')+') : difficile d\'atteindre le contrat avec '+nbRepos+' repos'; col='#ffb74d';
+      } else if(x.compat>=x.manque){
+        verdict='Il reste '+hhmmH(x.compat)+' de créneaux qu\'il POURRAIT prendre → le calcul devrait le compléter (à signaler)'; col='#ff8a80';
+      } else {
+        verdict='Seulement '+hhmmH(x.compat)+' de créneaux compatibles : impossible d\'atteindre le contrat (dispos trop justes)'; col='#ffb74d';
+      }
+      H+='<tr><td style="text-align:left;font-weight:600;">'+x.nom+'</td><td>'+hhmmH(x.place)+'</td><td>'+hhmmH(x.contrat)+'</td><td style="color:#ff8a80;">'+hhmmH(x.manque)+'</td><td>'+x.nbJoursDispo+'</td><td>'+hhmmH(x.compat)+'</td><td style="text-align:left;color:'+col+';">'+verdict+'</td></tr>';
+    });
+    H+='</tbody></table>';
+    H+='<div style="font-size:.78rem;color:#999;margin-top:10px;line-height:1.5;">'
+      +'💡 <b style="color:#ff8a80;">Rouge clair</b> = le calcul pourrait encore le compléter (dis-le moi, c\'est un point à corriger). '
+      +'<b style="color:#ffb74d;">Orange</b> = limite réelle des disponibilités (pas un bug) : pour atteindre le contrat il faudrait que l\'équipier soit dispo plus de jours/heures.</div>';
+  }
+  H+='</div>';
+  hrShowAnalyseModal(H,'semaine');
+}
+
+// Dispatcher avec onglets Jour / Semaine
+function hrAnalyseOuvrir(mode){
+  if(mode==='semaine') hrAnalyseSemaine();
+  else hrAnalyseTraits();
+}
+window.hrAnalyseSemaine=hrAnalyseSemaine;
+window.hrAnalyseOuvrir=hrAnalyseOuvrir;
+
+function hrShowAnalyseModal(html, mode){
+  mode=mode||'jour';
   var ov=document.getElementById('hr-analyse-ov');
   if(!ov){
     ov=document.createElement('div');ov.id='hr-analyse-ov';
     ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
     ov.onclick=function(e){if(e.target===ov)ov.style.display='none';};
     var box=document.createElement('div');box.id='hr-analyse-box';
-    box.style.cssText='background:#1a1a1a;border:1px solid #444;border-radius:14px;max-width:820px;width:100%;max-height:85vh;overflow:auto;padding:20px;position:relative;';
+    box.style.cssText='background:#1a1a1a;border:1px solid #444;border-radius:14px;max-width:880px;width:100%;max-height:85vh;overflow:auto;padding:20px;position:relative;';
     var close=document.createElement('button');close.textContent='✕';
     close.style.cssText='position:absolute;top:12px;right:14px;background:#333;border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:15px;';
     close.onclick=function(){ov.style.display='none';};
     box.appendChild(close);
-    var content=document.createElement('div');content.id='hr-analyse-content';content.style.marginTop='6px';
+    var tabs=document.createElement('div');tabs.id='hr-analyse-tabs';
+    tabs.style.cssText='display:flex;gap:8px;margin-bottom:14px;';
+    tabs.innerHTML='<button id="hr-tab-jour" onclick="hrAnalyseOuvrir(\'jour\')" style="padding:7px 16px;border-radius:8px;border:1px solid #555;background:#222;color:#ccc;cursor:pointer;font-size:.85rem;">📅 Jour</button>'
+      +'<button id="hr-tab-sem" onclick="hrAnalyseOuvrir(\'semaine\')" style="padding:7px 16px;border-radius:8px;border:1px solid #555;background:#222;color:#ccc;cursor:pointer;font-size:.85rem;">🗓️ Semaine</button>';
+    box.appendChild(tabs);
+    var content=document.createElement('div');content.id='hr-analyse-content';content.style.marginTop='2px';
     box.appendChild(content);ov.appendChild(box);document.body.appendChild(ov);
   }
   ov.style.display='flex';
   document.getElementById('hr-analyse-content').innerHTML=html;
+  // surligner l'onglet actif
+  var tj=document.getElementById('hr-tab-jour'), ts=document.getElementById('hr-tab-sem');
+  if(tj&&ts){
+    var on='background:#3a2a5a;border-color:#6d4aad;color:#fff;';
+    var off='background:#222;border-color:#555;color:#ccc;';
+    tj.style.cssText='padding:7px 16px;border-radius:8px;cursor:pointer;font-size:.85rem;border:1px solid;'+(mode==='jour'?on:off);
+    ts.style.cssText='padding:7px 16px;border-radius:8px;cursor:pointer;font-size:.85rem;border:1px solid;'+(mode==='semaine'?on:off);
+  }
 }
 window.hrAnalyseTraits=hrAnalyseTraits;
 
