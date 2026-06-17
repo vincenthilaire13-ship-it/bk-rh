@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-17 17:20 · v99';
+  var EMBEDDED_VERSION = '2026-06-17 22:05 · v100';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -9052,16 +9052,12 @@ function hrAutoAssignMonth(){
     var _nbSemMois=lundis.length;
     var _semRestantes=_nbSemMois-wi; // semaines restantes (incluant celle-ci)
     ctx._plafondOverride=function(emp){
+      // PAS DE LISSAGE MENSUEL : on vise le CONTRAT HEBDO PLEIN chaque semaine.
+      // 35h -> 35h obligatoire ; 24h -> 24h ; 15h -> 15h.
+      // On autorise une petite marge haute (heures complémentaires 33%) pour boucher les trous.
       var ch=hrContratHebdo(emp);
       if(ch==null) return null;
-      var contratMoisMin=Math.round(ch*60*52/12);     // ex 24h -> 104h
-      var dejaFait=(moisMin[emp.id]||0);               // cumul des semaines précédentes
-      var reste=contratMoisMin-dejaFait;
-      if(reste<=0) return 0;                           // contrat mensuel déjà atteint
-      var cibleSemaine=Math.round(reste/_semRestantes); // part lissée pour cette semaine
-      // borne haute de sécurité : on ne dépasse pas le max hebdo + marge (heures compl. 33%)
-      var maxHebdo=Math.round(ch*60*1.33);
-      return Math.min(cibleSemaine, maxHebdo);
+      return Math.round(ch*60*1.33);
     };
     // Placement PAR PERSONNE, dans l'ordre : petits (week-end) -> 35h (semaine) -> 24h (partout)
     var _resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'').toLowerCase();
