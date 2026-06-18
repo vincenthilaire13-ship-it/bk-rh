@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-17 23:01 · v111';
+  var EMBEDDED_VERSION = '2026-06-18 12:13 · v128';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -318,6 +318,14 @@ body.tv-mode #eye-viewas{display:none!important;}
 .dash-banner-ico{font-size:1.5rem;}
 .dash-banner-txt{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1.05rem;letter-spacing:1px;color:var(--yellow);}
 .dash-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;}
+.bk-tiles-grid{display:grid;grid-template-columns:repeat(3,minmax(180px,230px));gap:16px;justify-content:start;}
+.bk-page-tiles{padding:8px 4px;}
+/* Mode tuiles : toutes les pages affichent leurs tuiles avec EXACTEMENT le même
+   cadrage que Pointage (colonne centrée de 1000px), quel que soit le max-width
+   propre de la page (incidents 480px, autres 1400px, etc.). */
+.page.bk-tiles-mode{max-width:1000px!important;margin:0 auto!important;padding:16px!important;}
+#page-horaires.bk-tiles-mode{max-width:1000px!important;margin:0 auto!important;padding:16px!important;}
+#page-horaires.bk-tiles-mode #sec-horaires{display:none!important;}
 .dash-tile{position:relative;border-radius:18px;padding:22px 18px;min-height:150px;border:1px solid #3a3a3a;background:linear-gradient(155deg,#2E2E2E,#1E1E1E);cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;}
 .dash-tile:hover{transform:translateY(-5px);box-shadow:0 14px 34px rgba(0,0,0,.5);border-color:var(--orange);}
 .dash-tile .dt-em{font-size:2.6rem;line-height:1;}
@@ -326,6 +334,7 @@ body.tv-mode #eye-viewas{display:none!important;}
 .dash-tile .dt-accent{position:absolute;top:0;left:0;width:100%;height:5px;}
 .dash-tile.dt-soon{opacity:.62;}
 .dash-tile.dt-soon::after{content:'BIENTÔT';position:absolute;top:12px;right:12px;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:.66rem;letter-spacing:1px;color:#1A1A1A;background:#777;padding:2px 8px;border-radius:10px;}
+.bk-gated #rec-resto-filter,.bk-gated #visite-resto-filter,.bk-gated #rpt-tabs{display:none!important;}
 .dash-panel{background:var(--gray);border-radius:16px;border:1px solid #333;overflow:hidden;}
 .dash-panel-hdr{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;background:linear-gradient(135deg,var(--red),#A01800);}
 .dash-back{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:20px;padding:7px 15px;font-size:.85rem;cursor:pointer;font-family:Barlow,sans-serif;}
@@ -337,6 +346,7 @@ body.tv-mode #eye-viewas{display:none!important;}
   .dash-resto-name{font-size:1.35rem;}
   .dash-clock{font-size:1.8rem;}
   .dash-grid{grid-template-columns:repeat(2,1fr);gap:11px;}
+  .bk-tiles-grid{grid-template-columns:repeat(2,1fr);gap:11px;max-width:none;}
   .dash-tile{min-height:120px;padding:16px 13px;border-radius:15px;}
   .dash-tile .dt-em{font-size:2rem;}
   .dash-tile .dt-tt{font-size:1.05rem;margin-top:9px;}
@@ -500,9 +510,6 @@ body.tv-mode #eye-viewas{display:none!important;}
     <button onclick="goPage('planning',this)">🗓️ Planning encadrement</button>
     <button class="desktop-only" onclick="goPage('parametres',this)">⚙️ Paramètres</button>
     <button class="desktop-only" onclick="goPage('alertes',this)">🔔 Alertes <span id="albadge" style="background:var(--red);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
-    <button class="desktop-only" onclick="goPage('salaires',this)">💶 Salaires</button>
-    <button class="desktop-only" onclick="goPage('contrats',this)">📄 Contrats</button>
-    <button class="desktop-only" onclick="goPage('reglementation',this)">⚖️ Réglementation</button>
     <button onclick="goPage('pointage',this)">⏱️ Pointage</button>
     <button class="desktop-only" onclick="goPage('suivipointage',this)">📋 Suivi pointage</button>
   </nav>
@@ -550,9 +557,39 @@ body.tv-mode #eye-viewas{display:none!important;}
 
   <!-- HORAIRES (module porté depuis BK administratif) -->
   <div class="page" id="page-horaires">
+
+    <!-- ÉCRAN DES TUILES (choix du restaurant) — HORS de #sec-horaires pour ne pas
+         hériter du CSS du planning (police/marges) qui déformait les tuiles. -->
+    <div id="hr-tiles" style="display:block;">
+      <div class="bk-page-tiles">
+        <div class="sec-title" style="margin-bottom:14px;">🗓️ Choisissez un restaurant</div>
+        <div class="bk-tiles-grid">
+          <div class="dash-tile" onclick="hrOuvrirResto('BK500')">
+            <div class="dt-accent" style="background:#e53935;"></div>
+            <div class="dt-em">🍔</div>
+            <div><div class="dt-tt">BK 500</div><div class="dt-ds">Horaires</div></div>
+          </div>
+          <div class="dash-tile" onclick="hrOuvrirResto('BK509')">
+            <div class="dt-accent" style="background:#1565c0;"></div>
+            <div class="dt-em">🍔</div>
+            <div><div class="dt-tt">BK 509</div><div class="dt-ds">Horaires</div></div>
+          </div>
+          <div class="dash-tile" onclick="hrOuvrirResto('BK526')">
+            <div class="dt-accent" style="background:#2e7d32;"></div>
+            <div class="dt-em">🍔</div>
+            <div><div class="dt-tt">BK 526</div><div class="dt-ds">Horaires</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <section class="section" id="sec-horaires">
+
+    <!-- CONTENU DU PLANNING (masqué tant qu'aucun resto n'est choisi) -->
+    <div id="hr-content" style="display:none;">
 <div class="hr-hdr">
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <button onclick="hrRetourTuiles()" class="hr-btn" style="white-space:nowrap;">← Restaurants</button>
     <select id="hrx-resto-sel" onchange="hrSelectResto(this.value)" style="background:#1a1a1e;color:#f0f0f2;border:1px solid #3a3a44;border-radius:8px;padding:7px 12px;font-size:14px;font-weight:700;cursor:pointer">
       <option value="BK500">BK 500 — Près des Arènes</option>
       <option value="BK509">BK 509 — Saint-Jean-de-Védas</option>
@@ -578,6 +615,8 @@ body.tv-mode #eye-viewas{display:none!important;}
       </div>
       <button class="hr-btn hr-btn-ac" id="hrx-refresh-btn" onclick="hrRefreshWeek()" title="Recalcule le planning des 7 jours de la semaine">🔄 Actualiser</button>
       <button class="hr-btn hr-btn-ac" onclick="hrAutoAssignMonth()" title="Place les équipiers sur tout le mois en respectant le plafond mensuel (24h → 104h/mois) et les pose sur les traits">🗓️ Placer le mois (auto)</button>
+      <button class="hr-btn hr-btn-ac" onclick="hrOuvrirAbsences()" title="Signaler les équipiers absents (congés, maladie) pour qu'ils ne soient pas placés" style="background:#3a2e16;border-color:#b8860b;">🌴 Absences</button>
+      <button class="hr-btn hr-btn-ac" onclick="hrOptimiserManuel()" title="Relance une optimisation : déplace les repos et échange des créneaux pour compléter les contrats" style="background:#16321f;border-color:#3ecf8e;">⚙️ Optimiser les contrats</button>
       <button class="hr-btn hr-btn-ac" onclick="hrAnalyseOuvrir('jour')" title="Analyse par jour ou sur la semaine : pourquoi des créneaux restent vides et pourquoi certains n'atteignent pas leur contrat" style="background:#3a2a5a;border-color:#6d4aad;">🔍 Analyser</button>
       <span id="hrx-assign-status" style="font-size:11px;color:#60a5fa;align-self:center;margin-left:4px"></span>
       <span id="hrx-valid-status" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--mu);align-self:center;margin-left:4px"></span>
@@ -764,6 +803,7 @@ body.tv-mode #eye-viewas{display:none!important;}
       </div>
     
 </div>
+    </div><!-- /hr-content -->
 </section>
   </div>
 
@@ -942,16 +982,11 @@ body.tv-mode #eye-viewas{display:none!important;}
   <!-- ÉQUIPE -->
   <div class="page active" id="page-equipe">
 
-    <!-- Ligne 1 : sélection restaurant - Tous actif par défaut -->
-    <div id="eq-tabs" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-      <button class="rtab on" onclick="setEqTab(this,'all')">👥 Tous</button>
-      <button class="rtab" onclick="setEqTab(this,'bk500')">🍔 BK 500</button>
-      <button class="rtab" onclick="setEqTab(this,'bk509')">🍔 BK 509</button>
-      <button class="rtab" onclick="setEqTab(this,'bk526')">🍔 BK 526</button>
-    </div>
+    <!-- Ligne 1 : tuiles restaurants OU en-tête du resto sélectionné (géré par renderEquipe) -->
+    <div id="eq-tabs" style="margin-bottom:12px;"></div>
 
-    <!-- Ligne 2 : filtre statut + bouton ajouter -->
-    <div id="eq-filters" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+    <!-- Ligne 2 : filtre statut + bouton ajouter (masqué sur l'écran des tuiles) -->
+    <div id="eq-filters" style="display:none;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
       <div style="display:flex;gap:6px;">
         <button class="rtab on" id="ef-actif" onclick="setEmpFilter(this,'actif')">✅ Actifs</button>
         <button class="rtab" id="ef-archive" onclick="setEmpFilter(this,'archive')">📁 Archivés</button>
@@ -1062,41 +1097,36 @@ body.tv-mode #eye-viewas{display:none!important;}
 
   <!-- PARAMÈTRES -->
   <div class="page" id="page-parametres">
-    <div class="card">
-      <div class="sec-title">🎯 Importer les compétences (grille BK)</div>
-      <p style="font-size:.83rem;color:#aaa;margin-bottom:10px;">Collez une ligne par salarié. Format : <b style="color:#fff;">NOM Prénom : poste1, poste2, poste3</b>. Exemple :<br>
-      <span style="font-family:monospace;font-size:.78rem;color:#9ad;">ACAKPO MOREL : cuisine, frites, snack, broiler, board volant, filtrage</span></p>
-      <p style="font-size:.78rem;color:#888;margin-bottom:6px;">Postes reconnus : cuisine, frites, snack, broiler, board volant, borne, drive, sat salle, premiere cabine, tablette drive, emporter, comptoir volant, uber, sat emporter uber — et non productifs : march(andise), prep(aration), plonge, filt(rage), open broiler, open caisse, open salle, ferm/close caisse, ferm salle, ferm couloir, rh horaire, livraison.</p>
-      <label class="flabel">Restaurant ciblé</label>
-      <select id="imp-qualif-resto" class="fi" style="margin-bottom:10px;max-width:240px;">
-        <option value="bk500">BK 500</option><option value="bk509">BK 509</option><option value="bk526" selected>BK 526</option>
-      </select>
-      <textarea id="imp-qualif-text" class="fi" rows="8" style="resize:vertical;font-family:monospace;font-size:.82rem;" placeholder="ACAKPO MOREL : cuisine, frites, snack, broiler, board volant&#10;ADAMOWSKI CLAIRE : borne, drive, sat salle, premiere cabine, emporter, comptoir volant, uber, sat emporter uber"></textarea>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
-        <button class="btn btn-gray btn-sm" onclick="impQualifAnalyse()">🔍 Analyser (vérifier avant)</button>
-        <button class="btn btn-red btn-sm" onclick="impQualifApply()" id="imp-qualif-apply" style="display:none;">💾 Importer dans la base</button>
+    <div id="param-tiles"></div>
+    <div class="card param-card" id="pc-competences" style="display:none;">
+      <div class="sec-title">🎯 Importer les compétences</div>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">Glissez ici le fichier Excel des <b style="color:#fff;">compétences</b> exporté depuis les Rapports. Le restaurant est lu automatiquement dans le fichier (colonne « Restaurant ») — vous n'avez rien à sélectionner.</p>
+      <div id="imp-qualif-drop" ondragover="bkDragOver(event,this)" ondragleave="bkDragLeave(this)" ondrop="bkDropQualif(event,this)" onclick="document.getElementById('imp-qualif-file').click()" style="border:2px dashed #555;border-radius:14px;padding:34px 18px;text-align:center;cursor:pointer;transition:all .15s;background:#141414;">
+        <div style="font-size:2.4rem;">📊</div>
+        <div style="font-size:.95rem;color:#ddd;margin-top:8px;font-weight:600;">Glissez le fichier Excel ici</div>
+        <div style="font-size:.8rem;color:#888;margin-top:4px;">ou cliquez pour le choisir — <span id="imp-qualif-file-name">aucun fichier</span></div>
       </div>
-      <div id="imp-qualif-report" style="font-size:.82rem;margin-top:12px;"></div>
+      <input type="file" id="imp-qualif-file" accept=".xlsx,.xls" style="display:none;" onchange="bkFileQualif(this.files[0])">
+      <div id="imp-qualif-report" style="font-size:.82rem;margin-top:14px;"></div>
+      <button class="btn btn-red btn-sm" onclick="impQualifApply()" id="imp-qualif-apply" style="display:none;margin-top:10px;">💾 Importer dans la base</button>
     </div>
-    <div class="card">
-      <div class="sec-title">📅 Importer les disponibilités (depuis Excel)</div>
-      <p style="font-size:.83rem;color:#aaa;margin-bottom:10px;">Dans le fichier Excel, sélectionnez les lignes (colonnes <b style="color:#fff;">Nom, Prénom, Lundi → Dimanche</b>), copiez, puis collez ci-dessous. Les horaires au format <span style="font-family:monospace;color:#9ad;">11:00 - 23:00</span>. Une case vide = pas disponible ce jour-là.</p>
-      <label class="flabel">Restaurant ciblé</label>
-      <select id="imp-dispo-resto" class="fi" style="margin-bottom:10px;max-width:240px;">
-        <option value="bk500">BK 500</option><option value="bk509">BK 509</option><option value="bk526" selected>BK 526</option>
-      </select>
-      <textarea id="imp-dispo-text" class="fi" rows="8" style="resize:vertical;font-family:monospace;font-size:.8rem;" placeholder="Collez ici les lignes copiées depuis Excel (Nom, Prénom, puis les 7 jours)"></textarea>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
-        <button class="btn btn-gray btn-sm" onclick="impDispoAnalyse()">🔍 Analyser (vérifier avant)</button>
-        <button class="btn btn-red btn-sm" onclick="impDispoApply()" id="imp-dispo-apply" style="display:none;">💾 Importer dans la base</button>
+    <div class="card param-card" id="pc-dispos" style="display:none;">
+      <div class="sec-title">📅 Importer les disponibilités</div>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">Glissez ici le fichier Excel des <b style="color:#fff;">disponibilités</b> exporté depuis les Rapports. Le restaurant est lu automatiquement dans le fichier (colonne « Restaurant »).</p>
+      <div id="imp-dispo-drop" ondragover="bkDragOver(event,this)" ondragleave="bkDragLeave(this)" ondrop="bkDropDispo(event,this)" onclick="document.getElementById('imp-dispo-file').click()" style="border:2px dashed #555;border-radius:14px;padding:34px 18px;text-align:center;cursor:pointer;transition:all .15s;background:#141414;">
+        <div style="font-size:2.4rem;">📊</div>
+        <div style="font-size:.95rem;color:#ddd;margin-top:8px;font-weight:600;">Glissez le fichier Excel ici</div>
+        <div style="font-size:.8rem;color:#888;margin-top:4px;">ou cliquez pour le choisir — <span id="imp-dispo-file-name">aucun fichier</span></div>
       </div>
-      <div id="imp-dispo-report" style="font-size:.82rem;margin-top:12px;"></div>
+      <input type="file" id="imp-dispo-file" accept=".xlsx,.xls" style="display:none;" onchange="bkFileDispo(this.files[0])">
+      <div id="imp-dispo-report" style="font-size:.82rem;margin-top:14px;"></div>
+      <button class="btn btn-red btn-sm" onclick="impDispoApply()" id="imp-dispo-apply" style="display:none;margin-top:10px;">💾 Importer dans la base</button>
     </div>
-    <div class="card" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+    <div class="card param-card" id="pc-version" style="display:none;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <div class="sec-title" style="margin-bottom:0;">ℹ️ Version de l'application</div>
       <span id="app-version-badge" style="background:#1A1A1A;border:1px solid #444;color:var(--orange);padding:5px 14px;border-radius:20px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px;"></span>
     </div>
-    <div class="card">
+    <div class="card param-card" id="pc-qr" style="display:none;">
       <div class="sec-title">📲 QR code de candidature</div>
       <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">Un seul QR code pour les trois restaurants. Le candidat le scanne, arrive directement sur la fiche de recrutement et choisit lui-même le restaurant souhaité — sans code ni accès à l'application.</p>
       <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;">
@@ -1115,12 +1145,12 @@ body.tv-mode #eye-viewas{display:none!important;}
         </div>
       </div>
     </div>
-    <div class="card">
+    <div class="card param-card" id="pc-pin" style="display:none;">
       <div class="sec-title">🔑 Codes PIN</div>
       <div id="pin-settings" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:11px;"></div>
       <button class="btn btn-red" style="margin-top:14px;" onclick="savePins()">💾 Enregistrer les PIN</button>
     </div>
-    <div class="card">
+    <div class="card param-card" id="pc-amplitude" style="display:none;">
       <div class="sec-title">🕐 Amplitude horaire des disponibilités</div>
       <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Plage horaire proposée aux candidats sur le formulaire (sliders midi/soir). Par défaut 08h30 → 02h du matin.</p>
       <div class="form-row">
@@ -1133,7 +1163,7 @@ body.tv-mode #eye-viewas{display:none!important;}
       </label>
       <button class="btn btn-red" onclick="saveAmplitude()">💾 Enregistrer l'amplitude</button>
     </div>
-    <div class="card">
+    <div class="card param-card" id="pc-seuil" style="display:none;">
       <div class="sec-title">⚠️ Rappel observations orales</div>
       <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Quand un salarié atteint ce nombre d'observations orales, un rappel s'affiche dans Incidents (pour les directeurs et l'admin) suggérant de passer à une observation écrite.</p>
       <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
@@ -1142,7 +1172,7 @@ body.tv-mode #eye-viewas{display:none!important;}
         <button class="btn btn-red" onclick="saveSeuilOral()">💾 Enregistrer le seuil</button>
       </div>
     </div>
-    <div class="card" id="rec-apercu-card">
+    <div class="card param-card" id="rec-apercu-card" style="display:none;">
       <div class="sec-title">👁️ Aperçu de la fiche de recrutement</div>
       <p style="font-size:.83rem;color:#aaa;margin-bottom:12px;">Voici exactement ce que le candidat voit et remplit quand il scanne le QR code. Cet aperçu est en lecture seule.</p>
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
@@ -1154,7 +1184,7 @@ body.tv-mode #eye-viewas{display:none!important;}
       </div>
       <div id="apercu-form-wrap" style="border:1px solid #333;border-radius:12px;overflow:hidden;max-height:600px;overflow-y:auto;background:#1A1A1A;"></div>
     </div>
-    <div class="card">
+    <div class="card param-card" id="pc-adresses" style="display:none;">
       <div class="sec-title">📧 Adresses d'expédition</div>
       <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Le destinataire est toujours le candidat. Indiquez ici l'<strong>adresse RH</strong> depuis laquelle les mails doivent partir : elle sera ajoutée à chaque mail (en copie) pour qu'ils soient bien rattachés au compte RH. Vous pouvez aussi ajouter des adresses en <strong>copie cachée</strong> (le candidat ne les voit pas), chacune rattachée à un restaurant ou à « tous ».</p>
       <label class="flabel">Adresse RH (expéditrice)</label>
@@ -1177,7 +1207,7 @@ body.tv-mode #eye-viewas{display:none!important;}
       </div>
       <button class="btn btn-red" style="margin-top:14px;" onclick="saveMailAddresses()">💾 Enregistrer les adresses</button>
     </div>
-    <div class="card">
+    <div class="card param-card" id="pc-mails" style="display:none;">
       <div class="sec-title">✉️ Modèles de mails</div>
       <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Personnalisez les mails envoyés aux candidats. Variables disponibles : <code style="color:var(--orange);">{prenom}</code>, <code style="color:var(--orange);">{nom}</code>, <code style="color:var(--orange);">{resto}</code>, <code style="color:var(--orange);">{date}</code> (date d'entretien). Les mails s'ouvrent dans votre messagerie, vous validez vous-même l'envoi.</p>
 
@@ -1210,6 +1240,7 @@ body.tv-mode #eye-viewas{display:none!important;}
 
 <!-- SALAIRES -->
 <div class="page" id="page-salaires">
+  <button class="btn btn-gray btn-sm" style="margin-bottom:12px;" onclick="goPage('parametres')">← Réglages</button>
   <div class="card">
     <div class="sec-title">💶 Grille des salaires</div>
     <p style="font-size:.82rem;color:#aaa;margin-bottom:6px;">Grille des salaires de la Restauration Rapide (SNARR). Cette grille sert de référence pour pré-remplir le taux horaire des contrats. <strong>Vous pouvez la modifier</strong> : cliquez sur une valeur pour la changer.</p>
@@ -1225,6 +1256,7 @@ body.tv-mode #eye-viewas{display:none!important;}
 
 <!-- CONTRATS (bibliothèque de modèles) -->
 <div class="page" id="page-contrats">
+  <button class="btn btn-gray btn-sm" style="margin-bottom:12px;" onclick="goPage('parametres')">← Réglages</button>
   <div class="card">
     <div class="sec-title">📄 Modèles de contrats</div>
     <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Bibliothèque des modèles de contrats et avenants. Vous pouvez consulter, ajouter ou remplacer un modèle. Les champs entre accolades (ex. {nom}, {taux_horaire}) sont remplis automatiquement lors de la génération depuis la fiche d'un salarié.</p>
@@ -1254,6 +1286,7 @@ body.tv-mode #eye-viewas{display:none!important;}
 
 <!-- RÉGLEMENTATION (règles d'horaires appliquées par le moteur de planning) -->
 <div class="page" id="page-reglementation">
+  <button class="btn btn-gray btn-sm" style="margin-bottom:12px;" onclick="goPage('parametres')">← Réglages</button>
   <div class="card">
     <div class="sec-title">⚖️ Réglementation des horaires</div>
     <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Ces règles (convention collective de la restauration rapide — IDCC 1501) sont appliquées automatiquement par le placement du planning. Vous pouvez les modifier : le moteur en tiendra compte au prochain placement. <span style="color:#E08600;">À faire valider par votre comptable / juriste.</span></p>
@@ -1748,7 +1781,7 @@ var selSev = null;
 var selSanction = null;
 var extraData = {};
 var empFilter = 'actif';
-var eqTab = 'all';
+var eqTab = 'none';
 var rptTab = 'all';
 
 const RESTOS = {bk500:{id:'bk500',label:'BK 500'},bk509:{id:'bk509',label:'BK 509'},bk526:{id:'bk526',label:'BK 526'}};
@@ -2276,41 +2309,223 @@ function goPage(id, btn) {
   document.getElementById('page-'+id).classList.add('active');
   if (btn) btn.classList.add('active');
   if (id==='rapports'){
-    // Directeur : forcer son restaurant, pas de choix
+    // Directeur : forcer son restaurant, pas de choix → pas de tuiles
     if(curUser.role==='directeur'){
       rptTab=curUser.restoId;
-      document.getElementById('rpt-tabs').style.display='none';
+      var rt=document.getElementById('rpt-tabs'); if(rt) rt.style.display='none';
+      fillRptPersons(); rptClosePanel(); renderRptTiles();
+    } else {
+      bkShowTiles('rapports');
     }
-    fillRptPersons();
-    rptClosePanel();      // revenir à l'écran des tuiles
-    renderRptTiles();
   }
-  if (id==='equipe') renderEquipe();
+  if (id==='equipe'){ if(curUser.role==='franchise') eqTab='none'; renderEquipe(); }
   if (id==='dashboard'){ try{ initDashboard(); dashStartAutoRefresh(); }catch(e){console.warn('dash',e);} }
   else { try{ dashStopAutoRefresh(); }catch(e){} }
-  if (id==='incidents'){ try{ initForm(); }catch(e){} }
+  if (id==='incidents'){ if(curUser.role==='franchise'){ bkShowTiles('incidents'); } else { window.__incResto=curUser.restoId; try{ initForm(); }catch(e){} } }
   if (id==='horaires'){ try{
     if(!window.__hrDone && window.__hrInit){ window.__hrInit(); }
-    else if(window.hrSelectResto){ var rs=document.getElementById('hrx-resto-sel'); window.hrSelectResto((rs&&rs.value)||'BK526'); }
+    // Toujours revenir à l'écran des tuiles en entrant sur Horaires
+    var hrT=document.getElementById('hr-tiles'); var hrC=document.getElementById('hr-content');
+    var hrP=document.getElementById('page-horaires'); if(hrP) hrP.classList.add('bk-tiles-mode');
+    if(hrT&&hrC){ hrT.style.display='block'; hrC.style.display='none'; }
   }catch(e){console.warn('init horaires',e);} }
-  if (id==='recrutement'){setCandFilter(candFilter||'nouveau');}
-  if (id==='visite'){renderVisiteList();}
-  if (id==='alertes'){renderAlertes();}
+  if (id==='recrutement'){ if(curUser.role==='franchise'){ bkShowTiles('recrutement'); } else { setCandFilter(candFilter||'nouveau'); } }
+  if (id==='visite'){ if(curUser.role==='franchise'){ bkShowTiles('visite'); } else { renderVisiteList(); } }
+  if (id==='alertes'){ if(curUser.role==='franchise'){ bkShowTiles('alertes'); } else { window.__alertResto=curUser.restoId; renderAlertes(); } }
   if (id==='salaires'){renderSalaires();}
   if (id==='contrats'){renderContrats();}
   if (id==='reglementation'){renderReglement();}
-  if (id==='pointage'){ptgInit();}
-  if (id==='suivipointage'){ptgSuiviInit();}
+  if (id==='pointage'){ if(curUser.role==='franchise'){ bkShowTiles('pointage'); } else { window.__ptgRestoActif=null; ptgInit(); } }
+  if (id==='suivipointage'){ if(curUser.role==='franchise'){ bkShowTiles('suivipointage'); } else { window.__ptgRestoActif=null; ptgSuiviInit(); } }
   if (id==='planning'){openPlanning();}
-  if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();loadSeuilOral();loadMailTpl();renderQr();renderApercuForm();var av=document.getElementById('app-version-badge');if(av){var _now=new Date();var _hd=_now.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})+' à '+String(_now.getHours()).padStart(2,'0')+'h'+String(_now.getMinutes()).padStart(2,'0');av.innerHTML='✓ À jour — '+formatMajDate(APP_VERSION)+' <span style="color:#888;font-weight:400;">· consulté le '+_hd+'</span>';av.style.color='#4CAF50';av.style.borderColor='#2E5E33';}}
+  if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();loadSeuilOral();loadMailTpl();renderQr();renderApercuForm();var av=document.getElementById('app-version-badge');if(av){var _now=new Date();var _hd=_now.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})+' à '+String(_now.getHours()).padStart(2,'0')+'h'+String(_now.getMinutes()).padStart(2,'0');av.innerHTML='✓ À jour — '+formatMajDate(APP_VERSION)+' <span style="color:#888;font-weight:400;">· consulté le '+_hd+'</span>';av.style.color='#4CAF50';av.style.borderColor='#2E5E33';} renderParamTiles(); }
 }
-function setEqTab(btn,r){
+function setEqTab(r){
   eqTab=r;
-  document.querySelectorAll('#eq-tabs .rtab').forEach(function(b){b.classList.remove('on');});
-  btn.classList.add('on');
-  document.getElementById('add-emp-card').style.display='none';
+  var card=document.getElementById('add-emp-card'); if(card) card.style.display='none';
   renderEquipe();
 }
+
+// ══ SYSTÈME GÉNÉRIQUE DE TUILES PAR RESTAURANT ════════════════════════════════
+// Pour les pages qui doivent commencer par un choix de restaurant (tuiles), comme
+// l'Accueil. Au clic sur une tuile, on appelle la fonction de la page avec le resto,
+// on masque les tuiles et on montre le contenu. En revenant sur la page, on
+// réaffiche toujours les tuiles (état de départ).
+var BK_TILE_PAGES = {
+  recrutement: { pick:function(r){ if(typeof setRestoFilterDirect==='function') setRestoFilterDirect(r); setCandFilter(candFilter||'nouveau'); var rf=document.getElementById('rec-resto-filter'); if(rf) rf.style.display='none'; } },
+  visite:      { pick:function(r){ visiteRestoFilter=r; var vf=document.getElementById('visite-resto-filter'); if(vf) vf.style.display='none'; renderVisiteList(); } },
+  incidents:   { pick:function(r){ window.__incResto=r; try{initForm();}catch(e){} try{renderHistory&&renderHistory();}catch(e){} } },
+  rapports:    { pick:function(r){ rptTab=r; var rt=document.getElementById('rpt-tabs'); if(rt) rt.style.display='none'; if(typeof fillRptPersons==='function') fillRptPersons(); if(typeof rptClosePanel==='function') rptClosePanel(); if(typeof renderRptTiles==='function') renderRptTiles(); } },
+  alertes:     { pick:function(r){ window.__alertResto=r; renderAlertes(); } },
+  pointage:    { pick:function(r){ window.__ptgRestoActif=r; try{ptgInit();}catch(e){} } },
+  suivipointage:{ pick:function(r){ window.__ptgRestoActif=r; try{ptgSuiviInit();}catch(e){} } }
+};
+// Construit (une fois) l'écran de tuiles + le wrapper de contenu pour une page.
+function bkBuildTileGate(pageId){
+  var page=document.getElementById('page-'+pageId);
+  if(!page || page.__tileGated) return;
+  // wrapper de contenu = tous les enfants actuels
+  var body=document.createElement('div');
+  body.className='bk-page-body';
+  body.id='bk-body-'+pageId;
+  while(page.firstChild){ body.appendChild(page.firstChild); }
+  // écran de tuiles
+  var tiles=document.createElement('div');
+  tiles.className='bk-page-tiles';
+  tiles.id='bk-tiles-'+pageId;
+  tiles.style.padding='4px';
+  var accents={bk500:'#e53935',bk509:'#1565c0',bk526:'#2e7d32'};
+  var titres={recrutement:'Recrutement',visite:'Visites médicales',incidents:'Incidents',rapports:'Rapports',alertes:'Alertes',pointage:'Pointage',suivipointage:'Suivi des pointages'};
+  var h='<div class="sec-title" style="margin-bottom:14px;">Choisissez un restaurant</div><div class="bk-tiles-grid">';
+  ['bk500','bk509','bk526'].forEach(function(rid){
+    var resto=RESTOS[rid]||{label:rid};
+    h+='<div class="dash-tile" style="position:relative;" onclick="bkTilePick(\''+pageId+'\',\''+rid+'\')">'
+      +'<div class="dt-accent" style="background:'+accents[rid]+';"></div>'
+      +'<span class="bk-tile-badge" data-resto="'+rid+'"></span>'
+      +'<div class="dt-em">🍔</div>'
+      +'<div><div class="dt-tt">'+resto.label+'</div><div class="dt-ds">'+(titres[pageId]||'')+'</div></div>'
+      +'</div>';
+  });
+  h+='</div>';
+  tiles.innerHTML=h;
+  page.appendChild(tiles);
+  page.appendChild(body);
+  page.classList.add('bk-gated');
+  page.__tileGated=true;
+}
+// Affiche l'écran des tuiles d'une page (état de départ)
+function bkShowTiles(pageId){
+  bkBuildTileGate(pageId);
+  var page=document.getElementById('page-'+pageId); if(page) page.classList.add('bk-tiles-mode');
+  var t=document.getElementById('bk-tiles-'+pageId), b=document.getElementById('bk-body-'+pageId);
+  if(t) t.style.display='block';
+  if(b) b.style.display='none';
+  // pastilles par restaurant (pour les pages qui ont des alertes/items)
+  var typeBadge={recrutement:'recrutement', visite:'visite', alertes:'alertes'}[pageId];
+  if(typeBadge && t){
+    t.querySelectorAll('.bk-tile-badge').forEach(function(span){
+      var rid=span.getAttribute('data-resto');
+      var n=(typeof bkCompteResto==='function')?bkCompteResto(typeBadge, rid):0;
+      span.innerHTML=(typeof bkBadgeHtml==='function')?bkBadgeHtml(n):'';
+    });
+  }
+}
+// Clic sur une tuile : charge le resto et montre le contenu
+function bkTilePick(pageId, resto){
+  bkBuildTileGate(pageId);
+  var page=document.getElementById('page-'+pageId); if(page) page.classList.remove('bk-tiles-mode');
+  var cfg=BK_TILE_PAGES[pageId];
+  var t=document.getElementById('bk-tiles-'+pageId), b=document.getElementById('bk-body-'+pageId);
+  if(t) t.style.display='none';
+  if(b) b.style.display='block';
+  // ajouter un bouton retour en tête de contenu (une seule fois)
+  if(b && !document.getElementById('bk-back-'+pageId)){
+    var back=document.createElement('button');
+    back.id='bk-back-'+pageId; back.className='btn btn-gray btn-sm';
+    back.style.marginBottom='12px';
+    back.textContent='← Restaurants';
+    back.onclick=function(){ bkShowTiles(pageId); };
+    b.insertBefore(back, b.firstChild);
+  }
+  try{ if(cfg&&cfg.pick) cfg.pick(resto); }catch(e){ console.warn('tilePick',pageId,e); }
+}
+window.bkTilePick=bkTilePick; window.bkShowTiles=bkShowTiles;
+// Helper : positionner le filtre resto du recrutement sans bouton
+function setRestoFilterDirect(r){
+  try{ restoFilter=r; }catch(e){ window.restoFilter=r; }
+  document.querySelectorAll('#rec-resto-filter .rf').forEach(function(b){ b.classList.remove('on'); });
+}
+
+// ══ PARAMÈTRES EN TUILES ══════════════════════════════════════════════════════
+// Liste des tuiles de la page Paramètres. type 'card' = affiche une carte interne ;
+// type 'page' = va vers une page existante (salaires/contrats/réglementation).
+var PARAM_TILES=[
+  {ico:'🎯', titre:'Compétences',   sub:'Importer la grille BK',        type:'card', card:'pc-competences', accent:'#e53935'},
+  {ico:'📅', titre:'Disponibilités',sub:'Importer depuis Excel',        type:'card', card:'pc-dispos',      accent:'#1565c0'},
+  {ico:'💶', titre:'Salaires',      sub:'Grille des salaires',          type:'page', page:'salaires',       accent:'#2e7d32'},
+  {ico:'📄', titre:'Contrats',      sub:'Modèles de contrats',          type:'page', page:'contrats',       accent:'#e87722'},
+  {ico:'⚖️', titre:'Réglementation',sub:'Règles du planning',           type:'page', page:'reglementation', accent:'#8e44ad'},
+  {ico:'📲', titre:'QR code',       sub:'QR de candidature',            type:'card', card:'pc-qr',          accent:'#16a085'},
+  {ico:'🔑', titre:'Codes PIN',     sub:'Accès par profil',             type:'card', card:'pc-pin',         accent:'#c0392b'},
+  {ico:'🕐', titre:'Amplitude',     sub:'Plage horaire dispos',         type:'card', card:'pc-amplitude',   accent:'#2980b9'},
+  {ico:'⚠️', titre:'Observations',  sub:'Seuil rappel oral',            type:'card', card:'pc-seuil',       accent:'#d35400'},
+  {ico:'👁️', titre:'Aperçu fiche',  sub:'Vue candidat',                 type:'card', card:'rec-apercu-card',accent:'#7f8c8d'},
+  {ico:'📧', titre:'Adresses mail', sub:'Expédition RH',                type:'card', card:'pc-adresses',    accent:'#2c3e50'},
+  {ico:'✉️', titre:'Modèles mails', sub:'Mails aux candidats',          type:'card', card:'pc-mails',       accent:'#27ae60'},
+  {ico:'ℹ️', titre:'Version',       sub:'Version de l\'app',            type:'card', card:'pc-version',     accent:'#555'}
+];
+function renderParamTiles(){
+  var page=document.getElementById('page-parametres'); if(page) page.classList.add('bk-tiles-mode');
+  var box=document.getElementById('param-tiles'); if(!box) return;
+  // cacher toutes les cartes + bouton retour éventuel
+  document.querySelectorAll('#page-parametres .param-card').forEach(function(c){ c.style.display='none'; });
+  var back=document.getElementById('param-back'); if(back) back.remove();
+  var h='<div class="bk-page-tiles"><div class="sec-title" style="margin-bottom:14px;">⚙️ Réglages</div><div class="bk-tiles-grid">';
+  PARAM_TILES.forEach(function(t,i){
+    var arg=t.type==='card'?("'card','"+t.card+"'"):("'page','"+t.page+"'");
+    h+='<div class="dash-tile" onclick="paramOuvrir('+arg+')">'
+      +'<div class="dt-accent" style="background:'+t.accent+';"></div>'
+      +'<div class="dt-em">'+t.ico+'</div>'
+      +'<div><div class="dt-tt">'+t.titre+'</div><div class="dt-ds">'+t.sub+'</div></div>'
+      +'</div>';
+  });
+  h+='</div></div>';
+  box.innerHTML=h;
+  box.style.display='block';
+}
+function paramOuvrir(type, ref){
+  if(type==='page'){ goPage(ref); return; } // salaires/contrats/réglementation = pages existantes
+  var page=document.getElementById('page-parametres'); if(page) page.classList.remove('bk-tiles-mode');
+  var box=document.getElementById('param-tiles'); if(box) box.style.display='none';
+  document.querySelectorAll('#page-parametres .param-card').forEach(function(c){ c.style.display='none'; });
+  var card=document.getElementById(ref);
+  if(card){
+    card.style.display=(ref==='pc-version')?'flex':'block';
+    // bouton retour en tête de page
+    var back=document.getElementById('param-back');
+    if(!back){
+      back=document.createElement('button');
+      back.id='param-back'; back.className='btn btn-gray btn-sm';
+      back.style.marginBottom='12px'; back.textContent='← Réglages';
+      back.onclick=function(){ renderParamTiles(); };
+      card.parentElement.insertBefore(back, card);
+    } else { card.parentElement.insertBefore(back, card); back.style.display='inline-block'; }
+  }
+}
+window.renderParamTiles=renderParamTiles; window.paramOuvrir=paramOuvrir;
+
+// ══ COMPTAGE PAR RESTAURANT (pour les pastilles sur les tuiles) ═══════════════
+// Renvoie le nombre d'éléments à signaler pour un restaurant donné, selon le type
+// de page (alertes / recrutement / visite). Utilisé pour afficher une pastille
+// rouge sur chaque tuile de restaurant.
+function bkCompteResto(type, restoId){
+  try{
+    if(type==='alertes'){
+      return (typeof collectAlertes==='function') ? collectAlertes(restoId).length : 0;
+    }
+    if(type==='recrutement'){
+      // nouvelles candidatures du resto (statut nouveau)
+      return (DB.candidatures||[]).filter(function(c){ return c.restoId===restoId && (c.statut||'nouveau')==='nouveau'; }).length;
+    }
+    if(type==='visite'){
+      var n=0;
+      (DB.candidatures||[]).filter(function(c){ return c.restoId===restoId && (c.statut||'')==='essai'; }).forEach(function(c){
+        var et=(typeof visiteInfo==='function')?visiteInfo(c).etat:''; if(et==='rouge'||et==='depasse') n++;
+      });
+      (DB.employees||[]).filter(function(e){ return e.restoId===restoId && !e.archived; }).forEach(function(e){
+        var et=(typeof visiteEmpInfo==='function')?visiteEmpInfo(e).etat:''; if(et==='bientot'||et==='depasse') n++;
+      });
+      return n;
+    }
+  }catch(e){ return 0; }
+  return 0;
+}
+// HTML d'une pastille rouge (vide si 0)
+function bkBadgeHtml(n){
+  if(!n) return '';
+  return '<div style="position:absolute;top:10px;right:12px;background:var(--red);color:#fff;border-radius:11px;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;padding:0 6px;box-shadow:0 2px 6px rgba(0,0,0,.4);">'+n+'</div>';
+}
+window.bkCompteResto=bkCompteResto; window.bkBadgeHtml=bkBadgeHtml;
 function setRptTab(btn,r){rptTab=r;document.querySelectorAll('#rpt-tabs .rtab').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');fillRptPersons();if(_rptCurrent){rptRefresh();}else{renderRptTiles();}}
 function setEmpFilter(btn,f){empFilter=f;document.querySelectorAll('#page-equipe .rtab').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');renderEquipe();}
 
@@ -2531,6 +2746,11 @@ function renderHistory(){
   var r=curUser.role;
   if(r==='manager'){var ids=DB.employees.filter(function(e){return (e.role==='equipier'||e.role==='leader')&&e.restoId===curUser.restoId;}).map(function(e){return e.id;});incs=incs.filter(function(i){return ids.indexOf(i.empId)>=0;});}
   else if(r==='directeur'){var ids=DB.employees.filter(function(e){return e.restoId===curUser.restoId;}).map(function(e){return e.id;});incs=incs.filter(function(i){return ids.indexOf(i.empId)>=0;});}
+  // restaurant choisi via les tuiles (franchise) : ne garder que ses salariés
+  if(window.__incResto && window.__incResto!=='all'){
+    var idsR=DB.employees.filter(function(e){return e.restoId===window.__incResto;}).map(function(e){return e.id;});
+    incs=incs.filter(function(i){return idsR.indexOf(i.empId)>=0;});
+  }
   var fw=document.getElementById('f-who').value;
   var ft=document.getElementById('f-type').value;
   var fs=document.getElementById('f-sev').value;
@@ -2918,22 +3138,23 @@ function rptExportExcel(){
   var rows=[], filename='rapport.xlsx', sheet='Rapport';
   var emps=rptTargets().slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
   var restoTag=(curUser.role==='franchise'&&rptTab!=='all')?('_'+rptTab):'';
+  function restoLabel(rid){ return (RESTOS[rid]&&RESTOS[rid].label)?RESTOS[rid].label:(rid||''); }
   if(_rptCurrent==='dispos'){
     sheet='Disponibilités'; filename='disponibilites'+restoTag+'.xlsx';
-    rows.push(['Nom'].concat(JOURS.map(function(j){return j[1];})));
+    rows.push(['Restaurant','Nom'].concat(JOURS.map(function(j){return j[1];})));
     emps.forEach(function(e){
       var d=(e.infos&&e.infos.dispos)||{};
-      rows.push([e.name].concat(JOURS.map(function(j){var x=d[j[0]];return (x&&x.on&&x.from&&x.to)?(x.from+' - '+x.to):'';})));
+      rows.push([restoLabel(e.restoId),e.name].concat(JOURS.map(function(j){var x=d[j[0]];return (x&&x.on&&x.from&&x.to)?(x.from+' - '+x.to):'';})));
     });
   } else if(_rptCurrent==='competences'){
     sheet='Compétences'; filename='competences'+restoTag+'.xlsx';
     var postesProd=(typeof POSTES_PRODUCTIFS!=='undefined')?POSTES_PRODUCTIFS:[];
     var postesNP=(typeof postesNonProductifs==='function')?postesNonProductifs():[];
     var cols=postesProd.concat(postesNP);
-    rows.push(['Nom'].concat(cols));
+    rows.push(['Restaurant','Nom'].concat(cols));
     emps.forEach(function(e){
       var q=(e.infos&&e.infos.qualifs)||[];
-      rows.push([e.name].concat(cols.map(function(p){return q.indexOf(p)>=0?'X':'';})));
+      rows.push([restoLabel(e.restoId),e.name].concat(cols.map(function(p){return q.indexOf(p)>=0?'X':'';})));
     });
   } else if(_rptCurrent==='incidents'){
     sheet='Incidents'; filename='incidents'+restoTag+'.xlsx';
@@ -2941,12 +3162,12 @@ function rptExportExcel(){
     var incs=filterIncsByPeriod(period);
     var ids=emps.map(function(e){return e.id;});
     incs=incs.filter(function(i){return ids.indexOf(i.empId)>=0;});
-    rows.push(['Date','Équipier','Type','Gravité','Problèmes','Note']);
+    rows.push(['Restaurant','Date','Équipier','Type','Gravité','Problèmes','Note']);
     incs.forEach(function(i){
       var e=DB.employees.find(function(x){return x.id===i.empId;});
       var probs=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});return p?p.label:pid;}).join(', ');
       var sevTxt={'1':'Léger','2':'Observation','3':'Sérieux','4':'Grave'}[i.severity]||'';
-      rows.push([ (i.datetime||i.created_at||'').toString().slice(0,16).replace('T',' '), e?e.name:'?', i.sanctionType||'', sevTxt, probs, (i.note||'').replace(/\n/g,' ') ]);
+      rows.push([ e?restoLabel(e.restoId):'', (i.datetime||i.created_at||'').toString().slice(0,16).replace('T',' '), e?e.name:'?', i.sanctionType||'', sevTxt, probs, (i.note||'').replace(/\n/g,' ') ]);
     });
   }
   exportRowsToExcel(rows, sheet, filename);
@@ -3029,12 +3250,53 @@ function renderEquipe(){
   var r=curUser.role;var isGlobal=(r==='franchise');
   var canManage=(r==='franchise'||r==='directeur')&&!window.__readOnly; // écriture
   var canView=(r==='franchise'||r==='directeur');                       // consultation fiche
-  if(!isGlobal&&eqTab==='none') eqTab=curUser.restoId;
-  var restosToShow=eqTab==='none'?[]:eqTab==='all'?Object.keys(RESTOS):[eqTab];
+  var tabsBox=document.getElementById('eq-tabs');
+  var filtersBox=document.getElementById('eq-filters');
+
+  // Les non-franchisés (directeur/manager) ne voient que LEUR resto : on entre direct.
+  if(!isGlobal && eqTab==='none'){ eqTab=curUser.restoId; }
+
+  // ── ÉCRAN DES TUILES (franchisé, aucun resto sélectionné) ──────────────────
   if(eqTab==='none'){
-    list.innerHTML='<div class="empty"><div class="ei">🍔</div><p>Sélectionnez un restaurant</p></div>';
+    var pageEq0=document.getElementById('page-equipe'); if(pageEq0) pageEq0.classList.add('bk-tiles-mode');
+    if(filtersBox) filtersBox.style.display='none';
+    var card0=document.getElementById('add-emp-card'); if(card0) card0.style.display='none';
+    // compter les membres actifs/archivés par resto
+    function compte(restoId){
+      var all=DB.employees.filter(function(e){return e.restoId===restoId;});
+      var act=all.filter(function(e){return !e.archived;}).length;
+      var arc=all.filter(function(e){return !!e.archived;}).length;
+      return {act:act,arc:arc};
+    }
+    var accents={bk500:'#e53935',bk509:'#1565c0',bk526:'#2e7d32'};
+    var th='<div class="bk-page-tiles"><div class="sec-title" style="margin-bottom:14px;">👥 Choisissez une équipe</div><div class="bk-tiles-grid">';
+    ['bk500','bk509','bk526'].forEach(function(rid){
+      var resto=RESTOS[rid]||{label:rid};
+      var c=compte(rid);
+      th+='<div class="dash-tile" onclick="setEqTab(\''+rid+'\')">'
+        +'<div class="dt-accent" style="background:'+(accents[rid]||'#e87722')+';"></div>'
+        +'<div class="dt-em">🍔</div>'
+        +'<div><div class="dt-tt">'+resto.label+'</div>'
+        +'<div class="dt-ds">'+c.act+' actif'+(c.act!==1?'s':'')+' · '+c.arc+' archivé'+(c.arc!==1?'s':'')+'</div></div>'
+        +'</div>';
+    });
+    th+='</div></div>';
+    if(tabsBox) tabsBox.innerHTML='';
+    list.innerHTML=th;
     return;
   }
+
+  // ── ÉQUIPE D'UN RESTO SÉLECTIONNÉ ──────────────────────────────────────────
+  var pageEq1=document.getElementById('page-equipe'); if(pageEq1) pageEq1.classList.remove('bk-tiles-mode');
+  if(filtersBox) filtersBox.style.display='flex';
+  var restoSel=RESTOS[eqTab]||{label:eqTab};
+  if(tabsBox){
+    tabsBox.innerHTML = (isGlobal
+      ? '<button class="rtab" onclick="setEqTab(\'none\')">← Toutes les équipes</button> '
+      : '')
+      +'<span class="sec-title" style="margin-left:'+(isGlobal?'10px':'0')+';">🍔 '+restoSel.label+'</span>';
+  }
+  var restosToShow=[eqTab];
   var h='';
   restosToShow.forEach(function(restoId){
     if(!restoId)return;
@@ -3042,8 +3304,6 @@ function renderEquipe(){
     var emps=DB.employees.filter(function(e){return e.restoId===restoId&&(r==='manager'?e.role==='equipier':true);});
     if(empFilter==='actif')emps=emps.filter(function(e){return !e.archived;});
     else if(empFilter==='archive')emps=emps.filter(function(e){return !!e.archived;});
-    if(restosToShow.length>1){h+='<div class="rsec-hdr rsec-'+restoId+'" style="margin-bottom:12px;">🍔 '+resto.label+' <span style="font-size:.8rem;font-weight:400;opacity:.7;">— '+emps.length+' membre'+(emps.length!==1?'s':'')+'</span></div>';}
-    else{h+='<div class="sec-title">🍔 '+resto.label+'</div>';}
     if(!emps.length){h+='<p style="color:#555;font-size:.83rem;padding:8px 0 18px;">Aucun membre dans cette catégorie.</p>';return;}
     ['directeur','manager','leader','equipier'].forEach(function(ro){
       var grp=emps.filter(function(e){return e.role===ro;});if(!grp.length)return;
@@ -4146,6 +4406,135 @@ async function impDispoApply(){
 }
 window.impDispoAnalyse=impDispoAnalyse;window.impDispoApply=impDispoApply;
 
+/* ════════ IMPORT PAR FICHIER EXCEL (glisser-déposer) ════════
+   Les fichiers exportés depuis les Rapports contiennent une colonne « Restaurant »
+   en plus du « Nom ». On lit le resto dans le fichier → aucun choix manuel.
+   Le fichier peut contenir un seul resto ou les trois mélangés : on range chacun. */
+function _impLireXlsx(file, cb){
+  if(!window.XLSX){ toast('Lecture Excel indisponible','error'); return; }
+  var rd=new FileReader();
+  rd.onload=function(ev){
+    try{
+      var data=new Uint8Array(ev.target.result);
+      var wb=XLSX.read(data,{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      cb(rows);
+    }catch(e){ console.error(e); toast('Fichier Excel illisible','error'); }
+  };
+  rd.readAsArrayBuffer(file);
+}
+// label de restaurant ("BK 526", "bk526", "526"...) -> restoId interne ("bk526")
+function impLabelToResto(label){
+  var s=impNorm(label||'');
+  if(!s) return null;
+  var keys=Object.keys(RESTOS);
+  for(var i=0;i<keys.length;i++){
+    var rid=keys[i]; var lab=impNorm(RESTOS[rid].label||'');
+    if(s===lab||s===impNorm(rid)) return rid;
+  }
+  // tolérant : juste le numéro
+  var num=(s.match(/\d{3}/)||[])[0];
+  if(num){ for(var j=0;j<keys.length;j++){ if(keys[j].indexOf(num)>=0) return keys[j]; } }
+  return null;
+}
+// trouve l'index d'une colonne d'en-tête par mots-clés
+function impColIndex(header, motsCles){
+  for(var i=0;i<header.length;i++){
+    var h=impNorm(header[i]);
+    for(var k=0;k<motsCles.length;k++){ if(h===motsCles[k]||h.indexOf(motsCles[k])>=0) return i; }
+  }
+  return -1;
+}
+
+// ── COMPÉTENCES ──
+function bkFileQualif(file){
+  if(!file) return;
+  document.getElementById('imp-qualif-file-name').textContent=file.name;
+  _impLireXlsx(file, function(rows){
+    if(!rows||rows.length<2){ toast('Fichier vide','error'); return; }
+    var header=rows[0].map(function(c){return (c==null?'':String(c)).trim();});
+    var iResto=impColIndex(header,['restaurant','resto']);
+    var iNom=impColIndex(header,['nom']);
+    if(iNom<0) iNom=(iResto===0?1:0);
+    // postes = toutes les colonnes sauf Restaurant et Nom
+    var postesCols=[];
+    for(var c=0;c<header.length;c++){ if(c!==iResto&&c!==iNom&&header[c]) postesCols.push(c); }
+    // enrichir la map de postes avec les libellés officiels du fichier
+    postesCols.forEach(function(c){ try{ var key=impNorm(header[c]); if(!IMP_POSTE_MAP[key]) IMP_POSTE_MAP[key]=header[c]; }catch(_e){} });
+    _impResult=[];
+    var report='', ok=0, problems=0, sansResto=0;
+    for(var i=1;i<rows.length;i++){
+      var r=rows[i]; if(!r) continue;
+      var nom=(r[iNom]==null?'':String(r[iNom])).trim(); if(!nom) continue;
+      var rid=(iResto>=0)?impLabelToResto(r[iResto]):null;
+      if(!rid){ sansResto++; report+='<div style="color:#e57373;">❌ <b>'+nom+'</b> — restaurant non lu dans le fichier</div>'; problems++; continue; }
+      var postes=[];
+      postesCols.forEach(function(c){ var v=(r[c]==null?'':String(r[c])).trim().toUpperCase(); if(v==='X'||v==='1'||v==='OUI'||v==='✓'){ var key=impNorm(header[c]); if(IMP_POSTE_MAP[key]) postes.push(IMP_POSTE_MAP[key]); } });
+      var m=impMatchEmp(nom,rid);
+      if(m.introuvable){ report+='<div style="color:#e57373;">❌ <b>'+nom+'</b> — introuvable dans '+(RESTOS[rid]?RESTOS[rid].label:rid)+'</div>'; problems++; continue; }
+      if(m.ambigu){ report+='<div style="color:#e57373;">❓ <b>'+nom+'</b> — plusieurs correspondances ('+m.ambigu.map(function(e){return e.name;}).join(', ')+')</div>'; problems++; continue; }
+      _impResult.push({empId:m.emp.id, empName:m.emp.name, postes:postes});
+      ok++;
+      report+='<div style="color:#81c784;">✅ <b>'+m.emp.name+'</b> <span style="color:#888;">['+(RESTOS[rid]?RESTOS[rid].label:rid)+']</span> → '+(postes.join(', ')||'(aucun poste)')+'</div>';
+    }
+    report='<div style="margin-bottom:8px;font-weight:700;color:#fff;">'+ok+' salarié(s) prêt(s)'+(problems?(' · '+problems+' à vérifier'):'')+'</div>'+report;
+    document.getElementById('imp-qualif-report').innerHTML=report;
+    document.getElementById('imp-qualif-apply').style.display=(ok>0)?'inline-block':'none';
+    toast(ok+' ligne(s) lue(s)','success');
+  });
+}
+
+// ── DISPONIBILITÉS ──
+function bkFileDispo(file){
+  if(!file) return;
+  document.getElementById('imp-dispo-file-name').textContent=file.name;
+  _impLireXlsx(file, function(rows){
+    if(!rows||rows.length<2){ toast('Fichier vide','error'); return; }
+    var header=rows[0].map(function(c){return (c==null?'':String(c)).trim();});
+    var iResto=impColIndex(header,['restaurant','resto']);
+    var iNom=impColIndex(header,['nom']);
+    if(iNom<0) iNom=(iResto===0?1:0);
+    // colonnes jours = les 7 colonnes après le Nom (hors Restaurant)
+    var joursCols=[];
+    for(var c=0;c<header.length;c++){ if(c!==iResto&&c!==iNom&&header[c]) joursCols.push(c); }
+    joursCols=joursCols.slice(0,7);
+    _impDispoResult=[];
+    var report='', ok=0, problems=0;
+    for(var i=1;i<rows.length;i++){
+      var r=rows[i]; if(!r) continue;
+      var nom=(r[iNom]==null?'':String(r[iNom])).trim(); if(!nom) continue;
+      var rid=(iResto>=0)?impLabelToResto(r[iResto]):null;
+      if(!rid){ report+='<div style="color:#e57373;">❌ <b>'+nom+'</b> — restaurant non lu dans le fichier</div>'; problems++; continue; }
+      var dispos={}; var nbJ=0;
+      IMP_JOURS.forEach(function(jk,idx){
+        var col=joursCols[idx];
+        var h=(col!=null)?impHeure(r[col]):null;
+        if(h){ dispos[jk]={on:true,from:h.from,to:h.to,creneaux:[{from:h.from,to:h.to}]}; nbJ++; }
+        else dispos[jk]={on:false};
+      });
+      var m=impMatchEmpNomPrenom(nom,'',rid);
+      if(m.introuvable){ report+='<div style="color:#e57373;">❌ <b>'+nom+'</b> — introuvable dans '+(RESTOS[rid]?RESTOS[rid].label:rid)+'</div>'; problems++; continue; }
+      if(m.ambigu){ report+='<div style="color:#e57373;">❓ <b>'+nom+'</b> — plusieurs correspondances</div>'; problems++; continue; }
+      _impDispoResult.push({empId:m.emp.id,empName:m.emp.name,dispos:dispos});
+      ok++;
+      report+='<div style="color:#81c784;">✅ <b>'+m.emp.name+'</b> <span style="color:#888;">['+(RESTOS[rid]?RESTOS[rid].label:rid)+']</span> → '+nbJ+' jour(s) dispo</div>';
+    }
+    report='<div style="margin-bottom:8px;font-weight:700;color:#fff;">'+ok+' salarié(s) prêt(s)'+(problems?(' · '+problems+' à vérifier'):'')+'</div>'+report;
+    document.getElementById('imp-dispo-report').innerHTML=report;
+    document.getElementById('imp-dispo-apply').style.display=(ok>0)?'inline-block':'none';
+    toast(ok+' ligne(s) lue(s)','success');
+  });
+}
+
+// ── Glisser-déposer ──
+function bkDragOver(ev,el){ ev.preventDefault(); el.style.borderColor='var(--orange)'; el.style.background='#1f1a14'; }
+function bkDragLeave(el){ el.style.borderColor='#555'; el.style.background='#141414'; }
+function bkDropQualif(ev,el){ ev.preventDefault(); bkDragLeave(el); var f=ev.dataTransfer&&ev.dataTransfer.files&&ev.dataTransfer.files[0]; if(f) bkFileQualif(f); }
+function bkDropDispo(ev,el){ ev.preventDefault(); bkDragLeave(el); var f=ev.dataTransfer&&ev.dataTransfer.files&&ev.dataTransfer.files[0]; if(f) bkFileDispo(f); }
+window.bkFileQualif=bkFileQualif;window.bkFileDispo=bkFileDispo;
+window.bkDragOver=bkDragOver;window.bkDragLeave=bkDragLeave;window.bkDropQualif=bkDropQualif;window.bkDropDispo=bkDropDispo;
+
 function renderEmpFicheInfos(id){
   var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
   var inf=e.infos||{};
@@ -4804,11 +5193,12 @@ function setVisiteStatut(btn,s){
   renderVisiteList();
 }
 // ══ ALERTES (centralisées) ═══════════════════════════════════════════════════
-function collectAlertes(){
+function collectAlertes(restoFiltre){
   var alerts=[];
   var isDir=(curUser&&curUser.role==='directeur');
   var emps=DB.employees.filter(function(e){return !e.archived;});
   if(isDir)emps=emps.filter(function(e){return e.restoId===curUser.restoId;});
+  if(restoFiltre&&restoFiltre!=='all')emps=emps.filter(function(e){return e.restoId===restoFiltre;});
   // 1) Visites médicales : dépassées + bientôt (< 1 mois)
   emps.forEach(function(e){
     var v=visiteEmpInfo(e);
@@ -4834,7 +5224,7 @@ function updateAlBadge(){
 }
 function renderAlertes(){
   var box=document.getElementById('alertes-list');if(!box)return;
-  var alerts=collectAlertes();
+  var alerts=collectAlertes(window.__alertResto);
   if(!alerts.length){box.innerHTML='<div class="empty"><div class="ei">✅</div><p>Aucune alerte en cours</p></div>';return;}
   // grouper par catégorie
   var cats={};alerts.forEach(function(a){(cats[a.cat]=cats[a.cat]||[]).push(a);});
@@ -5083,9 +5473,13 @@ function ptgRec(empId, dateISO){
 function ptgRestosVisibles(){
   var rolesTous=['admin','rh','franchise'];
   var r=(curUser&&curUser.role)||'';
-  if(rolesTous.indexOf(r)>=0){ return ['bk500','bk509','bk526']; }
-  var rid=(curUser&&curUser.restoId)||'';
-  return rid?[rid]:['bk500','bk509','bk526'];
+  var base;
+  if(rolesTous.indexOf(r)>=0){ base=['bk500','bk509','bk526']; }
+  else { var rid=(curUser&&curUser.restoId)||''; base=rid?[rid]:['bk500','bk509','bk526']; }
+  // si un restaurant a été choisi via les tuiles, n'afficher que celui-là
+  var sel=window.__ptgRestoActif;
+  if(sel && base.indexOf(sel)>=0) return [sel];
+  return base;
 }
 
 // Initiales + couleur d'avatar
@@ -7649,7 +8043,8 @@ function filterEmpList(){
   var q=document.getElementById('emp-search').value.trim().toLowerCase();
   var dd=document.getElementById('emp-dropdown');if(!q){dd.style.display='none';return;}
   var r=curUser.role;
-  var pool=DB.employees.filter(function(e){return !e.archived&&e.role==='equipier'&&(r==='franchise'||e.restoId===curUser.restoId);});
+  var selResto=(window.__incResto&&window.__incResto!=='all')?window.__incResto:null;
+  var pool=DB.employees.filter(function(e){return !e.archived&&e.role==='equipier'&&(r==='franchise'?(selResto?e.restoId===selResto:true):e.restoId===curUser.restoId);});
   var res=pool.filter(function(e){return e.name.toLowerCase().indexOf(q)>=0||(e.email||'').toLowerCase().indexOf(q)>=0;}).slice(0,12);
   if(!res.length){dd.innerHTML='<div style="padding:9px 13px;color:#555;">Aucun résultat</div>';dd.style.display='block';return;}
   dd.innerHTML=res.map(function(e){
@@ -7814,9 +8209,8 @@ function dashRestoList(){
   catch(e){return [{id:'bk500',label:'BK 500'},{id:'bk509',label:'BK 509'},{id:'bk526',label:'BK 526'}];}
 }
 function initDashboard(){
-  var saved=null;try{saved=localStorage.getItem('dash_resto');}catch(e){}
-  if(saved&&dashRestoList().some(function(r){return r.id===saved;})){DASH_RESTO=saved;dashShowBoard();}
-  else{dashShowPick();}
+  // Toujours repartir sur l'écran « Choisissez votre restaurant » en arrivant sur Accueil
+  dashShowPick();
   dashStartClock();
 }
 function dashShowPick(){
@@ -7824,7 +8218,9 @@ function dashShowPick(){
   if(panel)panel.style.display='none';if(board)board.style.display='none';if(pick)pick.style.display='flex';
   var g=document.getElementById('dash-pick-grid');if(!g)return;
   g.innerHTML=dashRestoList().map(function(r){
-    return '<div class="dash-pick-card" onclick="dashSelectResto(\''+r.id+'\')"><div class="pc-em">🍔</div><div class="pc-lb">'+r.label+'</div><div class="pc-sub">Appuyer pour ouvrir</div></div>';
+    var n=(typeof bkCompteResto==='function')?bkCompteResto('alertes', r.id):0;
+    var badge=n?('<div style="position:absolute;top:10px;right:12px;background:var(--red);color:#fff;border-radius:11px;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;padding:0 6px;box-shadow:0 2px 6px rgba(0,0,0,.4);">'+n+'</div>'):'';
+    return '<div class="dash-pick-card" style="position:relative;" onclick="dashSelectResto(\''+r.id+'\')">'+badge+'<div class="pc-em">🍔</div><div class="pc-lb">'+r.label+'</div><div class="pc-sub">'+(n?(n+' alerte'+(n>1?'s':'')):'Appuyer pour ouvrir')+'</div></div>';
   }).join('');
 }
 function dashSelectResto(id){DASH_RESTO=id;try{localStorage.setItem('dash_resto',id);}catch(e){}dashShowBoard();}
@@ -8858,7 +9254,13 @@ function hrSecuriteReglesSemaine(){
           if(f==null||t==null || it.bar.s<f || it.bar.e>t) dispoOk=false;
         }
         var competOk = (typeof hrSaitFaire==='function') ? hrSaitFaire(e, it.bar.l) : true;
-        if(!dispoOk || !competOk){
+        // ABSENCE : retirer tout créneau placé un jour où l'équipier est absent
+        var absentJour=false;
+        try{
+          var _iso=(typeof DAY_DATES!=='undefined'&&DAY_DATES[it.day])?DAY_DATES[it.day]:null;
+          if(_iso && typeof hrEstAbsent==='function' && hrEstAbsent(id,_iso)) absentJour=true;
+        }catch(_e){}
+        if(!dispoOk || !competOk || absentJour){
           it.bar.emp=null; it.bar.empId=null; it._removed=true;
         }
       });
@@ -8929,6 +9331,190 @@ function hrSecuriteReglesSemaine(){
     HR_RESTE[iso]=reste;
   }
 }
+// ══ OPTIMISATION DES CONTRATS (après placement) ═══════════════════════════════
+// Boucle qui tente d'amener un MAXIMUM d'équipiers à leur contrat, en jouant comme
+// aux Lego : déplacer le bloc de repos d'un plein-dispo pour ouvrir un jour, prendre
+// un créneau libre, ou reprendre un créneau à un POLYVALENT qui garde quand même son
+// contrat. Respecte toujours dispo / compétence / 2 repos consécutifs.
+// ctx.repos[id] = bloc de repos courant (modifiable ici pour les pleins-dispo).
+function hrOptimiserContrats(ctx){
+  ctx=ctx||{}; ctx.repos=ctx.repos||{};
+  var R=(typeof getReglement==='function')?getReglement():{};
+  var nbRepos=(R&&R.joursRepos!=null)?parseInt(R.joursRepos,10):2; if(isNaN(nbRepos)) nbRepos=2;
+  var resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'').toLowerCase();
+  var equipiers=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto;});
+
+  function dispoJ(e,d){ var jk=JOURS_KEYS[d]; var dd=(e.infos&&e.infos.dispos&&e.infos.dispos[jk])||null; if(!dd||!dd.on)return null; var f=_dispoMin(dd.from),t=_dispoMin(dd.to); if(f==null||t==null)return null; return {f:f,t:t}; }
+  function dispoOk(e,d,s,ee){ var dj=dispoJ(e,d); return dj&&s>=dj.f&&ee<=dj.t; }
+  // état courant reconstruit depuis ROWS_BY_DAY
+  function recalc(){
+    var minSem={}, busy={}, jours={};
+    for(var d=0;d<7;d++){
+      (ROWS_BY_DAY[d]||[]).forEach(function(r){ r.bars.forEach(function(b){
+        if(b.empId && !estTraitEncadrement(b.l)){
+          minSem[b.empId]=(minSem[b.empId]||0)+(b.e-b.s);
+          (busy[b.empId]=busy[b.empId]||{}); (busy[b.empId][d]=busy[b.empId][d]||[]).push({s:b.s,e:b.e,bar:b});
+          (jours[b.empId]=jours[b.empId]||{})[d]=true;
+        }
+      }); });
+    }
+    return {minSem:minSem,busy:busy,jours:jours};
+  }
+  var st=recalc();
+  function ch(e){ return hrContratHebdo(e); }
+  function contratMin(e){ var c=ch(e); return c==null?null:Math.round(c*60); }
+  function joursTravE(id){ var j={}; for(var d=0;d<7;d++){ if(((st.busy[id]||{})[d]||[]).length) j[d]=true; } return j; }
+  function libreE(id,d,s,ee){ var a=(st.busy[id]||{})[d]||[]; for(var i=0;i<a.length;i++){ if(s<a[i].e&&ee>a[i].s) return false; } return true; }
+  function colleE(id,d,s,ee){ var a=(st.busy[id]||{})[d]||[]; for(var i=0;i<a.length;i++){ if(a[i].e===s||a[i].s===ee) return true; } return false; }
+  function ctxDeE(e){
+    var c={busyJour:{},minSemaine:{},joursTravailles:{},repos:{}};
+    c.busyJour[e.id]={};
+    for(var d=0;d<7;d++){ var a=(st.busy[e.id]||{})[d]||[]; if(a.length) c.busyJour[e.id][d]=a.map(function(p){return {s:p.s,e:p.e};}); }
+    c.minSemaine[e.id]=st.minSem[e.id]||0;
+    c.joursTravailles[e.id]=joursTravE(e.id);
+    c.repos[e.id]=ctx.repos[e.id]||[];
+    return c;
+  }
+  // un jour est-il un jour de repos réservé pour e ?
+  function estRepos(e,d){ var r=ctx.repos[e.id]||[]; return r.indexOf(d)>=0; }
+  // l'équipier est-il PLEIN DISPO (dispo tous les jours) ?
+  function pleinDispo(e){ for(var d=0;d<7;d++){ if(!dispoJ(e,d)) return false; } return true; }
+  // bloc de repos consécutif valide à partir des jours travaillés (test)
+  function blocReposOk(jset){
+    var t=[0,0,0,0,0,0,0]; for(var z=0;z<7;z++) if(jset[z]) t[z]=1;
+    for(var s=0;s+nbRepos<=7;s++){ var ok=true; for(var k=0;k<nbRepos;k++) if(t[s+k]){ok=false;break;} if(ok) return true; }
+    return false;
+  }
+
+  // tente d'ajouter à e des créneaux (vides puis transférés) en respectant tout
+  function completer(e){
+    var cmin=contratMin(e); if(cmin==null) return 0;
+    var gagne=0, avance=true, garde=0;
+    while(avance && garde<40){
+      garde++; avance=false;
+      if((st.minSem[e.id]||0)>=cmin) break;
+      var jb=joursTravE(e.id); var nbJ=Object.keys(jb).filter(function(k){return jb[k];}).length;
+      for(var d=0;d<7;d++){
+        if((st.minSem[e.id]||0)>=cmin) break;
+        if(!dispoJ(e,d)) continue;          // jamais un jour non dispo
+        if(estRepos(e,d)) continue;          // ne pas travailler sur un jour de repos réservé
+        // ne pas ouvrir un nouveau jour si ça empêche de garder nbRepos consécutifs
+        if(!jb[d] && nbJ>=7-nbRepos){
+          var futur={}; for(var kk in jb) futur[kk]=jb[kk]; futur[d]=true;
+          if(!blocReposOk(futur)) continue;
+        }
+        // 1) créneaux VIDES compatibles, en privilégiant les collés
+        var cands=[];
+        (ROWS_BY_DAY[d]||[]).forEach(function(r){ r.bars.forEach(function(b){
+          if(estTraitEncadrement(b.l)) return;
+          if(b.empId===e.id) return;
+          if(!dispoOk(e,d,b.s,b.e)) return;
+          if(!hrSaitFaire(e,b.l)) return;
+          if(!libreE(e.id,d,b.s,b.e)) return;
+          cands.push(b);
+        }); });
+        // vides d'abord, puis transférables ; collés d'abord
+        cands.sort(function(a,b){
+          var va=a.empId?1:0, vb=b.empId?1:0; if(va!==vb) return va-vb;       // vide avant occupé
+          var ca=colleE(e.id,d,a.s,a.e)?0:1, cb=colleE(e.id,d,b.s,b.e)?0:1; if(ca!==cb) return ca-cb;
+          return a.s-b.s;
+        });
+        for(var ci=0;ci<cands.length;ci++){
+          var b=cands[ci]; var dur=b.e-b.s;
+          if((st.minSem[e.id]||0)+dur>cmin) continue;
+          // si occupé : ne reprendre que si le titulaire garde son contrat
+          if(b.empId){
+            var tit=(DB.employees||[]).find(function(x){return x.id===b.empId;});
+            if(tit){ var ctit=contratMin(tit); if(ctit!=null){ if((st.minSem[tit.id]||0)-dur < ctit-60) continue; } }
+          }
+          if(!hrReglesConvention(e,d,b,ctxDeE(e),dur)) continue;
+          b.empId=e.id; b.emp=e.name; st=recalc(); gagne+=dur; avance=true;
+          if((st.minSem[e.id]||0)>=cmin) break;
+        }
+      }
+    }
+    return gagne;
+  }
+
+  // tente de DÉPLACER le repos d'un plein-dispo pour ouvrir un meilleur jour,
+  // puis compléter. On essaie chaque bloc de repos possible et on garde le meilleur.
+  function deplacerReposEtCompleter(e){
+    if(!pleinDispo(e)) return completer(e); // sinon repos = jours non dispo, on n'y touche pas
+    var cmin=contratMin(e); if(cmin==null) return 0;
+    if((st.minSem[e.id]||0)>=cmin) return 0;
+    // blocs candidats : tous les blocs consécutifs de nbRepos jours en SEMAINE de préférence
+    var blocs=[]; for(var s=0;s+nbRepos<=7;s++){ var b=[]; for(var k=0;k<nbRepos;k++) b.push(s+k); blocs.push(b); }
+    // l'état actuel (placé) restera si on ne fait pas mieux : on mémorise le total courant
+    var base=st.minSem[e.id]||0, bestGain=0, bestRepos=ctx.repos[e.id];
+    // on ne teste le déplacement que si l'équipier a peu de jours travaillés (marge)
+    blocs.forEach(function(bloc){
+      // ne pas casser ce qui est déjà placé : si un créneau de e tombe sur un jour du
+      // nouveau bloc de repos, on ne tente pas (trop destructeur) — sauf jour vide
+      var conflit=bloc.some(function(d){ return ((st.busy[e.id]||{})[d]||[]).length>0; });
+      if(conflit) return;
+      var ancien=ctx.repos[e.id];
+      ctx.repos[e.id]=bloc.slice();
+      var g=completer(e);
+      if(g>bestGain){ bestGain=g; bestRepos=bloc.slice(); }
+      // revert l'essai si pas mieux : on retire ce qu'on vient d'ajouter est complexe ;
+      // à la place, on ne committe le déplacement que si gain. Comme completer a déjà
+      // modifié ROWS, on resynchronise et on garde (les gains sont toujours bons à prendre).
+      ctx.repos[e.id]=ancien;
+      st=recalc();
+    });
+    // committer le meilleur repos trouvé
+    if(bestGain>0){ ctx.repos[e.id]=bestRepos; return completer(e); }
+    // sinon compléter avec le repos actuel
+    return completer(e);
+  }
+
+  // ── BOUCLE D'OPTIMISATION : plusieurs passes, les plus loin du contrat d'abord ──
+  function totalPlace(){ var st0=recalc(); var t=0; for(var k in st0.minSem) t+=st0.minSem[k]; return t; }
+  var avantTotal=totalPlace();
+  for(var passe=0; passe<3; passe++){
+    st=recalc();
+    var sousContrat=equipiers.filter(function(e){ var cm=contratMin(e); return cm!=null && (st.minSem[e.id]||0)<cm-60; });
+    if(!sousContrat.length) break;
+    // trier : le plus loin de son contrat d'abord
+    sousContrat.sort(function(a,b){ return ((contratMin(b)-(st.minSem[b.id]||0)) - (contratMin(a)-(st.minSem[a.id]||0))); });
+    sousContrat.forEach(function(e){ deplacerReposEtCompleter(e); });
+  }
+  // sécurité finale (repos consécutifs, dispo, compétence) après remaniement
+  if(typeof hrSecuriteReglesSemaine==='function') hrSecuriteReglesSemaine();
+  return Math.max(0, totalPlace()-avantTotal);
+}
+window.hrOptimiserContrats=hrOptimiserContrats;
+// Bouton manuel : reconstruit le ctx.repos depuis l'état affiché puis optimise.
+function hrOptimiserManuel(){
+  var R=(typeof getReglement==='function')?getReglement():{};
+  var nbRepos=(R&&R.joursRepos!=null)?parseInt(R.joursRepos,10):2; if(isNaN(nbRepos)) nbRepos=2;
+  var resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'').toLowerCase();
+  var equipiers=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto;});
+  // reconstruire les jours travaillés depuis ROWS_BY_DAY
+  var jours={};
+  for(var d=0;d<7;d++){
+    (ROWS_BY_DAY[d]||[]).forEach(function(r){ r.bars.forEach(function(b){
+      if(b.empId && !estTraitEncadrement(b.l)){ (jours[b.empId]=jours[b.empId]||{})[d]=true; }
+    }); });
+  }
+  // ctx.repos = jours NON travaillés de chacun (approximation du repos courant)
+  var ctx={repos:{}};
+  equipiers.forEach(function(e){
+    var r=[]; for(var dd=0;dd<7;dd++){ if(!((jours[e.id]||{})[dd])) r.push(dd); }
+    ctx.repos[e.id]=r;
+  });
+  var st=document.getElementById('hrx-assign-status'); if(st) st.textContent='⏳ Optimisation des contrats…';
+  setTimeout(function(){
+    var gain=hrOptimiserContrats(ctx);
+    try{ if(typeof hrRenderPlanningHebdo==='function') hrRenderPlanningHebdo(); }catch(_e){}
+    try{ if(typeof hrRenderEmploiSemaine==='function') hrRenderEmploiSemaine(); }catch(_e){}
+    if(st) st.textContent='✅ Optimisation : +'+Math.round(gain/60*10)/10+'h replacées';
+    toast&&toast('Optimisation terminée : +'+Math.round(gain/60*10)/10+'h','success');
+  }, 30);
+}
+window.hrOptimiserManuel=hrOptimiserManuel;
+
+
 // L'équipier a-t-il déjà un créneau qui TOUCHE [s,e] ce jour (pour faire continu) ?
 function hrColleAuJour(empId,dayIdx,s,e,ctx){
   var arr=((ctx.busyJour||{})[empId]||{})[dayIdx]||[];
@@ -9312,7 +9898,7 @@ function hrAnalyseSemaine(){
     }
 
     var manque=contratMin-place;
-    lignes.push({nom:e.name,contrat:contratMin,place:place,manque:manque,
+    lignes.push({id:e.id,nom:e.name,contrat:contratMin,place:place,manque:manque,
                  posable:posables, nbJoursDispo:nbJoursDispo,joursDispo:joursDispoNoms});
   });
   lignes.sort(function(a,b){ return (b.manque||0)-(a.manque||0); });
@@ -9326,7 +9912,7 @@ function hrAnalyseSemaine(){
   if(!lignes.length){
     H+='<div style="color:#81c784;font-weight:700;">✅ Tout le monde est à son contrat cette semaine.</div>';
   } else {
-    H+='<table class="rpt-table" style="font-size:.78rem;"><thead><tr><th style="text-align:left;">Équipier</th><th>Placé</th><th>Contrat</th><th>Manque</th><th>Jours dispo</th><th>Réellement plaçable en +</th><th>Verdict</th></tr></thead><tbody>';
+    H+='<table class="rpt-table" style="font-size:.78rem;"><thead><tr><th style="text-align:left;">Équipier</th><th>Placé</th><th>Contrat</th><th>Manque</th><th>Jours dispo</th><th>Réellement plaçable en +</th><th>Verdict</th><th>Action</th></tr></thead><tbody>';
     lignes.forEach(function(x){
       if(x.sansContrat){
         H+='<tr><td style="text-align:left;font-weight:600;">'+x.nom+'</td><td>'+hhmmH(x.place)+'</td><td colspan="4" style="color:#ffd54f;">Pas de contrat renseigné</td><td style="text-align:left;color:#ffd54f;">Renseigner le contrat hebdo dans sa fiche</td></tr>';
@@ -9347,7 +9933,8 @@ function hrAnalyseSemaine(){
         // on peut en ajouter un peu, mais pas assez pour le contrat
         verdict='Au mieux +'+hhmmH(x.posable)+' possibles en respectant les règles : reste '+hhmmH(x.manque-x.posable)+' impossible (dispos/règles)'; col='#ffb74d';
       }
-      H+='<tr><td style="text-align:left;font-weight:600;">'+x.nom+'</td><td>'+hhmmH(x.place)+'</td><td>'+hhmmH(x.contrat)+'</td><td style="color:#ff8a80;">'+hhmmH(x.manque)+'</td><td>'+x.nbJoursDispo+'</td><td>'+hhmmH(x.posable)+'</td><td style="text-align:left;color:'+col+';">'+verdict+'</td></tr>';
+      H+='<tr><td style="text-align:left;font-weight:600;">'+x.nom+'</td><td>'+hhmmH(x.place)+'</td><td>'+hhmmH(x.contrat)+'</td><td style="color:#ff8a80;">'+hhmmH(x.manque)+'</td><td>'+x.nbJoursDispo+'</td><td>'+hhmmH(x.posable)+'</td><td style="text-align:left;color:'+col+';">'+verdict+'</td>'
+        +'<td><button onclick="hrCorrigerPersonne(\''+x.id+'\')" style="background:#2e6fc2;border:none;color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:.75rem;white-space:nowrap;">🔧 Corriger</button></td></tr>';
     });
     H+='</tbody></table>';
     H+='<div style="font-size:.78rem;color:#999;margin-top:10px;line-height:1.5;">'
@@ -9358,6 +9945,166 @@ function hrAnalyseSemaine(){
   H+='</div>';
   hrShowAnalyseModal(H,'semaine');
 }
+
+// ══ CORRIGER UNE PERSONNE (depuis l'analyse) ══════════════════════════════════
+// Tente d'amener UN équipier à son contrat, dans cet ordre :
+//  1) lui ajouter des créneaux VIDES compatibles (dispo+compétence+règles), en
+//     déplaçant son repos sur ses jours d'indispo si ça libère un jour dispo ;
+//  2) si insuffisant, lui TRANSFÉRER des créneaux compatibles tenus par un
+//     POLYVALENT qui garde quand même son contrat (Vincent l'autorise).
+// Ne casse jamais dispo / compétence / repos.
+function hrCorrigerPersonne(empId){
+  var e=(DB.employees||[]).find(function(x){return x.id===empId;});
+  if(!e){ toast&&toast('Équipier introuvable','error'); return; }
+  var c=hrContratHebdo(e); if(c==null){ toast&&toast('Pas de contrat renseigné','error'); return; }
+  var contratMin=Math.round(c*60);
+
+  // état courant : busy par jour + total, pour TOUS (pour les transferts)
+  function recalc(){
+    var minSem={}, busy={}, jours={};
+    for(var d=0;d<7;d++){
+      (ROWS_BY_DAY[d]||[]).forEach(function(r){ r.bars.forEach(function(b){
+        if(b.empId && !estTraitEncadrement(b.l)){
+          minSem[b.empId]=(minSem[b.empId]||0)+(b.e-b.s);
+          (busy[b.empId]=busy[b.empId]||{}); (busy[b.empId][d]=busy[b.empId][d]||[]).push({s:b.s,e:b.e,bar:b});
+          (jours[b.empId]=jours[b.empId]||{})[d]=true;
+        }
+      }); });
+    }
+    return {minSem:minSem,busy:busy,jours:jours};
+  }
+  var R=(typeof getReglement==='function')?getReglement():{};
+  var nbRepos=(R&&R.joursRepos!=null)?parseInt(R.joursRepos,10):2; if(isNaN(nbRepos)) nbRepos=2;
+  function dispoJ(emp,d){ var jk=JOURS_KEYS[d]; var dd=(emp.infos&&emp.infos.dispos&&emp.infos.dispos[jk])||null; if(!dd||!dd.on)return null; var f=_dispoMin(dd.from),t=_dispoMin(dd.to); if(f==null||t==null)return null; return {f:f,t:t}; }
+  function dispoOk(emp,d,s,ee){ var dj=dispoJ(emp,d); return dj&&s>=dj.f&&ee<=dj.t; }
+
+  var st=recalc();
+  var place=st.minSem[e.id]||0;
+  if(place>=contratMin-1){ toast&&toast(e.name+' est déjà à son contrat',''); return; }
+
+  // jours travaillés de e + repos possibles : un jour est utilisable s'il est dispo
+  function joursDeE(){ var j={}; for(var d=0;d<7;d++){ if(((st.busy[e.id]||{})[d]||[]).length) j[d]=true; } return j; }
+  function libreE(d,s,ee){ var a=(st.busy[e.id]||{})[d]||[]; for(var i=0;i<a.length;i++){ if(s<a[i].e&&ee>a[i].s) return false; } return true; }
+  function colleE(d,s,ee){ var a=(st.busy[e.id]||{})[d]||[]; for(var i=0;i<a.length;i++){ if(a[i].e===s||a[i].s===ee) return true; } return false; }
+  // ctx minimal pour réutiliser hrReglesConvention
+  function ctxDeE(){
+    var ctx={busyJour:{},minSemaine:{},joursTravailles:{},repos:{}};
+    ctx.busyJour[e.id]={}; var jb=joursDeE();
+    for(var d=0;d<7;d++){ var a=(st.busy[e.id]||{})[d]||[]; if(a.length) ctx.busyJour[e.id][d]=a.map(function(p){return {s:p.s,e:p.e};}); }
+    ctx.minSemaine[e.id]=st.minSem[e.id]||0;
+    ctx.joursTravailles[e.id]=jb;
+    return ctx;
+  }
+  function poseChezE(d,b){
+    b.empId=e.id; b.emp=e.name;
+    st=recalc(); // resynchroniser
+  }
+
+  var ajout=0, transfert=0;
+
+  // ── PASSE 1 : créneaux VIDES compatibles ────────────────────────────────────
+  function tenterVides(){
+    var avance=true, garde=0;
+    while(avance && garde<30){
+      garde++; avance=false;
+      if((st.minSem[e.id]||0)>=contratMin) break;
+      var jb=joursDeE(); var nbJ=Object.keys(jb).filter(function(k){return jb[k];}).length;
+      for(var d=0;d<7;d++){
+        if((st.minSem[e.id]||0)>=contratMin) break;
+        if(!dispoJ(e,d)) continue;                 // jour non dispo : jamais
+        // ne pas ouvrir un nouveau jour si ça empêche de garder nbRepos consécutifs
+        if(!jb[d] && nbJ>=7-nbRepos){
+          var futur={}; for(var kk in jb) futur[kk]=jb[kk]; futur[d]=true;
+          var t=[0,0,0,0,0,0,0]; for(var z=0;z<7;z++) if(futur[z]) t[z]=1;
+          var okR=false; for(var s2=0;s2+nbRepos<=7;s2++){ var ok=true; for(var k2=0;k2<nbRepos;k2++) if(t[s2+k2]){ok=false;break;} if(ok){okR=true;break;} }
+          if(!okR) continue;
+        }
+        var vides=[];
+        (ROWS_BY_DAY[d]||[]).forEach(function(r){ r.bars.forEach(function(b){ if(!b.empId && !estTraitEncadrement(b.l)) vides.push(b); }); });
+        vides.sort(function(a,b){ var ca=colleE(d,a.s,a.e)?0:1, cb=colleE(d,b.s,b.e)?0:1; if(ca!==cb)return ca-cb; return a.s-b.s; });
+        for(var vi=0;vi<vides.length;vi++){
+          var b=vides[vi]; var dur=b.e-b.s;
+          if((st.minSem[e.id]||0)+dur>contratMin) continue;
+          if(!dispoOk(e,d,b.s,b.e)) continue;
+          if(!hrSaitFaire(e,b.l)) continue;
+          if(!libreE(d,b.s,b.e)) continue;
+          if(!hrReglesConvention(e,d,b,ctxDeE(),dur)) continue;
+          poseChezE(d,b); ajout+=dur; avance=true;
+          if((st.minSem[e.id]||0)>=contratMin) break;
+        }
+      }
+    }
+  }
+  tenterVides();
+
+  // ── PASSE 2 : transférer depuis un POLYVALENT qui garde son contrat ──────────
+  function tenterTransfert(){
+    var avance=true, garde=0;
+    while(avance && garde<30){
+      garde++; avance=false;
+      if((st.minSem[e.id]||0)>=contratMin) break;
+      var jb=joursDeE(); var nbJ=Object.keys(jb).filter(function(k){return jb[k];}).length;
+      for(var d=0;d<7;d++){
+        if((st.minSem[e.id]||0)>=contratMin) break;
+        if(!dispoJ(e,d)) continue;
+        if(!jb[d] && nbJ>=7-nbRepos){
+          var futur={}; for(var kk in jb) futur[kk]=jb[kk]; futur[d]=true;
+          var t=[0,0,0,0,0,0,0]; for(var z=0;z<7;z++) if(futur[z]) t[z]=1;
+          var okR=false; for(var s2=0;s2+nbRepos<=7;s2++){ var ok=true; for(var k2=0;k2<nbRepos;k2++) if(t[s2+k2]){ok=false;break;} if(ok){okR=true;break;} }
+          if(!okR) continue;
+        }
+        var occ=[];
+        (ROWS_BY_DAY[d]||[]).forEach(function(r){ r.bars.forEach(function(b){ if(b.empId && b.empId!==e.id && !estTraitEncadrement(b.l)) occ.push(b); }); });
+        for(var oi=0;oi<occ.length;oi++){
+          var b=occ[oi]; var dur=b.e-b.s;
+          if((st.minSem[e.id]||0)+dur>contratMin) continue;
+          if(!dispoOk(e,d,b.s,b.e)) continue;
+          if(!hrSaitFaire(e,b.l)) continue;
+          if(!libreE(d,b.s,b.e)) continue;
+          // l'actuel titulaire : ne lui prendre QUE s'il garde son contrat après
+          var tit=(DB.employees||[]).find(function(x){return x.id===b.empId;});
+          if(tit){
+            var ctit=hrContratHebdo(tit); 
+            if(ctit!=null){
+              var titMin=st.minSem[tit.id]||0; var titContrat=Math.round(ctit*60);
+              // seuil = contrat (on tolère 23h pour 24h etc. via -60)
+              if(titMin-dur < titContrat-60) continue; // lui retirer casserait son contrat
+            }
+          }
+          if(!hrReglesConvention(e,d,b,ctxDeE(),dur)) continue;
+          // transfert
+          b.empId=e.id; b.emp=e.name; st=recalc(); transfert+=dur; avance=true;
+          if((st.minSem[e.id]||0)>=contratMin) break;
+        }
+      }
+    }
+  }
+  if((st.minSem[e.id]||0)<contratMin) tenterTransfert();
+
+  // mémoriser dans HR_AFFECT pour la date courante (persiste l'affichage)
+  try{
+    for(var d2=0;d2<7;d2++){
+      var iso=(DAY_DATES&&DAY_DATES[d2])?DAY_DATES[d2]:null; if(!iso) continue;
+      var arr=[];
+      (ROWS_BY_DAY[d2]||[]).forEach(function(r){ r.bars.forEach(function(b){ if(b.empId) arr.push({l:b.l,s:b.s,e:b.e,emp:b.emp,empId:b.empId}); }); });
+      HR_AFFECT[iso]=arr;
+    }
+  }catch(_e){}
+
+  var final=st.minSem[e.id]||0;
+  // NE PAS régénérer la semaine (cela écraserait le placement). On rafraîchit
+  // seulement l'affichage des lignes déjà en mémoire dans ROWS_BY_DAY.
+  try{ if(typeof hrRenderPlanningHebdo==='function') hrRenderPlanningHebdo(); }catch(_e){}
+  try{ if(typeof hrRenderEmploiSemaine==='function') hrRenderEmploiSemaine(); }catch(_e){}
+  var msg=e.name+' : '+Math.round(final/60*10)/10+'h / '+(contratMin/60)+'h';
+  if(ajout) msg+=' · +'+Math.round(ajout/60*10)/10+'h sur créneaux libres';
+  if(transfert) msg+=' · +'+Math.round(transfert/60*10)/10+'h repris à un polyvalent';
+  if(final<contratMin-1) msg+=' (limite réelle atteinte)';
+  toast&&toast(msg, final>=contratMin-1?'success':'');
+  // relancer l'analyse pour voir le nouvel état
+  if(typeof hrAnalyseSemaine==='function') setTimeout(function(){ hrAnalyseSemaine(); }, 50);
+}
+window.hrCorrigerPersonne=hrCorrigerPersonne;
 
 // Dispatcher avec onglets Jour / Semaine
 function hrAnalyseOuvrir(mode){
@@ -9497,14 +10244,48 @@ function hrReserverReposConsecutifs(ctx){
   var weekendOnly=(R&&R.petitsContratsWeekend!==false); // activé par défaut
   var seuilPetit=(R&&R.petitsContratsSeuilH!=null)?parseFloat(R.petitsContratsSeuilH):15;
   if(isNaN(seuilPetit)) seuilPetit=15;
+  // Un jour est-il NON disponible pour cet équipier ? (repos "gratuit" : il ne
+  // pourrait pas travailler ce jour-là de toute façon)
+  function jourIndispo(e,d){
+    var jk=JOURS_KEYS[d];
+    var dd=(e.infos&&e.infos.dispos&&e.infos.dispos[jk])||null;
+    return !(dd&&dd.on);
+  }
+  // Choisit le meilleur bloc de repos pour CET équipier :
+  //  RÈGLE DE BASE (Vincent) : le repos se pose sur les jours d'INDISPONIBILITÉ.
+  //   - priorité 1 : le bloc qui couvre le PLUS de jours où il n'est pas dispo
+  //     (ex : indispo le week-end → repos samedi/dimanche ; jamais un jour dispo gâché)
+  //  Pour les PLEINS DISPO (aucun jour d'indispo) il faut bien choisir 2 jours :
+  //   - priorité 2 : RÉPARTIR équitablement (le bloc le moins déjà utilisé), pour ne
+  //     PAS entasser tout le monde en repos le même jour (ex : tous lundi-mardi).
+  //   - priorité 3 : à égalité, le bloc le moins chargé.
+  function choisirBlocPour(e){
+    var cand=tousBlocs.slice().map(function(b){
+      var indispo=0; b.forEach(function(d){ if(jourIndispo(e,d)) indispo++; });
+      // bloc touchant le week-end (sam=5, dim=6) : à éviter pour les pleins-dispo,
+      // car le week-end est le rush (on garde le monde au travail ces jours-là).
+      var touchWE=b.some(function(d){return d>=5;})?1:0;
+      return {b:b, indispo:indispo, touchWE:touchWE, charge:chargeBloc(b), usage:(usageBloc[b.join(',')]||0)};
+    });
+    cand.sort(function(x,y){
+      if(y.indispo!==x.indispo) return y.indispo-x.indispo;   // 1) max jours non-dispo
+      if(x.touchWE!==y.touchWE) return x.touchWE-y.touchWE;    // 2) éviter le week-end (rush)
+      if(x.usage!==y.usage) return x.usage-y.usage;            // 3) répartir (anti-entassement)
+      return x.charge-y.charge;                                // 4) moins chargé
+    });
+    var b=cand[0].b;
+    usageBloc[b.join(',')]=(usageBloc[b.join(',')]||0)+1;
+    return b;
+  }
   equipiers.forEach(function(e){
     var ch=hrContratHebdo(e)||0;
     if(weekendOnly && ch>0 && ch<=seuilPetit){
       // ÉTUDIANT / petit contrat : ne travaille QUE le week-end (règle réglementation).
       ctx.repos[e.id]=[0,1,2,3];
     } else {
-      // gros contrat : repos sur les jours les MOINS chargés (laisse le week-end libre)
-      ctx.repos[e.id]=choisirBlocGros().slice();
+      // Repos posé en priorité sur ses jours NON disponibles (ex : indispo le week-end
+      // → repos samedi/dimanche), pour préserver ses jours travaillables.
+      ctx.repos[e.id]=choisirBlocPour(e).slice();
     }
   });
 }
@@ -9514,6 +10295,88 @@ window.hrAutoAssignWeek=hrAutoAssignWeek;
 // Mémoire des affectations par date ISO : { 'AAAA-MM-JJ': [ {l,s,e,emp,empId}, ... ] }
 var HR_AFFECT={};
 var HR_RESTE={}; // créneaux non pourvus (restant à prendre) par date ISO
+
+// ══ ABSENCES (congés, maladie) ════════════════════════════════════════════════
+// HR_ABSENCES = { empId: [ {from:'AAAA-MM-JJ', to:'AAAA-MM-JJ', motif:'congés'} ] }
+// Un équipier absent sur une date n'est PAS placé ce jour-là.
+var HR_ABSENCES={};
+try{ var _ab=localStorage.getItem('hr_absences'); if(_ab) HR_ABSENCES=JSON.parse(_ab)||{}; }catch(e){}
+function hrSauverAbsences(){
+  try{ localStorage.setItem('hr_absences', JSON.stringify(HR_ABSENCES)); }catch(e){}
+  try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:'hr_absences', valeur:HR_ABSENCES},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
+}
+// Un équipier est-il absent à cette date ISO ('AAAA-MM-JJ') ?
+function hrEstAbsent(empId, isoDate){
+  if(!empId||!isoDate) return false;
+  var lst=HR_ABSENCES[empId]; if(!lst||!lst.length) return false;
+  for(var i=0;i<lst.length;i++){
+    var a=lst[i]; if(!a) continue;
+    var f=a.from||a.de||'', t=a.to||a.a||a.from||'';
+    if(!f) continue; if(!t) t=f;
+    if(isoDate>=f && isoDate<=t) return true;
+  }
+  return false;
+}
+window.hrEstAbsent=hrEstAbsent;
+// Fenêtre de saisie des absences
+function hrOuvrirAbsences(){
+  var resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'').toLowerCase();
+  var eq=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto;})
+                           .sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+  // dates par défaut = la semaine affichée (lundi -> dimanche)
+  var lun=(DAY_DATES&&DAY_DATES[0])?DAY_DATES[0]:'';
+  var dim=(DAY_DATES&&DAY_DATES[6])?DAY_DATES[6]:'';
+  var ov=document.getElementById('hr-abs-ov');
+  if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='hr-abs-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto;';
+  var rows=eq.map(function(e){
+    var lst=HR_ABSENCES[e.id]||[];
+    var resume=lst.length?lst.map(function(a){return (a.from||'')+(a.to&&a.to!==a.from?'→'+a.to:'')+(a.motif?' ('+a.motif+')':'');}).join(', '):'<span style="color:#888">aucune</span>';
+    return '<tr style="border-bottom:1px solid #333;">'
+      +'<td style="padding:7px 8px;font-weight:600;color:#eee;white-space:nowrap;">'+e.name+'</td>'
+      +'<td style="padding:7px 8px;font-size:.82rem;color:#bbb;">'+resume+'</td>'
+      +'<td style="padding:7px 8px;white-space:nowrap;">'
+        +'<input type="date" id="abs-from-'+e.id+'" value="'+lun+'" style="background:#1a1a1a;border:1px solid #444;color:#eee;border-radius:6px;padding:4px;font-size:.8rem;">'
+        +' <span style="color:#888">→</span> '
+        +'<input type="date" id="abs-to-'+e.id+'" value="'+dim+'" style="background:#1a1a1a;border:1px solid #444;color:#eee;border-radius:6px;padding:4px;font-size:.8rem;">'
+        +' <button onclick="hrAjouterAbsence(\''+e.id+'\')" style="background:#b8860b;border:none;color:#000;font-weight:700;border-radius:6px;padding:5px 9px;cursor:pointer;font-size:.8rem;">+ Absent</button>'
+        +(lst.length?' <button onclick="hrEffacerAbsence(\''+e.id+'\')" style="background:#444;border:none;color:#eee;border-radius:6px;padding:5px 9px;cursor:pointer;font-size:.8rem;">Effacer</button>':'')
+      +'</td></tr>';
+  }).join('');
+  ov.innerHTML='<div style="background:#1c1c1f;border:1px solid #555;border-radius:14px;max-width:900px;width:100%;padding:20px;font-family:Barlow,sans-serif;">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+      +'<div style="font-size:1.1rem;font-weight:800;color:#fff;">🌴 Absences — congés / maladie</div>'
+      +'<button onclick="document.getElementById(\'hr-abs-ov\').remove()" style="background:none;border:none;color:#aaa;font-size:1.4rem;cursor:pointer;">×</button>'
+    +'</div>'
+    +'<div style="font-size:.84rem;color:#aaa;margin-bottom:14px;">Choisis la période (un jour = mets la même date des deux côtés ; toute la semaine = laisse lundi→dimanche) puis « + Absent ». Les personnes absentes ne seront pas placées sur ces dates au prochain « Placer le mois ».</div>'
+    +'<table style="width:100%;border-collapse:collapse;"><thead><tr style="border-bottom:2px solid #555;">'
+      +'<th style="text-align:left;padding:6px 8px;color:#fff;font-size:.8rem;">Équipier</th>'
+      +'<th style="text-align:left;padding:6px 8px;color:#fff;font-size:.8rem;">Absences enregistrées</th>'
+      +'<th style="text-align:left;padding:6px 8px;color:#fff;font-size:.8rem;">Ajouter une période</th>'
+    +'</tr></thead><tbody>'+rows+'</tbody></table>'
+    +'<div style="margin-top:16px;text-align:right;"><button onclick="document.getElementById(\'hr-abs-ov\').remove()" style="background:#2e6fc2;border:none;color:#fff;font-weight:700;border-radius:8px;padding:9px 18px;cursor:pointer;">Terminé</button></div>'
+  +'</div>';
+  document.body.appendChild(ov);
+}
+window.hrOuvrirAbsences=hrOuvrirAbsences;
+function hrAjouterAbsence(empId){
+  var f=document.getElementById('abs-from-'+empId), t=document.getElementById('abs-to-'+empId);
+  if(!f||!f.value){ alert('Choisis une date de début.'); return; }
+  var from=f.value, to=(t&&t.value)?t.value:from;
+  if(to<from){ var tmp=from; from=to; to=tmp; }
+  HR_ABSENCES[empId]=HR_ABSENCES[empId]||[];
+  HR_ABSENCES[empId].push({from:from,to:to});
+  hrSauverAbsences();
+  hrOuvrirAbsences(); // rafraîchir la fenêtre
+}
+window.hrAjouterAbsence=hrAjouterAbsence;
+function hrEffacerAbsence(empId){
+  delete HR_ABSENCES[empId];
+  hrSauverAbsences();
+  hrOuvrirAbsences();
+}
+window.hrEffacerAbsence=hrEffacerAbsence;
 // Réapplique les noms mémorisés sur les traits de la semaine actuellement affichée
 function hrReappliquerAffectations(){
   for(var d=0;d<7;d++){
@@ -9579,6 +10442,19 @@ function hrAutoAssignMonth(){
     // contexte hebdo, mais le plafond tient compte du reste MENSUEL
     var ctx={minSemaine:{},joursTravailles:{},busy:{},repos:{}};
     hrReserverReposConsecutifs(ctx);
+    // ABSENCES : pour chaque équipier absent un jour de cette semaine, on bloque
+    // ce jour (ajouté à ctx.repos) pour qu'il ne soit jamais placé dessus.
+    try{
+      equipiers.forEach(function(e){
+        for(var _d=0;_d<7;_d++){
+          var _iso=(DAY_DATES&&DAY_DATES[_d])?DAY_DATES[_d]:null;
+          if(_iso && hrEstAbsent(e.id,_iso)){
+            ctx.repos[e.id]=ctx.repos[e.id]||[];
+            if(ctx.repos[e.id].indexOf(_d)<0) ctx.repos[e.id].push(_d);
+          }
+        }
+      });
+    }catch(_e){}
     // Plafond de CETTE semaine = lissage pour atteindre le CONTRAT MENSUEL légal
     // (contrat hebdo × 52/12). On répartit ce qui reste à faire sur le mois sur les
     // semaines restantes, pour tomber pile sur le contrat mensuel à la fin.
@@ -9642,6 +10518,7 @@ function hrAutoAssignMonth(){
     hrRattrapageContrats(ctx); // rattrapage : place les gens sous contrat sur les vides compatibles
     hrForcerContrats(ctx);     // pousse chaque équipier au contrat exact (viseContratExact)
     hrSecuriteReglesSemaine(); // garantit contrat + 2 traits/jour max sur cette semaine
+    hrOptimiserContrats(ctx);  // OPTIMISATION : déplace repos + échange créneaux pour atteindre les contrats
     // cumuler dans le mois + mémoriser le détail de la semaine + MÉMORISER PAR DATE (pour les traits)
     var parEmp={};
     var traitsMinSem=0, posesMinSem=0; // total heures de traits (hors encadrement) et heures positionnées
@@ -11254,6 +12131,19 @@ function hrUpdateHeader(){
 window.hrUpdateHeader=hrUpdateHeader;
 
 // Sélection explicite du resto dans la section Horaires (sélecteur dédié)
+// Tuiles Horaires : ouvrir un resto (cache les tuiles, montre le planning)
+window.hrOuvrirResto=function(resto){
+  var page=document.getElementById('page-horaires'); if(page) page.classList.remove('bk-tiles-mode');
+  var tiles=document.getElementById('hr-tiles'); if(tiles) tiles.style.display='none';
+  var content=document.getElementById('hr-content'); if(content) content.style.display='block';
+  if(window.hrSelectResto) window.hrSelectResto(resto);
+};
+// Retour à l'écran des tuiles
+window.hrRetourTuiles=function(){
+  var page=document.getElementById('page-horaires'); if(page) page.classList.add('bk-tiles-mode');
+  var content=document.getElementById('hr-content'); if(content) content.style.display='none';
+  var tiles=document.getElementById('hr-tiles'); if(tiles) tiles.style.display='block';
+};
 window.hrSelectResto=function(resto){
   if(typeof HR_ALL==='undefined' || !HR_ALL){ try{ HR_ALL={}; }catch(_e){} window.HR_ALL=window.HR_ALL||{}; }
   function afficher(){
