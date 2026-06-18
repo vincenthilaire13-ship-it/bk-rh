@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-18 15:06 · v142';
+  var EMBEDDED_VERSION = '2026-06-18 15:14 · v144';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -635,7 +635,10 @@ body.tv-mode #eye-viewas{display:none!important;}
     <div class="hr-leg" id="hrx-leg"></div>
   </div></div>
   <div style="margin-top:1.4rem;" id="hrx-emploi-wrap">
-    <div class="hr-stitle" style="margin:0 0 .3rem;">📋 Emploi du temps de la semaine — équipiers</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 .3rem;flex-wrap:wrap;">
+      <div class="hr-stitle" style="margin:0;">📋 Emploi du temps de la semaine — équipiers</div>
+      <button class="hr-btn" id="hrx-emploi-pdf" onclick="hrImprimerEmploiSemaine()" title="Imprimer / exporter en PDF le planning de la semaine affichée" style="background:#00897b;border-color:#00897b;color:#fff;font-weight:700;">🖨️ PDF</button>
+    </div>
     <div class="hr-ssub" style="margin:0 0 .8rem;">Heures par semaine et total du mois de chaque équipier. Cliquez sur « Placer le mois » pour le générer.</div>
     <div id="hrx-emploi-semaine"></div>
   </div>
@@ -3000,9 +3003,9 @@ function _pdfPartageMultiSemaines(resto, lundis){
   lundis.forEach(function(l,idx){ if(idx>0) doc.addPage('a4','landscape'); _pdfPartageDessineSemaine(doc, resto, l, true); });
   doc.save('planning_mois_'+resto+'_'+(lundis[0]||'')+'.pdf');
 }
-function _pdfPartageDessineSemaine(doc, resto, lundiIso, withHeader){
+function _pdfPartageDessineSemaine(doc, resto, lundiIso, withHeader, affOverride){
   var joursN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
-  var aff=_hrAffectSauve(resto);
+  var aff=affOverride||_hrAffectSauve(resto);
   var lundi=hrParse(lundiIso); var dates=[]; for(var i=0;i<7;i++){var d=new Date(lundi);d.setDate(lundi.getDate()+i);dates.push(d);}
   function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
   function jjmm(d){return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');}
@@ -11246,8 +11249,8 @@ function _hrSemainesTransferees(resto){
   return out;
 }
 // Construit le tableau (document blanc) d'UNE semaine pour un resto donné, à partir des placements sauvegardés
-function hrTableauSemaine(resto, lundiIso){
-  var aff=_hrAffectSauve(resto);
+function hrTableauSemaine(resto, lundiIso, affOverride){
+  var aff=affOverride||_hrAffectSauve(resto);
   var joursN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
   var lundi=hrParse(lundiIso);
   var dates=[]; for(var i=0;i<7;i++){ var d=new Date(lundi); d.setDate(lundi.getDate()+i); dates.push(d); }
@@ -11417,14 +11420,40 @@ window.hrSetHebdoSem=hrSetHebdoSem;
 // Planning hebdomadaire imprimable, façon document RH (fond blanc)
 function hrRenderPlanningHebdo(){
   var box=document.getElementById('hrx-emploi-semaine'); if(!box) return;
-  if(!HR_MONTH_RESULT||!HR_MONTH_RESULT.semaines.length){ box.innerHTML='<div style="color:var(--mu);font-size:13px;padding:12px;">Cliquez sur « Placer le mois » pour générer le planning.</div>'; return; }
+  // FALLBACK PERMANENT : dès qu'il y a des NOMS SUR LES TRAITS affichés (ROWS_BY_DAY),
+  // on affiche le tableau, même sans « Placer le mois ». Source de vérité = les traits.
+  function _hebdoFallback(){
+    try{
+      if(typeof DAY_DATES==='undefined'||!DAY_DATES[0]) return false;
+      var lundiIso=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:DAY_DATES[0];
+      var RBD=(typeof ROWS_BY_DAY!=='undefined'&&ROWS_BY_DAY)?ROWS_BY_DAY:(window.ROWS_BY_DAY||null);
+      var affMap={}, aDesNoms=false;
+      for(var d=0;d<7;d++){
+        var iso=DAY_DATES[d]; if(!iso) continue;
+        var jour=[];
+        ((RBD&&RBD[d])||[]).forEach(function(r){ (r.bars||[]).forEach(function(b){
+          if(b && b.empId){ aDesNoms=true; jour.push({l:b.l,s:b.s,e:b.e,emp:b.emp,empId:b.empId}); }
+        }); });
+        affMap[iso]=jour;
+      }
+      if(!aDesNoms){
+        for(var d2=0;d2<7;d2++){ var arr=(HR_AFFECT&&HR_AFFECT[DAY_DATES[d2]])||[]; if(arr.some(function(b){return b&&b.empId;})){ aDesNoms=true; affMap=HR_AFFECT; break; } }
+      }
+      if(!aDesNoms) return false;
+      var resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:'bk526')||'bk526');
+      box.innerHTML=hrTableauSemaine(resto.toUpperCase(), lundiIso, affMap);
+      return true;
+    }catch(e){ return false; }
+  }
+  if(!HR_MONTH_RESULT||!HR_MONTH_RESULT.semaines.length){ if(_hebdoFallback()) return; box.innerHTML='<div style="color:var(--mu);font-size:13px;padding:12px;">Cliquez sur « Placer le mois » pour générer le planning.</div>'; return; }
   var R=HR_MONTH_RESULT;
   // Synchroniser sur la semaine affichée en haut (les traits) si elle fait partie du mois calculé
   if(typeof HR_WEEK_LUNDI!=='undefined' && HR_WEEK_LUNDI){
     var idx=R.semaines.findIndex(function(s){return s.lundi===HR_WEEK_LUNDI;});
     if(idx>=0){ HR_HEBDO_SEM=idx; }
     else {
-      // la semaine affichée en haut n'a pas été calculée (autre mois) : on prévient
+      // semaine affichée hors du mois calculé : on tente le fallback (noms mémorisés)
+      if(_hebdoFallback()) return;
       box.innerHTML='<div style="background:#fff;color:#333;border-radius:10px;padding:18px;text-align:center;font-size:13px;">La semaine affichée en haut n\'a pas encore été calculée.<br>Cliquez sur « 🗓️ Placer le mois » pour générer le planning de cette période.</div>';
       return;
     }
@@ -11612,6 +11641,30 @@ function hrRenderPlanningHebdo(){
   box.innerHTML=tabs+h;
 }
 window.hrRenderPlanningHebdo=hrRenderPlanningHebdo;
+// Impression / PDF du planning de la SEMAINE AFFICHÉE (depuis l'écran Horaires)
+function hrImprimerEmploiSemaine(){
+  try{
+    if(typeof DAY_DATES==='undefined'||!DAY_DATES[0]){ toast&&toast('Choisis une semaine','error'); return; }
+    var lundiIso=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:DAY_DATES[0];
+    var RBD=(typeof ROWS_BY_DAY!=='undefined'&&ROWS_BY_DAY)?ROWS_BY_DAY:(window.ROWS_BY_DAY||null);
+    // carte d'affectation à partir des traits affichés (ce que tu vois à l'écran)
+    var affMap={}, aDesNoms=false;
+    for(var d=0;d<7;d++){
+      var iso=DAY_DATES[d]; if(!iso) continue; var jour=[];
+      ((RBD&&RBD[d])||[]).forEach(function(r){ (r.bars||[]).forEach(function(b){ if(b&&b.empId){ aDesNoms=true; jour.push({l:b.l,s:b.s,e:b.e,emp:b.emp,empId:b.empId}); } }); });
+      affMap[iso]=jour;
+    }
+    if(!aDesNoms){ for(var d2=0;d2<7;d2++){ var arr=(HR_AFFECT&&HR_AFFECT[DAY_DATES[d2]])||[]; if(arr.some(function(b){return b&&b.empId;})){ aDesNoms=true; affMap=HR_AFFECT; break; } } }
+    if(!aDesNoms){ toast&&toast('Aucun nom placé sur cette semaine','error'); return; }
+    var resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:'bk526')||'bk526').toUpperCase();
+    var doc=(typeof _pdfDoc==='function')?_pdfDoc('landscape'):null;
+    if(!doc){ toast&&toast('Générateur PDF indisponible','error'); return; }
+    _pdfPartageDessineSemaine(doc, resto, lundiIso, true, affMap);
+    doc.save('planning_'+resto+'_'+lundiIso+'.pdf');
+    toast&&toast('PDF du planning généré','success');
+  }catch(e){ toast&&toast('Erreur PDF : '+e.message,'error'); }
+}
+window.hrImprimerEmploiSemaine=hrImprimerEmploiSemaine;
 
 // (ancien récap conservé plus bas si besoin)
 function hrRenderEmploiMois_OLD(){
@@ -13494,8 +13547,10 @@ function hrGenFromWeek(lundi, garderOnglet){
   buildCAGrid();
   if(!garderOnglet) hrShow('planning');
   renderAll();
-  // si un placement mois a été fait, garder le tableau du bas synchronisé sur la semaine affichée
-  if(typeof HR_MONTH_RESULT!=='undefined' && HR_MONTH_RESULT && typeof hrRenderPlanningHebdo==='function'){
+  // garder le tableau du bas (emploi du temps) synchronisé sur la semaine affichée.
+  // On appelle toujours : s'il n'y a pas de « Placer le mois », le fallback affiche
+  // quand même le tableau dès qu'il y a des noms sur la semaine.
+  if(typeof hrRenderPlanningHebdo==='function'){
     try{ hrRenderPlanningHebdo(); }catch(e){}
   }
 }
