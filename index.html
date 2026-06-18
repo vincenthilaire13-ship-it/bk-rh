@@ -1659,16 +1659,15 @@ function formatMajDate(v){
 const SUPA_URL = 'https://qggkbtzhkomhldhacohd.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZ2tidHpoa29taGxkaGFjb2hkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNzc0MzIsImV4cCI6MjA5NDc1MzQzMn0.l4W4rH4CFREugjImoRqN8hocmEXFcVqnN1-H78x3S-c';
 
-// ── DROPBOX (app dédiée BKRH — "App folder", dossier "BK RH") ──────────────────
-var DBX_APP_KEY='s0n5mxaqjkkzv20';
-var DBX_APP_SECRET='7gim43bhry2hdu9';
-var DBX_REFRESH='_sXmH6nekJsAAAAAAAAAAaZf32o-kNDYtluI3IbEUh-RaAHvdArNFufK_z8N_QOd';
+// ── DROPBOX (app dédiée BKRH) — token fourni par le proxy serverless /api/dropbox-token ──
+// Les secrets (app secret, refresh token) ne sont PLUS dans le HTML : ils vivent
+// dans les variables d'environnement Vercel et ne sortent jamais du serveur.
+var DBX_APP_KEY='s0n5mxaqjkkzv20'; // clé d'app (publique, sert juste à savoir si Dropbox est configuré)
 var _dbxToken=null,_dbxTokenExp=0;
 async function dbxToken(){
   if(_dbxToken&&Date.now()<_dbxTokenExp)return _dbxToken;
-  var body='grant_type=refresh_token&refresh_token='+encodeURIComponent(DBX_REFRESH)
-    +'&client_id='+encodeURIComponent(DBX_APP_KEY)+'&client_secret='+encodeURIComponent(DBX_APP_SECRET);
-  var r=await fetch('https://api.dropboxapi.com/oauth2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body});
+  // Le proxy serverless détient le refresh token + le secret et renvoie un access_token temporaire.
+  var r=await fetch('/api/dropbox-token',{method:'POST'});
   if(!r.ok)throw new Error('Dropbox token '+r.status);
   var d=await r.json();
   _dbxToken=d.access_token;_dbxTokenExp=Date.now()+(d.expires_in?(d.expires_in-300)*1000:3600*1000);
@@ -2774,7 +2773,7 @@ async function submitInc(){
       // Document de sanction joint -> Dropbox + fiche salarié
       if(_incSanctionDoc&&_incSanctionDoc.data&&emp){
         try{
-          var dbxReady=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
+          var dbxReady=(DBX_APP_KEY.indexOf('__')<0);
           var link='';var dateStr=new Date().toISOString().slice(0,10);
           var ext=(_incSanctionDoc.name&&_incSanctionDoc.name.indexOf('.')>=0)?_incSanctionDoc.name.split('.').pop():'pdf';
           var sLbl=(SANCTIONS[selSanction]?SANCTIONS[selSanction].label:'Sanction');
@@ -3590,7 +3589,7 @@ async function reactivateEmp(id){
     await sb.patch('bks_employees','id=eq.'+id,{archived:false,exit_date:'',exit_motif:'',exit_note:''});
     // Ramener le dossier Dropbox des Archives vers son emplacement actif
     try{
-      var dbxReady=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
+      var dbxReady=(DBX_APP_KEY.indexOf('__')<0);
       if(dbxReady){ await dbxMove(dbxEmpFolderArchive(e), dbxEmpFolder(e)); }
     }catch(mvErr){console.error('Dropbox reactivate move',mvErr);}
     await loadAll();empFilter='actif';renderEquipe();
@@ -3855,7 +3854,7 @@ async function confirmValiderVisite(){
     // 1) document avis médical -> Dropbox + bks_emp_docs
     var link=_visiteFileData; // secours : base64 si Dropbox indispo
     try{
-      var dbxReady=(typeof DBX_APP_KEY!=='undefined')&&DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0;
+      var dbxReady=(typeof DBX_APP_KEY!=='undefined')&&DBX_APP_KEY.indexOf('__')<0;
       if(dbxReady){
         var ext=(_visiteFileName&&_visiteFileName.indexOf('.')>=0)?_visiteFileName.split('.').pop():'jpg';
         var fname='Avis_medical_'+dVisite+'.'+ext;
@@ -3895,7 +3894,7 @@ async function handleEmpDocUpload(input){
   var reader=new FileReader();
   reader.onload=async function(ev){
     var dataUrl=ev.target.result;
-    var dbxReady=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
+    var dbxReady=(DBX_APP_KEY.indexOf('__')<0);
     var link='';
     var dbxPath='';
     var dateStr=docDate;
@@ -4077,7 +4076,7 @@ async function validerSortie(){
   if(!(_sortieDocs['solde']&&(_sortieDocs['solde'].data||_sortieDocs['solde'].link))){alert('Le solde de tout compte est obligatoire.');return;}
   if(!confirm('Valider la sortie définitive de '+e.name+' ?\n\nLes documents seront archivés dans Dropbox et le salarié quittera l\'équipe active (historique conservé).'))return;
   // Archivage Dropbox : on harmonise sur /Archives/<Resto>/<Nom Prenom>/
-  var dbxReady=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
+  var dbxReady=(DBX_APP_KEY.indexOf('__')<0);
   var rid=e.restoId||'';
   var restoLbl=RESTOS[rid]?RESTOS[rid].label:(rid||'Autre');
   var dateStr=(e.sortieDate||new Date().toISOString().slice(0,10));
@@ -4978,7 +4977,7 @@ async function confirmExit(){
     await sb.patch('bks_employees','id=eq.'+id,data);
     // Déplacer le dossier Dropbox du salarié vers les Archives
     try{
-      var dbxReady=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
+      var dbxReady=(DBX_APP_KEY.indexOf('__')<0);
       if(dbxReady){ await dbxMove(dbxEmpFolder(e), dbxEmpFolderArchive(e)); }
     }catch(mvErr){console.error('Dropbox archive move',mvErr);}
     await loadAll();closeModal('modal-exit');empFilter='actif';renderEquipe();fillFilters();fillRptPersons();
@@ -6039,7 +6038,7 @@ async function handleContratUpload(input){
   if(st)st.textContent='⏳ Envoi du modèle…';
   var link='';
   try{
-    var dbxReady=(typeof DBX_APP_KEY!=='undefined'&&DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
+    var dbxReady=(typeof DBX_APP_KEY!=='undefined'&&DBX_APP_KEY.indexOf('__')<0);
     if(dbxReady&&typeof dbxUpload==='function'){
       var buf=await file.arrayBuffer();var blob=new Blob([buf]);
       var clean=(typeof dbxClean==='function')?dbxClean(nom):nom.replace(/[^a-zA-Z0-9_-]/g,'_');
@@ -6808,7 +6807,7 @@ async function candContratSigne(){
   var c=curCand();if(!c)return;
   if(!(c.contratSigneDoc&&(c.contratSigneDoc.data||c.contratSigneDoc.link))){alert('Importez d\'abord le contrat signé.');return;}
   if(!confirm('Démarrer la période d\'essai de '+c.prenom+' '+c.nom+' ?\n\nLe salarié sera ajouté à l\'équipe et le contrat archivé dans Dropbox.'))return;
-  var dbxReady=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
+  var dbxReady=(DBX_APP_KEY.indexOf('__')<0);
   var restoLbl=RESTOS[c.restoId]?RESTOS[c.restoId].label:(c.restoId||'Autre');
   var postePath='/'+dbxClean(restoLbl)+'/'+dbxClean((c.nom||'')+' '+(c.prenom||''));
   // 1) BASCULE DOSSIER : Recrutement -> En poste (déplace CV + photo + docs déjà présents)
@@ -7134,7 +7133,7 @@ async function submitDocs(){
   try{
     // 1) Upload Dropbox des pièces (tolérant : si non configuré ou échec, on garde en base)
     var folder=dbxCandFolder(_docsCand);
-    var dbxReady=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
+    var dbxReady=(DBX_APP_KEY.indexOf('__')<0);
     for(var key in _docsData){
       if(!_docsData.hasOwnProperty(key))continue;
       var item=_docsData[key];
