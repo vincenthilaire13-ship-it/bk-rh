@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-18 12:13 · v128';
+  var EMBEDDED_VERSION = '2026-06-18 13:52 · v130';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -615,6 +615,7 @@ body.tv-mode #eye-viewas{display:none!important;}
       </div>
       <button class="hr-btn hr-btn-ac" id="hrx-refresh-btn" onclick="hrRefreshWeek()" title="Recalcule le planning des 7 jours de la semaine">🔄 Actualiser</button>
       <button class="hr-btn hr-btn-ac" onclick="hrAutoAssignMonth()" title="Place les équipiers sur tout le mois en respectant le plafond mensuel (24h → 104h/mois) et les pose sur les traits">🗓️ Placer le mois (auto)</button>
+      <button class="hr-btn hr-btn-ac" onclick="hrAutoAssignYear()" title="Place les 12 mois de l'année affichée d'un coup. Tout est sauvegardé et visible sur tous les appareils." style="background:#16243a;border-color:#3a78c2;">📅 Placer l'année (auto)</button>
       <button class="hr-btn hr-btn-ac" onclick="hrOuvrirAbsences()" title="Signaler les équipiers absents (congés, maladie) pour qu'ils ne soient pas placés" style="background:#3a2e16;border-color:#b8860b;">🌴 Absences</button>
       <button class="hr-btn hr-btn-ac" onclick="hrOptimiserManuel()" title="Relance une optimisation : déplace les repos et échange des créneaux pour compléter les contrats" style="background:#16321f;border-color:#3ecf8e;">⚙️ Optimiser les contrats</button>
       <button class="hr-btn hr-btn-ac" onclick="hrAnalyseOuvrir('jour')" title="Analyse par jour ou sur la semaine : pourquoi des créneaux restent vides et pourquoi certains n'atteignent pas leur contrat" style="background:#3a2a5a;border-color:#6d4aad;">🔍 Analyser</button>
@@ -862,7 +863,7 @@ body.tv-mode #eye-viewas{display:none!important;}
         <button class="rtab sf on" onclick="setVisiteStatut(this,'all')">Tous les statuts</button>
         <button class="rtab sf" onclick="setVisiteStatut(this,'depasse')">🔴 Dépassé</button>
         <button class="rtab sf" onclick="setVisiteStatut(this,'bientot')">🟠 Bientôt (&lt; 1 mois)</button>
-        <button class="rtab sf" onclick="setVisiteStatut(this,'planifie')">🟢 Planifié</button>
+        <button class="rtab sf" onclick="setVisiteStatut(this,'ok')">🟢 Planifié</button>
       </div>
       <div id="visite-list"></div>
     </div>
@@ -5825,6 +5826,16 @@ function renderVisiteList(){
   if(!isDir&&visiteRestoFilter!=='all')cands=cands.filter(function(c){return c.restoId===visiteRestoFilter;});
   var ordre={depasse:0,rouge:1,orange:2,ok:3,inconnu:4,fait:5};
   cands.sort(function(a,b){return (ordre[visiteInfo(a).etat]||9)-(ordre[visiteInfo(b).etat]||9);});
+  // respecter le filtre par statut : on rapproche les états candidats des 3 filtres
+  if(visiteStatutFilter!=='all'){
+    cands=cands.filter(function(c){
+      var et=visiteInfo(c).etat;
+      if(visiteStatutFilter==='depasse') return et==='depasse'||et==='rouge';
+      if(visiteStatutFilter==='bientot') return et==='orange';
+      if(visiteStatutFilter==='ok')      return et==='ok';
+      return false;
+    });
+  }
   var embaucheHtml=cands.map(function(c){
     var v=visiteInfo(c);
     var resto=RESTOS[c.restoId]?RESTOS[c.restoId].label:c.restoId;
@@ -8394,6 +8405,8 @@ function hrSwitchRestoGrille(resto){
   try{ window.BASE_MIN = BASE_MIN; }catch(e){}
   // Mettre GRILLE (utilisée par getEff) à jour
   GRILLE.length = 0; GRILLE_EDIT.forEach(r=>GRILLE.push([...r]));
+  // Charger les placements sauvegardés de CE resto (chaque resto a les siens)
+  try{ if(typeof hrChargerAffect==='function') hrChargerAffect(resto); }catch(e){}
 }
 window.hrSwitchRestoGrille = hrSwitchRestoGrille;
 
@@ -10089,6 +10102,7 @@ function hrCorrigerPersonne(empId){
       (ROWS_BY_DAY[d2]||[]).forEach(function(r){ r.bars.forEach(function(b){ if(b.empId) arr.push({l:b.l,s:b.s,e:b.e,emp:b.emp,empId:b.empId}); }); });
       HR_AFFECT[iso]=arr;
     }
+    hrSauverAffect();
   }catch(_e){}
 
   var final=st.minSem[e.id]||0;
@@ -10296,6 +10310,55 @@ window.hrAutoAssignWeek=hrAutoAssignWeek;
 var HR_AFFECT={};
 var HR_RESTE={}; // créneaux non pourvus (restant à prendre) par date ISO
 
+// ══ PERSISTANCE DES PLACEMENTS (multi-appareils, permanent) ════════════════════
+// Les placements (HR_AFFECT) sont sauvegardés par restaurant dans Supabase
+// (app_config, clé 'hr_affect_<RESTO>') + miroir localStorage. Une fois placés,
+// ils restent : ils réapparaissent à la réouverture et sur TOUS les appareils.
+// Comme la grille n'affiche qu'un resto à la fois, on stocke par resto pour éviter
+// que deux restaurants se marchent dessus sur une même date.
+function _hrAffectResto(){
+  return (((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'BK526').toUpperCase();
+}
+// Mémoire des placements par resto, pour ne pas mélanger les restos en RAM.
+var HR_AFFECT_BY_RESTO={};
+function hrSauverAffect(){
+  var resto=_hrAffectResto();
+  // ne garder que les vrais champs (pas les marqueurs _used temporaires)
+  var clean={};
+  Object.keys(HR_AFFECT||{}).forEach(function(iso){
+    var arr=HR_AFFECT[iso]; if(!arr||!arr.length) return;
+    clean[iso]=arr.map(function(a){return {l:a.l,s:a.s,e:a.e,emp:a.emp,empId:a.empId};});
+  });
+  HR_AFFECT_BY_RESTO[resto]=clean;
+  var cle='hr_affect_'+resto;
+  try{ localStorage.setItem(cle, JSON.stringify(clean)); }catch(e){}
+  try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:cle, valeur:clean},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
+}
+window.hrSauverAffect=hrSauverAffect;
+// Charge en RAM les placements du resto courant (localStorage immédiat ; Supabase asynchrone)
+function hrChargerAffect(resto){
+  resto=(resto||_hrAffectResto()).toUpperCase();
+  var cle='hr_affect_'+resto;
+  // 1) localStorage (instantané)
+  try{ var ls=localStorage.getItem(cle); if(ls){ var o=JSON.parse(ls); if(o&&typeof o==='object'){ HR_AFFECT_BY_RESTO[resto]=o; HR_AFFECT=o; } } }catch(e){}
+  if(!HR_AFFECT_BY_RESTO[resto]) HR_AFFECT_BY_RESTO[resto]={};
+  HR_AFFECT=HR_AFFECT_BY_RESTO[resto];
+  // 2) Supabase (source de vérité partagée) — écrase la RAM puis rafraîchit l'affichage
+  try{
+    if(typeof SB!=='undefined' && SB){
+      SB.from('app_config').select('valeur').eq('cle',cle).maybeSingle().then(function(r){
+        var data=r&&r.data;
+        if(data && data.valeur && typeof data.valeur==='object'){
+          HR_AFFECT_BY_RESTO[resto]=data.valeur;
+          if(_hrAffectResto()===resto){ HR_AFFECT=data.valeur; try{ if(typeof renderTimeline==='function') renderTimeline(); }catch(e){} }
+          try{ localStorage.setItem(cle, JSON.stringify(data.valeur)); }catch(e){}
+        }
+      }).catch(function(){});
+    }
+  }catch(e){}
+}
+window.hrChargerAffect=hrChargerAffect;
+
 // ══ ABSENCES (congés, maladie) ════════════════════════════════════════════════
 // HR_ABSENCES = { empId: [ {from:'AAAA-MM-JJ', to:'AAAA-MM-JJ', motif:'congés'} ] }
 // Un équipier absent sur une date n'est PAS placé ce jour-là.
@@ -10422,8 +10485,8 @@ function hrPlafondMensuelMin(emp){
   if(h>=35) return null; // 35h géré en hebdo fixe, pas de plafond mensuel ici
   return Math.round(h*4.33*60); // ex 24h -> 6235 min (104h)
 }
-function hrAutoAssignMonth(){
-  var isoRef=(typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?DAY_DATES[0]:null;
+function hrAutoAssignMonth(isoRefArg, silencieux){
+  var isoRef=isoRefArg || ((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?DAY_DATES[0]:null);
   if(!isoRef){ toast&&toast('Choisis d\'abord une semaine','error'); return; }
   var lundis=hrLundisDuMois(isoRef);
   var moisNoms=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
@@ -10546,6 +10609,7 @@ function hrAutoAssignMonth(){
   });
 
   HR_MONTH_RESULT={label:moisLabel, semaines:semaines, moisMin:moisMin};
+  hrSauverAffect(); // SAUVEGARDE PERMANENTE + PARTAGÉE (tous appareils)
   // DIAGNOSTIC console : pour chaque semaine, traits pourvus / vides et équipiers sous contrat
   try{
     HR_MONTH_RESULT.semaines.forEach(function(s,i){
@@ -10572,6 +10636,7 @@ function hrAutoAssignMonth(){
     totalContratMin += pm!=null?pm:(h?Math.round(h*4.33*60):0);
   });
   function H(min){return (min/60).toFixed(0)+'h';}
+  if(silencieux){ return {label:moisLabel, lundis:lundis.length, placeMin:totalPlaceMin, contratMin:totalContratMin, equipiers:equipiers.length}; }
   // restaurer la semaine d'origine à l'écran
   if(lundiCourant) hrGenFromWeek(lundiCourant, true);
   renderTimeline();
@@ -10582,6 +10647,45 @@ function hrAutoAssignMonth(){
     +(totalPlaceMin<totalContratMin*0.9?' → <span style="color:#e8a020">pas assez de traits pour remplir tous les contrats</span>':' ✓')+'</span>';
 }
 window.hrAutoAssignMonth=hrAutoAssignMonth;
+
+// ══ PLACER L'ANNÉE ENTIÈRE ═════════════════════════════════════════════════════
+// Place les 12 mois de l'année de la semaine affichée, l'un après l'autre, en
+// réutilisant exactement la logique mensuelle. Tout est sauvegardé (permanent +
+// partagé). Opération longue → on confirme avant, et on traite mois par mois en
+// laissant respirer l'UI entre chaque mois.
+function hrAutoAssignYear(){
+  var isoRef=(typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?DAY_DATES[0]:null;
+  if(!isoRef){ toast&&toast('Choisis d\'abord une semaine','error'); return; }
+  var an=isoRef.slice(0,4);
+  var resto=_hrAffectResto();
+  if(!confirm('Placer TOUTE l\'année '+an+' pour '+resto+' ?\n\nLes 12 mois vont être placés automatiquement et sauvegardés (visibles sur tous les appareils). Cela peut prendre une minute.')) return;
+  var lundiCourant=HR_WEEK_LUNDI;
+  var moisNoms=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var st=document.getElementById('hrx-assign-status');
+  var totalPlace=0, totalContrat=0, fait=[];
+  var i=0;
+  function etape(){
+    if(i>=12){
+      // restaurer l'affichage d'origine + sauvegarde finale
+      if(lundiCourant) hrGenFromWeek(lundiCourant, true);
+      renderTimeline(); hrRenderEmploiMois&&hrRenderEmploiMois();
+      hrSauverAffect();
+      function H(m){return (m/60).toFixed(0)+'h';}
+      if(st) st.innerHTML='📅 Année '+an+' · '+resto+' placée ✓<br>'
+        +'<span style="color:#9a9aaa">Heures placées : '+H(totalPlace)+' / contrats à pourvoir : '+H(totalContrat)+'</span>';
+      toast&&toast('Année '+an+' placée et sauvegardée','success');
+      return;
+    }
+    var mm=String(i+1).padStart(2,'0');
+    if(st) st.innerHTML='📅 Placement de l\'année '+an+'… <b>'+moisNoms[i]+'</b> ('+(i+1)+'/12)';
+    var r=hrAutoAssignMonth(an+'-'+mm+'-15', true); // 15 = milieu de mois, sûr
+    if(r){ totalPlace+=r.placeMin||0; totalContrat+=r.contratMin||0; fait.push(r.label); }
+    i++;
+    setTimeout(etape, 30); // laisse l'UI respirer
+  }
+  setTimeout(etape, 30);
+}
+window.hrAutoAssignYear=hrAutoAssignYear;
 
 // Tableau récap MENSUEL : par équipier, heures de chaque semaine + total mois
 var HR_HEBDO_SEM=0; // index de la semaine affichée dans le planning hebdo
@@ -12024,6 +12128,8 @@ window.__hrInit=function(){
           try{ renderNP&&renderNP(); renderAll&&renderAll(); }catch(e){}
         }
       }).catch(()=>{});
+      // Placements sauvegardés (permanent + partagé multi-appareils) du resto courant
+      try{ if(typeof hrChargerAffect==='function') hrChargerAffect(); }catch(e){}
       (async function(){
         const RESTOS_VALIDES = (typeof RESTAURANTS!=='undefined') ? Object.keys(RESTAURANTS) : ['BK500','BK509','BK526'];
         let n=0, offset=0; const PAGE=1000;
