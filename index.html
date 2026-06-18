@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-18 14:41 · v137';
+  var EMBEDDED_VERSION = '2026-06-18 15:04 · v141';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -621,6 +621,7 @@ body.tv-mode #eye-viewas{display:none!important;}
       </div>
       <button class="hr-btn" id="hrx-lock-sem" onclick="hrToggleVerrouSemaine()" title="Verrouiller / déverrouiller la semaine affichée. Une semaine verrouillée n'est plus modifiée par les recalculs." style="background:#2a2416;border-color:#b8860b;">🔓 Semaine</button>
       <button class="hr-btn" id="hrx-lock-mois" onclick="hrToggleVerrouMois()" title="Verrouiller / déverrouiller le mois affiché. Un mois verrouillé n'est plus modifié par les recalculs." style="background:#2a2416;border-color:#b8860b;">🔓 Mois</button>
+      <button class="hr-btn" id="hrx-transfert" onclick="hrTransfererSemaine()" title="Marque la semaine comme finie : elle est verrouillée et partagée aux employés (Accueil) et aux Rapports." style="background:#16321f;border-color:#3ecf8e;color:#3ecf8e;font-weight:700;">✅ Horaires finis — transférer</button>
       <button class="hr-btn hr-btn-ac" onclick="hrAnalyseOuvrir('jour')" title="Analyse par jour ou sur la semaine : pourquoi des créneaux restent vides et pourquoi certains n'atteignent pas leur contrat" style="background:#3a2a5a;border-color:#6d4aad;">🔍 Analyser</button>
       <span id="hrx-assign-status" style="font-size:11px;color:#60a5fa;align-self:center;margin-left:4px"></span>
       <span id="hrx-valid-status" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--mu);align-self:center;margin-left:4px"></span>
@@ -633,7 +634,7 @@ body.tv-mode #eye-viewas{display:none!important;}
     <div id="hrx-rows"></div>
     <div class="hr-leg" id="hrx-leg"></div>
   </div></div>
-  <div style="margin-top:1.4rem;">
+  <div style="margin-top:1.4rem;display:none;" id="hrx-emploi-wrap">
     <div class="hr-stitle" style="margin:0 0 .3rem;">📋 Emploi du temps de la semaine — équipiers</div>
     <div class="hr-ssub" style="margin:0 0 .8rem;">Heures par semaine et total du mois de chaque équipier. Cliquez sur « Placer le mois » pour le générer.</div>
     <div id="hrx-emploi-semaine"></div>
@@ -2375,13 +2376,13 @@ function goPage(id, btn) {
   if (id==='visite'){ if(curUser.role==='franchise'){ bkShowTiles('visite'); } else { renderVisiteList(); } }
   if (id==='alertes'){ if(curUser.role==='franchise'){ bkShowTiles('alertes'); } else { window.__alertResto=curUser.restoId; renderAlertes(); } }
   if (id==='etatequipe'){
-    // resto par défaut = celui de la grille horaire courante (ou resto du directeur)
-    if(curUser.role==='directeur'){ HR_ETAT_RESTO_FILTRE=curUser.restoId; }
-    else if(!HR_ETAT_RESTO_FILTRE){ HR_ETAT_RESTO_FILTRE=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:'bk526')||'bk526').toLowerCase(); }
-    var _erf=document.getElementById('etat-rf-'+(HR_ETAT_RESTO_FILTRE||'bk526').toLowerCase());
-    document.querySelectorAll('#etat-equipe-resto .rf').forEach(function(b){b.classList.remove('on');});
-    if(_erf) _erf.classList.add('on');
-    hrRenderEtatEquipe();
+    if(curUser.role==='franchise'){ bkShowTiles('etatequipe'); }
+    else {
+      // directeur / autre : son restaurant, pas de tuiles
+      HR_ETAT_RESTO_FILTRE=(curUser.restoId||'bk526').toLowerCase();
+      var etr=document.getElementById('etat-equipe-resto'); if(etr) etr.style.display='none';
+      hrRenderEtatEquipe();
+    }
   }
   if (id==='salaires'){renderSalaires();}
   if (id==='contrats'){renderContrats();}
@@ -2409,7 +2410,8 @@ var BK_TILE_PAGES = {
   rapports:    { pick:function(r){ rptTab=r; var rt=document.getElementById('rpt-tabs'); if(rt) rt.style.display='none'; if(typeof fillRptPersons==='function') fillRptPersons(); if(typeof rptClosePanel==='function') rptClosePanel(); if(typeof renderRptTiles==='function') renderRptTiles(); } },
   alertes:     { pick:function(r){ window.__alertResto=r; renderAlertes(); } },
   pointage:    { pick:function(r){ window.__ptgRestoActif=r; try{ptgInit();}catch(e){} } },
-  suivipointage:{ pick:function(r){ window.__ptgRestoActif=r; try{ptgSuiviInit();}catch(e){} } }
+  suivipointage:{ pick:function(r){ window.__ptgRestoActif=r; try{ptgSuiviInit();}catch(e){} } },
+  etatequipe:  { pick:function(r){ HR_ETAT_RESTO_FILTRE=(r||'').toLowerCase(); var et=document.getElementById('etat-equipe-resto'); if(et) et.style.display='none'; try{ hrRenderEtatEquipe(); }catch(e){} } }
 };
 // Construit (une fois) l'écran de tuiles + le wrapper de contenu pour une page.
 function bkBuildTileGate(pageId){
@@ -2426,7 +2428,7 @@ function bkBuildTileGate(pageId){
   tiles.id='bk-tiles-'+pageId;
   tiles.style.padding='4px';
   var accents={bk500:'#e53935',bk509:'#1565c0',bk526:'#2e7d32'};
-  var titres={recrutement:'Recrutement',visite:'Visites médicales',incidents:'Incidents',rapports:'Rapports',alertes:'Alertes',pointage:'Pointage',suivipointage:'Suivi des pointages'};
+  var titres={recrutement:'Recrutement',visite:'Visites médicales',incidents:'Incidents',rapports:'Rapports',alertes:'Alertes',pointage:'Pointage',suivipointage:'Suivi des pointages',etatequipe:'État équipe'};
   var h='<div class="sec-title" style="margin-bottom:14px;">Choisissez un restaurant</div><div class="bk-tiles-grid">';
   ['bk500','bk509','bk526'].forEach(function(rid){
     var resto=RESTOS[rid]||{label:rid};
@@ -2892,6 +2894,7 @@ var RPT_TILES=[
   {id:'traits',    em:'📋', tt:'Traits de la semaine', ds:'Tous les créneaux à couvrir, jour par jour', color:'#8e24aa'},
   {id:'planhebdo', em:'🗓️', tt:'Planning de la semaine', ds:'Qui travaille quand (planning fait)', color:'#00897b'},
   {id:'suivipointage', em:'⏱️', tt:'Suivi pointage', ds:'Heures pointées par les équipiers', color:'#6d4aad'},
+  {id:'planpartage', em:'📅', tt:'Plannings transférés', ds:'Semaines transférées aux employés (imprimables)', color:'#0277bd'},
 ];
 var _rptCurrent=null;
 function renderRptTiles(){
@@ -2938,7 +2941,119 @@ function rptRefresh(){
   else if(_rptCurrent==='competences'){ genCompetReport(); }
   else if(_rptCurrent==='traits'){ genTraitsReport(); }
   else if(_rptCurrent==='planhebdo'){ genPlanHebdoReport(); }
+  else if(_rptCurrent==='planpartage'){ genPlanPartageReport(); }
 }
+// Rapports : plannings transférés (semaines verrouillées/partagées) + impression
+function genPlanPartageReport(){
+  var out=document.getElementById('rpt-out'); if(!out) return;
+  var resto=((curUser.role==='franchise')?(rptTab==='all'?'bk526':rptTab):curUser.restoId)||'bk526';
+  var sems=_hrSemainesTransferees(resto.toUpperCase());
+  var head='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;">'
+    +'<span style="color:#888;font-size:.84rem;">'+(RESTOS[resto.toLowerCase()]?RESTOS[resto.toLowerCase()].label:resto)+' · '+sems.length+' semaine(s) transférée(s)</span>';
+  if(sems.length){
+    head+='<button onclick="rptPdfPartageSemaine()" style="background:#0277bd;border:none;color:#fff;font-weight:700;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:.84rem;">🖨️ PDF de la semaine affichée</button>';
+    head+='<button onclick="rptPdfPartageMois()" style="background:#00897b;border:none;color:#fff;font-weight:700;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:.84rem;">🖨️ PDF du mois entier</button>';
+  }
+  head+='</div>';
+  out.innerHTML=head+'<div id="rpt-partage-box"></div>';
+  try{ hrRenderPlanningPartage(resto.toUpperCase(), document.getElementById('rpt-partage-box')); }catch(e){ console.warn('partage',e); }
+}
+window.genPlanPartageReport=genPlanPartageReport;
+// PDF d'une seule semaine transférée (celle affichée dans le rapport)
+function rptPdfPartageSemaine(){
+  try{
+    var box=document.getElementById('rpt-partage-box'); if(!box||!box._sems){ toast&&toast('Aucune semaine à imprimer','error'); return; }
+    // retrouver l'index affiché : le bouton onglet actif, sinon la dernière
+    var i=box._sems.length-1;
+    var act=box.querySelector('#hrpp-tabs button[style*="rgb(214, 35, 0)"]');
+    if(act){ i=parseInt(act.getAttribute('data-i'),10); }
+    _pdfPartageUneSemaine(box._resto, box._sems[i]);
+    toast&&toast('PDF du planning généré','success');
+  }catch(e){ toast&&toast('Erreur PDF : '+e.message,'error'); }
+}
+window.rptPdfPartageSemaine=rptPdfPartageSemaine;
+// PDF de toutes les semaines transférées du mois affiché (une page par semaine)
+function rptPdfPartageMois(){
+  try{
+    var box=document.getElementById('rpt-partage-box'); if(!box||!box._sems||!box._sems.length){ toast&&toast('Aucune semaine à imprimer','error'); return; }
+    // mois de référence = mois de la semaine actuellement affichée
+    var i=box._sems.length-1; var act=box.querySelector('#hrpp-tabs button[style*="rgb(214, 35, 0)"]'); if(act){ i=parseInt(act.getAttribute('data-i'),10); }
+    var moisRef=box._sems[i].slice(0,7);
+    var semsMois=box._sems.filter(function(l){
+      // une semaine appartient au mois si son jeudi est dans ce mois
+      try{ var d=hrParse(l); d.setDate(d.getDate()+3); return (d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'))===moisRef; }catch(e){ return l.slice(0,7)===moisRef; }
+    });
+    if(!semsMois.length) semsMois=[box._sems[i]];
+    _pdfPartageMultiSemaines(box._resto, semsMois);
+    toast&&toast('PDF du mois généré','success');
+  }catch(e){ toast&&toast('Erreur PDF : '+e.message,'error'); }
+}
+window.rptPdfPartageMois=rptPdfPartageMois;
+// — Générateurs PDF (réutilisent les placements sauvegardés, indépendants de l'écran Horaires) —
+function _pdfPartageUneSemaine(resto, lundiIso){
+  var doc=_pdfDoc('landscape');
+  _pdfPartageDessineSemaine(doc, resto, lundiIso, true);
+  doc.save('planning_'+resto+'_'+lundiIso+'.pdf');
+}
+function _pdfPartageMultiSemaines(resto, lundis){
+  var doc=_pdfDoc('landscape');
+  lundis.forEach(function(l,idx){ if(idx>0) doc.addPage('a4','landscape'); _pdfPartageDessineSemaine(doc, resto, l, true); });
+  doc.save('planning_mois_'+resto+'_'+(lundis[0]||'')+'.pdf');
+}
+function _pdfPartageDessineSemaine(doc, resto, lundiIso, withHeader){
+  var joursN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  var aff=_hrAffectSauve(resto);
+  var lundi=hrParse(lundiIso); var dates=[]; for(var i=0;i<7;i++){var d=new Date(lundi);d.setDate(lundi.getDate()+i);dates.push(d);}
+  function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  function jjmm(d){return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');}
+  function hhmm(min){var h=Math.floor(min/60)%24,m=min%60;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
+  function fmtHC(min){var h=Math.floor(min/60),m=min%60;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
+  var parEmp={};
+  for(var dd=0;dd<7;dd++){ (aff[iso(dates[dd])]||[]).forEach(function(b){ if(!b.empId) return; if(!parEmp[b.empId]) parEmp[b.empId]={name:b.emp,jours:[[],[],[],[],[],[],[]],totalMin:0}; parEmp[b.empId].jours[dd].push({s:b.s,e:b.e}); parEmp[b.empId].totalMin+=(b.e-b.s); }); }
+  var liste=Object.keys(parEmp).map(function(id){return {id:id,name:parEmp[id].name};}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+  function contratDe(id){var e=(DB.employees||[]).find(function(x){return x.id===id;});return hrContratHebdo(e);}
+  var W=297,H=210,M=8,y=14;
+  doc.setFillColor(2,119,189);doc.rect(0,0,W,12,'F');
+  doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(13);
+  doc.text('PLANNING HEBDOMADAIRE',M,8);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  doc.text('du '+jjmm(dates[0])+'/'+dates[0].getFullYear()+' au '+jjmm(dates[6])+'/'+dates[6].getFullYear(),W-M,8,{align:'right'});
+  y=17;
+  var nameW=42, dayW=(W-2*M-nameW-26)/7, x0=M;
+  doc.setFontSize(7);doc.setTextColor(40,40,40);doc.setFont('helvetica','bold');
+  doc.text('NOM Prenom',x0+1,y);
+  for(var j=0;j<7;j++){ doc.text(joursN[j].slice(0,3)+' '+jjmm(dates[j]), x0+nameW+j*dayW+1, y); }
+  doc.text('PLAN/CONTRAT',x0+nameW+7*dayW+1,y);
+  y+=1.5; doc.setDrawColor(120,120,120); doc.line(M,y,W-M,y); y+=3.5;
+  doc.setFont('helvetica','normal');doc.setFontSize(6.5);
+  liste.forEach(function(e){
+    if(y>H-8){ doc.addPage('a4','landscape'); y=14; }
+    var pe=parEmp[e.id]; var contrat=contratDe(e.id);
+    doc.setTextColor(20,20,20);doc.setFont('helvetica','bold');
+    doc.text(_strip(e.name||'').slice(0,28), x0+1, y);
+    doc.setFont('helvetica','normal');
+    var rowH=4;
+    for(var jj=0;jj<7;jj++){
+      var cren=pe.jours[jj].slice().sort(function(a,b){return a.s-b.s;});
+      var txt;
+      if(!cren.length){ txt='Repos'; doc.setTextColor(150,150,150); }
+      else { var plages=[],cur=null; cren.forEach(function(b){ if(cur&&b.s<=cur.e){cur.e=Math.max(cur.e,b.e);}else{cur={s:b.s,e:b.e};plages.push(cur);} }); txt=plages.map(function(p){return hhmm(p.s)+'-'+hhmm(p.e);}).join('  '); doc.setTextColor(20,20,20); }
+      var wr=doc.splitTextToSize(txt, dayW-1);
+      doc.text(wr, x0+nameW+jj*dayW+1, y);
+      if(wr.length*3>rowH) rowH=wr.length*3;
+    }
+    var planTxt=fmtHC(pe.totalMin)+' / '+(contrat!=null?fmtHC(Math.round(contrat*60)):'-');
+    if(contrat!=null && pe.totalMin/60<contrat-0.01) doc.setTextColor(224,134,0);
+    else if(contrat!=null && pe.totalMin/60>contrat+0.01) doc.setTextColor(214,35,0);
+    else doc.setTextColor(26,152,80);
+    doc.setFont('helvetica','bold');
+    doc.text(planTxt, x0+nameW+7*dayW+1, y);
+    doc.setFont('helvetica','normal');
+    y+=rowH+2.5;
+    doc.setDrawColor(230,230,230); doc.line(M,y-1.5,W-M,y-1.5);
+  });
+}
+window._pdfPartageDessineSemaine=_pdfPartageDessineSemaine;
 
 // Liste des équipiers ciblés selon le rôle et l'onglet resto
 function rptTargets(){
@@ -8395,7 +8510,14 @@ function dashRestoList(){
   catch(e){return [{id:'bk500',label:'BK 500'},{id:'bk509',label:'BK 509'},{id:'bk526',label:'BK 526'}];}
 }
 function initDashboard(){
-  // Toujours repartir sur l'écran « Choisissez votre restaurant » en arrivant sur Accueil
+  // En mode ÉCRAN TV : le restaurant est déjà connu (code par resto) → on va
+  // directement sur son accueil, sans passer par « Choisissez votre restaurant ».
+  if(curUser && curUser.role==='tv'){
+    var tvr=curUser.restoId;
+    try{ if(!tvr){ tvr=localStorage.getItem('dash_resto'); } }catch(e){}
+    if(tvr){ DASH_RESTO=tvr; try{localStorage.setItem('dash_resto',tvr);}catch(e){} dashShowBoard(); dashStartClock(); return; }
+  }
+  // Sinon : on repart sur l'écran « Choisissez votre restaurant »
   dashShowPick();
   dashStartClock();
 }
@@ -8404,9 +8526,7 @@ function dashShowPick(){
   if(panel)panel.style.display='none';if(board)board.style.display='none';if(pick)pick.style.display='flex';
   var g=document.getElementById('dash-pick-grid');if(!g)return;
   g.innerHTML=dashRestoList().map(function(r){
-    var n=(typeof bkCompteResto==='function')?bkCompteResto('alertes', r.id):0;
-    var badge=n?('<div style="position:absolute;top:10px;right:12px;background:var(--red);color:#fff;border-radius:11px;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;padding:0 6px;box-shadow:0 2px 6px rgba(0,0,0,.4);">'+n+'</div>'):'';
-    return '<div class="dash-pick-card" style="position:relative;" onclick="dashSelectResto(\''+r.id+'\')">'+badge+'<div class="pc-em">🍔</div><div class="pc-lb">'+r.label+'</div><div class="pc-sub">'+(n?(n+' alerte'+(n>1?'s':'')):'Appuyer pour ouvrir')+'</div></div>';
+    return '<div class="dash-pick-card" style="position:relative;" onclick="dashSelectResto(\''+r.id+'\')"><div class="pc-em">🍔</div><div class="pc-lb">'+r.label+'</div><div class="pc-sub">Appuyer pour ouvrir</div></div>';
   }).join('');
 }
 function dashSelectResto(id){DASH_RESTO=id;try{localStorage.setItem('dash_resto',id);}catch(e){}dashShowBoard();}
@@ -8420,6 +8540,8 @@ function dashShowBoard(){
   var hello=document.getElementById('dash-hello');if(hello){var h=new Date().getHours();hello.textContent=(h<12?'Bonjour':(h<18?'Bon après-midi':'Bonsoir'))+' 👋';}
   dashRenderTiles();
   var b=document.getElementById('dash-banner');if(b)b.style.display='none';
+  // mode TV : le restaurant est fixe → on masque « Changer de resto »
+  try{ var cb=document.querySelector('.dash-change'); if(cb) cb.style.display=(curUser&&curUser.role==='tv')?'none':''; }catch(e){}
 }
 function dashRenderTiles(){
   var g=document.getElementById('dash-grid');if(!g)return;
@@ -8465,7 +8587,9 @@ function dashOpenHoraires(){
   _dashOpenTile='dashOpenHoraires';
   var lbl=(dashRestoList().find(function(x){return x.id===DASH_RESTO;})||{}).label;
   var body=dashOpenPanel('Mes horaires — '+lbl);
-  body.innerHTML='<div style="color:#aaa;font-size:.9rem;padding:8px 2px;">Le planning hebdomadaire du restaurant s\'affichera ici (prochaine étape).</div>';
+  body.innerHTML='<div id="dash-horaires-box"></div>';
+  try{ hrRenderPlanningPartage(DASH_RESTO, document.getElementById('dash-horaires-box')); }
+  catch(e){ document.getElementById('dash-horaires-box').innerHTML='<div style="color:#aaa;padding:10px;">Impossible d\'afficher les horaires pour le moment.</div>'; }
 }
 function dashOpenPointer(){
   // Ouvre le véritable écran de pointage, filtré sur le restaurant choisi dans l'Accueil.
@@ -10525,6 +10649,9 @@ function hrLundiDe(iso){
 }
 function hrSemaineVerrouillee(lundiIso){ if(!lundiIso) return false; return !!hrLocks()[lundiIso]; }
 window.hrSemaineVerrouillee=hrSemaineVerrouillee;
+// Une semaine TRANSFÉRÉE aux employés (donc verrouillée + visible côté salarié & rapports)
+function hrSemaineTransferee(lundiIso){ if(!lundiIso) return false; var v=hrLocks()[lundiIso]; return !!(v && typeof v==='object' && v.transfere); }
+window.hrSemaineTransferee=hrSemaineTransferee;
 // Une date ISO est-elle dans une semaine verrouillée ?
 function hrDateVerrouillee(iso){ return hrSemaineVerrouillee(hrLundiDe(iso)); }
 window.hrDateVerrouillee=hrDateVerrouillee;
@@ -10713,12 +10840,11 @@ function _etatEquipiers(){
 function hrRenderEtatEquipe(){
   var box=document.getElementById('etat-equipe-list'); if(!box) return;
   var isDir=(curUser&&curUser.role==='directeur');
-  // sélecteur de resto (caché pour un directeur, limité à son resto)
+  // le choix du restaurant se fait désormais par les tuiles (ou resto fixe du directeur) :
+  // on masque l'ancien sélecteur d'onglets interne.
   var selWrap=document.getElementById('etat-equipe-resto');
-  if(selWrap){
-    if(isDir){ selWrap.style.display='none'; HR_ETAT_RESTO_FILTRE=curUser.restoId; }
-    else { selWrap.style.display='flex'; }
-  }
+  if(selWrap){ selWrap.style.display='none'; }
+  if(isDir){ HR_ETAT_RESTO_FILTRE=curUser.restoId; }
   var eq=_etatEquipiers();
   var motifOpts=Object.keys(HR_ETAT_MOTIFS).map(function(k){var m=HR_ETAT_MOTIFS[k];return '<option value="'+k+'">'+m.icon+' '+m.label+'</option>';}).join('');
   // bandeau de comptage des demandes en attente
@@ -11067,11 +11193,154 @@ function hrToggleVerrouSemaine(){
   var lundi=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?hrLundiDe(DAY_DATES[0]):null);
   if(!lundi){ toast&&toast('Choisis d\'abord une semaine','error'); return; }
   var L=hrLocks();
-  if(L[lundi]){ delete L[lundi]; toast&&toast('Semaine déverrouillée 🔓','success'); }
+  if(L[lundi]){
+    if(hrSemaineTransferee(lundi) && !hrDemanderCodeDeverrou()) return;
+    delete L[lundi]; toast&&toast("Semaine deverrouillee","success");
+  }
   else { L[lundi]=1; toast&&toast('Semaine verrouillée 🔒','success'); }
   hrSauverLocks(); hrMajBoutonsVerrou();
 }
 window.hrToggleVerrouSemaine=hrToggleVerrouSemaine;
+// Code de déverrouillage d'une semaine transférée
+var HR_CODE_DEVERROU='1234';
+function hrDemanderCodeDeverrou(){
+  var c=prompt('Cette semaine a été transférée aux employés.\nEntre le code pour la déverrouiller :');
+  if(c===null) return false;
+  if((c||'').trim()!==HR_CODE_DEVERROU){ toast&&toast('Code incorrect — semaine toujours verrouillée','error'); return false; }
+  return true;
+}
+window.hrDemanderCodeDeverrou=hrDemanderCodeDeverrou;
+// TRANSFERT aux employés : verrouille la semaine ET la partage (Accueil + Rapports)
+function hrTransfererSemaine(){
+  var lundi=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?hrLundiDe(DAY_DATES[0]):null);
+  if(!lundi){ toast&&toast('Choisis une semaine','error'); return; }
+  if(hrSemaineTransferee(lundi)){ toast&&toast('Cette semaine est déjà transférée aux employés','success'); return; }
+  if(!confirm('Transférer les horaires de la semaine du '+lundi+' aux employés ?\n\nLa semaine sera verrouillée 🔒 et visible dans « Mes horaires » (Accueil) et dans Rapports. Pour la rouvrir ensuite, il faudra un code.')) return;
+  var L=hrLocks(); L[lundi]={transfere:true, date:(new Date()).toISOString()};
+  hrSauverLocks(); hrMajBoutonsVerrou();
+  toast&&toast('Semaine transférée aux employés ✅','success');
+}
+window.hrTransfererSemaine=hrTransfererSemaine;
+
+// ══ PLANNING PARTAGÉ (Accueil « Mes horaires » + Rapports) ════════════════════
+// Affiche, pour un restaurant donné, les semaines TRANSFÉRÉES aux employés sous
+// forme du même tableau hebdomadaire (tous les salariés). Lit les données déjà
+// sauvegardées (placements par date + verrous), sans dépendre de l'écran Horaires.
+function _hrAffectSauve(resto){
+  resto=(resto||'').toUpperCase();
+  if(HR_AFFECT_BY_RESTO[resto]) return HR_AFFECT_BY_RESTO[resto];
+  try{ var ls=localStorage.getItem('hr_affect_'+resto); if(ls){ var o=JSON.parse(ls); if(o&&typeof o==='object'){ HR_AFFECT_BY_RESTO[resto]=o; return o; } } }catch(e){}
+  return {};
+}
+function _hrLocksSauve(resto){
+  resto=(resto||'').toUpperCase();
+  if(HR_LOCKS_BY_RESTO[resto]) return HR_LOCKS_BY_RESTO[resto];
+  try{ var ls=localStorage.getItem('hr_locks_'+resto); if(ls){ var o=JSON.parse(ls); if(o&&typeof o==='object'){ HR_LOCKS_BY_RESTO[resto]=o; return o; } } }catch(e){}
+  return {};
+}
+// Liste des lundis TRANSFÉRÉS d'un resto, triés chronologiquement
+function _hrSemainesTransferees(resto){
+  var L=_hrLocksSauve(resto); var out=[];
+  Object.keys(L).forEach(function(lundi){ var v=L[lundi]; if(v && typeof v==='object' && v.transfere) out.push(lundi); });
+  out.sort();
+  return out;
+}
+// Construit le tableau (document blanc) d'UNE semaine pour un resto donné, à partir des placements sauvegardés
+function hrTableauSemaine(resto, lundiIso){
+  var aff=_hrAffectSauve(resto);
+  var joursN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  var lundi=hrParse(lundiIso);
+  var dates=[]; for(var i=0;i<7;i++){ var d=new Date(lundi); d.setDate(lundi.getDate()+i); dates.push(d); }
+  function iso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function jjmm(d){ return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0'); }
+  function hhmm(min){ var h=Math.floor(min/60)%24,m=min%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
+  function fmtHC(min){ var h=Math.floor(min/60),m=min%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
+  // rassembler par salarié sur les 7 jours
+  var parEmp={}; // id -> {name, jours:[7][], totalMin}
+  for(var dd=0;dd<7;dd++){
+    var arr=aff[iso(dates[dd])]||[];
+    arr.forEach(function(b){
+      if(!b.empId) return;
+      if(!parEmp[b.empId]) parEmp[b.empId]={name:b.emp,jours:[[],[],[],[],[],[],[]],totalMin:0};
+      parEmp[b.empId].jours[dd].push({s:b.s,e:b.e});
+      parEmp[b.empId].totalMin+=(b.e-b.s);
+    });
+  }
+  var liste=Object.keys(parEmp).map(function(id){return {id:id,name:parEmp[id].name};}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+  function contratDe(id){ var e=(DB.employees||[]).find(function(x){return x.id===id;}); return hrContratHebdo(e); }
+  var h='<div style="background:#fff;color:#222;border-radius:10px;padding:22px 20px;box-shadow:0 2px 14px rgba(0,0,0,.25);margin-bottom:16px;">';
+  h+='<div style="text-align:center;margin-bottom:14px;">';
+  h+='<div style="font-size:17px;font-weight:700;color:#111;">Planning hebdomadaire</div>';
+  h+='<div style="font-size:12.5px;color:#D62300;font-weight:600;margin-top:2px;">du '+jjmm(dates[0])+'/'+dates[0].getFullYear()+' au '+jjmm(dates[6])+'/'+dates[6].getFullYear()+'</div>';
+  h+='<div style="font-size:12px;color:#666;margin-top:2px;">'+(RESTOS[resto.toLowerCase()]?RESTOS[resto.toLowerCase()].label:resto)+'</div>';
+  h+='</div>';
+  if(!liste.length){ h+='<div style="text-align:center;color:#888;padding:16px;font-size:13px;">Aucun horaire enregistré pour cette semaine.</div></div>'; return h; }
+  h+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
+  h+='<thead><tr style="background:#f3f3f3;"><th style="padding:7px 8px;text-align:left;border:1px solid #e2e2e6;color:#333;">NOM Prénom</th>';
+  for(var j=0;j<7;j++){ h+='<th style="padding:7px 6px;border:1px solid #e2e2e6;color:#333;white-space:nowrap;">'+joursN[j].slice(0,3)+' '+jjmm(dates[j])+'</th>'; }
+  h+='<th style="padding:7px 8px;border:1px solid #e2e2e6;color:#333;white-space:nowrap;">PLAN / CONTRAT</th></tr></thead><tbody>';
+  liste.forEach(function(e){
+    var pe=parEmp[e.id]; var contrat=contratDe(e.id);
+    h+='<tr><td style="padding:6px 8px;border:1px solid #e2e2e6;font-weight:600;color:#111;white-space:nowrap;">'+(e.name||'')+'</td>';
+    for(var jj=0;jj<7;jj++){
+      var cr=pe.jours[jj].slice().sort(function(a,b){return a.s-b.s;});
+      var txt;
+      if(!cr.length){ txt='<span style="color:#bbb;">Repos</span>'; }
+      else { var plages=[],cur=null; cr.forEach(function(b){ if(cur&&b.s<=cur.e){cur.e=Math.max(cur.e,b.e);}else{cur={s:b.s,e:b.e};plages.push(cur);} }); txt=plages.map(function(p){return hhmm(p.s)+' - '+hhmm(p.e);}).join('<br>'); }
+      h+='<td style="padding:6px 6px;border:1px solid #e2e2e6;text-align:center;color:#222;white-space:nowrap;">'+txt+'</td>';
+    }
+    var totMin=pe.totalMin; var col='#1A9850';
+    if(contrat!=null && totMin/60<contrat-0.01) col='#E08600';
+    else if(contrat!=null && totMin/60>contrat+0.01) col='#D62300';
+    var planTxt=fmtHC(totMin)+' / '+(contrat!=null?fmtHC(Math.round(contrat*60)):'-');
+    h+='<td style="padding:6px 8px;border:1px solid #e2e2e6;text-align:center;font-weight:700;color:'+col+';white-space:nowrap;">'+planTxt+'</td></tr>';
+  });
+  h+='</tbody></table></div></div>';
+  return h;
+}
+window.hrTableauSemaine=hrTableauSemaine;
+// Rendu de toutes les semaines transférées d'un resto dans un conteneur (Accueil/Rapports)
+function hrRenderPlanningPartage(resto, container){
+  if(!container) return;
+  resto=(resto||'').toUpperCase();
+  var sems=_hrSemainesTransferees(resto);
+  if(!sems.length){
+    container.innerHTML='<div style="color:#888;font-size:.9rem;padding:16px;text-align:center;">Aucune semaine transférée pour l\'instant.<br><span style="font-size:.82rem;">Les horaires apparaîtront ici dès qu\'une semaine sera transférée aux employés depuis l\'écran Horaires.</span></div>';
+    return;
+  }
+  // sélecteur de semaine si plusieurs
+  var html='';
+  if(sems.length>1){
+    html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;" id="hrpp-tabs"></div>';
+  }
+  html+='<div id="hrpp-body"></div>';
+  container.innerHTML=html;
+  container._sems=sems; container._resto=resto;
+  hrPartageAfficherSem(container, sems.length-1); // par défaut, la plus récente
+  if(sems.length>1){
+    var tabs=container.querySelector('#hrpp-tabs');
+    tabs.innerHTML=sems.map(function(l,i){
+      var d=hrParse(l); var di=new Date(d); di.setDate(d.getDate()+6);
+      function jj(x){return String(x.getDate()).padStart(2,'0')+'/'+String(x.getMonth()+1).padStart(2,'0');}
+      return '<button data-i="'+i+'" style="cursor:pointer;font-size:12px;padding:5px 11px;border-radius:7px;border:1px solid #ccc;background:#fff;color:#333;font-weight:600;">'+jj(d)+'→'+jj(di)+'</button>';
+    }).join('');
+    tabs.querySelectorAll('button').forEach(function(b){
+      b.onclick=function(){ hrPartageAfficherSem(container, parseInt(b.getAttribute('data-i'),10)); 
+        tabs.querySelectorAll('button').forEach(function(x){x.style.background='#fff';x.style.color='#333';x.style.borderColor='#ccc';});
+        b.style.background='#D62300';b.style.color='#fff';b.style.borderColor='#D62300';
+      };
+    });
+    var act=tabs.querySelector('button[data-i="'+(sems.length-1)+'"]'); if(act){act.style.background='#D62300';act.style.color='#fff';act.style.borderColor='#D62300';}
+  }
+}
+window.hrRenderPlanningPartage=hrRenderPlanningPartage;
+function hrPartageAfficherSem(container, i){
+  var sems=container._sems||[]; var resto=container._resto;
+  if(i<0||i>=sems.length) return;
+  var body=container.querySelector('#hrpp-body'); if(!body) return;
+  body.innerHTML=hrTableauSemaine(resto, sems[i]);
+}
+window.hrPartageAfficherSem=hrPartageAfficherSem;
 // Verrou du MOIS affiché (tous les lundis dont la semaine appartient au mois)
 function hrToggleVerrouMois(){
   var isoRef=(typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?DAY_DATES[0]:null;
@@ -11098,6 +11367,14 @@ function hrMajBoutonsVerrou(){
     var vm=false; if(isoRef){ var lundis=hrLundisDuMois(isoRef); var L=hrLocks(); vm=lundis.length>0 && lundis.every(function(l){return !!L[l];}); }
     bm.innerHTML=(vm?'🔒':'🔓')+' Mois';
     bm.style.background=vm?'#3a1f1f':'#2a2416'; bm.style.borderColor=vm?'#cc5555':'#b8860b'; bm.style.color=vm?'#ffb3b3':'#eee';
+  }
+  var bt=document.getElementById('hrx-transfert');
+  if(bt){
+    var lundi2=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?hrLundiDe(DAY_DATES[0]):null);
+    var t=lundi2&&hrSemaineTransferee(lundi2);
+    bt.innerHTML=t?'✅ Transférée aux employés':'✅ Horaires finis — transférer';
+    bt.style.background=t?'#15321f':'#16321f'; bt.style.borderColor='#3ecf8e'; bt.style.color='#3ecf8e';
+    bt.style.opacity=t?'0.7':'1';
   }
 }
 window.hrMajBoutonsVerrou=hrMajBoutonsVerrou;
