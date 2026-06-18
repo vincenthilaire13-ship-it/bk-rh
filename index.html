@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-18 14:10 · v133';
+  var EMBEDDED_VERSION = '2026-06-18 14:41 · v137';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -512,8 +512,6 @@ body.tv-mode #eye-viewas{display:none!important;}
     <button onclick="goPage('planning',this)">🗓️ Planning encadrement</button>
     <button class="desktop-only" onclick="goPage('parametres',this)">⚙️ Paramètres</button>
     <button class="desktop-only" onclick="goPage('alertes',this)">🔔 Alertes <span id="albadge" style="background:var(--red);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
-    <button onclick="goPage('pointage',this)">⏱️ Pointage</button>
-    <button class="desktop-only" onclick="goPage('suivipointage',this)">📋 Suivi pointage</button>
   </nav>
 
   <!-- ════════ DASHBOARD / ACCUEIL ÉQUIPE ════════ -->
@@ -616,10 +614,13 @@ body.tv-mode #eye-viewas{display:none!important;}
         <select id="hrx-sem-sel2" onchange="hrGenFromWeek(this.value);document.getElementById('hrx-sem-sel')&&(document.getElementById('hrx-sem-sel').value=this.value)"></select>
       </div>
       <button class="hr-btn hr-btn-ac" id="hrx-refresh-btn" onclick="hrRefreshWeek()" title="Recalcule le planning des 7 jours de la semaine">🔄 Actualiser</button>
-      <button class="hr-btn hr-btn-ac" onclick="hrAutoAssignMonth()" title="Place les équipiers sur tout le mois en respectant le plafond mensuel (24h → 104h/mois) et les pose sur les traits">🗓️ Placer le mois (auto)</button>
-      <button class="hr-btn hr-btn-ac" onclick="hrAutoAssignYear()" title="Place les 12 mois de l'année affichée d'un coup. Tout est sauvegardé et visible sur tous les appareils." style="background:#16243a;border-color:#3a78c2;">📅 Placer l'année (auto)</button>
-      <button class="hr-btn hr-btn-ac" onclick="hrOuvrirAbsences()" title="Signaler les équipiers absents (congés, maladie) pour qu'ils ne soient pas placés" style="background:#3a2e16;border-color:#b8860b;">🌴 Absences</button>
-      <button class="hr-btn hr-btn-ac" onclick="hrOptimiserManuel()" title="Relance une optimisation : déplace les repos et échange des créneaux pour compléter les contrats" style="background:#16321f;border-color:#3ecf8e;">⚙️ Optimiser les contrats</button>
+      <button class="hr-btn hr-btn-ac" onclick="hrPlacerSemaineCourante()" title="Place les équipiers sur la SEMAINE affichée (sauf si elle est verrouillée).">📆 Placer la semaine</button>
+      <div class="hr-cc" style="position:relative;">
+        <button class="hr-btn hr-btn-ac" onclick="hrToggleMoisMenu()" title="Choisir le mois à placer, puis lancer le placement.">🗓️ Placer le mois ▾</button>
+        <div id="hrx-mois-menu" style="display:none;position:absolute;top:100%;left:0;z-index:200;background:#1c1c22;border:1px solid #555;border-radius:10px;padding:6px;min-width:170px;max-height:280px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.5);"></div>
+      </div>
+      <button class="hr-btn" id="hrx-lock-sem" onclick="hrToggleVerrouSemaine()" title="Verrouiller / déverrouiller la semaine affichée. Une semaine verrouillée n'est plus modifiée par les recalculs." style="background:#2a2416;border-color:#b8860b;">🔓 Semaine</button>
+      <button class="hr-btn" id="hrx-lock-mois" onclick="hrToggleVerrouMois()" title="Verrouiller / déverrouiller le mois affiché. Un mois verrouillé n'est plus modifié par les recalculs." style="background:#2a2416;border-color:#b8860b;">🔓 Mois</button>
       <button class="hr-btn hr-btn-ac" onclick="hrAnalyseOuvrir('jour')" title="Analyse par jour ou sur la semaine : pourquoi des créneaux restent vides et pourquoi certains n'atteignent pas leur contrat" style="background:#3a2a5a;border-color:#6d4aad;">🔍 Analyser</button>
       <span id="hrx-assign-status" style="font-size:11px;color:#60a5fa;align-self:center;margin-left:4px"></span>
       <span id="hrx-valid-status" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--mu);align-self:center;margin-left:4px"></span>
@@ -2890,6 +2891,7 @@ var RPT_TILES=[
   {id:'competences',em:'🎯',tt:'Compétences',     ds:'Qui sait faire quoi', color:'#2e7d32'},
   {id:'traits',    em:'📋', tt:'Traits de la semaine', ds:'Tous les créneaux à couvrir, jour par jour', color:'#8e24aa'},
   {id:'planhebdo', em:'🗓️', tt:'Planning de la semaine', ds:'Qui travaille quand (planning fait)', color:'#00897b'},
+  {id:'suivipointage', em:'⏱️', tt:'Suivi pointage', ds:'Heures pointées par les équipiers', color:'#6d4aad'},
 ];
 var _rptCurrent=null;
 function renderRptTiles(){
@@ -2901,6 +2903,17 @@ function renderRptTiles(){
   }).join('');
 }
 function rptOpen(type){
+  if(type==='suivipointage'){
+    // ouvrir le véritable écran « Suivi pointage », filtré sur le resto du rapport
+    var resto=(curUser.role==='franchise')?(rptTab==='all'?null:rptTab):curUser.restoId;
+    window.__ptgRestoActif=resto||null;
+    document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+    document.querySelectorAll('nav button').forEach(function(b){b.classList.remove('active');});
+    var pg=document.getElementById('page-suivipointage'); if(pg) pg.classList.add('active');
+    try{ var nb=document.querySelector('nav button[onclick*="suivipointage"]'); if(nb) nb.classList.add('active'); }catch(e){}
+    try{ ptgSuiviInit(); }catch(e){ console.warn('ptgSuiviInit',e); }
+    return;
+  }
   _rptCurrent=type;
   document.getElementById('rpt-pick').style.display='none';
   document.getElementById('rpt-panel').style.display='block';
@@ -2998,7 +3011,7 @@ function genTraitsReport(){
   var aucun=true;
   for(var d=0;d<7;d++){
     var arr=[];
-    (ROWS_BY_DAY[d]||[]).forEach(function(r){ r.bars.forEach(function(b){
+    ((window.ROWS_BY_DAY&&window.ROWS_BY_DAY[d])||[]).forEach(function(r){ r.bars.forEach(function(b){
       if(estTraitEncadrement(b.l)) return;
       arr.push({s:b.s,e:b.e,l:b.l,emp:b.emp||null});
     }); });
@@ -3083,7 +3096,7 @@ function rptPdfTraits(){
     var lignes=[[],[],[],[],[],[],[]], maxL=0;
     for(var d=0;d<7;d++){
       var arr=[];
-      (ROWS_BY_DAY[d]||[]).forEach(function(r){ r.bars.forEach(function(b){
+      ((window.ROWS_BY_DAY&&window.ROWS_BY_DAY[d])||[]).forEach(function(r){ r.bars.forEach(function(b){
         if(estTraitEncadrement(b.l))return;
         arr.push({s:b.s,e:b.e,l:b.l,emp:b.emp||null});
       }); });
@@ -3186,7 +3199,7 @@ window.rptPdf=rptPdf;
 function docsPlanningStatus(){
   var st=document.getElementById('docs-planning-status'); if(!st) return;
   var dts=(typeof _rptSemaineDates==='function')?_rptSemaineDates():[];
-  var pret=(typeof ROWS_BY_DAY!=='undefined' && ROWS_BY_DAY && ROWS_BY_DAY.length);
+  var pret=(typeof window.ROWS_BY_DAY!=='undefined' && window.ROWS_BY_DAY && window.ROWS_BY_DAY.length);
   if(pret && dts && dts[0]){
     st.innerHTML='Semaine affichée : <b style="color:#ccc;">du '+dts[0]+' au '+(dts[6]||'?')+'</b>.';
   } else {
@@ -3197,7 +3210,7 @@ window.docsPlanningStatus=docsPlanningStatus;
 function docsPlanningPdf(type){
   // s'assurer que le moteur Horaires est initialisé (au cas où on n'y est pas allé)
   try{ if(!window.__hrDone && window.__hrInit){ window.__hrInit(); } }catch(e){}
-  if(typeof ROWS_BY_DAY==='undefined' || !ROWS_BY_DAY || !ROWS_BY_DAY.length){
+  if(typeof window.ROWS_BY_DAY==='undefined' || !window.ROWS_BY_DAY || !window.ROWS_BY_DAY.length){
     if(typeof toast==='function') toast('Ouvre d\'abord Horaires et lance le placement','error');
     return;
   }
@@ -8455,10 +8468,18 @@ function dashOpenHoraires(){
   body.innerHTML='<div style="color:#aaa;font-size:.9rem;padding:8px 2px;">Le planning hebdomadaire du restaurant s\'affichera ici (prochaine étape).</div>';
 }
 function dashOpenPointer(){
-  _dashOpenTile='dashOpenPointer';
-  var lbl=(dashRestoList().find(function(x){return x.id===DASH_RESTO;})||{}).label;
-  var body=dashOpenPanel('Pointer — '+lbl);
-  body.innerHTML='<div style="color:#aaa;font-size:.9rem;padding:8px 2px;">La pointeuse s\'affichera ici (prochaine étape).</div>';
+  // Ouvre le véritable écran de pointage, filtré sur le restaurant choisi dans l'Accueil.
+  var resto=DASH_RESTO;
+  if(!resto){ if(typeof toast==='function') toast('Choisis d\'abord un restaurant','error'); return; }
+  window.__ptgRestoActif=resto;
+  try{ PTG_RESTO=resto; }catch(e){}
+  // aller directement sur la page Pointage (sans repasser par les tuiles)
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('nav button').forEach(function(b){b.classList.remove('active');});
+  var pg=document.getElementById('page-pointage'); if(pg) pg.classList.add('active');
+  try{ var nb=document.querySelector('nav button[onclick*="pointage"]'); if(nb) nb.classList.add('active'); }catch(e){}
+  try{ dashStopAutoRefresh&&dashStopAutoRefresh(); }catch(e){}
+  try{ ptgInit(); }catch(e){ console.warn('ptgInit',e); }
 }
 window.initDashboard=initDashboard;window.dashSelectResto=dashSelectResto;window.dashChangeResto=dashChangeResto;
 window.dashOpenHoraires=dashOpenHoraires;window.dashOpenPointer=dashOpenPointer;window.dashClosePanel=dashClosePanel;
@@ -8569,6 +8590,7 @@ function hrSwitchRestoGrille(resto){
   GRILLE.length = 0; GRILLE_EDIT.forEach(r=>GRILLE.push([...r]));
   // Charger les placements sauvegardés de CE resto (chaque resto a les siens)
   try{ if(typeof hrChargerAffect==='function') hrChargerAffect(resto); }catch(e){}
+  try{ if(typeof hrChargerLocks==='function') hrChargerLocks(resto); }catch(e){}
 }
 window.hrSwitchRestoGrille = hrSwitchRestoGrille;
 
@@ -8990,6 +9012,7 @@ function buildRows(caMap, dayIdx, isoDate){
 }
 
 const ROWS_BY_DAY=CA_DAYS.map((ca,i)=>buildRows(ca,i));
+try{ window.ROWS_BY_DAY=ROWS_BY_DAY; }catch(e){}
 let curDay=0;
 
 // ══ AFFECTATION NOMINATIVE AUTO DES ÉQUIPIERS SUR LES TRAITS (test) ════════════
@@ -10481,6 +10504,53 @@ var HR_RESTE={}; // créneaux non pourvus (restant à prendre) par date ISO
 function _hrAffectResto(){
   return (((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'BK526').toUpperCase();
 }
+
+// ══ DATE PLANCHER & VERROUS DE SEMAINE ════════════════════════════════════════
+// Avant cette date, le placement n'inscrit AUCUN nom (les traits restent affichés).
+var HR_DATE_DEBUT='2026-06-01';
+// Un lundi (début de semaine) est-il avant la date plancher ? (semaine entièrement avant)
+function hrSemaineAvantDebut(lundiIso){
+  if(!lundiIso) return false;
+  // dimanche = lundi + 6 jours ; si le dimanche est < HR_DATE_DEBUT, toute la semaine est avant
+  try{ var d=new Date(lundiIso+'T12:00:00'); d.setDate(d.getDate()+6); var dim=hrISO(d); return dim < HR_DATE_DEBUT; }catch(e){ return lundiIso < HR_DATE_DEBUT; }
+}
+window.hrSemaineAvantDebut=hrSemaineAvantDebut;
+// Verrous : ensemble des lundis verrouillés, par resto. { 'BK526': {'2026-06-01':1, ...} }
+var HR_LOCKS_BY_RESTO={};
+function _hrLocksResto(){ return _hrAffectResto(); }
+function hrLocks(){ var r=_hrLocksResto(); if(!HR_LOCKS_BY_RESTO[r]) HR_LOCKS_BY_RESTO[r]={}; return HR_LOCKS_BY_RESTO[r]; }
+// Le lundi d'une date ISO quelconque (pour rattacher une semaine à sa clé de verrou)
+function hrLundiDe(iso){
+  try{ var d=new Date(iso+'T12:00:00'); var jour=(d.getDay()+6)%7; d.setDate(d.getDate()-jour); return hrISO(d); }catch(e){ return iso; }
+}
+function hrSemaineVerrouillee(lundiIso){ if(!lundiIso) return false; return !!hrLocks()[lundiIso]; }
+window.hrSemaineVerrouillee=hrSemaineVerrouillee;
+// Une date ISO est-elle dans une semaine verrouillée ?
+function hrDateVerrouillee(iso){ return hrSemaineVerrouillee(hrLundiDe(iso)); }
+window.hrDateVerrouillee=hrDateVerrouillee;
+function hrSauverLocks(){
+  var r=_hrLocksResto(); var cle='hr_locks_'+r;
+  var val=HR_LOCKS_BY_RESTO[r]||{};
+  try{ localStorage.setItem(cle, JSON.stringify(val)); }catch(e){}
+  try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:cle, valeur:val},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
+}
+window.hrSauverLocks=hrSauverLocks;
+function hrChargerLocks(resto){
+  resto=(resto||_hrLocksResto()).toUpperCase(); var cle='hr_locks_'+resto;
+  try{ var ls=localStorage.getItem(cle); if(ls){ var o=JSON.parse(ls); if(o&&typeof o==='object') HR_LOCKS_BY_RESTO[resto]=o; } }catch(e){}
+  if(!HR_LOCKS_BY_RESTO[resto]) HR_LOCKS_BY_RESTO[resto]={};
+  try{ if(typeof SB!=='undefined' && SB){
+    SB.from('app_config').select('valeur').eq('cle',cle).maybeSingle().then(function(r){
+      var data=r&&r.data;
+      if(data && data.valeur && typeof data.valeur==='object'){
+        HR_LOCKS_BY_RESTO[resto]=data.valeur;
+        try{ localStorage.setItem(cle, JSON.stringify(data.valeur)); }catch(e){}
+        try{ if(typeof hrMajBoutonsVerrou==='function') hrMajBoutonsVerrou(); }catch(e){}
+      }
+    }).catch(function(){});
+  }}catch(e){}
+}
+window.hrChargerLocks=hrChargerLocks;
 // Mémoire des placements par resto, pour ne pas mélanger les restos en RAM.
 var HR_AFFECT_BY_RESTO={};
 function hrSauverAffect(){
@@ -10780,10 +10850,11 @@ function hrPlafondMensuelMin(emp){
   if(h>=35) return null; // 35h géré en hebdo fixe, pas de plafond mensuel ici
   return Math.round(h*4.33*60); // ex 24h -> 6235 min (104h)
 }
-function hrAutoAssignMonth(isoRefArg, silencieux){
+function hrAutoAssignMonth(isoRefArg, silencieux, lundiUnique){
   var isoRef=isoRefArg || ((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?DAY_DATES[0]:null);
   if(!isoRef){ toast&&toast('Choisis d\'abord une semaine','error'); return; }
   var lundis=hrLundisDuMois(isoRef);
+  if(lundiUnique){ lundis=lundis.filter(function(l){return l===lundiUnique;}); if(!lundis.length) lundis=[lundiUnique]; }
   var moisNoms=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
   var moisLabel=moisNoms[parseInt(isoRef.slice(5,7),10)-1]+' '+isoRef.slice(0,4);
   var resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:hrCurrentResto())||'').toLowerCase();
@@ -10795,8 +10866,20 @@ function hrAutoAssignMonth(isoRefArg, silencieux){
   var lundiCourant=HR_WEEK_LUNDI; // pour restaurer l'affichage à la fin
 
   lundis.forEach(function(lundi,wi){
+    // VERROU : une semaine verrouillée 🔒 n'est jamais recalculée — on la laisse telle quelle.
+    if(hrSemaineVerrouillee(lundi)){ return; }
     // générer les traits réels de cette semaine
     hrGenFromWeek(lundi, true);
+    // AVANT LE 1er JUIN 2026 : on garde les traits affichés mais on NE POSE AUCUN NOM.
+    if(hrSemaineAvantDebut(lundi)){
+      for(var _dz=0;_dz<7;_dz++){
+        var _isoz=(DAY_DATES&&DAY_DATES[_dz])?DAY_DATES[_dz]:null;
+        (ROWS_BY_DAY[_dz]||[]).forEach(function(row){ row.bars.forEach(function(b){ b.emp=null; b.empId=null; }); });
+        if(_isoz){ HR_AFFECT[_isoz]=[]; }
+      }
+      semaines.push({lundi:lundi, parEmp:{}, traitsMin:0, posesMin:0, catMin:{prod:0,np:0,leader:0,manager:0}});
+      return;
+    }
     // contexte hebdo, mais le plafond tient compte du reste MENSUEL
     var ctx={minSemaine:{},joursTravailles:{},busy:{},repos:{}};
     hrReserverReposConsecutifs(ctx);
@@ -10943,44 +11026,81 @@ function hrAutoAssignMonth(isoRefArg, silencieux){
 }
 window.hrAutoAssignMonth=hrAutoAssignMonth;
 
-// ══ PLACER L'ANNÉE ENTIÈRE ═════════════════════════════════════════════════════
-// Place les 12 mois de l'année de la semaine affichée, l'un après l'autre, en
-// réutilisant exactement la logique mensuelle. Tout est sauvegardé (permanent +
-// partagé). Opération longue → on confirme avant, et on traite mois par mois en
-// laissant respirer l'UI entre chaque mois.
-function hrAutoAssignYear(){
+// ══ PLACER LA SEMAINE ─ MENU MOIS ─ VERROUS ═══════════════════════════════════
+// Place uniquement la semaine affichée (si elle n'est pas verrouillée).
+function hrPlacerSemaineCourante(){
+  var lundi=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?hrLundiDe(DAY_DATES[0]):null);
+  if(!lundi){ toast&&toast('Choisis d\'abord une semaine','error'); return; }
+  if(hrSemaineVerrouillee(lundi)){ toast&&toast('Cette semaine est verrouillée 🔒 — déverrouille-la pour la modifier','error'); return; }
+  // on réutilise le moteur mensuel, restreint à CETTE semaine (jeudi de la semaine = mois de référence)
+  var refMois=lundi; try{ var d=new Date(lundi+'T12:00:00'); d.setDate(d.getDate()+3); refMois=hrISO(d); }catch(e){}
+  hrAutoAssignMonth(refMois, false, lundi);
+  var st=document.getElementById('hrx-assign-status');
+  if(st) st.innerHTML='📆 Semaine du '+lundi+' placée ✓';
+  toast&&toast('Semaine placée','success');
+}
+window.hrPlacerSemaineCourante=hrPlacerSemaineCourante;
+
+// Menu déroulant de choix du mois à placer
+function hrToggleMoisMenu(){
+  var menu=document.getElementById('hrx-mois-menu'); if(!menu) return;
+  if(menu.style.display==='block'){ menu.style.display='none'; return; }
+  var moisNoms=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  // année de la semaine affichée (par défaut), on propose les 12 mois de cette année
+  var an=(typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?DAY_DATES[0].slice(0,4):String(new Date().getFullYear());
+  var html='';
+  for(var m=0;m<12;m++){
+    var mm=String(m+1).padStart(2,'0');
+    html+='<div onclick="hrPlacerMoisChoisi(\''+an+'-'+mm+'-15\')" style="padding:8px 12px;cursor:pointer;border-radius:7px;color:#eee;font-size:.86rem;" onmouseover="this.style.background=\'#2e6fc2\'" onmouseout="this.style.background=\'transparent\'">'+moisNoms[m].charAt(0).toUpperCase()+moisNoms[m].slice(1)+' '+an+'</div>';
+  }
+  menu.innerHTML=html; menu.style.display='block';
+}
+window.hrToggleMoisMenu=hrToggleMoisMenu;
+function hrPlacerMoisChoisi(isoRef){
+  var menu=document.getElementById('hrx-mois-menu'); if(menu) menu.style.display='none';
+  hrAutoAssignMonth(isoRef, false);
+}
+window.hrPlacerMoisChoisi=hrPlacerMoisChoisi;
+
+// Verrou de la SEMAINE affichée
+function hrToggleVerrouSemaine(){
+  var lundi=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?hrLundiDe(DAY_DATES[0]):null);
+  if(!lundi){ toast&&toast('Choisis d\'abord une semaine','error'); return; }
+  var L=hrLocks();
+  if(L[lundi]){ delete L[lundi]; toast&&toast('Semaine déverrouillée 🔓','success'); }
+  else { L[lundi]=1; toast&&toast('Semaine verrouillée 🔒','success'); }
+  hrSauverLocks(); hrMajBoutonsVerrou();
+}
+window.hrToggleVerrouSemaine=hrToggleVerrouSemaine;
+// Verrou du MOIS affiché (tous les lundis dont la semaine appartient au mois)
+function hrToggleVerrouMois(){
   var isoRef=(typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?DAY_DATES[0]:null;
   if(!isoRef){ toast&&toast('Choisis d\'abord une semaine','error'); return; }
-  var an=isoRef.slice(0,4);
-  var resto=_hrAffectResto();
-  if(!confirm('Placer TOUTE l\'année '+an+' pour '+resto+' ?\n\nLes 12 mois vont être placés automatiquement et sauvegardés (visibles sur tous les appareils). Cela peut prendre une minute.')) return;
-  var lundiCourant=HR_WEEK_LUNDI;
-  var moisNoms=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-  var st=document.getElementById('hrx-assign-status');
-  var totalPlace=0, totalContrat=0, fait=[];
-  var i=0;
-  function etape(){
-    if(i>=12){
-      // restaurer l'affichage d'origine + sauvegarde finale
-      if(lundiCourant) hrGenFromWeek(lundiCourant, true);
-      renderTimeline(); hrRenderEmploiMois&&hrRenderEmploiMois();
-      hrSauverAffect();
-      function H(m){return (m/60).toFixed(0)+'h';}
-      if(st) st.innerHTML='📅 Année '+an+' · '+resto+' placée ✓<br>'
-        +'<span style="color:#9a9aaa">Heures placées : '+H(totalPlace)+' / contrats à pourvoir : '+H(totalContrat)+'</span>';
-      toast&&toast('Année '+an+' placée et sauvegardée','success');
-      return;
-    }
-    var mm=String(i+1).padStart(2,'0');
-    if(st) st.innerHTML='📅 Placement de l\'année '+an+'… <b>'+moisNoms[i]+'</b> ('+(i+1)+'/12)';
-    var r=hrAutoAssignMonth(an+'-'+mm+'-15', true); // 15 = milieu de mois, sûr
-    if(r){ totalPlace+=r.placeMin||0; totalContrat+=r.contratMin||0; fait.push(r.label); }
-    i++;
-    setTimeout(etape, 30); // laisse l'UI respirer
-  }
-  setTimeout(etape, 30);
+  var lundis=hrLundisDuMois(isoRef); var L=hrLocks();
+  // si TOUTES les semaines du mois sont déjà verrouillées → on déverrouille, sinon on verrouille
+  var toutesVerrou=lundis.every(function(l){return !!L[l];});
+  lundis.forEach(function(l){ if(toutesVerrou) delete L[l]; else L[l]=1; });
+  hrSauverLocks(); hrMajBoutonsVerrou();
+  toast&&toast(toutesVerrou?'Mois déverrouillé 🔓':'Mois verrouillé 🔒','success');
 }
-window.hrAutoAssignYear=hrAutoAssignYear;
+window.hrToggleVerrouMois=hrToggleVerrouMois;
+// Met à jour l'état visuel des deux boutons cadenas selon la semaine affichée
+function hrMajBoutonsVerrou(){
+  var lundi=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?hrLundiDe(DAY_DATES[0]):null);
+  var bs=document.getElementById('hrx-lock-sem'), bm=document.getElementById('hrx-lock-mois');
+  if(bs){
+    var v=lundi&&hrSemaineVerrouillee(lundi);
+    bs.innerHTML=(v?'🔒':'🔓')+' Semaine';
+    bs.style.background=v?'#3a1f1f':'#2a2416'; bs.style.borderColor=v?'#cc5555':'#b8860b'; bs.style.color=v?'#ffb3b3':'#eee';
+  }
+  if(bm){
+    var isoRef=(typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?DAY_DATES[0]:null;
+    var vm=false; if(isoRef){ var lundis=hrLundisDuMois(isoRef); var L=hrLocks(); vm=lundis.length>0 && lundis.every(function(l){return !!L[l];}); }
+    bm.innerHTML=(vm?'🔒':'🔓')+' Mois';
+    bm.style.background=vm?'#3a1f1f':'#2a2416'; bm.style.borderColor=vm?'#cc5555':'#b8860b'; bm.style.color=vm?'#ffb3b3':'#eee';
+  }
+}
+window.hrMajBoutonsVerrou=hrMajBoutonsVerrou;
 
 // Tableau récap MENSUEL : par équipier, heures de chaque semaine + total mois
 var HR_HEBDO_SEM=0; // index de la semaine affichée dans le planning hebdo
@@ -12425,6 +12545,7 @@ window.__hrInit=function(){
       }).catch(()=>{});
       // Placements sauvegardés (permanent + partagé multi-appareils) du resto courant
       try{ if(typeof hrChargerAffect==='function') hrChargerAffect(); }catch(e){}
+      try{ if(typeof hrChargerLocks==='function') hrChargerLocks(); }catch(e){}
       // États équipe / absences (CP, maladie, demandes) — partagés multi-appareils
       try{
         SB.from('app_config').select('valeur').eq('cle','hr_absences').maybeSingle().then(function(r){
@@ -13091,6 +13212,7 @@ function hrGenFromWeek(lundi, garderOnglet){
   const dimI=hrISO(dim);
   WEEK_LABEL = lundi.slice(8,10)+' '+moisC[parseInt(lundi.slice(5,7))-1]+' → '+dimI.slice(8,10)+' '+moisC[parseInt(dimI.slice(5,7))-1]+' '+dimI.slice(0,4);
   if(window.hrUpdateHeader) hrUpdateHeader();
+  try{ if(typeof hrMajBoutonsVerrou==='function') hrMajBoutonsVerrou(); }catch(e){}
   curDay=0; editDay=0;
   buildCAGrid();
   if(!garderOnglet) hrShow('planning');
