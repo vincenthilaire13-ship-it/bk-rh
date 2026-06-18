@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-18 13:52 · v130';
+  var EMBEDDED_VERSION = '2026-06-18 14:10 · v133';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -502,7 +502,9 @@ body.tv-mode #eye-viewas{display:none!important;}
   <nav id="main-nav">
     <button onclick="goPage('dashboard',this)">🏠 Accueil</button>
     <button class="active desktop-only" onclick="goPage('equipe',this)">👥 Équipe</button>
+    <button onclick="goPage('etatequipe',this)">🧑‍🤝‍🧑 État équipe <span id="eebadge" style="background:var(--orange);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
     <button onclick="goPage('horaires',this)">🕐 Horaires</button>
+    <button onclick="goPage('docsplanning',this)">📄 Documents planning</button>
     <button onclick="goPage('recrutement',this)">🎯 Recrutement <span id="rbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
     <button class="desktop-only" onclick="goPage('visite',this)">🩺 Visite médicale <span id="vbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
     <button onclick="goPage('incidents',this)">📋 Incidents</button>
@@ -1227,6 +1229,43 @@ body.tv-mode #eye-viewas{display:none!important;}
       <textarea id="mt-corps" class="fi" style="min-height:200px;font-size:.85rem;"></textarea>
       <button class="btn btn-red" style="margin-top:12px;" onclick="saveMailTpl()">💾 Enregistrer les modèles</button>
     </div>
+  </div>
+</div>
+
+<!-- DOCUMENTS PLANNING -->
+<div class="page" id="page-docsplanning">
+  <div class="card">
+    <div class="sec-title">📄 Documents planning</div>
+    <p style="font-size:.82rem;color:#aaa;margin-bottom:16px;">Les deux documents de la <strong>semaine actuellement affichée dans Horaires</strong>, prêts à imprimer ou exporter en PDF. Si rien n'apparaît, va d'abord dans <strong>Horaires</strong>, choisis la semaine et lance « Placer le mois / l'année ».</p>
+    <div id="docs-planning-status" style="font-size:.8rem;color:#888;margin-bottom:14px;"></div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:260px;background:#1A1A1A;border:1px solid #2A2A2A;border-radius:14px;padding:20px;display:flex;flex-direction:column;">
+        <div style="font-size:2.2rem;margin-bottom:8px;">📋</div>
+        <div style="font-weight:800;font-size:1.05rem;color:#fff;margin-bottom:4px;">Planning détaillé (traits)</div>
+        <div style="font-size:.82rem;color:#aaa;flex:1;margin-bottom:16px;">Le détail par poste et par créneau, jour par jour (CUISINE, FRITES, DRIVE, OPEN/CLOSE…), tel qu'affiché dans Horaires.</div>
+        <button onclick="docsPlanningPdf('traits')" style="background:#8e24aa;border:none;color:#fff;font-weight:700;border-radius:8px;padding:11px 16px;cursor:pointer;font-size:.9rem;">🖨️ Imprimer / PDF</button>
+      </div>
+      <div style="flex:1;min-width:260px;background:#1A1A1A;border:1px solid #2A2A2A;border-radius:14px;padding:20px;display:flex;flex-direction:column;">
+        <div style="font-size:2.2rem;margin-bottom:8px;">🗓️</div>
+        <div style="font-weight:800;font-size:1.05rem;color:#fff;margin-bottom:4px;">Emploi du temps (par salarié)</div>
+        <div style="font-size:.82rem;color:#aaa;flex:1;margin-bottom:16px;">Les horaires de chaque salarié sur la semaine, avec PLAN/CONTRAT et le suivi du mois — la vue condensée à afficher / distribuer.</div>
+        <button onclick="docsPlanningPdf('planhebdo')" style="background:#00897b;border:none;color:#fff;font-weight:700;border-radius:8px;padding:11px 16px;cursor:pointer;font-size:.9rem;">🖨️ Imprimer / PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ÉTAT ÉQUIPE -->
+<div class="page" id="page-etatequipe">
+  <div class="card">
+    <div class="sec-title">🧑‍🤝‍🧑 État de l'équipe — avant placement</div>
+    <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Renseignez ici qui est en congés, en arrêt, absent ou indisponible, <strong>avant de lancer les horaires</strong>. Le placement automatique tiendra compte de ces états (les personnes concernées ne seront pas placées sur les dates indiquées). Chaque restaurant est indépendant.</p>
+    <div id="etat-equipe-resto" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+      <button class="rtab rf on" id="etat-rf-bk500" onclick="hrEtatSetResto('bk500')">BK 500</button>
+      <button class="rtab rf" id="etat-rf-bk509" onclick="hrEtatSetResto('bk509')">BK 509</button>
+      <button class="rtab rf" id="etat-rf-bk526" onclick="hrEtatSetResto('bk526')">BK 526</button>
+    </div>
+    <div id="etat-equipe-list"></div>
   </div>
 </div>
 
@@ -2330,9 +2369,19 @@ function goPage(id, btn) {
     var hrP=document.getElementById('page-horaires'); if(hrP) hrP.classList.add('bk-tiles-mode');
     if(hrT&&hrC){ hrT.style.display='block'; hrC.style.display='none'; }
   }catch(e){console.warn('init horaires',e);} }
+  if (id==='docsplanning'){ try{ if(!window.__hrDone && window.__hrInit){ window.__hrInit(); } }catch(e){} try{ docsPlanningStatus&&docsPlanningStatus(); }catch(e){} }
   if (id==='recrutement'){ if(curUser.role==='franchise'){ bkShowTiles('recrutement'); } else { setCandFilter(candFilter||'nouveau'); } }
   if (id==='visite'){ if(curUser.role==='franchise'){ bkShowTiles('visite'); } else { renderVisiteList(); } }
   if (id==='alertes'){ if(curUser.role==='franchise'){ bkShowTiles('alertes'); } else { window.__alertResto=curUser.restoId; renderAlertes(); } }
+  if (id==='etatequipe'){
+    // resto par défaut = celui de la grille horaire courante (ou resto du directeur)
+    if(curUser.role==='directeur'){ HR_ETAT_RESTO_FILTRE=curUser.restoId; }
+    else if(!HR_ETAT_RESTO_FILTRE){ HR_ETAT_RESTO_FILTRE=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:'bk526')||'bk526').toLowerCase(); }
+    var _erf=document.getElementById('etat-rf-'+(HR_ETAT_RESTO_FILTRE||'bk526').toLowerCase());
+    document.querySelectorAll('#etat-equipe-resto .rf').forEach(function(b){b.classList.remove('on');});
+    if(_erf) _erf.classList.add('on');
+    hrRenderEtatEquipe();
+  }
   if (id==='salaires'){renderSalaires();}
   if (id==='contrats'){renderContrats();}
   if (id==='reglementation'){renderReglement();}
@@ -3132,6 +3181,39 @@ function rptPdfPlanHebdo(){
 window.genTraitsReport=genTraitsReport;
 window.genPlanHebdoReport=genPlanHebdoReport;
 window.rptPdf=rptPdf;
+
+// — Onglet « Documents planning » : réutilise les générateurs PDF existants —
+function docsPlanningStatus(){
+  var st=document.getElementById('docs-planning-status'); if(!st) return;
+  var dts=(typeof _rptSemaineDates==='function')?_rptSemaineDates():[];
+  var pret=(typeof ROWS_BY_DAY!=='undefined' && ROWS_BY_DAY && ROWS_BY_DAY.length);
+  if(pret && dts && dts[0]){
+    st.innerHTML='Semaine affichée : <b style="color:#ccc;">du '+dts[0]+' au '+(dts[6]||'?')+'</b>.';
+  } else {
+    st.innerHTML='<span style="color:#E08600;">Aucun planning chargé pour l\'instant — ouvre Horaires et lance le placement, puis reviens ici.</span>';
+  }
+}
+window.docsPlanningStatus=docsPlanningStatus;
+function docsPlanningPdf(type){
+  // s'assurer que le moteur Horaires est initialisé (au cas où on n'y est pas allé)
+  try{ if(!window.__hrDone && window.__hrInit){ window.__hrInit(); } }catch(e){}
+  if(typeof ROWS_BY_DAY==='undefined' || !ROWS_BY_DAY || !ROWS_BY_DAY.length){
+    if(typeof toast==='function') toast('Ouvre d\'abord Horaires et lance le placement','error');
+    return;
+  }
+  if(type==='traits'){
+    if(typeof rptPdfTraits==='function') rptPdfTraits();
+    else if(typeof toast==='function') toast('Générateur indisponible','error');
+  } else if(type==='planhebdo'){
+    if(typeof HR_MONTH_RESULT==='undefined' || !HR_MONTH_RESULT || !HR_MONTH_RESULT.semaines || !HR_MONTH_RESULT.semaines.length){
+      if(typeof toast==='function') toast('Lance d\'abord « Placer le mois » dans Horaires','error');
+      return;
+    }
+    if(typeof rptPdfPlanHebdo==='function') rptPdfPlanHebdo();
+    else if(typeof toast==='function') toast('Générateur indisponible','error');
+  }
+}
+window.docsPlanningPdf=docsPlanningPdf;
 
 /* — EXPORT EXCEL du rapport ouvert — */
 function rptExportExcel(){
@@ -5200,10 +5282,16 @@ function collectAlertes(restoFiltre){
   var emps=DB.employees.filter(function(e){return !e.archived;});
   if(isDir)emps=emps.filter(function(e){return e.restoId===curUser.restoId;});
   if(restoFiltre&&restoFiltre!=='all')emps=emps.filter(function(e){return e.restoId===restoFiltre;});
-  // 1) Visites médicales : dépassées + bientôt (< 1 mois)
+  // candidats du même périmètre (resto / rôle)
+  var cands=(DB.candidatures||[]).slice();
+  if(isDir)cands=cands.filter(function(c){return c.restoId===curUser.restoId;});
+  if(restoFiltre&&restoFiltre!=='all')cands=cands.filter(function(c){return c.restoId===restoFiltre;});
+  function rlabel(rid){return RESTOS[rid]?RESTOS[rid].label:rid;}
+
+  // ── 1) VISITES MÉDICALES (salariés) : dépassées + bientôt (< 1 mois) ──
   emps.forEach(function(e){
     var v=visiteEmpInfo(e);
-    var resto=RESTOS[e.restoId]?RESTOS[e.restoId].label:e.restoId;
+    var resto=rlabel(e.restoId);
     if(v.etat==='depasse'){
       alerts.push({prio:0,cat:'Visite médicale',icon:'🩺',col:'#cc5555',
         titre:e.name+' — visite dépassée',
@@ -5214,7 +5302,72 @@ function collectAlertes(restoFiltre){
         sub:'Avant le '+v.prochStr+' · '+resto,empId:e.id});
     }
   });
-  // (futures alertes : titre de séjour, mutuelle, documents… s'ajouteront ici)
+
+  // ── 2) VISITE MÉDICALE D'EMBAUCHE (candidats en période d'essai) ──
+  cands.filter(function(c){return (c.statut||'')==='essai';}).forEach(function(c){
+    var v=visiteInfo(c); var resto=rlabel(c.restoId);
+    if(v.fait) return; // déjà faite
+    if(v.etat==='depasse'){
+      alerts.push({prio:0,cat:'Recrutement',icon:'📋',col:'#cc5555',
+        titre:(c.prenom+' '+c.nom)+' — visite d\'embauche dépassée',
+        sub:'À régulariser · '+resto,candId:c.id});
+    }else if(v.etat==='rouge'){
+      alerts.push({prio:1,cat:'Recrutement',icon:'📋',col:'#cc5555',
+        titre:(c.prenom+' '+c.nom)+' — visite d\'embauche urgente',
+        sub:(v.limiteStr?'Avant le '+v.limiteStr:'')+' · '+resto,candId:c.id});
+    }else if(v.etat==='orange'){
+      alerts.push({prio:2,cat:'Recrutement',icon:'📋',col:'#F5A623',
+        titre:(c.prenom+' '+c.nom)+' — visite d\'embauche à planifier',
+        sub:(v.limiteStr?'Avant le '+v.limiteStr:'')+' · '+resto,candId:c.id});
+    }
+  });
+
+  // ── 3) PÉRIODE D'ESSAI (candidats en essai) : échéances de rupture ──
+  cands.filter(function(c){return (c.statut||'')==='essai';}).forEach(function(c){
+    var e=essaiInfo(c); if(!e||!e.alert||e.niveau<2) return; // seulement alertes réelles
+    var resto=rlabel(c.restoId);
+    alerts.push({prio:e.niveau>=3?1:2,cat:'Période d\'essai',icon:'⏱️',col:e.alertCol,
+      titre:(c.prenom+' '+c.nom)+' — '+(e.apprenti?'fin de rupture libre':'délai de rupture'),
+      sub:e.label+' · '+resto,candId:c.id});
+  });
+
+  // ── 4) DOSSIERS D'EMBAUCHE INCOMPLETS (candidats retenus) ──
+  cands.filter(function(c){return (c.statut||'')==='retenu';}).forEach(function(c){
+    var resto=rlabel(c.restoId);
+    var docsOk=(typeof docsComplets==='function')?(docsComplets(c)&&c.docsSoumis):!!c.docsSoumis;
+    var vidsOk=!!c.videosFaites;
+    if(docsOk && vidsOk) return; // dossier complet
+    var manque=[];
+    if(!docsOk) manque.push('documents');
+    if(!vidsOk) manque.push('vidéos');
+    alerts.push({prio:3,cat:'Recrutement',icon:'📋',col:'#F5A623',
+      titre:(c.prenom+' '+c.nom)+' — dossier à compléter',
+      sub:'En attente : '+manque.join(' + ')+' · '+resto,candId:c.id});
+  });
+
+  // ── 5) INCIDENTS récents (30 derniers jours) ──
+  var incs=(DB.incidents||[]).slice();
+  var filtreInc=function(i){
+    if(isDir && i.restoId!==curUser.restoId) return false;
+    if(restoFiltre&&restoFiltre!=='all' && i.restoId!==restoFiltre) return false;
+    return true;
+  };
+  var now=new Date();
+  incs.filter(filtreInc).forEach(function(i){
+    var d=new Date(i.datetime||i.createdAt);
+    var jours=Math.floor((now-d)/(24*3600*1000));
+    if(isNaN(jours)||jours<0||jours>30) return; // garder le récent
+    var emp=(DB.employees||[]).find(function(e){return e.id===i.empId;});
+    var nom=emp?emp.name:'Salarié';
+    var resto=rlabel(i.restoId);
+    var grave=(String(i.severity)==='3');
+    alerts.push({prio:grave?1:3,cat:'Incidents',icon:'⚠️',col:grave?'#cc5555':'#F5A623',
+      titre:nom+' — incident'+(grave?' grave':'')+' il y a '+(jours===0?'aujourd\'hui':jours+' j'),
+      sub:((i.problems&&i.problems.length)?i.problems.slice(0,2).join(', '):'Incident signalé')+' · '+resto,
+      empId:i.empId});
+  });
+
+  // (futures catégories : planning, pointage — s'ajouteront ici quand les modules existeront)
   alerts.sort(function(a,b){return a.prio-b.prio;});
   return alerts;
 }
@@ -5222,6 +5375,13 @@ function updateAlBadge(){
   var n=collectAlertes().length;
   var b=document.getElementById('albadge');if(!b)return;
   b.textContent=n;b.style.display=n>0?'inline-flex':'none';
+  // badge demandes en attente (État équipe) — toutes restos confondues
+  try{
+    var na=0;
+    Object.keys(HR_ABSENCES||{}).forEach(function(id){ (HR_ABSENCES[id]||[]).forEach(function(a){ if(a&&a.statut==='attente') na++; }); });
+    var be=document.getElementById('eebadge');
+    if(be){ be.textContent=na; be.style.display=na>0?'inline-flex':'none'; }
+  }catch(e){}
 }
 function renderAlertes(){
   var box=document.getElementById('alertes-list');if(!box)return;
@@ -5236,10 +5396,12 @@ function renderAlertes(){
       +'<summary style="cursor:pointer;padding:11px 14px;background:#1A1A1A;font-weight:700;font-size:.9rem;color:var(--orange);list-style:none;display:flex;justify-content:space-between;align-items:center;">'
       +'<span>'+arr[0].icon+' '+cat+'</span><span style="background:var(--red);color:#fff;border-radius:12px;padding:1px 10px;font-size:.8rem;">'+arr.length+'</span></summary>'
       +'<div style="padding:10px;">'+arr.map(function(a){
-        return '<div class="emp-card" style="border-left:4px solid '+a.col+';cursor:pointer;" '+(a.empId?'onclick="openEmpFiche(\''+a.empId+'\')"':'')+'>'
+        var onclick=a.empId?'onclick="openEmpFiche(\''+a.empId+'\')"':(a.candId?'onclick="openCand(\''+a.candId+'\')"':'');
+        var clickable=!!(a.empId||a.candId);
+        return '<div class="emp-card" style="border-left:4px solid '+a.col+';cursor:'+(clickable?'pointer':'default')+';" '+onclick+'>'
           +'<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:.9rem;">'+a.titre+'</div>'
           +'<div style="font-size:.74rem;color:#888;margin-top:2px;">'+a.sub+'</div></div>'
-          +(a.empId?'<span style="color:'+a.col+';font-size:1.3rem;">›</span>':'')+'</div>';
+          +(clickable?'<span style="color:'+a.col+';font-size:1.3rem;">›</span>':'')+'</div>';
       }).join('')+'</div></details>';
   });
   box.innerHTML=h;
@@ -10368,12 +10530,14 @@ function hrSauverAbsences(){
   try{ localStorage.setItem('hr_absences', JSON.stringify(HR_ABSENCES)); }catch(e){}
   try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:'hr_absences', valeur:HR_ABSENCES},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
 }
-// Un équipier est-il absent à cette date ISO ('AAAA-MM-JJ') ?
+// Un équipier est-il absent (de façon VALIDÉE) à cette date ISO ('AAAA-MM-JJ') ?
+// Les demandes en attente (statut 'attente') ne bloquent PAS le placement.
 function hrEstAbsent(empId, isoDate){
   if(!empId||!isoDate) return false;
   var lst=HR_ABSENCES[empId]; if(!lst||!lst.length) return false;
   for(var i=0;i<lst.length;i++){
     var a=lst[i]; if(!a) continue;
+    if(a.statut==='attente') continue; // demande non validée → ne bloque pas
     var f=a.from||a.de||'', t=a.to||a.a||a.from||'';
     if(!f) continue; if(!t) t=f;
     if(isoDate>=f && isoDate<=t) return true;
@@ -10381,6 +10545,18 @@ function hrEstAbsent(empId, isoDate){
   return false;
 }
 window.hrEstAbsent=hrEstAbsent;
+// Renvoie l'entrée d'absence VALIDÉE qui couvre cette date (ou null), pour connaître le motif.
+function hrAbsenceDuJour(empId, isoDate){
+  if(!empId||!isoDate) return null;
+  var lst=HR_ABSENCES[empId]; if(!lst||!lst.length) return null;
+  for(var i=0;i<lst.length;i++){
+    var a=lst[i]; if(!a||a.statut==='attente') continue;
+    var f=a.from||'', t=a.to||a.from||''; if(!f) continue; if(!t) t=f;
+    if(isoDate>=f && isoDate<=t) return a;
+  }
+  return null;
+}
+window.hrAbsenceDuJour=hrAbsenceDuJour;
 // Fenêtre de saisie des absences
 function hrOuvrirAbsences(){
   var resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'').toLowerCase();
@@ -10440,6 +10616,125 @@ function hrEffacerAbsence(empId){
   hrOuvrirAbsences();
 }
 window.hrEffacerAbsence=hrEffacerAbsence;
+
+// ══ ÉTAT DE L'ÉQUIPE (avant placement) ════════════════════════════════════════
+// Écran par restaurant pour déclarer l'état de chaque salarié AVANT de lancer les
+// horaires : CP, maladie, absence autorisée, indispo ponctuelle. Plus la gestion
+// des DEMANDES en attente (souhait du salarié) à valider ou refuser.
+// Tout est stocké dans HR_ABSENCES (déjà partagé Supabase) ; on enrichit chaque
+// entrée avec : motif, statut ('valide'|'attente'), et créneau optionnel.
+var HR_ETAT_MOTIFS={
+  cp:      {label:'Congés payés', court:'CP',      icon:'🟦', col:'#2e6fc2'},
+  maladie: {label:'Arrêt maladie',court:'Maladie', icon:'🟥', col:'#cc5555'},
+  absence: {label:'Absence autorisée / autre', court:'Absence', icon:'🟧', col:'#d98324'},
+  indispo: {label:'Indispo ponctuelle', court:'Indispo', icon:'🟨', col:'#c9a227'}
+};
+function _etatMotifInfo(m){ return HR_ETAT_MOTIFS[m]||HR_ETAT_MOTIFS.absence; }
+var HR_ETAT_RESTO_FILTRE=''; // resto actif sur l'écran État équipe ('' = celui de la grille)
+function _etatRestoActif(){
+  return (HR_ETAT_RESTO_FILTRE || (((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'BK526')).toLowerCase();
+}
+// Liste des équipiers du resto actif (triés par nom)
+function _etatEquipiers(){
+  var resto=_etatRestoActif();
+  return (DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto;})
+                           .sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+}
+function hrRenderEtatEquipe(){
+  var box=document.getElementById('etat-equipe-list'); if(!box) return;
+  var isDir=(curUser&&curUser.role==='directeur');
+  // sélecteur de resto (caché pour un directeur, limité à son resto)
+  var selWrap=document.getElementById('etat-equipe-resto');
+  if(selWrap){
+    if(isDir){ selWrap.style.display='none'; HR_ETAT_RESTO_FILTRE=curUser.restoId; }
+    else { selWrap.style.display='flex'; }
+  }
+  var eq=_etatEquipiers();
+  var motifOpts=Object.keys(HR_ETAT_MOTIFS).map(function(k){var m=HR_ETAT_MOTIFS[k];return '<option value="'+k+'">'+m.icon+' '+m.label+'</option>';}).join('');
+  // bandeau de comptage des demandes en attente
+  var nbAttente=0;
+  eq.forEach(function(e){ (HR_ABSENCES[e.id]||[]).forEach(function(a){ if(a&&a.statut==='attente') nbAttente++; }); });
+  var rows=eq.map(function(e){
+    var lst=(HR_ABSENCES[e.id]||[]);
+    // séparer validées / en attente
+    var valides=[], attentes=[];
+    lst.forEach(function(a,idx){ if(!a) return; var item={a:a,idx:idx}; (a.statut==='attente'?attentes:valides).push(item); });
+    function chip(item, enAttente){
+      var a=item.a; var mi=_etatMotifInfo(a.motif);
+      var per=(a.from||'')+(a.to&&a.to!==a.from?'→'+a.to:'');
+      var cren=(a.creneau&&a.creneau.from)?(' '+a.creneau.from+'-'+a.creneau.to):'';
+      var bg=enAttente?'#2a2a2a':mi.col;
+      var bord=enAttente?('1px dashed '+mi.col):'none';
+      var actions='';
+      if(enAttente){
+        actions=' <button onclick="hrEtatValider(\''+e.id+'\','+item.idx+')" title="Valider la demande" style="background:#16321f;border:1px solid #3ecf8e;color:#3ecf8e;border-radius:5px;padding:1px 6px;cursor:pointer;font-size:.72rem;">✓</button>'
+               +' <button onclick="hrEtatSupprimer(\''+e.id+'\','+item.idx+')" title="Refuser / supprimer" style="background:#3a1a1a;border:1px solid #cc5555;color:#cc5555;border-radius:5px;padding:1px 6px;cursor:pointer;font-size:.72rem;">✕</button>';
+      } else {
+        actions=' <button onclick="hrEtatSupprimer(\''+e.id+'\','+item.idx+')" title="Supprimer" style="background:none;border:none;color:#999;cursor:pointer;font-size:.85rem;">🗑️</button>';
+      }
+      return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+bg+';border:'+bord+';color:#fff;border-radius:10px;padding:2px 8px;margin:2px 3px 2px 0;font-size:.74rem;font-weight:600;">'
+        +mi.icon+' '+mi.court+' '+per+cren+(enAttente?' <span style="font-style:italic;font-weight:400;">(en attente)</span>':'')+actions+'</span>';
+    }
+    var resumeValide=valides.length?valides.map(function(it){return chip(it,false);}).join(''):'<span style="color:#777;font-size:.8rem;">disponible</span>';
+    var resumeAttente=attentes.length?('<div style="margin-top:4px;">'+attentes.map(function(it){return chip(it,true);}).join('')+'</div>'):'';
+    return '<tr style="border-bottom:1px solid #2a2a2a;">'
+      +'<td style="padding:8px;font-weight:600;color:#eee;white-space:nowrap;vertical-align:top;">'+e.name+'</td>'
+      +'<td style="padding:8px;vertical-align:top;">'+resumeValide+resumeAttente+'</td>'
+      +'<td style="padding:8px;white-space:nowrap;vertical-align:top;">'
+        +'<select id="etat-motif-'+e.id+'" style="background:#1a1a1a;border:1px solid #444;color:#eee;border-radius:6px;padding:4px;font-size:.78rem;">'+motifOpts+'</select> '
+        +'<input type="date" id="etat-from-'+e.id+'" style="background:#1a1a1a;border:1px solid #444;color:#eee;border-radius:6px;padding:4px;font-size:.78rem;"> '
+        +'<span style="color:#888;">→</span> '
+        +'<input type="date" id="etat-to-'+e.id+'" style="background:#1a1a1a;border:1px solid #444;color:#eee;border-radius:6px;padding:4px;font-size:.78rem;"> '
+        +'<button onclick="hrEtatAjouter(\''+e.id+'\',\'valide\')" style="background:#b8860b;border:none;color:#000;font-weight:700;border-radius:6px;padding:5px 9px;cursor:pointer;font-size:.78rem;">+ Enregistrer</button>'
+        +' <button onclick="hrEtatAjouter(\''+e.id+'\',\'attente\')" title="Enregistrer comme demande à valider plus tard" style="background:#2a2a2a;border:1px solid #777;color:#ddd;border-radius:6px;padding:5px 9px;cursor:pointer;font-size:.78rem;">+ Demande</button>'
+      +'</td></tr>';
+  }).join('');
+  var legende=Object.keys(HR_ETAT_MOTIFS).map(function(k){var m=HR_ETAT_MOTIFS[k];return '<span style="margin-right:12px;font-size:.78rem;color:#bbb;">'+m.icon+' '+m.label+'</span>';}).join('');
+  box.innerHTML=
+    '<div style="font-size:.84rem;color:#aaa;margin-bottom:10px;">Déclare ici l\'état de chaque salarié <b>avant de lancer le placement</b>. Les états validés (CP, maladie, absence, indispo) sont automatiquement respectés par « Placer le mois / l\'année » : le salarié n\'est pas placé sur ces dates. Une <b>demande</b> reste en attente et ne bloque rien tant que tu ne l\'as pas validée (✓).</div>'
+    +'<div style="margin-bottom:12px;">'+legende+'</div>'
+    +(nbAttente?'<div style="background:#2a2416;border:1px solid #b8860b;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:.84rem;color:#e8c468;">⏳ '+nbAttente+' demande'+(nbAttente>1?'s':'')+' en attente de validation.</div>':'')
+    +'<table style="width:100%;border-collapse:collapse;"><thead><tr style="border-bottom:2px solid #444;">'
+      +'<th style="text-align:left;padding:6px 8px;color:#fff;font-size:.8rem;">Salarié</th>'
+      +'<th style="text-align:left;padding:6px 8px;color:#fff;font-size:.8rem;">État pour la planification</th>'
+      +'<th style="text-align:left;padding:6px 8px;color:#fff;font-size:.8rem;">Ajouter</th>'
+    +'</tr></thead><tbody>'+(rows||'<tr><td colspan="3" style="padding:14px;color:#777;">Aucun équipier sur ce restaurant.</td></tr>')+'</tbody></table>';
+}
+window.hrRenderEtatEquipe=hrRenderEtatEquipe;
+function hrEtatSetResto(resto){
+  HR_ETAT_RESTO_FILTRE=(resto||'').toLowerCase();
+  document.querySelectorAll('#etat-equipe-resto .rf').forEach(function(b){b.classList.remove('on');});
+  var btn=document.getElementById('etat-rf-'+HR_ETAT_RESTO_FILTRE); if(btn) btn.classList.add('on');
+  hrRenderEtatEquipe();
+}
+window.hrEtatSetResto=hrEtatSetResto;
+function hrEtatAjouter(empId, statut){
+  var ms=document.getElementById('etat-motif-'+empId), f=document.getElementById('etat-from-'+empId), t=document.getElementById('etat-to-'+empId);
+  if(!f||!f.value){ alert('Choisis une date de début.'); return; }
+  var motif=(ms&&ms.value)?ms.value:'absence';
+  var from=f.value, to=(t&&t.value)?t.value:from;
+  if(to<from){ var tmp=from; from=to; to=tmp; }
+  HR_ABSENCES[empId]=HR_ABSENCES[empId]||[];
+  HR_ABSENCES[empId].push({from:from,to:to,motif:motif,statut:(statut==='attente'?'attente':'valide')});
+  hrSauverAbsences();
+  hrRenderEtatEquipe();
+}
+window.hrEtatAjouter=hrEtatAjouter;
+function hrEtatValider(empId, idx){
+  var lst=HR_ABSENCES[empId]; if(!lst||!lst[idx]) return;
+  lst[idx].statut='valide';
+  hrSauverAbsences();
+  hrRenderEtatEquipe();
+}
+window.hrEtatValider=hrEtatValider;
+function hrEtatSupprimer(empId, idx){
+  var lst=HR_ABSENCES[empId]; if(!lst||!lst[idx]) return;
+  lst.splice(idx,1);
+  if(!lst.length) delete HR_ABSENCES[empId];
+  hrSauverAbsences();
+  hrRenderEtatEquipe();
+}
+window.hrEtatSupprimer=hrEtatSupprimer;
 // Réapplique les noms mémorisés sur les traits de la semaine actuellement affichée
 function hrReappliquerAffectations(){
   for(var d=0;d<7;d++){
@@ -12130,6 +12425,18 @@ window.__hrInit=function(){
       }).catch(()=>{});
       // Placements sauvegardés (permanent + partagé multi-appareils) du resto courant
       try{ if(typeof hrChargerAffect==='function') hrChargerAffect(); }catch(e){}
+      // États équipe / absences (CP, maladie, demandes) — partagés multi-appareils
+      try{
+        SB.from('app_config').select('valeur').eq('cle','hr_absences').maybeSingle().then(function(r){
+          var data=r&&r.data;
+          if(data && data.valeur && typeof data.valeur==='object'){
+            HR_ABSENCES=data.valeur;
+            try{ localStorage.setItem('hr_absences', JSON.stringify(HR_ABSENCES)); }catch(e){}
+            try{ if(typeof updateAlBadge==='function') updateAlBadge(); }catch(e){}
+            try{ var _ep=document.getElementById('page-etatequipe'); if(_ep&&_ep.classList.contains('active')&&typeof hrRenderEtatEquipe==='function') hrRenderEtatEquipe(); }catch(e){}
+          }
+        }).catch(function(){});
+      }catch(e){}
       (async function(){
         const RESTOS_VALIDES = (typeof RESTAURANTS!=='undefined') ? Object.keys(RESTAURANTS) : ['BK500','BK509','BK526'];
         let n=0, offset=0; const PAGE=1000;
