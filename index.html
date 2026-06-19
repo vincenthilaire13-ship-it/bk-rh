@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-19 23:45 · v175';
+  var EMBEDDED_VERSION = '2026-06-20 00:10 · v176';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -11113,9 +11113,37 @@ window.hrChargerAffect=hrChargerAffect;
 // Un équipier absent sur une date n'est PAS placé ce jour-là.
 var HR_ABSENCES={};
 try{ var _ab=localStorage.getItem('hr_absences'); if(_ab) HR_ABSENCES=JSON.parse(_ab)||{}; }catch(e){}
+// Fusionne deux jeux d'absences sans perdre de demandes (clé = from|to|motif|statut).
+function _hrFusionAbsences(a, b){
+  var out={}; a=a||{}; b=b||{};
+  function key(x){ return (x.from||'')+'|'+(x.to||'')+'|'+(x.motif||'')+'|'+(x.statut||''); }
+  Object.keys(a).forEach(function(id){ out[id]=(a[id]||[]).slice(); });
+  Object.keys(b).forEach(function(id){
+    if(!out[id]){ out[id]=(b[id]||[]).slice(); return; }
+    var vus={}; out[id].forEach(function(x){ if(x) vus[key(x)]=1; });
+    (b[id]||[]).forEach(function(x){ if(x && !vus[key(x)]){ out[id].push(x); vus[key(x)]=1; } });
+  });
+  return out;
+}
+window._hrFusionAbsences=_hrFusionAbsences;
 function hrSauverAbsences(){
   try{ localStorage.setItem('hr_absences', JSON.stringify(HR_ABSENCES)); }catch(e){}
-  try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:'hr_absences', valeur:HR_ABSENCES},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
+  // Relire la base AVANT d'écrire, fusionner (pour ne pas écraser une demande
+  // enregistrée ailleurs), puis upsert le tout. Évite la perte par course.
+  try{
+    if(typeof SB!=='undefined' && SB){
+      SB.from('app_config').select('valeur').eq('cle','hr_absences').maybeSingle().then(function(r){
+        var distant=(r&&r.data&&r.data.valeur&&typeof r.data.valeur==='object')?r.data.valeur:{};
+        var fusion=_hrFusionAbsences(distant, HR_ABSENCES);
+        HR_ABSENCES=fusion;
+        try{ localStorage.setItem('hr_absences', JSON.stringify(HR_ABSENCES)); }catch(e){}
+        SB.from('app_config').upsert({cle:'hr_absences', valeur:fusion},{onConflict:'cle'}).then(function(){}).catch(function(){});
+      }).catch(function(){
+        // si la relecture échoue, on écrit quand même ce qu'on a
+        try{ SB.from('app_config').upsert({cle:'hr_absences', valeur:HR_ABSENCES},{onConflict:'cle'}).then(function(){}).catch(function(){}); }catch(e){}
+      });
+    }
+  }catch(e){}
 }
 // Un équipier est-il absent (de façon VALIDÉE) à cette date ISO ('AAAA-MM-JJ') ?
 // Les demandes en attente (statut 'attente') ne bloquent PAS le placement.
@@ -14099,7 +14127,9 @@ window.__hrInit=function(){
         SB.from('app_config').select('valeur').eq('cle','hr_absences').maybeSingle().then(function(r){
           var data=r&&r.data;
           if(data && data.valeur && typeof data.valeur==='object'){
-            HR_ABSENCES=data.valeur;
+            // Fusion (et non remplacement) pour ne pas écraser une demande locale
+            // en attente pas encore synchronisée.
+            HR_ABSENCES=(typeof _hrFusionAbsences==='function')?_hrFusionAbsences(data.valeur, HR_ABSENCES):data.valeur;
             try{ localStorage.setItem('hr_absences', JSON.stringify(HR_ABSENCES)); }catch(e){}
             try{ if(typeof updateAlBadge==='function') updateAlBadge(); }catch(e){}
             try{ var _ep=document.getElementById('page-etatequipe'); if(_ep&&_ep.classList.contains('active')&&typeof hrRenderEtatEquipe==='function') hrRenderEtatEquipe(); }catch(e){}
