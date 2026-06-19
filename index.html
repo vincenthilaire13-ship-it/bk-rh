@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-19 15:51 · v165';
+  var EMBEDDED_VERSION = '2026-06-19 15:58 · v166';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -738,9 +738,10 @@ body.tv-mode #eye-viewas{display:none!important;}
           <option value="60">Ventes 1 heure</option>
         </select>
       </div>
+      <button id="hrx-grille-save" class="hr-btn" onclick="enregistrerGrille()" style="margin-top:18px;display:none;background:#3ecf8e;color:#08130d;font-weight:700;border:none;">💾 Enregistrer les modifications</button>
       <button class="hr-btn hr-btn-ac" onclick="applyGrille()" style="margin-top:18px;">✓ Appliquer au planning</button>
-      <button class="hr-btn role-superadmin-only" onclick="protegerGrille()" style="margin-top:18px;" title="Verrouiller la grille validée de ce restaurant (suite/admin)">🔒 Protéger</button>
-      <button class="hr-btn role-superadmin-only" onclick="restaurerGrilleProtegee()" style="margin-top:18px;" title="Recharger la grille protégée de ce restaurant (suite/admin)">♻️ Restaurer protégée</button>
+      <button class="hr-btn" onclick="protegerGrille()" style="margin-top:18px;" title="Verrouiller la grille validée de ce restaurant">🔒 Protéger</button>
+      <button class="hr-btn" onclick="restaurerGrilleProtegee()" style="margin-top:18px;" title="Recharger la grille protégée de ce restaurant">♻️ Restaurer protégée</button>
       <button class="hr-btn" onclick="resetGrille()" style="margin-top:18px;">↺ Réinitialiser</button>
     </div>
   </div>
@@ -1633,7 +1634,7 @@ body.tv-mode #eye-viewas{display:none!important;}
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-19 15:51 · v165';
+const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-19 15:58 · v166';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM' éventuellement suivi de ' · vN'
   try{
@@ -8878,6 +8879,8 @@ function hrSwitchRestoGrille(resto){
   // Charger les placements sauvegardés de CE resto (chaque resto a les siens)
   try{ if(typeof hrChargerAffect==='function') hrChargerAffect(resto); }catch(e){}
   try{ if(typeof hrChargerLocks==='function') hrChargerLocks(resto); }catch(e){}
+  // Changer de resto recharge une grille : ce n'est pas une modification → cacher « Enregistrer »
+  try{ if(typeof _grilleClearDirty==='function') _grilleClearDirty(); }catch(e){}
 }
 window.hrSwitchRestoGrille = hrSwitchRestoGrille;
 
@@ -12882,16 +12885,51 @@ function hrAutoApply(){
 }
 window.hrAutoApply=hrAutoApply;
 
+// ── Bouton « Enregistrer » : visible uniquement quand la grille a été modifiée ──
+var _grilleDirty = false;
+function _grilleSetDirty(){
+  _grilleDirty = true;
+  const b = document.getElementById('hrx-grille-save');
+  if(b) b.style.display = '';
+}
+function _grilleClearDirty(){
+  _grilleDirty = false;
+  const b = document.getElementById('hrx-grille-save');
+  if(b) b.style.display = 'none';
+}
+window._grilleSetDirty = _grilleSetDirty;
+window._grilleClearDirty = _grilleClearDirty;
+
+// Enregistre la grille du resto actif dans Supabase (normalisée en 15 min),
+// SANS quitter l'écran de la grille. Le bouton disparaît une fois enregistré.
+function enregistrerGrille(){
+  const restoActif = (typeof hrCurrentResto==='function') ? hrCurrentResto() : HR_GRILLE_RESTO;
+  if(restoActif && restoActif !== HR_GRILLE_RESTO) HR_GRILLE_RESTO = restoActif;
+  // Normaliser l'affichage courant vers la base 15 min (sécurité, même logique que hrSauverGrille)
+  GRILLE_EDIT.sort((a,b)=>a[0]-b[0]);
+  GRILLE.length=0; GRILLE_EDIT.forEach(r=>GRILLE.push([...r]));
+  // hrSauverGrille() s'occupe de la conversion 15 min + écriture Supabase + cache mémoire
+  if(typeof hrSauverGrille==='function') hrSauverGrille();
+  if(typeof renderGrille==='function') renderGrille();
+  if(document.getElementById('hrx-days')) renderDays();
+  _grilleClearDirty();
+  if(typeof toast==='function'){ toast('Grille enregistrée pour '+(nomResto?nomResto(HR_GRILLE_RESTO):HR_GRILLE_RESTO)+' ✔','success'); }
+  else { alert('✅ Grille enregistrée.'); }
+}
+window.enregistrerGrille = enregistrerGrille;
+
 function updateCell(rowIdx, colIdx, val){
   GRILLE_EDIT[rowIdx][colIdx] = Math.max(0, parseInt(val)||0);
   recalcEff(rowIdx);
   const effCell = document.getElementById(`g-eff-${rowIdx}`);
   if(effCell) effCell.textContent = GRILLE_EDIT[rowIdx][1];
+  _grilleSetDirty();
   hrAutoApply();
 }
 
 function updateSeuil(rowIdx, val){
   GRILLE_EDIT[rowIdx][0] = parseFloat(val)||0;
+  _grilleSetDirty();
   hrAutoApply();
 }
 
@@ -12899,6 +12937,7 @@ function addGrilleRow(){
   const last = GRILLE_EDIT[GRILLE_EDIT.length-1];
   GRILLE_EDIT.push([last[0]+50, 0, ...last.slice(2)]);
   recalcEff(GRILLE_EDIT.length-1);
+  _grilleSetDirty();
   renderGrille();
   hrAutoApply();
 }
@@ -12906,6 +12945,7 @@ function addGrilleRow(){
 function removeGrilleRow(idx){
   if(GRILLE_EDIT.length <= 2) return;
   GRILLE_EDIT.splice(idx,1);
+  _grilleSetDirty();
   renderGrille();
   hrAutoApply();
 }
