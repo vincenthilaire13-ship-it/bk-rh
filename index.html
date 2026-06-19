@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-19 20:34 · v168';
+  var EMBEDDED_VERSION = '2026-06-19 21:05 · v169';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -8832,7 +8832,13 @@ const GRILLE=[
   [950,  21, 4,1,2,1,2,2,3,2,1,1,0,0,2,0],
   [1150, 24, 4,1,2,1,2,2,3,2,1,2,0,1,2,1],
 ];
-const POSTES=['CUISINE','FRITES','SNACK','BROILER','BOARD VOLANT','BORNE','DRIVE','SAT SALLE','PREMIERE CABINE','TABLETTE DRIVE','EMPORTER','COMPTOIR VOLANT','UBER','SAT EMPORTER UBER'];
+var POSTES=['CUISINE','FRITES','SNACK','BROILER','BOARD VOLANT','BORNE','DRIVE','SAT SALLE','PREMIERE CABINE','TABLETTE DRIVE','EMPORTER','COMPTOIR VOLANT','UBER','SAT EMPORTER UBER'];
+// Liste de référence (14 postes) : sert de défaut/repli si un resto n'a pas encore
+// sa propre liste en base. Les vraies listes par resto vivent dans Supabase
+// (planning_grilles.postes) et sont chargées par hrChargerGrilles().
+const POSTES_DEFAULT = POSTES.slice();
+let POSTES_BY_RESTO = {}; // { 'bk500':[...14 noms...], ... } — rempli depuis Supabase
+try{ window.POSTES = POSTES; }catch(e){}
 
 // Sauvegarde des valeurs par défaut pour reset
 const GRILLE_DEFAULT = GRILLE.map(r=>[...r]); // Base 30min
@@ -8882,7 +8888,10 @@ function hrSwitchRestoGrille(resto){
   GRILLE_EDIT = (_g || GRILLE_DEFAULT).map(r=>[...r]);
   BASE_MIN    = (_b || BASEMIN_DEFAULT || []).map(b=>[...b]);
   try{ window.BASE_MIN = BASE_MIN; }catch(e){}
-  // Filet de sécurité : si la base de CE resto est vide ET que les grilles ne sont
+  // Activer la liste des postes productifs du resto (ou défaut 14 postes)
+  var _pp = POSTES_BY_RESTO[resto] || POSTES_BY_RESTO[_rl] || POSTES_BY_RESTO[_ru];
+  POSTES = (_pp && _pp.length) ? _pp.slice() : POSTES_DEFAULT.slice();
+  try{ window.POSTES = POSTES; }catch(e){}
   // pas encore chargées depuis Supabase, on relance le chargement puis on rebascule
   // sur ce resto et on rafraîchit l'affichage des non productifs.
   if((!_b || !_b.length) && typeof HR_GRILLES_CHARGEES!=='undefined' && !HR_GRILLES_CHARGEES && typeof hrChargerGrilles==='function'){
@@ -13155,7 +13164,7 @@ function renderGrille(){
   let html = `<thead><tr>
     <th>${modeLabel}</th>
     <th style="color:var(--ac);">Eff. total</th>
-    ${POSTES.map(p=>{const c=col(p);return`<th style="color:${c.bg};">${p}</th>`;}).join('')}
+    ${POSTES.map((p,pi)=>{const c=col(p);return`<th style="color:${c.bg};padding:2px;"><input value="${(p||'').replace(/"/g,'&quot;')}" onchange="hrRenommerPoste(${pi},this.value)" title="Renommer ce poste (enregistré pour ce restaurant)" style="background:transparent;border:none;border-bottom:1px dashed ${c.bg}55;color:${c.bg};font-weight:600;font-size:11px;text-align:center;width:84px;outline:none;font-family:inherit;" /></th>`;}).join('')}
     <th></th>
   </tr></thead><tbody>`;
 
@@ -13206,6 +13215,40 @@ function renderGrille(){
     wrap.parentElement.appendChild(addBtn);
   }
 }
+
+// ── POSTES PRODUCTIFS (par resto, enregistrés dans Supabase) ──────────────────
+// Renomme le poste d'index pi pour le resto actif, met à jour l'affichage et
+// enregistre la liste complète dans planning_grilles.postes (colonne jsonb).
+// NB : on RENOMME uniquement (le nombre de postes reste fixe pour rester aligné
+// avec les colonnes de la grille CA). Ajout/suppression viendra plus tard.
+function hrRenommerPoste(pi, val){
+  val = (val||'').trim();
+  if(!val){ renderGrille(); return; } // nom vide refusé -> on réaffiche l'ancien
+  if(pi<0 || pi>=POSTES.length) return;
+  POSTES[pi] = val;
+  try{ window.POSTES = POSTES; }catch(e){}
+  const resto = HR_GRILLE_RESTO || hrCurrentResto() || 'BK526';
+  POSTES_BY_RESTO[resto] = POSTES.slice();
+  // Réafficher la grille (en-têtes) + le planning si présents
+  try{ renderGrille(); }catch(e){}
+  try{ if(typeof renderTimeline==='function') renderTimeline(); }catch(e){}
+  // Enregistrer dans Supabase (clé resto en minuscules comme en base)
+  hrSavePostes(resto);
+}
+window.hrRenommerPoste = hrRenommerPoste;
+
+async function hrSavePostes(resto){
+  if(!window.SB) return;
+  const rl = (resto||'').toLowerCase();
+  const liste = (POSTES_BY_RESTO[resto] || POSTES_BY_RESTO[rl] || POSTES).slice();
+  try{
+    const { error } = await SB.from('planning_grilles')
+      .update({ postes: liste })
+      .eq('resto', rl);
+    if(error) console.warn('hrSavePostes', error.message||error);
+  }catch(e){ console.warn('hrSavePostes', e.message||e); }
+}
+window.hrSavePostes = hrSavePostes;
 
 // ── NP SECTION ────────────────────────────────────────────────────────────────
 function renderNP(){
@@ -14588,9 +14631,9 @@ async function hrChargerGrilles(){
   try{
     // On tente de lire aussi la colonne taux_horaire + les colonnes de protection (si elles existent)
     let data, error;
-    ({data, error} = await SB.from('planning_grilles').select('resto,grille,basemin,mode,taux_horaire,grille_protegee,basemin_protegee,protegee_le'));
+    ({data, error} = await SB.from('planning_grilles').select('resto,grille,basemin,postes,mode,taux_horaire,grille_protegee,basemin_protegee,protegee_le'));
     if(error){
-      // colonnes de protection/taux absentes : on relit sans elles
+      // colonnes de protection/taux/postes absentes : on relit sans elles
       ({data, error} = await SB.from('planning_grilles').select('resto,grille,basemin,mode,taux_horaire'));
       if(error){ ({data, error} = await SB.from('planning_grilles').select('resto,grille,basemin,mode')); }
     }
@@ -14599,6 +14642,10 @@ async function hrChargerGrilles(){
       try{
         if(row.grille)  GRILLE_BY_RESTO[row.resto]  = (typeof row.grille==='string'? JSON.parse(row.grille): row.grille);
         if(row.basemin) BASEMIN_BY_RESTO[row.resto] = (typeof row.basemin==='string'? JSON.parse(row.basemin): row.basemin);
+        if(row.postes){
+          var _pp = (typeof row.postes==='string'? JSON.parse(row.postes): row.postes);
+          if(Array.isArray(_pp) && _pp.length) POSTES_BY_RESTO[row.resto] = _pp.slice();
+        }
         if(row.taux_horaire!=null && row.taux_horaire!==''){
           const t=parseFloat(row.taux_horaire);
           if(isFinite(t) && t>0) TAUX_BY_RESTO[row.resto]=t;
@@ -14629,6 +14676,8 @@ async function hrChargerGrilles(){
         BASE_MIN = _b.map(b=>[...b]);
         try{ window.BASE_MIN = BASE_MIN; }catch(e){}
       }
+      var _p = POSTES_BY_RESTO[_rk] || POSTES_BY_RESTO[_rk.toLowerCase()] || POSTES_BY_RESTO[_rk.toUpperCase()];
+      if(_p && _p.length){ POSTES = _p.slice(); try{ window.POSTES=POSTES; }catch(e){} }
     }
     // Régénérer le planning avec la vraie grille + base minimum chargées
     try{ if(typeof hrAutoApply==='function') hrAutoApply(); }catch(e){}
