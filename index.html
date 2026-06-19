@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-19 00:09 · v145';
+  var EMBEDDED_VERSION = '2026-06-19 00:19 · v146';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -725,51 +725,12 @@ body.tv-mode #eye-viewas{display:none!important;}
   <div id="hrx-np-form" style="display:none;background:var(--s1);border:1px solid var(--bd2);border-radius:12px;padding:1rem;margin-bottom:1.2rem">
     <div id="hrx-np-form-title" class="hr-stitle" style="font-size:14px;margin-bottom:.8rem">Nouveau poste non productif</div>
     <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:.9rem">
-      <div class="hr-cc"><label>Nom du poste</label><input id="hrx-np-nom" type="text" placeholder="ex : PLONGE SOIR" style="background:var(--s2);border:1px solid var(--bd2);border-radius:8px;padding:7px 11px;font-size:13px;color:var(--tx);font-family:'DM Sans',sans-serif;min-width:180px;text-transform:uppercase"></div>
+      <div class="hr-cc"><label>Nom du poste</label><input id="hrx-np-nom" type="text" placeholder="ex : LIVRAISON" style="background:var(--s2);border:1px solid var(--bd2);border-radius:8px;padding:7px 11px;font-size:13px;color:var(--tx);font-family:'DM Sans',sans-serif;min-width:180px;text-transform:uppercase"></div>
     </div>
-    <div class="hr-cc" style="margin-bottom:.4rem"><label>Créneaux horaires</label></div>
-    <div id="hrx-np-slots" style="display:flex;flex-direction:column;gap:8px;margin-bottom:.7rem"></div>
-    <button type="button" class="hr-btn" onclick="hrNpAddSlot()" style="padding:6px 14px;font-size:12px">+ Ajouter un créneau</button>
-    <div class="hr-ssub" style="margin:10px 0 0;font-size:11px">Ajoute autant de créneaux que nécessaire (ex : un avant la pause, un après). Pour une tâche de nuit (après minuit), mets une fin comme 01:30 ou 02:00.</div>
-    <div class="hr-cc" style="margin:14px 0 .4rem"><label>Fréquence</label></div>
-    <div id="hrx-np-freq" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-      <button type="button" class="hr-np-freq hr-f-on" data-f="hebdo1" onclick="hrNpSetFreq(this)">Toutes les semaines</button>
-      <button type="button" class="hr-np-freq" data-f="hebdo2" onclick="hrNpSetFreq(this)">Toutes les 2 semaines</button>
-      <button type="button" class="hr-np-freq" data-f="mensuel" onclick="hrNpSetFreq(this)">Tous les mois</button>
-    </div>
-
-    <!-- Cas "toutes les semaines" et "toutes les 2 semaines" : on choisit les jours -->
-    <div id="hrx-np-jours-wrap">
-      <div class="hr-cc" style="margin:12px 0 .4rem"><label>Jours d'application</label></div>
-      <div id="hrx-np-jours" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-        <button type="button" class="hr-np-jour" data-j="0" onclick="hrNpToggleJour(this)">Lun</button>
-        <button type="button" class="hr-np-jour" data-j="1" onclick="hrNpToggleJour(this)">Mar</button>
-        <button type="button" class="hr-np-jour" data-j="2" onclick="hrNpToggleJour(this)">Mer</button>
-        <button type="button" class="hr-np-jour" data-j="3" onclick="hrNpToggleJour(this)">Jeu</button>
-        <button type="button" class="hr-np-jour" data-j="4" onclick="hrNpToggleJour(this)">Ven</button>
-        <button type="button" class="hr-np-jour" data-j="5" onclick="hrNpToggleJour(this)">Sam</button>
-        <button type="button" class="hr-np-jour" data-j="6" onclick="hrNpToggleJour(this)">Dim</button>
-        <button type="button" class="hr-btn" onclick="hrNpJoursSemaine()" style="padding:6px 12px;font-size:11px;margin-left:6px">Toute la semaine</button>
-      </div>
-      <!-- Pour "toutes les 2 semaines" : à partir de quelle semaine -->
-      <div id="hrx-np-freq-ref" style="display:none;margin-top:10px;align-items:center;gap:8px;flex-wrap:wrap">
-        <label style="font-size:11px;color:var(--mu);font-family:'DM Mono',monospace">À partir de la semaine du</label>
-        <input id="hrx-np-freq-ref-date" type="date" style="background:var(--s2);border:1px solid var(--bd2);border-radius:8px;padding:6px 10px;font-size:13px;color:var(--tx);font-family:'DM Mono',monospace">
-      </div>
-    </div>
-
-    <!-- Cas "tous les mois" : on choisit une date précise du mois -->
-    <div id="hrx-np-mois-wrap" style="display:none">
-      <div class="hr-cc" style="margin:12px 0 .4rem"><label>Date dans le mois</label></div>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span style="font-size:12px;color:var(--mu)">Le</span>
-        <select id="hrx-np-mois-jour" style="background:var(--s2);border:1px solid var(--bd2);border-radius:8px;padding:6px 10px;font-size:13px;color:var(--tx);font-family:'DM Mono',monospace"></select>
-        <span style="font-size:12px;color:var(--mu)">de chaque mois</span>
-      </div>
-      <div class="hr-ssub" style="margin:6px 0 0;font-size:11px">Ex : inventaire le 15 de chaque mois. Si le mois n'a pas ce jour (ex. 31), il tombe le dernier jour du mois.</div>
-    </div>
-
-    <div class="hr-ssub" style="margin:8px 0 0;font-size:11px">Ex : « machine à gaz » → toutes les 2 semaines, le mercredi. « Inventaire » → tous les mois, le 15.</div>
+    <div class="hr-ssub" style="margin:0 0 .6rem;font-size:11px">Chaque <strong>règle</strong> a ses propres horaires, jours, fréquence et nombre de personnes. Ex : une règle Mar+Jeu 8h-10h (3 pers.) et une règle Sam 14h-16h (2 pers.) sous le même poste « LIVRAISON ».</div>
+    <!-- Liste des règles (générée en JS) -->
+    <div id="hrx-np-regles" style="display:flex;flex-direction:column;gap:12px"></div>
+    <button type="button" class="hr-btn" onclick="hrNpAddRegle()" style="padding:7px 16px;font-size:12px;margin-top:12px">+ Ajouter une règle</button>
 
     <div style="display:flex;gap:10px;margin-top:1rem">
       <button class="hr-btn hr-btn-ac" onclick="hrNpSave()" style="padding:8px 18px">Enregistrer</button>
@@ -1642,7 +1603,7 @@ body.tv-mode #eye-viewas{display:none!important;}
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-17 12:58';
+const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-19 10:34 · v148';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM' éventuellement suivi de ' · vN'
   try{
@@ -2379,9 +2340,10 @@ function goPage(id, btn) {
   if (id==='visite'){ if(curUser.role==='franchise'){ bkShowTiles('visite'); } else { renderVisiteList(); } }
   if (id==='alertes'){ if(curUser.role==='franchise'){ bkShowTiles('alertes'); } else { window.__alertResto=curUser.restoId; renderAlertes(); } }
   if (id==='etatequipe'){
+    try{ window.HR_EE_VUE='tuiles'; }catch(e){}
     if(curUser.role==='franchise'){ bkShowTiles('etatequipe'); }
     else {
-      // directeur / autre : son restaurant, pas de tuiles
+      // directeur / autre : son restaurant, pas de tuiles de resto
       HR_ETAT_RESTO_FILTRE=(curUser.restoId||'bk526').toLowerCase();
       var etr=document.getElementById('etat-equipe-resto'); if(etr) etr.style.display='none';
       hrRenderEtatEquipe();
@@ -2414,7 +2376,7 @@ var BK_TILE_PAGES = {
   alertes:     { pick:function(r){ window.__alertResto=r; renderAlertes(); } },
   pointage:    { pick:function(r){ window.__ptgRestoActif=r; try{ptgInit();}catch(e){} } },
   suivipointage:{ pick:function(r){ window.__ptgRestoActif=r; try{ptgSuiviInit();}catch(e){} } },
-  etatequipe:  { pick:function(r){ HR_ETAT_RESTO_FILTRE=(r||'').toLowerCase(); var et=document.getElementById('etat-equipe-resto'); if(et) et.style.display='none'; try{ hrRenderEtatEquipe(); }catch(e){} } }
+  etatequipe:  { pick:function(r){ HR_ETAT_RESTO_FILTRE=(r||'').toLowerCase(); try{ window.HR_EE_VUE='tuiles'; }catch(e){} var et=document.getElementById('etat-equipe-resto'); if(et) et.style.display='none'; try{ hrRenderEtatEquipe(); }catch(e){} } }
 };
 // Construit (une fois) l'écran de tuiles + le wrapper de contenu pour une page.
 function bkBuildTileGate(pageId){
@@ -5626,7 +5588,7 @@ var REGLEMENT_DEFAUT={
   coupureMaxHeures:5,    // durée maximale d'une coupure (h)
   seuilSansCoupureH:12,  // en-dessous de ce contrat hebdo, aucune coupure autorisée
   joursRepos:2,          // jours de repos consécutifs par semaine
-  reposQuotidienH:11,    // repos minimum entre deux journées (h)
+  reposQuotidienH:12,    // repos minimum entre deux journées (h) — appliqué au placement
   viseContratExact:true, // chaque semaine vise le contrat exact
   traitMiniHeures:2,     // [perso] durée minimale d'un trait (créneau)
   traitMaxiHeures:4,     // [perso] durée maximale d'un trait (créneau)
@@ -5636,7 +5598,10 @@ var REGLEMENT_DEFAUT={
   heureFermetureDepuisH:22,    // [perso] un créneau finissant à partir de cette heure = fermeture
   petitsContratsWeekend:true,  // [perso] les petits contrats ne travaillent que le week-end
   petitsContratsSeuilH:15,     // [perso] seuil (h) en-dessous duquel = petit contrat (week-end only)
-  maxJoursMemePoste:0          // [perso] nb max de jours/semaine sur le MÊME poste (0 = pas de limite)
+  maxJoursMemePoste:0,         // [perso] nb max de jours/semaine sur le MÊME poste (0 = pas de limite)
+  pauseMiniMin:45,             // [perso/RH] pause minimale entre deux créneaux d'une même journée (min)
+  blocContinuMaxH:5.5,         // [perso/RH] durée max d'un bloc de travail continu sans pause (h)
+  amplitudeMaxH:12             // [perso/RH] amplitude max de la journée : du 1er au dernier créneau (h)
 };
 var REGLEMENT=null;
 function getReglement(){
@@ -5652,7 +5617,7 @@ var REGL_LABELS={
   coupureMaxHeures:['Durée maximale d\'une coupure','h','Temps maximum entre deux séquences dans la journée.'],
   seuilSansCoupureH:['Seuil de contrat sans coupure','h','En-dessous de ce contrat hebdo, journée d\'un seul bloc.'],
   joursRepos:['Jours de repos consécutifs par semaine','j','Nombre de jours de repos qui se suivent.'],
-  reposQuotidienH:['Repos minimum entre deux journées','h','(Information — pas encore appliqué au placement.)'],
+  reposQuotidienH:['Repos minimum entre deux journées','h','Au moins ce temps entre la fin d\'un jour et la reprise le lendemain. Appliqué au placement.'],
   viseContratExact:['Viser le contrat exact chaque semaine','oui/non','Si activé, chaque semaine vise pile le contrat.'],
   traitMiniHeures:['◆ Durée minimale d\'un trait (créneau)','h','Votre règle : un créneau dure au moins ce temps.'],
   traitMaxiHeures:['◆ Durée maximale d\'un trait (créneau)','h','Votre règle : un créneau ne dépasse pas ce temps.'],
@@ -5662,14 +5627,17 @@ var REGL_LABELS={
   heureFermetureDepuisH:['◆ Heure à partir de laquelle c\'est une fermeture','h','Votre règle : un créneau qui finit à partir de cette heure est considéré comme une fermeture.'],
   petitsContratsWeekend:['◆ Petits contrats : week-end obligatoire','oui/non','Votre règle : les petits contrats (étudiants) ne travaillent que le week-end (ven/sam/dim). À désactiver pendant les vacances scolaires.'],
   petitsContratsSeuilH:['◆ Seuil "petit contrat" (week-end only)','h','Votre règle : en-dessous de ce contrat hebdo, l\'équipier ne travaille que le week-end.'],
-  maxJoursMemePoste:['◆ Jours max/semaine sur le même poste','j','Votre règle : éviter de mettre quelqu\'un au même poste tous les jours (0 = pas de limite).']
+  maxJoursMemePoste:['◆ Jours max/semaine sur le même poste','j','Votre règle : éviter de mettre quelqu\'un au même poste tous les jours (0 = pas de limite).'],
+  pauseMiniMin:['◆ Pause minimum entre deux créneaux','min','RH : entre deux créneaux d\'une même journée (coupure), la pause doit être au moins de ce temps (ex. 45 min).'],
+  blocContinuMaxH:['◆ Durée max d\'un bloc continu','h','RH : un créneau ne doit pas dépasser ce temps d\'affilée sans pause (ex. 5,5 h = 5h30).'],
+  amplitudeMaxH:['◆ Amplitude maximale de la journée','h','RH : du début du 1er créneau à la fin du dernier (coupures comprises), la journée ne dépasse pas ce temps (ex. 12 h).']
 };
 function renderReglement(){
   var box=document.getElementById('regl-list'); if(!box) return;
   var R=getReglement();
   var canEdit=(curUser&&(curUser.role==='franchise'||curUser.role==='directeur'))&&!window.__readOnly;
   // clés "personnelles" (modifiables/ajoutables par l'utilisateur) vs convention
-  var clesPerso=['traitMiniHeures','traitMaxiHeures','maxTraitsJour','groupementFermeture','coupureMaxFermetureMin','heureFermetureDepuisH','petitsContratsWeekend','petitsContratsSeuilH','maxJoursMemePoste'];
+  var clesPerso=['traitMiniHeures','traitMaxiHeures','maxTraitsJour','groupementFermeture','coupureMaxFermetureMin','heureFermetureDepuisH','petitsContratsWeekend','petitsContratsSeuilH','maxJoursMemePoste','pauseMiniMin','blocContinuMaxH','amplitudeMaxH'];
   var clesConvention=Object.keys(REGL_LABELS).filter(function(k){return clesPerso.indexOf(k)<0;});
   function ligneRegle(k){
     var lab=REGL_LABELS[k]; if(!lab) return ''; var val=R[k];
@@ -9057,6 +9025,24 @@ function hrTraitsEncadrementPlanning(isoDate){
   return out;
 }
 
+// Nombre de personnes demandées pour un poste non productif un JOUR donné.
+// nb (7e élément d'une ligne BASE_MIN 'np') peut être :
+//   - undefined / null  → 1 personne (comportement historique)
+//   - un nombre          → ce nombre, tous les jours (mode GLOBAL)
+//   - un objet {défaut:N, parJour:{0:..,1:..}} → N par défaut, écrasé par jour
+function hrNpNbPersonnes(nb, dayIdx){
+  if(nb==null) return 1;
+  if(typeof nb==='number') return Math.max(1, Math.round(nb));
+  if(typeof nb==='object'){
+    const def = (nb.defaut!=null) ? nb.defaut : 1;
+    if(dayIdx!=null && nb.parJour && nb.parJour[dayIdx]!=null){
+      return Math.max(1, Math.round(nb.parJour[dayIdx]));
+    }
+    return Math.max(1, Math.round(def));
+  }
+  return 1;
+}
+
 function buildRows(caMap, dayIdx, isoDate){
   const rows=[];
 
@@ -9069,11 +9055,15 @@ function buildRows(caMap, dayIdx, isoDate){
     const jours = b[4];
     if(Array.isArray(jours) && jours.length && dayIdx!=null && jours.indexOf(dayIdx)<0) return; // pas ce jour
     if(!hrNpFreqActive(b[5], isoDate)) return; // pas cette semaine / occurrence du mois
-    rows.push({
-      shift:`${fmt(b[1])}–${fmt(b[2])}`,
-      bars:[{l:b[0],s:b[1],e:b[2]}],
-      type:b[3]
-    });
+    // Nombre de personnes pour ce poste CE jour (1 par défaut, global, ou par jour).
+    const nbPers = hrNpNbPersonnes(b[6], dayIdx);
+    for(let p=0;p<nbPers;p++){
+      rows.push({
+        shift:`${fmt(b[1])}–${fmt(b[2])}`,
+        bars:[{l:b[0],s:b[1],e:b[2]}],
+        type:b[3]
+      });
+    }
   });
 
   // 1bis. Traits d'encadrement issus du PLANNING (managers/leaders).
@@ -9914,6 +9904,39 @@ function hrReglesConvention(emp,dayIdx,b,ctx,duree){
     else { cur={s:p.s,e:p.e}; seqs.push(cur); }
   });
   if(seqs.length>(R.maxSequences||2)) return false;                 // nb séquences max
+  // ── RÈGLES RH (perso) appliquées au placement ──
+  // R3 — Durée max d'un bloc continu sans pause (ex. 5h30)
+  if(R.blocContinuMaxH){
+    var blocMax=parseFloat(R.blocContinuMaxH)*60;
+    for(var _bi=0;_bi<seqs.length;_bi++){ if((seqs[_bi].e-seqs[_bi].s)>blocMax+0.001) return false; }
+  }
+  // R2 — Pause minimum entre deux créneaux d'une même journée (ex. 45 min)
+  if(R.pauseMiniMin && seqs.length>=2){
+    var pmin=parseFloat(R.pauseMiniMin);
+    for(var _si=1;_si<seqs.length;_si++){
+      var gap=seqs[_si].s-seqs[_si-1].e;
+      if(gap>0 && gap<pmin) return false; // coupure trop courte (mais >0 : sinon c'est contigu, déjà fusionné)
+    }
+  }
+  // R1 — Repos minimum entre deux journées (ex. 12h). On compare la journée courante
+  // (avec le créneau candidat) au dernier créneau de la veille et au premier du lendemain.
+  if(R.reposQuotidienH){
+    var reposMin=parseFloat(R.reposQuotidienH)*60;
+    var bj=(ctx.busyJour||{})[emp.id]||{};
+    // créneaux de la journée courante = seqs (déjà fusionnés, incluent le candidat)
+    var todayFirst=seqs[0].s, todayLast=seqs[seqs.length-1].e;
+    // veille (dayIdx-1) : son dernier créneau finit à "finVeille" (coord. veille, peut être >1440)
+    if(dayIdx-1>=0 && bj[dayIdx-1] && bj[dayIdx-1].length){
+      var finVeille=-1; bj[dayIdx-1].forEach(function(p){ if(p.e>finVeille) finVeille=p.e; });
+      // repos = (début aujourd'hui + 1440) - fin veille
+      if(finVeille>=0){ var reposAvant=(todayFirst+1440)-finVeille; if(reposAvant<reposMin) return false; }
+    }
+    // lendemain (dayIdx+1) : son premier créneau commence à "debutLendemain" (coord. lendemain)
+    if(dayIdx+1<=6 && bj[dayIdx+1] && bj[dayIdx+1].length){
+      var debutLendemain=Infinity; bj[dayIdx+1].forEach(function(p){ if(p.s<debutLendemain) debutLendemain=p.s; });
+      if(debutLendemain<Infinity){ var reposApres=(debutLendemain+1440)-todayLast; if(reposApres<reposMin) return false; }
+    }
+  }
   // [perso] nombre de TRAITS max par jour (compte les créneaux, pas les séquences)
   var nbTraitsJour=(((ctx.busyJour||{})[emp.id]||{})[dayIdx]||[]).length + 1;
   if(R.maxTraitsJour && nbTraitsJour>R.maxTraitsJour) return false;
@@ -10840,22 +10863,75 @@ function _etatEquipiers(){
   return (DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto;})
                            .sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
 }
+// Sous-vue actuellement ouverte dans État équipe : 'tuiles' | 'etat' | 'dispos' | 'competences'
+var HR_EE_VUE='tuiles';
+// Routeur : affiche les tuiles, ou la sous-vue demandée.
 function hrRenderEtatEquipe(){
   var box=document.getElementById('etat-equipe-list'); if(!box) return;
-  var isDir=(curUser&&curUser.role==='directeur');
-  // le choix du restaurant se fait désormais par les tuiles (ou resto fixe du directeur) :
-  // on masque l'ancien sélecteur d'onglets interne.
   var selWrap=document.getElementById('etat-equipe-resto');
   if(selWrap){ selWrap.style.display='none'; }
-  if(isDir){ HR_ETAT_RESTO_FILTRE=curUser.restoId; }
+  if(curUser&&curUser.role==='directeur'){ HR_ETAT_RESTO_FILTRE=curUser.restoId; }
+  if(HR_EE_VUE==='etat'){ _hrEtatRenderAbsences(); return; }
+  if(HR_EE_VUE==='dispos'){ hrEERenderDispos(); return; }
+  if(HR_EE_VUE==='competences'){ hrEERenderCompetences(); return; }
+  // par défaut : les tuiles
+  hrEERenderTuiles();
+}
+window.hrRenderEtatEquipe=hrRenderEtatEquipe;
+
+// Nom lisible du resto actif
+function _hrEERestoLabel(){
+  var r=_etatRestoActif();
+  try{ if(typeof RESTOS!=='undefined' && RESTOS[r] && RESTOS[r].label) return RESTOS[r].label; }catch(e){}
+  return (r||'').toUpperCase();
+}
+
+// ── Vue TUILES (3 tuiles) ──
+function hrEERenderTuiles(){
+  var box=document.getElementById('etat-equipe-list'); if(!box) return;
+  var eq=_etatEquipiers();
+  // comptage demandes en attente (pour pastille sur la tuile État)
+  var nbAttente=0;
+  eq.forEach(function(e){ (HR_ABSENCES[e.id]||[]).forEach(function(a){ if(a&&a.statut==='attente') nbAttente++; }); });
+  var tuiles=[
+    {vue:'etat',        ico:'🗓️', titre:'État / Absences', sub:'Congés · maladie · absence · indispo', col:'#d98324', badge:nbAttente},
+    {vue:'dispos',      ico:'📅', titre:'Disponibilités',  sub:'Créneaux par jour de semaine',          col:'#1565c0', badge:0},
+    {vue:'competences', ico:'🎯', titre:'Compétences',     sub:'Qui sait faire quoi',                   col:'#2e7d32', badge:0}
+  ];
+  var html='<div style="font-size:.84rem;color:#aaa;margin-bottom:14px;">Restaurant : <b style="color:#fff;">'+_hrEERestoLabel()+'</b> · '+eq.length+' équipier(s). Choisis ce que tu veux gérer.</div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;">';
+  tuiles.forEach(function(t){
+    html+='<div onclick="hrEEOuvrir(\''+t.vue+'\')" style="cursor:pointer;background:linear-gradient(135deg,#1c1c1c,#262626);border:1px solid #383838;border-left:4px solid '+t.col+';border-radius:14px;padding:18px;transition:transform .1s,border-color .15s;position:relative;" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.borderColor=\''+t.col+'\';" onmouseout="this.style.transform=\'\';this.style.borderColor=\'#383838\';">'
+      +(t.badge?'<span style="position:absolute;top:12px;right:12px;background:#b8860b;color:#000;font-weight:800;border-radius:50%;min-width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.74rem;padding:0 5px;">'+t.badge+'</span>':'')
+      +'<div style="font-size:2rem;line-height:1;margin-bottom:10px;">'+t.ico+'</div>'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:800;font-size:1.25rem;color:#fff;text-transform:uppercase;letter-spacing:.5px;">'+t.titre+'</div>'
+      +'<div style="font-size:.8rem;color:#999;margin-top:3px;">'+t.sub+'</div>'
+      +'</div>';
+  });
+  html+='</div>';
+  box.innerHTML=html;
+}
+function hrEEOuvrir(vue){ HR_EE_VUE=vue; hrRenderEtatEquipe(); }
+window.hrEEOuvrir=hrEEOuvrir;
+function hrEERetour(){ HR_EE_VUE='tuiles'; hrRenderEtatEquipe(); }
+window.hrEERetour=hrEERetour;
+// Petit en-tête commun aux sous-vues : bouton retour + titre
+function _hrEEHeader(titre, sousTitre){
+  return '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">'
+    +'<button onclick="hrEERetour()" style="background:#2a2a2a;border:1px solid #555;color:#ddd;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:.84rem;">← Retour</button>'
+    +'<div><div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:800;font-size:1.3rem;color:#fff;text-transform:uppercase;letter-spacing:.5px;">'+titre+'</div>'
+    +'<div style="font-size:.8rem;color:#999;">'+_hrEERestoLabel()+(sousTitre?' · '+sousTitre:'')+'</div></div></div>';
+}
+
+// ── Sous-vue ÉTAT / ABSENCES (contenu historique) ──
+function _hrEtatRenderAbsences(){
+  var box=document.getElementById('etat-equipe-list'); if(!box) return;
   var eq=_etatEquipiers();
   var motifOpts=Object.keys(HR_ETAT_MOTIFS).map(function(k){var m=HR_ETAT_MOTIFS[k];return '<option value="'+k+'">'+m.icon+' '+m.label+'</option>';}).join('');
-  // bandeau de comptage des demandes en attente
   var nbAttente=0;
   eq.forEach(function(e){ (HR_ABSENCES[e.id]||[]).forEach(function(a){ if(a&&a.statut==='attente') nbAttente++; }); });
   var rows=eq.map(function(e){
     var lst=(HR_ABSENCES[e.id]||[]);
-    // séparer validées / en attente
     var valides=[], attentes=[];
     lst.forEach(function(a,idx){ if(!a) return; var item={a:a,idx:idx}; (a.statut==='attente'?attentes:valides).push(item); });
     function chip(item, enAttente){
@@ -10890,7 +10966,8 @@ function hrRenderEtatEquipe(){
   }).join('');
   var legende=Object.keys(HR_ETAT_MOTIFS).map(function(k){var m=HR_ETAT_MOTIFS[k];return '<span style="margin-right:12px;font-size:.78rem;color:#bbb;">'+m.icon+' '+m.label+'</span>';}).join('');
   box.innerHTML=
-    '<div style="font-size:.84rem;color:#aaa;margin-bottom:10px;">Déclare ici l\'état de chaque salarié <b>avant de lancer le placement</b>. Les états validés (CP, maladie, absence, indispo) sont automatiquement respectés par « Placer le mois / l\'année » : le salarié n\'est pas placé sur ces dates. Une <b>demande</b> reste en attente et ne bloque rien tant que tu ne l\'as pas validée (✓).</div>'
+    _hrEEHeader('État / Absences','avant de lancer le placement')
+    +'<div style="font-size:.84rem;color:#aaa;margin-bottom:10px;">Déclare ici l\'état de chaque salarié <b>avant de lancer le placement</b>. Les états validés (CP, maladie, absence, indispo) sont automatiquement respectés par « Placer le mois / l\'année » : le salarié n\'est pas placé sur ces dates. Une <b>demande</b> reste en attente et ne bloque rien tant que tu ne l\'as pas validée (✓).</div>'
     +'<div style="margin-bottom:12px;">'+legende+'</div>'
     +(nbAttente?'<div style="background:#2a2416;border:1px solid #b8860b;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:.84rem;color:#e8c468;">⏳ '+nbAttente+' demande'+(nbAttente>1?'s':'')+' en attente de validation.</div>':'')
     +'<table style="width:100%;border-collapse:collapse;"><thead><tr style="border-bottom:2px solid #444;">'
@@ -10899,7 +10976,132 @@ function hrRenderEtatEquipe(){
       +'<th style="text-align:left;padding:6px 8px;color:#fff;font-size:.8rem;">Ajouter</th>'
     +'</tr></thead><tbody>'+(rows||'<tr><td colspan="3" style="padding:14px;color:#777;">Aucun équipier sur ce restaurant.</td></tr>')+'</tbody></table>';
 }
-window.hrRenderEtatEquipe=hrRenderEtatEquipe;
+
+// ════════ SOUS-VUE DISPONIBILITÉS (éditable) ════════
+// Stockage : e.infos.dispos = { lun:{on,from,to}, mar:{...}, ... }. Sauvegarde Supabase par employé.
+function _hrEEDispoBuf(id){
+  var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return null;
+  if(!e.infos) e.infos={};
+  if(!e.infos.dispos) e.infos.dispos={};
+  return e;
+}
+function hrEERenderDispos(){
+  var box=document.getElementById('etat-equipe-list'); if(!box) return;
+  var eq=_etatEquipiers();
+  var h=_hrEEHeader('Disponibilités','clique une case pour activer/désactiver le jour, puis règle les heures');
+  h+='<div style="font-size:.82rem;color:#aaa;margin-bottom:10px;">Coche les jours où le salarié est disponible et indique la plage horaire. Modifié ici = pris en compte par le placement. (Les Rapports restent en lecture seule pour l\'impression.)</div>';
+  if(!eq.length){ box.innerHTML=h+'<div style="padding:14px;color:#777;">Aucun équipier sur ce restaurant.</div>'; return; }
+  h+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.8rem;"><thead><tr style="border-bottom:2px solid #444;">';
+  h+='<th style="text-align:left;padding:6px 8px;color:#fff;position:sticky;left:0;background:#1a1a1a;">Salarié</th>';
+  JOURS.forEach(function(j){ h+='<th style="padding:6px 8px;color:#fff;min-width:118px;">'+j[1]+'</th>'; });
+  h+='</tr></thead><tbody>';
+  eq.forEach(function(e){
+    var d=(e.infos&&e.infos.dispos)||{};
+    h+='<tr style="border-bottom:1px solid #2a2a2a;"><td style="padding:6px 8px;font-weight:600;color:#eee;white-space:nowrap;position:sticky;left:0;background:#161616;">'+e.name+'</td>';
+    JOURS.forEach(function(j){
+      var jk=j[0]; var x=d[jk]||{}; var on=!!x.on;
+      var from=x.from||'11:00', to=x.to||'15:00';
+      h+='<td style="padding:5px 6px;text-align:center;vertical-align:top;">'
+        +'<div onclick="hrEEToggleDispo(\''+e.id+'\',\''+jk+'\')" style="cursor:pointer;width:26px;height:26px;margin:0 auto 4px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;'+(on?'background:#1565c0;color:#fff;':'background:#2a2a2a;color:#555;border:1px solid #444;')+'">'+(on?'✓':'')+'</div>';
+      if(on){
+        h+='<div style="display:flex;flex-direction:column;gap:3px;align-items:center;">'
+          +'<input type="time" value="'+from+'" onchange="hrEESetDispoHeure(\''+e.id+'\',\''+jk+'\',\'from\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#cfe;border-radius:5px;padding:2px 4px;font-size:.72rem;width:78px;">'
+          +'<input type="time" value="'+to+'" onchange="hrEESetDispoHeure(\''+e.id+'\',\''+jk+'\',\'to\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#cfe;border-radius:5px;padding:2px 4px;font-size:.72rem;width:78px;">'
+          +'</div>';
+      }
+      h+='</td>';
+    });
+    h+='<td style="padding:5px 6px;white-space:nowrap;">'
+      +'<button onclick="hrEECopierDispo(\''+e.id+'\')" title="Copier la 1re plage active sur toute la semaine" style="background:#2a2a2a;border:1px solid #555;color:#bbb;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.72rem;">⎘ Toute la semaine</button>'
+      +' <span id="ee-dispo-st-'+e.id+'" style="font-size:.72rem;color:#3ecf8e;"></span></td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  box.innerHTML=h;
+}
+function hrEEToggleDispo(id, jk){
+  var e=_hrEEDispoBuf(id); if(!e) return;
+  if(!e.infos.dispos[jk]) e.infos.dispos[jk]={from:'11:00',to:'15:00'};
+  e.infos.dispos[jk].on=!e.infos.dispos[jk].on;
+  hrEERenderDispos();
+  _hrEESaveInfos(id,'ee-dispo-st-');
+}
+function hrEESetDispoHeure(id, jk, champ, val){
+  var e=_hrEEDispoBuf(id); if(!e) return;
+  if(!e.infos.dispos[jk]) e.infos.dispos[jk]={on:true};
+  e.infos.dispos[jk][champ]=val;
+  _hrEESaveInfos(id,'ee-dispo-st-');
+}
+function hrEECopierDispo(id){
+  var e=_hrEEDispoBuf(id); if(!e) return;
+  var first=null;
+  for(var k in e.infos.dispos){ if(e.infos.dispos[k]&&e.infos.dispos[k].on){ first=e.infos.dispos[k]; break; } }
+  if(!first){ alert('Active d\'abord au moins un jour.'); return; }
+  JOURS.forEach(function(j){ e.infos.dispos[j[0]]={on:true,from:first.from,to:first.to}; });
+  hrEERenderDispos();
+  _hrEESaveInfos(id,'ee-dispo-st-');
+}
+window.hrEEToggleDispo=hrEEToggleDispo;
+window.hrEESetDispoHeure=hrEESetDispoHeure;
+window.hrEECopierDispo=hrEECopierDispo;
+
+// ════════ SOUS-VUE COMPÉTENCES (éditable) ════════
+// Stockage : e.infos.qualifs = ['CUISINE','DRIVE',...]. Colonnes = postes prod + non prod.
+function _hrEEQualifBuf(id){
+  var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return null;
+  if(!e.infos) e.infos={};
+  if(!e.infos.qualifs) e.infos.qualifs=[];
+  return e;
+}
+function hrEERenderCompetences(){
+  var box=document.getElementById('etat-equipe-list'); if(!box) return;
+  var eq=_etatEquipiers();
+  var postesProd=(typeof POSTES_PRODUCTIFS!=='undefined')?POSTES_PRODUCTIFS:[];
+  var postesNP=(typeof postesNonProductifs==='function')?postesNonProductifs():[];
+  var cols=postesProd.concat(postesNP);
+  var h=_hrEEHeader('Compétences','clique une case pour valider/retirer un poste');
+  h+='<div style="font-size:.82rem;color:#aaa;margin-bottom:10px;">Coche les postes que chaque salarié sait tenir. Pris en compte par le placement. (Les Rapports restent en lecture seule pour l\'impression.)</div>';
+  if(!eq.length){ box.innerHTML=h+'<div style="padding:14px;color:#777;">Aucun équipier sur ce restaurant.</div>'; return; }
+  h+='<div style="overflow-x:auto;"><table style="border-collapse:collapse;font-size:.78rem;"><thead><tr style="border-bottom:2px solid #444;">';
+  h+='<th style="text-align:left;padding:6px 8px;color:#fff;position:sticky;left:0;background:#1a1a1a;white-space:nowrap;">Salarié</th>';
+  cols.forEach(function(p){ h+='<th style="padding:4px 2px;color:#fff;"><div style="writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;font-size:.72rem;font-weight:600;height:96px;">'+p+'</div></th>'; });
+  h+='</tr></thead><tbody>';
+  eq.forEach(function(e){
+    var q=(e.infos&&e.infos.qualifs)||[];
+    h+='<tr style="border-bottom:1px solid #2a2a2a;"><td style="padding:6px 8px;font-weight:600;color:#eee;white-space:nowrap;position:sticky;left:0;background:#161616;">'+e.name+' <span id="ee-comp-st-'+e.id+'" style="font-size:.7rem;color:#3ecf8e;"></span></td>';
+    cols.forEach(function(p){
+      var on=q.indexOf(p)>=0;
+      var pEsc=p.replace(/'/g,"\\'");
+      h+='<td onclick="hrEEToggleQualif(\''+e.id+'\',\''+pEsc+'\')" style="cursor:pointer;text-align:center;padding:0;width:28px;height:28px;'+(on?'background:#1d7a3a;color:#fff;font-weight:800;':'color:#444;')+'">'+(on?'✓':'·')+'</td>';
+    });
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  box.innerHTML=h;
+}
+function hrEEToggleQualif(id, poste){
+  var e=_hrEEQualifBuf(id); if(!e) return;
+  var i=e.infos.qualifs.indexOf(poste);
+  if(i>=0) e.infos.qualifs.splice(i,1); else e.infos.qualifs.push(poste);
+  hrEERenderCompetences();
+  _hrEESaveInfos(id,'ee-comp-st-');
+}
+window.hrEEToggleQualif=hrEEToggleQualif;
+
+// Sauvegarde infos d'un employé (Supabase), avec petit statut visuel (élément id = prefix+empId)
+var _hrEESaveTimers={};
+function _hrEESaveInfos(id, stPrefix){
+  var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return;
+  var st=document.getElementById((stPrefix||'')+id);
+  if(st) st.textContent='⏳';
+  // léger debounce par employé pour éviter d'enchaîner les patchs sur les saisies rapides
+  if(_hrEESaveTimers[id]) clearTimeout(_hrEESaveTimers[id]);
+  _hrEESaveTimers[id]=setTimeout(function(){
+    sb.patch('bks_employees','id=eq.'+e.id,{infos:e.infos})
+      .then(function(){ var s=document.getElementById((stPrefix||'')+id); if(s){ s.textContent='✅'; setTimeout(function(){ var s2=document.getElementById((stPrefix||'')+id); if(s2) s2.textContent=''; },1800); } })
+      .catch(function(err){ console.error(err); var s=document.getElementById((stPrefix||'')+id); if(s) s.textContent='❌'; });
+  },400);
+}
 function hrEtatSetResto(resto){
   HR_ETAT_RESTO_FILTRE=(resto||'').toLowerCase();
   document.querySelectorAll('#etat-equipe-resto .rf').forEach(function(b){b.classList.remove('on');});
@@ -12480,33 +12682,63 @@ function renderNP(){
   g.innerHTML='';
   const postes={};
   // On ne garde QUE les postes non productifs (type 'np'), indépendants du CA.
-  // La base minimum n'est plus affichée ici : ce sont les grilles de positionnement qui décident.
+  // Chaque poste regroupe ses lignes en RÈGLES (créneaux partageant mêmes jours+freq+nb).
+  const keyOf=(b)=>JSON.stringify([b[4]||null, b[5]||null, (b[6]!=null?b[6]:1)]);
   BASE_MIN.filter(b=>b[3]==='np').forEach(b=>{
-    if(!postes[b[0]])postes[b[0]]={name:b[0],slots:[],type:b[3],jours:(Array.isArray(b[4])?b[4]:null),freq:(b[5]||null)};
-    postes[b[0]].slots.push(`${fmt(b[1])}–${fmt(b[2])}`);
+    if(!postes[b[0]]) postes[b[0]]={name:b[0], regles:[]};
+    const k=keyOf(b);
+    let r=postes[b[0]].regles.find(x=>x.key===k);
+    if(!r){
+      r={key:k, jours:(Array.isArray(b[4])?b[4]:null), freq:(b[5]||null), nb:(b[6]!=null?b[6]:1), slots:[]};
+      postes[b[0]].regles.push(r);
+    }
+    r.slots.push(`${fmt(b[1])}–${fmt(b[2])}`);
   });
   const liste=Object.values(postes);
   if(!liste.length){
     g.innerHTML='<div style="color:var(--mu);font-size:13px;padding:1rem">Aucun poste non productif défini pour le moment.</div>';
     return;
   }
+  const JL=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  // Construit le texte d'une règle (horaires · jours/fréquence · nb personnes)
+  function regleTxt(r){
+    const estMensuel = r.freq && r.freq.type==='mensuel';
+    const joursTxt = (Array.isArray(r.jours) && r.jours.length && r.jours.length<7)
+      ? r.jours.slice().sort((a,b)=>a-b).map(j=>JL[j]).join(' · ')
+      : 'Toute la semaine';
+    const freqTxt = hrNpFreqLabel(r.freq);
+    const planTxt = estMensuel ? freqTxt : (joursTxt + (freqTxt ? ' · '+freqTxt : ''));
+    let nbTxt='';
+    const nb=r.nb;
+    if(typeof nb==='number'){ if(nb>1) nbTxt=nb+' pers.'; }
+    else if(nb && typeof nb==='object'){
+      const def=nb.defaut!=null?nb.defaut:1;
+      const parts=[];
+      if(nb.parJour){ Object.keys(nb.parJour).sort((a,b)=>a-b).forEach(j=>parts.push(JL[j]+'='+nb.parJour[j])); }
+      nbTxt=def+' déf.'+(parts.length?' · '+parts.join(' · '):'');
+    }
+    return {slots:r.slots.join(' · '), plan:planTxt, nb:nbTxt};
+  }
   liste.forEach(np=>{
     const c=colFor(np.name);
     const nomEsc = np.name.replace(/'/g,"\\'");
-    const JL=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-    const estMensuel = np.freq && np.freq.type==='mensuel';
-    const joursTxt = (Array.isArray(np.jours) && np.jours.length && np.jours.length<7)
-      ? np.jours.slice().sort((a,b)=>a-b).map(j=>JL[j]).join(' · ')
-      : 'Toute la semaine';
-    const freqTxt = hrNpFreqLabel(np.freq);
-    // En mensuel : on affiche juste la fréquence (la date du mois). Sinon : jours + fréquence.
-    const planTxt = estMensuel ? freqTxt : (joursTxt + (freqTxt ? ' · '+freqTxt : ''));
+    const multi = np.regles.length>1;
+    // Bloc HTML pour chaque règle
+    const reglesHTML = np.regles.map((r,i)=>{
+      const tx=regleTxt(r);
+      const tete = multi ? `<div style="font-size:9px;color:var(--mu);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:1px">Règle ${i+1}</div>` : '';
+      return `<div style="${multi?'border-left:2px solid '+c.bg+';padding-left:8px;':''}margin-top:${i>0?6:0}px">
+        ${tete}
+        <div class="hr-np-ft"><div class="hr-np-dt" style="background:${c.bg}"></div><span class="hr-np-tm">${tx.slots}</span></div>
+        <div style="font-size:10px;color:var(--ac);font-family:'DM Mono',monospace;margin-top:2px">📅 ${tx.plan}</div>
+        ${tx.nb?`<div style="font-size:10px;color:var(--ac);font-family:'DM Mono',monospace;margin-top:2px">👥 ${tx.nb}</div>`:''}
+      </div>`;
+    }).join('');
     const card=document.createElement('div');card.className='hr-np-card';
     card.innerHTML=`
       <div class="hr-np-top"><span class="hr-np-nm">${np.name}</span><span class="hr-np-bg">Non productif</span></div>
-      <div class="hr-np-ft"><div class="hr-np-dt" style="background:${c.bg}"></div><span class="hr-np-tm">${np.slots.join(' · ')}</span></div>
-      <div style="font-size:10px;color:var(--ac);font-family:'DM Mono',monospace;margin-top:2px">📅 ${planTxt}</div>
-      <div style="display:flex;gap:6px;margin-top:4px;align-items:center;flex-wrap:wrap">
+      ${reglesHTML}
+      <div style="display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap">
         <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mu);cursor:pointer">
           <input type="color" value="${c.bg}" onchange="hrSetNpColor('${nomEsc}', this.value)" style="width:26px;height:26px;border:none;background:none;cursor:pointer;padding:0">
           Couleur
@@ -12521,77 +12753,10 @@ function renderNP(){
 
 // ── Gestion des postes non productifs (ajout / modif / suppression), par resto ──
 var HR_NP_EDIT_NOM = null; // nom du poste en cours d'édition (null = ajout)
+var _HR_NP_RID = 0;        // compteur d'identifiants de règles (unicité DOM)
 
-// ── Sélecteur de jours d'un poste non productif ──
-function hrNpToggleJour(btn){ btn.classList.toggle('hr-j-on'); }
-function hrNpJoursSemaine(){
-  document.querySelectorAll('#hrx-np-jours .hr-np-jour').forEach(b=>b.classList.add('hr-j-on'));
-}
-// Lit les jours cochés → tableau d'indices [0..6] (0=lundi). Vide = aucun coché.
-function _hrNpReadJours(){
-  return [...document.querySelectorAll('#hrx-np-jours .hr-np-jour.hr-j-on')]
-    .map(b=>parseInt(b.getAttribute('data-j'),10)).sort((a,b)=>a-b);
-}
-// Coche les jours fournis (tableau d'indices). Si null/vide → tous (toute la semaine).
-function _hrNpSetJours(jours){
-  const tous = !Array.isArray(jours) || jours.length===0;
-  document.querySelectorAll('#hrx-np-jours .hr-np-jour').forEach(b=>{
-    const j=parseInt(b.getAttribute('data-j'),10);
-    b.classList.toggle('hr-j-on', tous || jours.indexOf(j)>=0);
-  });
-}
-window.hrNpToggleJour=hrNpToggleJour;
-window.hrNpJoursSemaine=hrNpJoursSemaine;
+const _JL_NP=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 
-// ── Sélecteur de fréquence d'un poste non productif ──
-// Sélectionne un bouton fréquence et bascule l'affichage : jours (hebdo) ou date du mois (mensuel).
-function hrNpSetFreq(btn){
-  document.querySelectorAll('#hrx-np-freq .hr-np-freq').forEach(b=>b.classList.remove('hr-f-on'));
-  btn.classList.add('hr-f-on');
-  const f = btn.getAttribute('data-f');
-  const joursWrap = document.getElementById('hrx-np-jours-wrap');
-  const moisWrap  = document.getElementById('hrx-np-mois-wrap');
-  const ref       = document.getElementById('hrx-np-freq-ref');
-  // hebdo1 / hebdo2 → on choisit les jours ; mensuel → on choisit la date du mois
-  if(joursWrap) joursWrap.style.display = (f==='mensuel') ? 'none' : '';
-  if(moisWrap)  moisWrap.style.display  = (f==='mensuel') ? '' : 'none';
-  // "à partir de la semaine du" : visible seulement pour "toutes les 2 semaines"
-  if(ref) ref.style.display = (f==='hebdo2') ? 'flex' : 'none';
-  // remplir le select des jours du mois (1..31) si pas déjà fait
-  const sel=document.getElementById('hrx-np-mois-jour');
-  if(sel && !sel.options.length){
-    let html=''; for(let i=1;i<=31;i++) html+=`<option value="${i}">${i}</option>`;
-    sel.innerHTML=html;
-  }
-}
-window.hrNpSetFreq=hrNpSetFreq;
-
-// Lit la fréquence choisie → objet freq (ou null = toutes les semaines)
-function _hrNpReadFreq(){
-  const btn = document.querySelector('#hrx-np-freq .hr-np-freq.hr-f-on');
-  const f = btn ? btn.getAttribute('data-f') : 'hebdo1';
-  if(f==='hebdo1' || !f) return null; // toutes les semaines
-  if(f==='mensuel'){
-    const jourMois = parseInt(document.getElementById('hrx-np-mois-jour')?.value||'1',10);
-    return {type:'mensuel', jourMois};
-  }
-  // hebdo2 → toutes les 2 semaines
-  const ref = document.getElementById('hrx-np-freq-ref-date')?.value || null;
-  const o = {type:'hebdo', n:2};
-  if(ref) o.ref = ref;
-  return o;
-}
-// Applique une fréquence (objet) aux contrôles du formulaire
-function _hrNpSetFreq(freq){
-  let f='hebdo1';
-  if(freq && freq.type==='mensuel') f='mensuel';
-  else if(freq && freq.type==='hebdo') f='hebdo2';
-  const btn = document.querySelector(`#hrx-np-freq .hr-np-freq[data-f="${f}"]`)
-           || document.querySelector('#hrx-np-freq .hr-np-freq[data-f="hebdo1"]');
-  if(btn) hrNpSetFreq(btn);
-  if(freq && freq.type==='hebdo' && freq.ref){ const d=document.getElementById('hrx-np-freq-ref-date'); if(d) d.value=freq.ref; }
-  if(freq && freq.type==='mensuel'){ const s=document.getElementById('hrx-np-mois-jour'); if(s) s.value=String(freq.jourMois||1); }
-}
 // Texte lisible d'une fréquence (pour les cartes)
 function hrNpFreqLabel(freq){
   if(!freq || !freq.type || freq.type==='hebdo1') return '';
@@ -12601,36 +12766,310 @@ function hrNpFreqLabel(freq){
 }
 window.hrNpFreqLabel=hrNpFreqLabel;
 
-// Construit une ligne de créneau (début + fin + bouton supprimer) dans le formulaire
-function _hrNpSlotRow(deb, fin){
+function _hmFromTime(t){ // 'HH:MM' -> minutes (gère l'après-minuit : <5h => +24h)
+  const [h,m]=t.split(':').map(Number);
+  return hm(h, m||0);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FORMULAIRE À RÈGLES MULTIPLES
+// Un poste = un nom + plusieurs RÈGLES. Chaque règle est autonome :
+//   - ses créneaux horaires (1 ou plusieurs)
+//   - sa fréquence (toutes les semaines / 2 semaines / mensuel)
+//   - ses jours (hebdo) OU sa date du mois (mensuel)
+//   - son nombre de personnes (global, ou par jour)
+// Chaque règle devient, à l'enregistrement, autant de lignes BASE_MIN que de créneaux,
+// toutes partageant [nom, deb, fin, 'np', jours, freq, nb].
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── Construit le HTML d'UNE règle (bloc autonome) ──
+function _hrNpRegleHTML(rid){
+  return `
+  <div class="hrx-np-regle" data-rid="${rid}" style="background:var(--s2);border:1px solid var(--bd2);border-radius:10px;padding:.9rem;position:relative">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
+      <span class="hrx-np-regle-titre" style="font-size:12px;font-weight:700;color:var(--ac);font-family:'DM Mono',monospace">Règle</span>
+      <button type="button" class="hr-btn hrx-np-regle-del" title="Supprimer cette règle" style="padding:4px 10px;font-size:11px;color:#f87171;border-color:rgba(248,113,113,.4)">✕ Retirer</button>
+    </div>
+
+    <div class="hr-cc" style="margin-bottom:.4rem"><label>Créneaux horaires</label></div>
+    <div class="hrx-np-slots" style="display:flex;flex-direction:column;gap:8px;margin-bottom:.6rem"></div>
+    <button type="button" class="hr-btn hrx-np-add-slot" style="padding:6px 14px;font-size:12px">+ Ajouter un créneau</button>
+    <div class="hr-ssub" style="margin:8px 0 0;font-size:11px">Pour une tâche de nuit (après minuit), mets une fin comme 01:30 ou 02:00.</div>
+
+    <div class="hr-cc" style="margin:14px 0 .4rem"><label>Fréquence</label></div>
+    <div class="hrx-np-freq" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <button type="button" class="hr-np-freq hr-f-on" data-f="hebdo1">Toutes les semaines</button>
+      <button type="button" class="hr-np-freq" data-f="hebdo2">Toutes les 2 semaines</button>
+      <button type="button" class="hr-np-freq" data-f="mensuel">Tous les mois</button>
+    </div>
+
+    <div class="hrx-np-jours-wrap">
+      <div class="hr-cc" style="margin:12px 0 .4rem"><label>Jours d'application</label></div>
+      <div class="hrx-np-jours" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <button type="button" class="hr-np-jour" data-j="0">Lun</button>
+        <button type="button" class="hr-np-jour" data-j="1">Mar</button>
+        <button type="button" class="hr-np-jour" data-j="2">Mer</button>
+        <button type="button" class="hr-np-jour" data-j="3">Jeu</button>
+        <button type="button" class="hr-np-jour" data-j="4">Ven</button>
+        <button type="button" class="hr-np-jour" data-j="5">Sam</button>
+        <button type="button" class="hr-np-jour" data-j="6">Dim</button>
+        <button type="button" class="hr-btn hrx-np-jours-all" style="padding:6px 12px;font-size:11px;margin-left:6px">Toute la semaine</button>
+      </div>
+      <div class="hrx-np-freq-ref" style="display:none;margin-top:10px;align-items:center;gap:8px;flex-wrap:wrap">
+        <label style="font-size:11px;color:var(--mu);font-family:'DM Mono',monospace">À partir de la semaine du</label>
+        <input type="date" class="hrx-np-freq-ref-date" style="background:var(--s1);border:1px solid var(--bd2);border-radius:8px;padding:6px 10px;font-size:13px;color:var(--tx);font-family:'DM Mono',monospace">
+      </div>
+    </div>
+
+    <div class="hrx-np-mois-wrap" style="display:none">
+      <div class="hr-cc" style="margin:12px 0 .4rem"><label>Date dans le mois</label></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--mu)">Le</span>
+        <select class="hrx-np-mois-jour" style="background:var(--s1);border:1px solid var(--bd2);border-radius:8px;padding:6px 10px;font-size:13px;color:var(--tx);font-family:'DM Mono',monospace"></select>
+        <span style="font-size:12px;color:var(--mu)">de chaque mois</span>
+      </div>
+      <div class="hr-ssub" style="margin:6px 0 0;font-size:11px">Si le mois n'a pas ce jour (ex. 31), il tombe le dernier jour du mois.</div>
+    </div>
+
+    <div class="hr-cc" style="margin:14px 0 .4rem"><label>Nombre de personnes</label></div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-size:12px;color:var(--mu)">Par défaut</span>
+      <input type="number" min="1" max="20" step="1" value="1" class="hrx-np-nb-defaut"
+        style="width:64px;background:var(--s1);border:1px solid var(--bd2);border-radius:8px;padding:7px 11px;font-size:13px;color:var(--tx);font-family:'DM Mono',monospace;text-align:center">
+      <span style="font-size:12px;color:var(--mu)">personne(s)</span>
+      <button type="button" class="hr-btn hrx-np-nb-toggle" style="padding:6px 12px;font-size:11px;margin-left:6px">Régler jour par jour</button>
+    </div>
+    <div class="hrx-np-nb-parjour" style="display:none;margin-top:10px">
+      <div class="hr-ssub" style="margin:0 0 6px;font-size:11px">Laisse vide pour utiliser le nombre par défaut. Renseigne un jour pour l'écraser (ex : Mar = 3).</div>
+      <div class="hrx-np-nb-jours" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end"></div>
+    </div>
+  </div>`;
+}
+
+// ── Helpers SCOPÉS À UNE RÈGLE (reg = élément .hrx-np-regle) ──
+function _hrNpRegToggleJour(reg, btn){
+  btn.classList.toggle('hr-j-on');
+  const w=reg.querySelector('.hrx-np-nb-parjour');
+  if(w && w.style.display!=='none') _hrNpRegRenderJoursNb(reg);
+}
+function _hrNpRegJoursSemaine(reg){
+  reg.querySelectorAll('.hrx-np-jours .hr-np-jour').forEach(b=>b.classList.add('hr-j-on'));
+  const w=reg.querySelector('.hrx-np-nb-parjour');
+  if(w && w.style.display!=='none') _hrNpRegRenderJoursNb(reg);
+}
+function _hrNpRegReadJours(reg){
+  return [...reg.querySelectorAll('.hrx-np-jours .hr-np-jour.hr-j-on')]
+    .map(b=>parseInt(b.getAttribute('data-j'),10)).sort((a,b)=>a-b);
+}
+function _hrNpRegSetJours(reg, jours){
+  const tous = !Array.isArray(jours) || jours.length===0;
+  reg.querySelectorAll('.hrx-np-jours .hr-np-jour').forEach(b=>{
+    const j=parseInt(b.getAttribute('data-j'),10);
+    b.classList.toggle('hr-j-on', tous || jours.indexOf(j)>=0);
+  });
+}
+function _hrNpRegSetFreq(reg, btn){
+  reg.querySelectorAll('.hrx-np-freq .hr-np-freq').forEach(b=>b.classList.remove('hr-f-on'));
+  btn.classList.add('hr-f-on');
+  const f=btn.getAttribute('data-f');
+  const joursWrap=reg.querySelector('.hrx-np-jours-wrap');
+  const moisWrap =reg.querySelector('.hrx-np-mois-wrap');
+  const ref      =reg.querySelector('.hrx-np-freq-ref');
+  if(joursWrap) joursWrap.style.display=(f==='mensuel')?'none':'';
+  if(moisWrap)  moisWrap.style.display =(f==='mensuel')?'':'none';
+  if(ref) ref.style.display=(f==='hebdo2')?'flex':'none';
+  const sel=reg.querySelector('.hrx-np-mois-jour');
+  if(sel && !sel.options.length){
+    let html=''; for(let i=1;i<=31;i++) html+=`<option value="${i}">${i}</option>`;
+    sel.innerHTML=html;
+  }
+}
+function _hrNpRegReadFreq(reg){
+  const btn=reg.querySelector('.hrx-np-freq .hr-np-freq.hr-f-on');
+  const f=btn?btn.getAttribute('data-f'):'hebdo1';
+  if(f==='hebdo1'||!f) return null;
+  if(f==='mensuel'){
+    const jm=parseInt(reg.querySelector('.hrx-np-mois-jour')?.value||'1',10);
+    return {type:'mensuel', jourMois:jm};
+  }
+  const ref=reg.querySelector('.hrx-np-freq-ref-date')?.value || null;
+  const o={type:'hebdo', n:2}; if(ref) o.ref=ref; return o;
+}
+function _hrNpRegApplyFreq(reg, freq){
+  let f='hebdo1';
+  if(freq && freq.type==='mensuel') f='mensuel';
+  else if(freq && freq.type==='hebdo') f='hebdo2';
+  const btn=reg.querySelector('.hrx-np-freq .hr-np-freq[data-f="'+f+'"]')
+         || reg.querySelector('.hrx-np-freq .hr-np-freq[data-f="hebdo1"]');
+  if(btn) _hrNpRegSetFreq(reg, btn);
+  if(freq && freq.type==='hebdo' && freq.ref){ const d=reg.querySelector('.hrx-np-freq-ref-date'); if(d) d.value=freq.ref; }
+  if(freq && freq.type==='mensuel'){ const s=reg.querySelector('.hrx-np-mois-jour'); if(s) s.value=String(freq.jourMois||1); }
+}
+
+// ── Créneaux scopés à une règle ──
+function _hrNpRegSlotRow(deb, fin){
   const row=document.createElement('div');
   row.className='hrx-np-slot-row';
   row.style.cssText='display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap';
   row.innerHTML=`
-    <div class="hr-cc"><label>Début</label><input class="hrx-np-deb" type="time" value="${deb||'09:00'}" style="background:var(--s2);border:1px solid var(--bd2);border-radius:8px;padding:7px 11px;font-size:13px;color:var(--tx);font-family:'DM Mono',monospace"></div>
-    <div class="hr-cc"><label>Fin</label><input class="hrx-np-fin" type="time" value="${fin||'11:00'}" style="background:var(--s2);border:1px solid var(--bd2);border-radius:8px;padding:7px 11px;font-size:13px;color:var(--tx);font-family:'DM Mono',monospace"></div>
-    <button type="button" class="hr-btn" title="Supprimer ce créneau" onclick="hrNpRemoveSlot(this)" style="padding:7px 11px;font-size:13px;color:#f87171;border-color:rgba(248,113,113,.4)">✕</button>
+    <div class="hr-cc"><label>Début</label><input class="hrx-np-deb" type="time" value="${deb||'09:00'}" style="background:var(--s1);border:1px solid var(--bd2);border-radius:8px;padding:7px 11px;font-size:13px;color:var(--tx);font-family:'DM Mono',monospace"></div>
+    <div class="hr-cc"><label>Fin</label><input class="hrx-np-fin" type="time" value="${fin||'11:00'}" style="background:var(--s1);border:1px solid var(--bd2);border-radius:8px;padding:7px 11px;font-size:13px;color:var(--tx);font-family:'DM Mono',monospace"></div>
+    <button type="button" class="hr-btn hrx-np-del-slot" title="Supprimer ce créneau" style="padding:7px 11px;font-size:13px;color:#f87171;border-color:rgba(248,113,113,.4)">✕</button>
   `;
   return row;
 }
-// Ajoute un créneau au formulaire (vide par défaut, ou pré-rempli)
-function hrNpAddSlot(deb, fin){
-  const box=document.getElementById('hrx-np-slots'); if(!box) return;
-  box.appendChild(_hrNpSlotRow(deb, fin));
+function _hrNpRegAddSlot(reg, deb, fin){
+  const box=reg.querySelector('.hrx-np-slots'); if(!box) return;
+  box.appendChild(_hrNpRegSlotRow(deb, fin));
 }
-// Supprime un créneau (garde toujours au moins un créneau affiché)
-function hrNpRemoveSlot(btn){
-  const box=document.getElementById('hrx-np-slots'); if(!box) return;
-  const row=btn.closest('.hrx-np-slot-row'); if(!row) return;
-  if(box.querySelectorAll('.hrx-np-slot-row').length<=1){
-    // dernier créneau : on le vide plutôt que de le retirer
-    row.querySelector('.hrx-np-deb').value='09:00';
-    row.querySelector('.hrx-np-fin').value='11:00';
+function _hrNpRegReadSlots(reg){
+  const rows=[...reg.querySelectorAll('.hrx-np-slots .hrx-np-slot-row')];
+  const slots=[];
+  for(const r of rows){
+    const deb=r.querySelector('.hrx-np-deb').value;
+    const fin=r.querySelector('.hrx-np-fin').value;
+    if(!deb||!fin) continue;
+    let s=_hmFromTime(deb), e=_hmFromTime(fin);
+    if(e<=s) e+=24*60;
+    slots.push([s,e]);
+  }
+  return slots;
+}
+
+// ── Nombre de personnes scopé à une règle ──
+function _hrNpRegToggleParJour(reg){
+  const wrap=reg.querySelector('.hrx-np-nb-parjour');
+  const btn=reg.querySelector('.hrx-np-nb-toggle');
+  if(!wrap) return;
+  const open=wrap.style.display==='none'||!wrap.style.display;
+  wrap.style.display=open?'block':'none';
+  if(btn) btn.textContent=open?'Masquer le réglage par jour':'Régler jour par jour';
+  if(open) _hrNpRegRenderJoursNb(reg);
+}
+function _hrNpRegRenderJoursNb(reg, prefill){
+  const box=reg.querySelector('.hrx-np-nb-jours'); if(!box) return;
+  const actuel=prefill||{};
+  if(!prefill){
+    box.querySelectorAll('input[data-jn]').forEach(inp=>{
+      const j=parseInt(inp.getAttribute('data-jn'),10);
+      if(inp.value!=='') actuel[j]=inp.value;
+    });
+  }
+  let jours=_hrNpRegReadJours(reg);
+  if(!jours.length) jours=[0,1,2,3,4,5,6];
+  box.innerHTML='';
+  jours.forEach(j=>{
+    const v=(actuel[j]!=null)?actuel[j]:'';
+    const cell=document.createElement('div'); cell.className='hr-cc';
+    cell.innerHTML=`<label>${_JL_NP[j]}</label><input type="number" min="1" max="20" step="1" data-jn="${j}" value="${v}" placeholder="—" style="width:58px;background:var(--s1);border:1px solid var(--bd2);border-radius:8px;padding:7px 9px;font-size:13px;color:var(--tx);font-family:'DM Mono',monospace;text-align:center">`;
+    box.appendChild(cell);
+  });
+}
+function _hrNpRegReadNb(reg){
+  const def=Math.max(1, parseInt(reg.querySelector('.hrx-np-nb-defaut')?.value||'1',10)||1);
+  const wrap=reg.querySelector('.hrx-np-nb-parjour');
+  const parJour={};
+  if(wrap && wrap.style.display!=='none'){
+    reg.querySelectorAll('.hrx-np-nb-jours input[data-jn]').forEach(inp=>{
+      const j=parseInt(inp.getAttribute('data-jn'),10);
+      const val=inp.value.trim();
+      if(val!==''){ const n=parseInt(val,10); if(!isNaN(n)&&n>=1&&n!==def) parJour[j]=n; }
+    });
+  }
+  if(Object.keys(parJour).length) return {defaut:def, parJour};
+  return def;
+}
+function _hrNpRegApplyNb(reg, nb){
+  const inpDef=reg.querySelector('.hrx-np-nb-defaut');
+  const wrap=reg.querySelector('.hrx-np-nb-parjour');
+  const btn=reg.querySelector('.hrx-np-nb-toggle');
+  let def=1, parJour=null;
+  if(nb==null){ def=1; }
+  else if(typeof nb==='number'){ def=Math.max(1,Math.round(nb)); }
+  else if(typeof nb==='object'){ def=Math.max(1,Math.round(nb.defaut!=null?nb.defaut:1)); parJour=nb.parJour||null; }
+  if(inpDef) inpDef.value=def;
+  if(parJour && Object.keys(parJour).length){
+    if(wrap) wrap.style.display='block';
+    if(btn) btn.textContent='Masquer le réglage par jour';
+    _hrNpRegRenderJoursNb(reg, parJour);
+  } else {
+    if(wrap) wrap.style.display='none';
+    if(btn) btn.textContent='Régler jour par jour';
+  }
+}
+
+// ── Délégation d'événements sur le conteneur de règles (clics + changements) ──
+function _hrNpBindRegles(){
+  const cont=document.getElementById('hrx-np-regles');
+  if(!cont || cont._bound) return;
+  cont._bound=true;
+  cont.addEventListener('click', function(ev){
+    const reg=ev.target.closest('.hrx-np-regle'); if(!reg) return;
+    if(ev.target.closest('.hr-np-jour')){ _hrNpRegToggleJour(reg, ev.target.closest('.hr-np-jour')); return; }
+    if(ev.target.closest('.hrx-np-jours-all')){ _hrNpRegJoursSemaine(reg); return; }
+    if(ev.target.closest('.hr-np-freq')){ _hrNpRegSetFreq(reg, ev.target.closest('.hr-np-freq')); return; }
+    if(ev.target.closest('.hrx-np-add-slot')){ _hrNpRegAddSlot(reg); return; }
+    if(ev.target.closest('.hrx-np-del-slot')){
+      const box=reg.querySelector('.hrx-np-slots');
+      const row=ev.target.closest('.hrx-np-slot-row');
+      if(box && row){
+        if(box.querySelectorAll('.hrx-np-slot-row').length<=1){
+          row.querySelector('.hrx-np-deb').value='09:00';
+          row.querySelector('.hrx-np-fin').value='11:00';
+        } else row.remove();
+      }
+      return;
+    }
+    if(ev.target.closest('.hrx-np-nb-toggle')){ _hrNpRegToggleParJour(reg); return; }
+    if(ev.target.closest('.hrx-np-regle-del')){ _hrNpRemoveRegle(reg); return; }
+  });
+}
+
+// ── Ajoute une règle (vide ou pré-remplie) au formulaire ──
+function hrNpAddRegle(preset){
+  const cont=document.getElementById('hrx-np-regles'); if(!cont) return null;
+  _hrNpBindRegles();
+  const rid=++_HR_NP_RID;
+  const tmp=document.createElement('div');
+  tmp.innerHTML=_hrNpRegleHTML(rid);
+  const reg=tmp.firstElementChild;
+  cont.appendChild(reg);
+  // créneaux
+  if(preset && Array.isArray(preset.slots) && preset.slots.length){
+    preset.slots.forEach(s=>_hrNpRegAddSlot(reg, fmt(s[0]), fmt(s[1])));
+  } else {
+    _hrNpRegAddSlot(reg, '09:00', '11:00');
+  }
+  // fréquence + jours
+  _hrNpRegApplyFreq(reg, preset && preset.freq ? preset.freq : null);
+  if(!(preset && preset.freq && preset.freq.type==='mensuel')){
+    _hrNpRegSetJours(reg, preset && Array.isArray(preset.jours) ? preset.jours : null);
+  }
+  // nombre de personnes
+  _hrNpRegApplyNb(reg, preset && preset.nb!=null ? preset.nb : 1);
+  _hrNpRenumberRegles();
+  return reg;
+}
+window.hrNpAddRegle=hrNpAddRegle;
+
+function _hrNpRemoveRegle(reg){
+  const cont=document.getElementById('hrx-np-regles'); if(!cont) return;
+  if(cont.querySelectorAll('.hrx-np-regle').length<=1){
+    alert('Un poste doit avoir au moins une règle.');
     return;
   }
-  row.remove();
+  reg.remove();
+  _hrNpRenumberRegles();
 }
-// Sort le formulaire d'une carte agrandie et réinitialise l'agrandissement
+function _hrNpRenumberRegles(){
+  const cont=document.getElementById('hrx-np-regles'); if(!cont) return;
+  [...cont.querySelectorAll('.hrx-np-regle')].forEach((reg,i)=>{
+    const t=reg.querySelector('.hrx-np-regle-titre');
+    if(t) t.textContent='Règle '+(i+1);
+  });
+}
+
+// ── Ouvre / ferme / réinitialise le formulaire ──
 function _hrNpClearEditing(){
   const f=document.getElementById('hrx-np-form');
   const g=document.getElementById('hrx-np-grid');
@@ -12639,9 +13078,14 @@ function _hrNpClearEditing(){
   });
   if(f){
     f.style.gridColumn='';
-    // remettre le form à sa place neutre (juste avant la grille) s'il est ailleurs
     if(g && g.parentNode && f.parentNode!==g.parentNode){ g.parentNode.insertBefore(f, g); }
   }
+}
+function hrNpResetForm(){
+  const n=document.getElementById('hrx-np-nom'); if(n) n.value='';
+  const t=document.getElementById('hrx-np-form-title'); if(t) t.textContent='Nouveau poste non productif';
+  const cont=document.getElementById('hrx-np-regles'); if(cont) cont.innerHTML='';
+  hrNpAddRegle(); // une règle vierge par défaut
 }
 function hrNpToggleForm(){
   const f=document.getElementById('hrx-np-form');
@@ -12650,120 +13094,102 @@ function hrNpToggleForm(){
     HR_NP_EDIT_NOM=null;
     _hrNpClearEditing();
     hrNpResetForm();
-    // ouvrir en mode AJOUT : on déplace le form en haut de la grille
     const grid=document.getElementById('hrx-np-grid');
     if(grid && grid.parentNode) grid.parentNode.insertBefore(f, grid);
     f.style.display='';
     const r=f.getBoundingClientRect();
     const vh=window.innerHeight||document.documentElement.clientHeight;
-    if(r.bottom>vh || r.top<0){
-      f.scrollIntoView({behavior:'smooth', block:'nearest'});
-    }
+    if(r.bottom>vh || r.top<0){ f.scrollIntoView({behavior:'smooth', block:'nearest'}); }
   } else {
     f.style.display='none';
     _hrNpClearEditing();
   }
-}
-function hrNpResetForm(){
-  const n=document.getElementById('hrx-np-nom'); if(n) n.value='';
-  const t=document.getElementById('hrx-np-form-title'); if(t) t.textContent='Nouveau poste non productif';
-  const box=document.getElementById('hrx-np-slots'); if(box) box.innerHTML='';
-  hrNpAddSlot('09:00','11:00'); // un créneau vide par défaut
-  _hrNpSetJours(null); // par défaut : toute la semaine
-  _hrNpSetFreq(null);  // par défaut : toutes les semaines
 }
 function hrNpCancel(){
   HR_NP_EDIT_NOM=null;
   const f=document.getElementById('hrx-np-form'); if(f) f.style.display='none';
   _hrNpClearEditing();
 }
-function _hmFromTime(t){ // 'HH:MM' -> minutes (gère l'après-minuit : <5h => +24h)
-  const [h,m]=t.split(':').map(Number);
-  return hm(h, m||0);
-}
-// Récupère tous les créneaux saisis dans le formulaire, validés
-function _hrNpReadSlots(){
-  const rows=[...document.querySelectorAll('#hrx-np-slots .hrx-np-slot-row')];
-  const slots=[];
-  for(const r of rows){
-    const deb=r.querySelector('.hrx-np-deb').value;
-    const fin=r.querySelector('.hrx-np-fin').value;
-    if(!deb||!fin) continue; // ignore les créneaux incomplets
-    let s=_hmFromTime(deb), e=_hmFromTime(fin);
-    if(e<=s) e+=24*60; // fin après minuit
-    slots.push([s,e]);
-  }
-  return slots;
-}
+
+// ── Enregistrement : transforme toutes les règles en lignes BASE_MIN ──
 function hrNpSave(){
   const nom=(document.getElementById('hrx-np-nom').value||'').trim().toUpperCase();
   if(!nom){ alert('Indique un nom de poste.'); return; }
-  const slots=_hrNpReadSlots();
-  if(!slots.length){ alert('Indique au moins un créneau (début + fin).'); return; }
-  const freq=_hrNpReadFreq(); // null = toutes les semaines ; {type:'mensuel',...} ; {type:'hebdo',n:2,...}
-  let jours;
-  if(freq && freq.type==='mensuel'){
-    // En mode "tous les mois", c'est la date du mois qui décide, pas le jour de semaine.
-    // On stocke [] (= tous les jours) pour ne pas bloquer le filtre par jour.
-    jours = [];
-  } else {
-    jours=_hrNpReadJours();
-    if(!jours.length){ alert('Sélectionne au moins un jour (ou « Toute la semaine »).'); return; }
-    if(jours.length>=7) jours=[]; // tous cochés = toute la semaine (plus léger)
+  const cont=document.getElementById('hrx-np-regles');
+  const regles=cont?[...cont.querySelectorAll('.hrx-np-regle')]:[];
+  if(!regles.length){ alert('Ajoute au moins une règle.'); return; }
+
+  // On compose d'abord toutes les nouvelles lignes ; si une règle est invalide, on stoppe.
+  const nouvellesLignes=[];
+  for(let i=0;i<regles.length;i++){
+    const reg=regles[i];
+    const slots=_hrNpRegReadSlots(reg);
+    if(!slots.length){ alert('Règle '+(i+1)+' : indique au moins un créneau (début + fin).'); return; }
+    const freq=_hrNpRegReadFreq(reg);
+    let jours;
+    if(freq && freq.type==='mensuel'){
+      jours=[]; // la date du mois décide
+    } else {
+      jours=_hrNpRegReadJours(reg);
+      if(!jours.length){ alert('Règle '+(i+1)+' : sélectionne au moins un jour (ou « Toute la semaine »).'); return; }
+      if(jours.length>=7) jours=[]; // tous = toute la semaine
+    }
+    const nb=_hrNpRegReadNb(reg);
+    slots.forEach(([s,e])=>{ nouvellesLignes.push([nom, s, e, 'np', jours, freq, nb]); });
   }
+
   // Si on édite, on retire d'abord toutes les lignes np de ce nom
   if(HR_NP_EDIT_NOM){
     BASE_MIN = BASE_MIN.filter(b=>!(b[3]==='np' && b[0]===HR_NP_EDIT_NOM));
     try{ window.BASE_MIN = BASE_MIN; }catch(e){}
   }
-  // On enregistre une ligne par créneau : [nom, début, fin, 'np', jours, freq]
-  slots.forEach(([s,e])=>{ BASE_MIN.push([nom, s, e, 'np', jours, freq]); });
-  // Persister pour le resto courant
+  nouvellesLignes.forEach(l=>BASE_MIN.push(l));
   BASEMIN_BY_RESTO[HR_GRILLE_RESTO] = BASE_MIN.map(b=>[...b]);
-  hrSauverGrille(); // sauvegarde grille + base-min en base (Supabase)
+  hrSauverGrille();
   HR_NP_EDIT_NOM=null;
   hrNpResetForm();
   document.getElementById('hrx-np-form').style.display='none';
   renderNP();
-  renderAll(); // mettre à jour le planning aussi
+  renderAll();
 }
+
+// ── Édition : regroupe les lignes du poste en RÈGLES (par jours+freq+nb identiques) ──
 function hrNpEdit(nom){
-  // Récupère TOUS les créneaux de ce poste
   const lignes=BASE_MIN.filter(b=>b[3]==='np' && b[0]===nom);
   if(!lignes.length) return;
   HR_NP_EDIT_NOM=nom;
   const f=document.getElementById('hrx-np-form'); if(!f) return;
   const t=document.getElementById('hrx-np-form-title'); if(t) t.textContent='Modifier « '+nom+' »';
   document.getElementById('hrx-np-nom').value=nom;
-  // Remplit un créneau par ligne existante
-  const box=document.getElementById('hrx-np-slots'); if(box) box.innerHTML='';
-  lignes.forEach(l=>hrNpAddSlot(fmt(l[1]), fmt(l[2])));
-  // Recharger les jours d'application (5e élément ; absent = toute la semaine)
-  _hrNpSetJours(lignes[0] && Array.isArray(lignes[0][4]) ? lignes[0][4] : null);
-  _hrNpSetFreq(lignes[0] && lignes[0][5] ? lignes[0][5] : null);
-  // Nettoie un éventuel agrandissement de carte précédent
+
+  // Regrouper : une règle = des créneaux qui partagent les mêmes jours + freq + nb.
+  const groupes=[]; // {key, jours, freq, nb, slots:[[s,e]]}
+  const keyOf=(l)=>JSON.stringify([l[4]||null, l[5]||null, (l[6]!=null?l[6]:1)]);
+  lignes.forEach(l=>{
+    const k=keyOf(l);
+    let g=groupes.find(x=>x.key===k);
+    if(!g){ g={key:k, jours:(Array.isArray(l[4])?l[4]:null), freq:(l[5]||null), nb:(l[6]!=null?l[6]:1), slots:[]}; groupes.push(g); }
+    g.slots.push([l[1], l[2]]);
+  });
+
+  const cont=document.getElementById('hrx-np-regles'); if(cont) cont.innerHTML='';
+  groupes.forEach(g=>hrNpAddRegle({slots:g.slots, jours:g.jours, freq:g.freq, nb:g.nb}));
+
   _hrNpClearEditing();
-  // Le formulaire s'ouvre DANS la carte cliquée : la carte s'agrandit et les
-  // champs apparaissent dessous, dans la même « fenêtre » (pas une colonne à côté).
   const card=(typeof event!=='undefined'&&event)?(event.target&&event.target.closest('.hr-np-card')):null;
   if(card){
     card.classList.add('hr-np-editing');
-    card.style.gridColumn='1 / -1';   // occupe toute la largeur de la grille
-    card.appendChild(f);              // le form devient le contenu bas de la carte
+    card.style.gridColumn='1 / -1';
+    card.appendChild(f);
   } else if(document.getElementById('hrx-np-grid')){
-    // fallback : en haut de la grille, pleine largeur
     const g=document.getElementById('hrx-np-grid');
     f.style.gridColumn='1 / -1';
     g.insertBefore(f, g.firstChild);
   }
   f.style.display='';
-  // On ne recentre PAS la vue brutalement : on scrolle seulement si le
-  // formulaire déborde de l'écran (sinon on ne bouge pas).
   const r=f.getBoundingClientRect();
   const vh=window.innerHeight||document.documentElement.clientHeight;
-  if(r.bottom>vh || r.top<0){
-    f.scrollIntoView({behavior:'smooth', block:'nearest'});
-  }
+  if(r.bottom>vh || r.top<0){ f.scrollIntoView({behavior:'smooth', block:'nearest'}); }
 }
 function hrNpDelete(nom){
   if(!confirm('Supprimer le poste non productif « '+nom+' » ?')) return;
@@ -12779,8 +13205,7 @@ window.hrNpSave=hrNpSave;
 window.hrNpCancel=hrNpCancel;
 window.hrNpEdit=hrNpEdit;
 window.hrNpDelete=hrNpDelete;
-window.hrNpAddSlot=hrNpAddSlot;
-window.hrNpRemoveSlot=hrNpRemoveSlot;
+window.hrNpAddRegle=hrNpAddRegle;
 window.renderNP=renderNP;
 window.hrSetNpColor=hrSetNpColor;
 window.renderGrille=typeof renderGrille==='function'?renderGrille:window.renderGrille;
