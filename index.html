@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-19 20:14 · v167';
+  var EMBEDDED_VERSION = '2026-06-19 20:34 · v168';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -8861,10 +8861,18 @@ function hrCurrentResto(){
 }
 // Charge la grille + base du resto donné (ou défaut si jamais personnalisé)
 function hrSwitchRestoGrille(resto){
-  // Sauver l'état courant pour l'ancien resto
+  // Sauver l'état courant pour l'ancien resto — MAIS jamais écraser un cache déjà
+  // rempli avec une grille/base VIDE (cas d'une bascule de resto déclenchée avant
+  // que hrChargerGrilles() ait fini de charger Supabase : BASE_MIN serait vide et
+  // viendrait effacer les non productifs déjà chargés). On ne sauve que du non-vide,
+  // ou si le cache de l'ancien resto n'existe pas encore.
   if(HR_GRILLE_RESTO){
-    GRILLE_BY_RESTO[HR_GRILLE_RESTO] = GRILLE_EDIT.map(r=>[...r]);
-    BASEMIN_BY_RESTO[HR_GRILLE_RESTO] = BASE_MIN.map(b=>[...b]);
+    if(GRILLE_EDIT && GRILLE_EDIT.length){
+      GRILLE_BY_RESTO[HR_GRILLE_RESTO] = GRILLE_EDIT.map(r=>[...r]);
+    }
+    if((BASE_MIN && BASE_MIN.length) || !BASEMIN_BY_RESTO[HR_GRILLE_RESTO]){
+      BASEMIN_BY_RESTO[HR_GRILLE_RESTO] = (BASE_MIN||[]).map(b=>[...b]);
+    }
   }
   HR_GRILLE_RESTO = resto;
   // Charger l'état du nouveau resto (ou défaut) — clés Supabase en minuscules
@@ -8874,7 +8882,19 @@ function hrSwitchRestoGrille(resto){
   GRILLE_EDIT = (_g || GRILLE_DEFAULT).map(r=>[...r]);
   BASE_MIN    = (_b || BASEMIN_DEFAULT || []).map(b=>[...b]);
   try{ window.BASE_MIN = BASE_MIN; }catch(e){}
-  // Mettre GRILLE (utilisée par getEff) à jour
+  // Filet de sécurité : si la base de CE resto est vide ET que les grilles ne sont
+  // pas encore chargées depuis Supabase, on relance le chargement puis on rebascule
+  // sur ce resto et on rafraîchit l'affichage des non productifs.
+  if((!_b || !_b.length) && typeof HR_GRILLES_CHARGEES!=='undefined' && !HR_GRILLES_CHARGEES && typeof hrChargerGrilles==='function'){
+    var _wanted=resto;
+    hrChargerGrilles().then(function(){
+      var _bb = BASEMIN_BY_RESTO[_wanted] || BASEMIN_BY_RESTO[(_wanted||'').toLowerCase()] || BASEMIN_BY_RESTO[(_wanted||'').toUpperCase()];
+      if(_bb && _bb.length){
+        BASE_MIN = _bb.map(b=>[...b]); try{ window.BASE_MIN=BASE_MIN; }catch(e){}
+        try{ if(typeof renderNP==='function' && document.getElementById('hrx-np-grid')) renderNP(); }catch(e){}
+      }
+    }).catch(function(){});
+  }
   GRILLE.length = 0; GRILLE_EDIT.forEach(r=>GRILLE.push([...r]));
   // Charger les placements sauvegardés de CE resto (chaque resto a les siens)
   try{ if(typeof hrChargerAffect==='function') hrChargerAffect(resto); }catch(e){}
@@ -13794,6 +13814,20 @@ function hrShow(id){
       }
     }catch(e){ console.warn('hrShow ca refresh', e); }
   }
+  // Onglet "Non productifs" : on s'assure que la grille du resto courant est active,
+  // puis on (re)rend la liste — sinon l'écran peut rester vide après un changement
+  // de resto ou un rechargement de grille.
+  if(id==='np'){
+    try{
+      var _r=(typeof hrCurrentResto==='function')?hrCurrentResto():HR_GRILLE_RESTO;
+      if(_r && typeof hrSwitchRestoGrille==='function' &&
+         (_r.toLowerCase()!==(HR_GRILLE_RESTO||'').toLowerCase())){
+        hrSwitchRestoGrille(_r);
+      }
+      if(typeof renderNP==='function') renderNP();
+    }catch(e){ console.warn('hrShow np render', e); }
+  }
+  if(id==='grille'){ try{ if(typeof renderGrille==='function') renderGrille(); }catch(e){} }
 }
 function renderAll(){renderDays();renderMetrics();renderTimeline();}
 
