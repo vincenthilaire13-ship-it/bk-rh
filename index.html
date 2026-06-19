@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-19 15:38 · v163';
+  var EMBEDDED_VERSION = '2026-06-19 15:51 · v165';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1633,7 +1633,7 @@ body.tv-mode #eye-viewas{display:none!important;}
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-19 15:38 · v163';
+const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-19 15:51 · v165';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM' éventuellement suivi de ' · vN'
   try{
@@ -8815,23 +8815,21 @@ window.hrDiag=hrDiag;
 // Grille par défaut = BK 526 (resto par défaut). Chaque resto a SA grille (chargée depuis
 // Supabase planning_grilles, clé minuscule bk500/bk509/bk526). Rien en dur.
 const GRILLE=[
-  [0,    0,  0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-  [25,   2,  1,0,0,0,0,1,0,0,0,0,0,0,0,0],
-  [150,  3,  1,0,0,0,0,1,1,0,0,0,0,0,0,0],
-  [200,  4,  2,0,0,0,0,1,1,0,0,0,0,0,0,0],
-  [250,  6,  2,0,0,0,0,2,1,1,0,0,0,0,0,0],
-  [350,  7,  3,0,0,0,0,2,1,1,0,0,0,0,0,0],
-  [400,  9,  4,0,0,0,0,2,2,1,0,0,0,0,0,0],
-  [500,  12, 4,1,1,0,0,2,2,1,0,0,1,0,0,0],
-  [550,  14, 4,1,1,1,0,2,2,1,0,1,1,0,0,0],
-  [600,  15, 4,1,1,1,0,2,2,1,0,1,1,0,1,0],
-  [750,  16, 4,1,1,1,1,2,2,1,0,1,1,0,1,0],
-  [850,  18, 4,1,1,1,2,2,2,1,0,1,2,0,1,0],
-  [900,  20, 4,1,1,1,2,2,2,1,0,2,2,0,2,0],
-  [950,  22, 4,1,2,1,3,2,2,1,0,2,2,0,2,0],
-  [1000, 23, 4,1,2,1,3,2,2,1,0,2,2,0,2,1],
-  [1100, 24, 4,1,2,1,4,2,2,1,0,2,2,0,2,1],
-  [1200, 26, 4,1,2,1,4,2,3,1,0,2,2,1,2,1],
+  // Grille d'AMORÇAGE technique (avant chargement Supabase) = grille BK500 réelle,
+  // référence 15 min. TOUJOURS écrasée par la grille Supabase du resto au chargement.
+  [0,    1,  1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [50,   2,  1,0,0,0,0,1,0,0,0,0,0,0,0,0],
+  [100,  3,  1,0,0,0,0,1,1,0,0,0,0,0,0,0],
+  [150,  5,  2,0,0,0,0,2,1,0,0,0,0,0,0,0],
+  [200,  5,  2,0,0,0,0,2,1,0,0,0,0,0,0,0],
+  [250,  7,  3,0,0,0,0,2,1,1,0,0,0,0,0,0],
+  [350,  12, 4,1,1,0,0,2,2,1,0,0,0,0,1,0],
+  [600,  14, 4,1,1,1,0,2,2,1,0,1,0,0,1,0],
+  [650,  15, 4,1,1,1,1,2,2,1,0,1,0,0,1,0],
+  [750,  17, 4,1,1,1,2,2,2,2,0,1,0,0,1,0],
+  [850,  16, 4,1,1,1,1,3,2,1,0,1,0,0,1,0],
+  [950,  21, 4,1,2,1,2,2,3,2,1,1,0,0,2,0],
+  [1150, 24, 4,1,2,1,2,2,3,2,1,2,0,1,2,1],
 ];
 const POSTES=['CUISINE','FRITES','SNACK','BROILER','BOARD VOLANT','BORNE','DRIVE','SAT SALLE','PREMIERE CABINE','TABLETTE DRIVE','EMPORTER','COMPTOIR VOLANT','UBER','SAT EMPORTER UBER'];
 
@@ -12986,9 +12984,23 @@ function grilleProtegee(resto){
 }
 function grilleEstProtegee(resto){ const g=grilleProtegee(resto); return !!(g && g.grille && g.grille.length); }
 
-// Garde de sécurité : seules la suite (superviseur) et l'admin peuvent protéger/restaurer
-// la grille CA, ET uniquement après saisie de leur code. Évite toute fausse manip.
+// Garde de sécurité pour protéger/restaurer la grille CA : on demande un code.
+// Code par défaut : 0000 (modifiable plus tard). Accessible quel que soit le rôle.
 function verifierCodeSuite(intitule){
+  const attendus = ['0000'];
+  try{
+    const codes = (typeof getCodes==='function') ? getCodes() : null;
+    if(codes){ if(codes.admin) attendus.push(String(codes.admin)); if(codes.superviseur) attendus.push(String(codes.superviseur)); }
+  }catch(e){}
+  const saisi = prompt('🔐 '+(intitule||'Action protégée')+'\n\nEntrez le code pour confirmer (par défaut : 0000) :');
+  if(saisi===null) return false;
+  if(!attendus.includes(String(saisi).trim())){
+    alert('❌ Code incorrect. Action annulée.');
+    return false;
+  }
+  return true;
+}
+function _verifierCodeSuite_OLD(intitule){
   let role=null, codes=null;
   try{ role = (typeof CURRENT_USER!=='undefined' && CURRENT_USER) ? CURRENT_USER.role : null; }catch(e){}
   try{ codes = (typeof getCodes==='function') ? getCodes() : null; }catch(e){}
