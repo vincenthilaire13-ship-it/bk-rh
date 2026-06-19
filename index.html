@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-19 11:33 · v152';
+  var EMBEDDED_VERSION = '2026-06-19 12:02 · v157';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -519,9 +519,21 @@ body.tv-mode #eye-viewas{display:none!important;}
     <span id="preview-status" style="font-size:.76rem;color:#aaa;"></span>
     <button id="preview-back" onclick="stopPreview()" style="display:none;background:#F5A623;color:#1A1A1A;border:none;border-radius:6px;padding:6px 12px;font-size:.8rem;font-weight:700;cursor:pointer;">↩ Revenir à ma vue</button>
   </div>
+  <!-- ════════ BANDEAU RESTAURANT ACTIF (gros bandeau rouge, visible partout) ════════ -->
+  <div id="resto-actif-bandeau" style="display:none;align-items:center;gap:16px;margin:0 0 12px;padding:16px 24px;border-radius:18px;background:linear-gradient(135deg,#D62300 0%,#FF8732 100%);box-shadow:0 8px 26px rgba(214,35,0,.30);color:#fff;">
+    <span id="resto-actif-pastille" style="font-size:2.2rem;line-height:1;">🍔</span>
+    <div style="display:flex;flex-direction:column;line-height:1.15;">
+      <span id="resto-actif-titre" style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.9rem;letter-spacing:1px;color:#fff;text-transform:uppercase;">Bonjour 👋 BK 500</span>
+      <span id="resto-actif-sstitre" style="font-size:.95rem;color:rgba(255,255,255,.92);font-weight:600;">Près des Arènes</span>
+    </div>
+    <div id="resto-actif-datetime" style="margin-left:auto;text-align:right;line-height:1.2;">
+      <div id="resto-actif-heure" style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.7rem;letter-spacing:1px;color:#fff;">--:--</div>
+      <div id="resto-actif-date" style="font-size:.82rem;color:rgba(255,255,255,.92);font-weight:600;text-transform:capitalize;">—</div>
+    </div>
+  </div>
   <nav id="main-nav">
     <button onclick="goPage('dashboard',this)">🏠 Accueil</button>
-    <button class="active desktop-only" onclick="goPage('equipe',this)">👥 Équipe</button>
+    <button class="desktop-only" onclick="goPage('equipe',this)">👥 Équipe</button>
     <button onclick="goPage('etatequipe',this)">🧑‍🤝‍🧑 État équipe <span id="eebadge" style="background:var(--orange);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
     <button onclick="goPage('horaires',this)">🕐 Horaires</button>
     <button onclick="goPage('docsplanning',this)">📄 Documents planning</button>
@@ -1623,7 +1635,7 @@ body.tv-mode #eye-viewas{display:none!important;}
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-19 11:33 · v152';
+const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-19 12:02 · v157';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM' éventuellement suivi de ' · vN'
   try{
@@ -2176,7 +2188,7 @@ function applyRolePermissions(r){
     var isAdmin = r==='franchise';
     var noAccess = (r==='leader'||r==='equipier');   // ne voient rien
     var canSeeAll = isGlobal || isDir;
-    var rptTabsEl=document.getElementById('rpt-tabs'); if(rptTabsEl) rptTabsEl.style.display = isGlobal?'flex':'none';
+    var rptTabsEl=document.getElementById('rpt-tabs'); if(rptTabsEl) rptTabsEl.style.display = (isGlobal && !( typeof _restoVerrouille==='function' && _restoVerrouille()))?'flex':'none';
 
     // Indicateur global de lecture seule (directeur = lecture seule partout sauf incidents)
     window.__readOnly = isDir;
@@ -2318,17 +2330,76 @@ function changerRestoActif(resto){
 }
 window.changerRestoActif=changerRestoActif;
 
-// Met à jour l'affichage du sélecteur de resto dans l'en-tête
+// Met à jour le sélecteur de resto (en-tête) ET le grand bandeau "restaurant actif"
 function majBadgeRestoActif(){
-  var sel=document.getElementById('resto-actif-sel'); if(!sel) return;
-  if(curUser && curUser.role==='franchise'){
-    sel.style.display='inline-block';
-    sel.value = window.ACTIVE_RESTO || 'ALL';
-  } else {
-    sel.style.display='none';
+  var sel=document.getElementById('resto-actif-sel');
+  // 1) Sélecteur en haut à droite (franchise uniquement)
+  if(sel){
+    if(curUser && curUser.role==='franchise'){
+      sel.style.display='inline-block';
+      sel.value = window.ACTIVE_RESTO || 'ALL';
+    } else {
+      sel.style.display='none';
+    }
   }
+  // 2) Grand bandeau visible sur toutes les pages
+  var band=document.getElementById('resto-actif-bandeau');
+  if(!band) return;
+  // Quel resto afficher ? franchise → ACTIVE_RESTO ; autres rôles → leur resto
+  var rid = (curUser && curUser.role==='franchise')
+    ? (window.ACTIVE_RESTO || 'ALL')
+    : ((curUser && curUser.restoId) || null);
+  if(!curUser){ band.style.display='none'; return; }
+  if(curUser.role==='tv'){ band.style.display='none'; return; }
+  var LABELS={
+    bk500:{t:'BK 500', s:'Près des Arènes'},
+    bk509:{t:'BK 509', s:'Saint-Jean-de-Védas'},
+    bk526:{t:'BK 526', s:'Saint-Clément-de-Rivière'}
+  };
+  var titreEl=document.getElementById('resto-actif-titre');
+  var ssEl=document.getElementById('resto-actif-sstitre');
+  var pastEl=document.getElementById('resto-actif-pastille');
+  if(rid==='ALL' || !rid){
+    // mode "tous les restaurants" : bandeau neutre
+    band.style.display='flex';
+    if(pastEl) pastEl.textContent='🗂️';
+    if(titreEl) titreEl.textContent='Tous les restaurants';
+    if(ssEl) ssEl.textContent='Tu choisis le restaurant page par page';
+    _majBandeauHeure();
+    return;
+  }
+  var key=String(rid).toLowerCase();
+  var info=LABELS[key]||{t:String(rid).toUpperCase(), s:''};
+  band.style.display='flex';
+  if(pastEl) pastEl.textContent='🍔';
+  if(titreEl) titreEl.textContent='Bonjour 👋 '+info.t;
+  if(ssEl) ssEl.textContent=info.s;
+  _majBandeauHeure();
 }
 window.majBadgeRestoActif=majBadgeRestoActif;
+
+// Horloge du bandeau : met à jour l'heure et la date en direct
+var _bandeauHorlogeTimer=null;
+function _majBandeauHeure(){
+  var hEl=document.getElementById('resto-actif-heure');
+  var dEl=document.getElementById('resto-actif-date');
+  if(!hEl && !dEl) return;
+  var now=new Date();
+  if(hEl) hEl.textContent=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  if(dEl){
+    var jours=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+    var mois=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+    dEl.textContent=jours[now.getDay()]+' '+now.getDate()+' '+mois[now.getMonth()]+' '+now.getFullYear();
+  }
+  // (re)démarrer le rafraîchissement chaque minute
+  if(!_bandeauHorlogeTimer){
+    _bandeauHorlogeTimer=setInterval(function(){
+      var b=document.getElementById('resto-actif-bandeau');
+      if(b && b.style.display!=='none'){ _majBandeauHeure(); }
+    }, 30000);
+  }
+}
+window._majBandeauHeure=_majBandeauHeure;
 
 // Entrée effective dans l'app (commun à tous les rôles après resto choisi)
 function _entrerDansApp(r){
@@ -2342,7 +2413,7 @@ function _entrerDansApp(r){
     var startPage;
     if (r==='manager') startPage='incidents';
     else if (r==='leader'||r==='equipier') startPage='noaccess';
-    else startPage='equipe';   // franchise + directeur
+    else startPage='dashboard';   // franchise + directeur → Accueil
     try{
       document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
       var sp=document.getElementById('page-'+startPage); if(sp) sp.classList.add('active');
@@ -2377,7 +2448,7 @@ function logout() {
   _realUser = null;
   try{ var pr=document.getElementById('preview-role'); if(pr) pr.value=''; var bk=document.getElementById('preview-back'); if(bk) bk.style.display='none'; var st=document.getElementById('preview-status'); if(st) st.textContent=''; }catch(e){}
   curUser = null; pinProf = null; pinVal = ''; curResto = null;
-  try{ window.ACTIVE_RESTO = null; var ras=document.getElementById('resto-actif-sel'); if(ras) ras.style.display='none'; }catch(e){}
+  try{ window.ACTIVE_RESTO = null; var ras=document.getElementById('resto-actif-sel'); if(ras) ras.style.display='none'; var rab=document.getElementById('resto-actif-bandeau'); if(rab) rab.style.display='none'; }catch(e){}
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'block';
   showStep('step-resto');
@@ -2405,11 +2476,28 @@ function bkEntrerPage(pageId){
 }
 window.bkEntrerPage=bkEntrerPage;
 
+// VRAI si on est verrouillé sur un restaurant précis (pas de changement page par page).
+// = franchise ayant choisi un resto ≠ "Tous", OU tout rôle mono-resto (directeur/manager).
+// Dans ce cas, les sélecteurs/filtres de resto internes aux pages restent MASQUÉS :
+// le seul moyen de changer de resto est le menu déroulant de l'en-tête.
+function _restoVerrouille(){
+  if(!curUser) return false;
+  if(curUser.role==='franchise') return (window.ACTIVE_RESTO && window.ACTIVE_RESTO!=='ALL');
+  return true; // directeur, manager, etc. : toujours mono-resto
+}
+window._restoVerrouille=_restoVerrouille;
+
 function goPage(id, btn) {
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.querySelectorAll('nav button').forEach(function(b){b.classList.remove('active');});
   document.getElementById('page-'+id).classList.add('active');
-  if (btn) btn.classList.add('active');
+  if (btn) { btn.classList.add('active'); }
+  else {
+    // Pas de bouton passé (navigation programmée) : on retrouve celui de la page pour le surligner.
+    var _labels={dashboard:'Accueil',equipe:'👥 Équipe',etatequipe:'État équipe',horaires:'Horaires',docsplanning:'Documents planning',recrutement:'Recrutement',visite:'Visite',incidents:'Incidents',rapports:'Rapports',planning:'Planning',parametres:'Paramètres',alertes:'Alertes'};
+    var _lbl=_labels[id];
+    if(_lbl){ document.querySelectorAll('#main-nav button').forEach(function(b){ if(b.textContent.indexOf(_lbl)>=0) b.classList.add('active'); }); }
+  }
   if (id==='rapports'){
     // Directeur : forcer son restaurant, pas de choix → pas de tuiles
     if(curUser.role==='directeur'){
@@ -2434,12 +2522,16 @@ function goPage(id, btn) {
     if(!window.__hrDone && window.__hrInit){ window.__hrInit(); }
     var ra=window.ACTIVE_RESTO;
     var _hrBack=document.getElementById('hr-btn-restos');
+    var _hrSel=document.getElementById('hrx-resto-sel');
     if(ra && ra!=='ALL'){
-      // resto verrouillé : on ouvre directement son planning, pas de tuiles
+      // resto verrouillé : on ouvre directement son planning, pas de tuiles,
+      // et on masque le sélecteur de resto interne (changement uniquement via l'en-tête).
       if(_hrBack) _hrBack.style.display='none';
+      if(_hrSel) _hrSel.style.display='none';
       try{ if(typeof hrOuvrirResto==='function') hrOuvrirResto(ra.toUpperCase()); }catch(e){ console.warn('hrOuvrirResto',e); }
     } else {
       if(_hrBack) _hrBack.style.display='';
+      if(_hrSel) _hrSel.style.display='';
       // mode "Tous" : on montre les tuiles de choix
       var hrT=document.getElementById('hr-tiles'); var hrC=document.getElementById('hr-content');
       var hrP=document.getElementById('page-horaires'); if(hrP) hrP.classList.add('bk-tiles-mode');
@@ -2467,6 +2559,8 @@ function goPage(id, btn) {
   if (id==='suivipointage'){ if(curUser.role==='franchise'){ bkEntrerPage('suivipointage'); } else { window.__ptgRestoActif=null; ptgSuiviInit(); } }
   if (id==='planning'){openPlanning();}
   if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();loadSeuilOral();loadMailTpl();renderQr();renderApercuForm();var av=document.getElementById('app-version-badge');if(av){var _now=new Date();var _hd=_now.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})+' à '+String(_now.getHours()).padStart(2,'0')+'h'+String(_now.getMinutes()).padStart(2,'0');av.innerHTML='✓ À jour — '+formatMajDate(APP_VERSION)+' <span style="color:#888;font-weight:400;">· consulté le '+_hd+'</span>';av.style.color='#4CAF50';av.style.borderColor='#2E5E33';} renderParamTiles(); }
+  // Rafraîchir le bandeau "restaurant actif" sur chaque page
+  try{ majBadgeRestoActif(); }catch(e){}
 }
 function setEqTab(r){
   eqTab=r;
@@ -3609,36 +3703,6 @@ function renderEquipe(){
     ['directeur','manager','leader','equipier'].forEach(function(ro){
       var grp=emps.filter(function(e){return e.role===ro;});if(!grp.length)return;
       var ico=ro==='directeur'?'👑':ro==='manager'?'⭐':ro==='leader'?'🎖️':'👤';
-
-      // Cas spécial ÉQUIPIERS : on sépare en 3 sous-groupes selon les compétences
-      if(ro==='equipier'){
-        var ARR=['CUISINE','FRITES','SNACK','BROILER','BOARD VOLANT'];                 // arrière / cuisine
-        var AVA=['BORNE','DRIVE','SAT SALLE','PREMIERE CABINE','TABLETTE DRIVE','EMPORTER','COMPTOIR VOLANT','UBER','SAT EMPORTER UBER']; // avant / comptoir
-        function classe(e){
-          var q=(e.infos&&e.infos.qualifs)||[];
-          var hasArr=q.some(function(p){return ARR.indexOf(p)>=0;});
-          var hasAva=q.some(function(p){return AVA.indexOf(p)>=0;});
-          if(hasArr&&hasAva)return 'poly';
-          if(hasArr)return 'arr';
-          if(hasAva)return 'ava';
-          return 'autre';
-        }
-        var sousGroupes=[
-          {key:'poly', titre:'✅ Polyvalents — savent tout faire', col:'#2e7d32'},
-          {key:'arr',  titre:'🍳 Cuisine / Arrière', col:'#e53935'},
-          {key:'ava',  titre:'🛎️ Comptoir / Avant', col:'#1565c0'},
-          {key:'autre',titre:'👤 Équipiers — postes non renseignés', col:'#888'}
-        ];
-        sousGroupes.forEach(function(sg){
-          var sgrp=grp.filter(function(e){return classe(e)===sg.key;});
-          if(!sgrp.length)return;
-          // tri alphabétique
-          sgrp.sort(function(a,b){return a.name.localeCompare(b.name,'fr');});
-          h+='<div style="font-size:.78rem;color:'+sg.col+';font-weight:700;text-transform:uppercase;letter-spacing:1px;margin:12px 0 5px;">'+sg.titre+' <span style="opacity:.6;">('+sgrp.length+')</span></div>';
-          sgrp.forEach(function(e){ h+=empCardHtml(e,ro,canView,canManage); });
-        });
-        return;
-      }
 
       h+='<div style="font-size:.76rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin:10px 0 5px;">'+ico+' '+cap(ro)+'s</div>';
       grp.sort(function(a,b){return a.name.localeCompare(b.name,'fr');});
@@ -6205,7 +6269,7 @@ function resetCtModele(){
 function renderVisiteList(){
   var list=document.getElementById('visite-list');if(!list)return;
   var isDir=(curUser&&curUser.role==='directeur');
-  document.getElementById('visite-resto-filter').style.display=isDir?'none':'flex';
+  document.getElementById('visite-resto-filter').style.display=_restoVerrouille()?'none':'flex';
   // ── SECTION 1 : visite d'embauche (candidats en période d'essai) ──
   var cands=DB.candidatures.filter(function(c){return (c.statut||'')==='essai';});
   if(isDir)cands=cands.filter(function(c){return c.restoId===curUser.restoId;});
@@ -6296,9 +6360,8 @@ function setCandFilter(f){
   ['nouveau','entretien','retenu','essai','refuse'].forEach(function(s){
     var b=document.getElementById('cst-'+s);if(b)b.classList.toggle('on',s===f);
   });
-  // filtre resto toujours visible (s'applique à tous les sous-onglets) — sauf directeur (un seul resto)
-  var isDir=(curUser&&curUser.role==='directeur');
-  document.getElementById('rec-resto-filter').style.display=isDir?'none':'flex';
+  // filtre resto visible seulement si NON verrouillé sur un restaurant
+  document.getElementById('rec-resto-filter').style.display=_restoVerrouille()?'none':'flex';
   // agenda visible seulement en Entretien
   document.getElementById('rec-agenda-wrap').style.display=(f==='entretien')?'block':'none';
   if(f==='entretien')renderAgenda();
@@ -8646,8 +8709,8 @@ function dashShowBoard(){
   var hello=document.getElementById('dash-hello');if(hello){var h=new Date().getHours();hello.textContent=(h<12?'Bonjour':(h<18?'Bon après-midi':'Bonsoir'))+' 👋';}
   dashRenderTiles();
   var b=document.getElementById('dash-banner');if(b)b.style.display='none';
-  // mode TV : le restaurant est fixe → on masque « Changer de resto »
-  try{ var cb=document.querySelector('.dash-change'); if(cb) cb.style.display=(curUser&&curUser.role==='tv')?'none':''; }catch(e){}
+  // restaurant verrouillé (TV, directeur, ou franchise avec resto choisi) → on masque « Changer de resto »
+  try{ var cb=document.querySelector('.dash-change'); if(cb) cb.style.display=( (typeof _restoVerrouille==='function' && _restoVerrouille()) )?'none':''; }catch(e){}
 }
 function dashRenderTiles(){
   var g=document.getElementById('dash-grid');if(!g)return;
