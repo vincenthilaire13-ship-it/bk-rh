@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-19 15:58 · v166';
+  var EMBEDDED_VERSION = '2026-06-19 20:14 · v167';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -14624,8 +14624,8 @@ async function hrSauverGrille(){
   if(!window.SB) return;
   const payloadBase = {
     resto,
-    grille:  JSON.stringify(GRILLE_BY_RESTO[resto]),
-    basemin: JSON.stringify(BASEMIN_BY_RESTO[resto]),
+    grille:  GRILLE_BY_RESTO[resto],
+    basemin: BASEMIN_BY_RESTO[resto],
     mode:    15,
     maj_le:  new Date().toISOString()
   };
