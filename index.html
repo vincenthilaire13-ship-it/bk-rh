@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-20 00:10 · v176';
+  var EMBEDDED_VERSION = '2026-06-20 02:30 · v182';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -6071,8 +6071,45 @@ function ptgShowActions(){
   } else {
     h+='<div class="ptg-done">✅ Vous avez bien pointé votre journée. Bonne soirée !</div>';
   }
+  // Encadré « Mes demandes » : congés (CP) et indisponibilités (CSS) avec leur statut.
+  try{ h+=_ptgMesDemandes(e.id); }catch(err){ console.warn('_ptgMesDemandes',err); }
   body.innerHTML=h;
 }
+// Liste des demandes du salarié (congés CP / indispos CSS) avec statut validé/attente/refusé.
+function _ptgMesDemandes(empId){
+  var abs=(window.HR_ABSENCES&&window.HR_ABSENCES[empId])||[];
+  function fr(iso){ if(!iso) return ''; var p=String(iso).split('-'); return p.length===3?(p[2]+'/'+p[1]+'/'+p[0]):iso; }
+  // On affiche CP et CSS (les demandes faites par le salarié). On ignore maladie/absence RH.
+  // On masque les demandes dont la date de FIN est passée (congé terminé).
+  var ajd=new Date(); var ajdISO=ajd.getFullYear()+'-'+String(ajd.getMonth()+1).padStart(2,'0')+'-'+String(ajd.getDate()).padStart(2,'0');
+  var dem=abs.filter(function(a){
+    if(!a || (a.motif!=='cp'&&a.motif!=='css')) return false;
+    var fin=a.to||a.from||''; // date de fin (ou début si pas de fin)
+    return !fin || fin>=ajdISO; // garder si pas encore terminée
+  });
+  if(!dem.length){
+    return '<div style="margin-top:14px;padding:12px;background:#161616;border:1px solid #2a2a2a;border-radius:10px;color:#888;font-size:.86rem;text-align:center;">Aucune demande de congé ou d\'indisponibilité.</div>';
+  }
+  // tri par date de début décroissante
+  dem.sort(function(a,b){ return (b.from||'').localeCompare(a.from||''); });
+  var lignes=dem.map(function(a){
+    var typeTxt = a.motif==='cp' ? '🟦 Congé payé' : '🟪 Congé sans solde';
+    var per=fr(a.from)+(a.to&&a.to!==a.from?(' → '+fr(a.to)):'');
+    var st=a.statut, badge;
+    if(st==='valide'){ badge='<span style="color:#3ecf8e;font-weight:700;">✅ Validé</span>'; }
+    else if(st==='refuse'){ badge='<span style="color:#e8623a;font-weight:700;">❌ Refusé</span>'; }
+    else { badge='<span style="color:#e8c468;font-weight:700;">⏳ En attente</span>'; }
+    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border-bottom:1px solid #232323;font-size:.86rem;">'
+      +'<div style="color:#ddd;"><div style="font-weight:600;">'+typeTxt+'</div><div style="color:#999;font-size:.82rem;">'+per+'</div></div>'
+      +'<div style="white-space:nowrap;">'+badge+'</div>'
+    +'</div>';
+  }).join('');
+  return '<div style="margin-top:16px;background:#161616;border:1px solid #2a2a2a;border-radius:10px;overflow:hidden;">'
+    +'<div style="padding:9px 12px;background:#1d1d1d;color:#fff;font-weight:700;font-size:.9rem;border-bottom:1px solid #2a2a2a;">📅 Mes demandes</div>'
+    +lignes
+    +'</div>';
+}
+window._ptgMesDemandes=_ptgMesDemandes;
 
 function ptgAction(type){
   var e=_ptgSel; if(!e) return;
@@ -8941,17 +8978,25 @@ function dashDemEnvoyer(){
   if(!a){ if(typeof toast==='function') toast('Choisis au moins une date sur le calendrier','error'); return; }
   var from=a, to=b;
   if(to<from){ var tmp=from; from=to; to=tmp; }
-  var motif = _dashDemType==='conges' ? 'congés' : 'indisponibilité';
-  if(typeof HR_ABSENCES==='undefined'){ window.HR_ABSENCES={}; }
-  if(!HR_ABSENCES[e.id]) HR_ABSENCES[e.id]=[];
-  HR_ABSENCES[e.id].push({from:from, to:to, motif:motif, statut:'attente', demande_le:new Date().toISOString()});
+  var motif = _dashDemType==='conges' ? 'cp' : 'css';
+  // Toujours travailler sur l'objet GLOBAL partagé (le même que lit État équipe).
+  if(!window.HR_ABSENCES || typeof window.HR_ABSENCES!=='object'){ window.HR_ABSENCES={}; }
+  // Repartir du contenu le plus à jour présent dans le navigateur, pour ne rien perdre.
+  try{ var _loc=localStorage.getItem('hr_absences'); if(_loc){ var _o=JSON.parse(_loc)||{}; if(typeof _hrFusionAbsences==='function'){ window.HR_ABSENCES=_hrFusionAbsences(window.HR_ABSENCES,_o); } } }catch(_e){}
+  if(!window.HR_ABSENCES[e.id]) window.HR_ABSENCES[e.id]=[];
+  window.HR_ABSENCES[e.id].push({from:from, to:to, motif:motif, statut:'attente', demande_le:new Date().toISOString()});
+  // Miroir localStorage TOUT DE SUITE (au cas où la sauvegarde Supabase serait asynchrone/lente).
+  try{ localStorage.setItem('hr_absences', JSON.stringify(window.HR_ABSENCES)); }catch(_e){}
   try{ if(typeof hrSauverAbsences==='function') hrSauverAbsences(); }catch(err){ console.warn('hrSauverAbsences',err); }
+  // Rafraîchir État équipe s'il est ouvert, et le badge.
+  try{ if(typeof updateAlBadge==='function') updateAlBadge(); }catch(_e){}
+  try{ var _ep=document.getElementById('page-etatequipe'); if(_ep&&_ep.classList.contains('active')&&typeof hrRenderEtatEquipe==='function') hrRenderEtatEquipe(); }catch(_e){}
   var ov=document.getElementById('dash-dem-ov');
   if(ov){
     ov.querySelector('div').innerHTML='<div style="text-align:center;padding:18px;">'
       +'<div style="font-size:2.6rem;margin-bottom:8px;">✅</div>'
       +'<div style="color:#eee;font-size:1.1rem;font-weight:800;margin-bottom:6px;">Demande envoyée</div>'
-      +'<div style="color:#aaa;font-size:.9rem;margin-bottom:14px;">'+(motif==='congés'?'Congé':'Indisponibilité')+' du '+from+' au '+to+'.<br>Elle sera validée par la personne qui fait les horaires.</div>'
+      +'<div style="color:#aaa;font-size:.9rem;margin-bottom:14px;">'+(motif==='cp'?'Congé':'Indisponibilité')+' du '+from+' au '+to+'.<br>Elle sera validée par la personne qui fait les horaires.</div>'
       +'<button onclick="document.getElementById(\'dash-dem-ov\').remove()" style="background:#2e6fc2;border:none;color:#fff;font-weight:700;border-radius:8px;padding:9px 22px;cursor:pointer;">Fermer</button>'
       +'</div>';
   }
@@ -11127,20 +11172,20 @@ function _hrFusionAbsences(a, b){
 }
 window._hrFusionAbsences=_hrFusionAbsences;
 function hrSauverAbsences(){
-  try{ localStorage.setItem('hr_absences', JSON.stringify(HR_ABSENCES)); }catch(e){}
+  if(!window.HR_ABSENCES || typeof window.HR_ABSENCES!=='object'){ window.HR_ABSENCES=HR_ABSENCES||{}; }
+  try{ localStorage.setItem('hr_absences', JSON.stringify(window.HR_ABSENCES)); }catch(e){}
   // Relire la base AVANT d'écrire, fusionner (pour ne pas écraser une demande
   // enregistrée ailleurs), puis upsert le tout. Évite la perte par course.
   try{
     if(typeof SB!=='undefined' && SB){
       SB.from('app_config').select('valeur').eq('cle','hr_absences').maybeSingle().then(function(r){
         var distant=(r&&r.data&&r.data.valeur&&typeof r.data.valeur==='object')?r.data.valeur:{};
-        var fusion=_hrFusionAbsences(distant, HR_ABSENCES);
-        HR_ABSENCES=fusion;
-        try{ localStorage.setItem('hr_absences', JSON.stringify(HR_ABSENCES)); }catch(e){}
+        var fusion=_hrFusionAbsences(distant, window.HR_ABSENCES);
+        window.HR_ABSENCES=fusion; HR_ABSENCES=fusion;
+        try{ localStorage.setItem('hr_absences', JSON.stringify(fusion)); }catch(e){}
         SB.from('app_config').upsert({cle:'hr_absences', valeur:fusion},{onConflict:'cle'}).then(function(){}).catch(function(){});
       }).catch(function(){
-        // si la relecture échoue, on écrit quand même ce qu'on a
-        try{ SB.from('app_config').upsert({cle:'hr_absences', valeur:HR_ABSENCES},{onConflict:'cle'}).then(function(){}).catch(function(){}); }catch(e){}
+        try{ SB.from('app_config').upsert({cle:'hr_absences', valeur:window.HR_ABSENCES},{onConflict:'cle'}).then(function(){}).catch(function(){}); }catch(e){}
       });
     }
   }catch(e){}
@@ -11152,7 +11197,7 @@ function hrEstAbsent(empId, isoDate){
   var lst=HR_ABSENCES[empId]; if(!lst||!lst.length) return false;
   for(var i=0;i<lst.length;i++){
     var a=lst[i]; if(!a) continue;
-    if(a.statut==='attente') continue; // demande non validée → ne bloque pas
+    if(a.statut==='attente'||a.statut==='refuse') continue; // non validée → ne bloque pas
     var f=a.from||a.de||'', t=a.to||a.a||a.from||'';
     if(!f) continue; if(!t) t=f;
     if(isoDate>=f && isoDate<=t) return true;
@@ -11240,6 +11285,7 @@ window.hrEffacerAbsence=hrEffacerAbsence;
 // entrée avec : motif, statut ('valide'|'attente'), et créneau optionnel.
 var HR_ETAT_MOTIFS={
   cp:      {label:'Congés payés', court:'CP',      icon:'🟦', col:'#2e6fc2'},
+  css:     {label:'Congé sans solde', court:'CSS', icon:'🟪', col:'#7e57c2'},
   maladie: {label:'Arrêt maladie',court:'Maladie', icon:'🟥', col:'#cc5555'},
   absence: {label:'Absence autorisée / autre', court:'Absence', icon:'🟧', col:'#d98324'},
   indispo: {label:'Indispo ponctuelle', court:'Indispo', icon:'🟨', col:'#c9a227'}
@@ -11328,6 +11374,52 @@ function _hrEEHeader(titre, sousTitre){
 }
 
 // ── Sous-vue ÉTAT / ABSENCES (contenu historique) ──
+// Bloc listant TOUTES les demandes en attente (tous restaurants confondus), avec
+// le nom du salarié et les boutons valider/refuser. Ainsi une demande est toujours
+// visible et validable, même si l'écran est affiché sur un autre restaurant.
+// Formate une date ISO (AAAA-MM-JJ) en JJ/MM/AAAA (français).
+function _hrDateFr(iso){
+  if(!iso) return '';
+  var p=String(iso).split('-');
+  if(p.length!==3) return iso;
+  return p[2]+'/'+p[1]+'/'+p[0];
+}
+window._hrDateFr=_hrDateFr;
+function _hrBlocDemandesEnAttente(){
+  var abs=window.HR_ABSENCES||HR_ABSENCES||{};
+  var items=[];
+  Object.keys(abs).forEach(function(id){
+    (abs[id]||[]).forEach(function(a,idx){
+      if(a && a.statut==='attente'){
+        var e=(DB.employees||[]).find(function(x){return String(x.id)===String(id);});
+        items.push({id:id, idx:idx, a:a, nom:(e&&e.name)||id, resto:(e&&(e.restoId||e.resto_id))||''});
+      }
+    });
+  });
+  if(!items.length) return '';
+  var lignes=items.map(function(it){
+    var a=it.a;
+    var mi=_etatMotifInfo(a.motif);
+    var motifTxt = a.motif==='cp'?'🟦 CP (congés payés)' : (a.motif==='css'?'🟪 CSS (sans solde)' : (mi.icon+' '+mi.court));
+    var per=_hrDateFr(a.from)+(a.to&&a.to!==a.from?(' → '+_hrDateFr(a.to)):'');
+    var restoLbl=(it.resto||'').toUpperCase().replace('BK','BK ');
+    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#1e1a10;border:1px solid #b8860b;border-radius:8px;padding:8px 12px;margin-bottom:6px;flex-wrap:wrap;">'
+      +'<div style="font-size:.86rem;color:#eee;">'
+        +'<b>'+it.nom+'</b> <span style="color:#999;">('+restoLbl+')</span><br>'
+        +'<span style="color:#e8c468;">'+motifTxt+'</span> · <span style="color:#ccc;">'+per+'</span>'
+      +'</div>'
+      +'<div style="white-space:nowrap;">'
+        +'<button onclick="hrEtatValider(\''+it.id+'\','+it.idx+')" style="background:#16321f;border:1px solid #3ecf8e;color:#3ecf8e;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:.82rem;font-weight:700;">✓ Valider</button> '
+        +'<button onclick="hrEtatRefuser(\''+it.id+'\','+it.idx+')" style="background:#3a1a1a;border:1px solid #cc5555;color:#cc5555;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:.82rem;font-weight:700;">✕ Refuser</button>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+  return '<div style="margin-bottom:14px;">'
+    +'<div style="font-size:.9rem;font-weight:800;color:#e8c468;margin-bottom:8px;">⏳ '+items.length+' demande'+(items.length>1?'s':'')+' en attente de validation</div>'
+    +lignes
+    +'</div>';
+}
+window._hrBlocDemandesEnAttente=_hrBlocDemandesEnAttente;
 function _hrEtatRenderAbsences(){
   var box=document.getElementById('etat-equipe-list'); if(!box) return;
   var eq=_etatEquipiers();
@@ -11340,7 +11432,7 @@ function _hrEtatRenderAbsences(){
     lst.forEach(function(a,idx){ if(!a) return; var item={a:a,idx:idx}; (a.statut==='attente'?attentes:valides).push(item); });
     function chip(item, enAttente){
       var a=item.a; var mi=_etatMotifInfo(a.motif);
-      var per=(a.from||'')+(a.to&&a.to!==a.from?'→'+a.to:'');
+      var per=_hrDateFr(a.from)+(a.to&&a.to!==a.from?'→'+_hrDateFr(a.to):'');
       var cren=(a.creneau&&a.creneau.from)?(' '+a.creneau.from+'-'+a.creneau.to):'';
       var bg=enAttente?'#2a2a2a':mi.col;
       var bord=enAttente?('1px dashed '+mi.col):'none';
@@ -11373,7 +11465,7 @@ function _hrEtatRenderAbsences(){
     _hrEEHeader('État / Absences','avant de lancer le placement')
     +'<div style="font-size:.84rem;color:#aaa;margin-bottom:10px;">Déclare ici l\'état de chaque salarié <b>avant de lancer le placement</b>. Les états validés (CP, maladie, absence, indispo) sont automatiquement respectés par « Placer le mois / l\'année » : le salarié n\'est pas placé sur ces dates. Une <b>demande</b> reste en attente et ne bloque rien tant que tu ne l\'as pas validée (✓).</div>'
     +'<div style="margin-bottom:12px;">'+legende+'</div>'
-    +(nbAttente?'<div style="background:#2a2416;border:1px solid #b8860b;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:.84rem;color:#e8c468;">⏳ '+nbAttente+' demande'+(nbAttente>1?'s':'')+' en attente de validation.</div>':'')
+    +_hrBlocDemandesEnAttente()
     +'<table style="width:100%;border-collapse:collapse;"><thead><tr style="border-bottom:2px solid #444;">'
       +'<th style="text-align:left;padding:6px 8px;color:#fff;font-size:.8rem;">Salarié</th>'
       +'<th style="text-align:left;padding:6px 8px;color:#fff;font-size:.8rem;">État pour la planification</th>'
@@ -11532,6 +11624,13 @@ function hrEtatValider(empId, idx){
   hrRenderEtatEquipe();
 }
 window.hrEtatValider=hrEtatValider;
+function hrEtatRefuser(empId, idx){
+  var lst=HR_ABSENCES[empId]; if(!lst||!lst[idx]) return;
+  lst[idx].statut='refuse';
+  hrSauverAbsences();
+  hrRenderEtatEquipe();
+}
+window.hrEtatRefuser=hrEtatRefuser;
 function hrEtatSupprimer(empId, idx){
   var lst=HR_ABSENCES[empId]; if(!lst||!lst[idx]) return;
   lst.splice(idx,1);
