@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-19 21:05 · v169';
+  var EMBEDDED_VERSION = '2026-06-19 23:45 · v175';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -8648,8 +8648,8 @@ var DASH_RESTO=null,_dashClockTm=null,_dashRefreshTm=null,_dashOpenTile=null;
 var DASH_TILES=[
   {id:'horaires',  em:'🗓️', tt:'Mes horaires',     ds:'Planning de la semaine', color:'#1565c0', action:'dashOpenHoraires'},
   {id:'pointer',   em:'⏱️', tt:'Pointer',           ds:'Arrivée / départ',       color:'#2e7d32', action:'dashOpenPointer'},
-  {id:'conges',    em:'🏖️', tt:'Mes congés',        ds:'Demander des vacances',  color:'#F5A623', action:null},
-  {id:'indispo',   em:'🚫', tt:'Indisponibilités', ds:'Jours où je ne peux pas',color:'#FF8732', action:null},
+  {id:'conges',    em:'🏖️', tt:'Mes congés',        ds:'Demander des vacances',  color:'#F5A623', action:'dashOpenConges'},
+  {id:'indispo',   em:'🚫', tt:'Indisponibilités', ds:'Jours où je ne peux pas',color:'#FF8732', action:'dashOpenIndispo'},
   {id:'produits',  em:'🍔', tt:'Nouveaux produits', ds:'À connaître en service', color:'#D62300', action:null},
   {id:'marchandise',em:'📦',tt:'Marchandises',      ds:'Produits & références',  color:'#8e6a00', action:null},
   {id:'memo',      em:'📌', tt:'Mémos',             ds:'Infos de la direction',  color:'#546e7a', action:null},
@@ -8752,19 +8752,213 @@ function dashOpenHoraires(){
   catch(e){ document.getElementById('dash-horaires-box').innerHTML='<div style="color:#aaa;padding:10px;">Impossible d\'afficher les horaires pour le moment.</div>'; }
 }
 function dashOpenPointer(){
-  // Ouvre le véritable écran de pointage, filtré sur le restaurant choisi dans l'Accueil.
+  // Ouvre le pointage DANS le panneau d'accueil (avec bouton Retour), sous forme de
+  // tuiles de salariés — même présentation que « Mes congés » / « Indisponibilités ».
+  // Le clic sur une tuile ouvre la modale code PIN du pointage (ptgOpen), inchangée.
   var resto=DASH_RESTO;
   if(!resto){ if(typeof toast==='function') toast('Choisis d\'abord un restaurant','error'); return; }
-  window.__ptgRestoActif=resto;
-  try{ PTG_RESTO=resto; }catch(e){}
-  // aller directement sur la page Pointage (sans repasser par les tuiles)
-  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
-  document.querySelectorAll('nav button').forEach(function(b){b.classList.remove('active');});
-  var pg=document.getElementById('page-pointage'); if(pg) pg.classList.add('active');
-  try{ var nb=document.querySelector('nav button[onclick*="pointage"]'); if(nb) nb.classList.add('active'); }catch(e){}
-  try{ dashStopAutoRefresh&&dashStopAutoRefresh(); }catch(e){}
-  try{ ptgInit(); }catch(e){ console.warn('ptgInit',e); }
+  try{ PTG_RESTO=resto; window.__ptgRestoActif=resto; }catch(e){}
+  var lbl=(dashRestoList().find(function(x){return x.id===resto;})||{}).label||'';
+  var body=dashOpenPanel('Pointer — '+lbl);
+  _dashRenderTuiles(body, resto, 'ptgOpen');
 }
+// ── DEMANDES SALARIÉ (congés / indisponibilités) — tuiles + code PIN du pointage ──
+// Affiche les salariés en tuiles (comme Pointage). Clic → modale code PIN (JJ+MM de
+// naissance) → formulaire de dates. Enregistre dans HR_ABSENCES avec statut 'attente'
+// et motif 'congés' ou 'indisponibilité'. Tout va dans Absences/congés d'État équipe.
+var _dashDemEmp=null, _dashDemType='conges';
+function _dashCodeNaissance(e){
+  var dn=(e&&e.infos&&e.infos.date_naissance)||(e&&e.dateNaissance)||'';
+  if(!dn) return null;
+  var m1=String(dn).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  var m2=String(dn).match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+  if(m1) return m1[3]+m1[2];
+  if(m2) return m2[1]+m2[2];
+  return null;
+}
+function _dashEmployesResto(resto){
+  var r=(resto||'').toLowerCase();
+  return (DB.employees||[]).filter(function(e){
+    return !e.archived && (e.restoId===r || e.resto_id===r) &&
+           (e.role==='equipier'||e.role==='leader'||e.role==='manager');
+  }).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+}
+// Rendu commun : grille de tuiles de salariés (réutilise le style des tuiles Pointage)
+function _dashRenderTuiles(body, resto, onclickFn){
+  var liste=_dashEmployesResto(resto);
+  if(!liste.length){ body.innerHTML='<div style="color:#aaa;padding:14px;">Aucun salarié pour ce restaurant.</div>'; return; }
+  body.innerHTML='<div class="ptg-grid" id="dash-dem-grid">'+liste.map(function(e){
+    return '<div class="ptg-tile" onclick="'+onclickFn+'(\''+e.id+'\')">'
+      +'<div class="ptg-tile-av" style="background:'+ptgAvColor(e.name)+'">'+ptgInitials(e.name)+'</div>'
+      +'<div class="ptg-tile-nm">'+e.name+'</div>'
+      +'<div class="ptg-tile-role">'+ptgRoleLabel(e.role)+'</div>'
+      +'</div>';
+  }).join('')+'</div>';
+}
+function dashOpenConges(){
+  var resto=DASH_RESTO;
+  if(!resto){ if(typeof toast==='function') toast('Choisis d\'abord un restaurant','error'); return; }
+  _dashDemType='conges';
+  var lbl=(dashRestoList().find(function(x){return x.id===resto;})||{}).label||'';
+  var body=dashOpenPanel('Mes congés — '+lbl);
+  _dashRenderTuiles(body, resto, 'dashDemOpen');
+}
+function dashOpenIndispo(){
+  var resto=DASH_RESTO;
+  if(!resto){ if(typeof toast==='function') toast('Choisis d\'abord un restaurant','error'); return; }
+  _dashDemType='indispo';
+  var lbl=(dashRestoList().find(function(x){return x.id===resto;})||{}).label||'';
+  var body=dashOpenPanel('Indisponibilités — '+lbl);
+  _dashRenderTuiles(body, resto, 'dashDemOpen');
+}
+// Clic sur une tuile → modale code PIN
+function dashDemOpen(empId){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
+  if(!e) return;
+  _dashDemEmp=null;
+  var titre = _dashDemType==='conges' ? 'Demander un congé' : 'Signaler une indisponibilité';
+  var accent = _dashDemType==='conges' ? '#F5A623' : '#FF8732';
+  var ov=document.getElementById('dash-dem-ov'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='dash-dem-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.66);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:50px 16px;overflow:auto;';
+  ov.innerHTML='<div style="background:#1c1c1f;border:1px solid #555;border-radius:16px;max-width:420px;width:100%;padding:22px;font-family:Barlow,sans-serif;text-align:center;">'
+    +'<button onclick="document.getElementById(\'dash-dem-ov\').remove()" style="float:right;background:none;border:none;color:#aaa;font-size:1.5rem;cursor:pointer;line-height:1;">×</button>'
+    +'<div class="ptg-tile-av" style="background:'+ptgAvColor(e.name)+';margin:4px auto 12px;width:56px;height:56px;font-size:1.3rem;">'+ptgInitials(e.name)+'</div>'
+    +'<div style="font-size:1.15rem;font-weight:800;color:#fff;margin-bottom:2px;">'+(e.name||'')+'</div>'
+    +'<div style="color:'+accent+';font-size:.9rem;font-weight:700;margin-bottom:14px;">'+titre+'</div>'
+    +'<div style="color:#bbb;font-size:.82rem;margin-bottom:8px;">Saisis ton code : jour + mois de naissance (4 chiffres, ex. 0309 pour le 3 septembre)</div>'
+    +'<input id="dash-dem-pin" type="tel" inputmode="numeric" maxlength="4" placeholder="••••" style="width:140px;background:#111;border:1px solid #444;color:#eee;border-radius:10px;padding:11px;font-size:1.3rem;letter-spacing:.35em;text-align:center;" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');dashDemCheckPin(\''+e.id+'\');">'
+    +'<div id="dash-dem-msg" style="font-size:.84rem;min-height:18px;margin:8px 0;"></div>'
+    +'<div id="dash-dem-form" style="display:none;text-align:left;">'
+      +'<div style="color:#bbb;font-size:.8rem;margin-bottom:10px;">Clique un jour pour une seule date, ou clique-glisse pour sélectionner une période.</div>'
+      +'<div id="dash-dem-cal"></div>'
+      +'<div id="dash-dem-recap" style="color:#3ecf8e;font-size:.86rem;font-weight:700;min-height:20px;margin:10px 0;"></div>'
+      +'<button onclick="dashDemEnvoyer()" style="width:100%;background:'+accent+';border:none;color:#1a1a1a;font-weight:800;border-radius:10px;padding:12px;font-size:1rem;cursor:pointer;">Envoyer ma demande</button>'
+    +'</div>'
+    +'</div>';
+  document.body.appendChild(ov);
+  setTimeout(function(){ var p=document.getElementById('dash-dem-pin'); if(p) p.focus(); },120);
+}
+function dashDemCheckPin(empId){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
+  var msg=document.getElementById('dash-dem-msg');
+  var form=document.getElementById('dash-dem-form');
+  var pin=((document.getElementById('dash-dem-pin')||{}).value||'').trim();
+  var attendu=_dashCodeNaissance(e);
+  if(!attendu){ msg.style.color='#F5A623'; msg.textContent='Date de naissance non renseignée : préviens le RH.'; return; }
+  if(pin.length<4){ msg.textContent=''; form.style.display='none'; return; }
+  if(pin!==attendu){ msg.style.color='#e8623a'; msg.textContent='Code incorrect, réessaie.'; form.style.display='none'; _dashDemEmp=null; return; }
+  _dashDemEmp=e;
+  msg.style.color='#3ecf8e'; msg.textContent='✓ Code validé.';
+  form.style.display='block';
+  try{ dashCalInit(); }catch(err){ console.warn('dashCalInit',err); }
+}
+// ── Mini-calendrier (clic = 1 jour, clic-glisser = période) ───────────────────
+var _dashCal={ mois:null, an:null, debut:null, fin:null, dragging:false };
+function _dashISO(an,mois,jour){ return an+'-'+String(mois+1).padStart(2,'0')+'-'+String(jour).padStart(2,'0'); }
+function _dashFmtFr(iso){
+  if(!iso) return '';
+  var p=iso.split('-'); return p[2]+'/'+p[1]+'/'+p[0];
+}
+function dashCalInit(){
+  var d=new Date();
+  _dashCal.mois=d.getMonth(); _dashCal.an=d.getFullYear();
+  _dashCal.debut=null; _dashCal.fin=null; _dashCal.dragging=false;
+  dashCalRender();
+}
+function dashCalMois(delta){
+  _dashCal.mois+=delta;
+  if(_dashCal.mois<0){ _dashCal.mois=11; _dashCal.an--; }
+  if(_dashCal.mois>11){ _dashCal.mois=0; _dashCal.an++; }
+  dashCalRender();
+}
+function dashCalRender(){
+  var box=document.getElementById('dash-dem-cal'); if(!box) return;
+  var MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  var JL=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  var an=_dashCal.an, mois=_dashCal.mois;
+  var premier=new Date(an,mois,1);
+  var decalage=(premier.getDay()+6)%7; // lundi=0
+  var nbJours=new Date(an,mois+1,0).getDate();
+  var h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
+    +'<button type="button" onclick="dashCalMois(-1)" style="background:#333;border:none;color:#eee;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:1.1rem;">‹</button>'
+    +'<div style="color:#fff;font-weight:700;font-size:.95rem;">'+MOIS[mois]+' '+an+'</div>'
+    +'<button type="button" onclick="dashCalMois(1)" style="background:#333;border:none;color:#eee;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:1.1rem;">›</button>'
+    +'</div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">';
+  JL.forEach(function(j){ h+='<div style="text-align:center;color:#888;font-size:.7rem;font-weight:700;padding:2px 0;">'+j+'</div>'; });
+  for(var i=0;i<decalage;i++){ h+='<div></div>'; }
+  for(var jr=1;jr<=nbJours;jr++){
+    var iso=_dashISO(an,mois,jr);
+    h+='<div class="dash-cal-day" data-iso="'+iso+'" style="text-align:center;padding:8px 0;border-radius:8px;cursor:pointer;font-size:.85rem;color:#eee;background:#222;user-select:none;">'+jr+'</div>';
+  }
+  h+='</div>';
+  box.innerHTML=h;
+  // Attacher les événements clic-glisser
+  var days=box.querySelectorAll('.dash-cal-day');
+  days.forEach(function(el){
+    el.addEventListener('mousedown', function(ev){ ev.preventDefault(); _dashCal.dragging=true; _dashCal.debut=this.dataset.iso; _dashCal.fin=this.dataset.iso; dashCalPaint(); });
+    el.addEventListener('mouseenter', function(){ if(_dashCal.dragging){ _dashCal.fin=this.dataset.iso; dashCalPaint(); } });
+    // tactile
+    el.addEventListener('touchstart', function(ev){ _dashCal.dragging=true; _dashCal.debut=this.dataset.iso; _dashCal.fin=this.dataset.iso; dashCalPaint(); }, {passive:true});
+  });
+  box.addEventListener('touchmove', function(ev){
+    if(!_dashCal.dragging) return;
+    var t=ev.touches[0]; var el=document.elementFromPoint(t.clientX,t.clientY);
+    if(el && el.classList.contains('dash-cal-day')){ _dashCal.fin=el.dataset.iso; dashCalPaint(); }
+  }, {passive:true});
+  // fin du glisser
+  document.addEventListener('mouseup', dashCalEndDrag);
+  document.addEventListener('touchend', dashCalEndDrag);
+  dashCalPaint();
+}
+function dashCalEndDrag(){ _dashCal.dragging=false; }
+function dashCalPaint(){
+  var box=document.getElementById('dash-dem-cal'); if(!box) return;
+  var a=_dashCal.debut, b=_dashCal.fin;
+  var lo=a, hi=b;
+  if(a&&b&&a>b){ lo=b; hi=a; }
+  box.querySelectorAll('.dash-cal-day').forEach(function(el){
+    var iso=el.dataset.iso;
+    var sel = lo && hi && iso>=lo && iso<=hi;
+    el.style.background = sel ? '#F5A623' : '#222';
+    el.style.color = sel ? '#1a1a1a' : '#eee';
+    el.style.fontWeight = sel ? '800' : '400';
+  });
+  var recap=document.getElementById('dash-dem-recap');
+  if(recap){
+    if(lo&&hi){
+      recap.textContent = (lo===hi) ? ('Sélectionné : '+_dashFmtFr(lo)) : ('Sélectionné : du '+_dashFmtFr(lo)+' au '+_dashFmtFr(hi));
+    } else { recap.textContent=''; }
+  }
+}
+window.dashCalMois=dashCalMois;
+
+function dashDemEnvoyer(){
+  var e=_dashDemEmp;
+  if(!e){ if(typeof toast==='function') toast('Code non validé','error'); return; }
+  var a=_dashCal.debut, b=_dashCal.fin||_dashCal.debut;
+  if(!a){ if(typeof toast==='function') toast('Choisis au moins une date sur le calendrier','error'); return; }
+  var from=a, to=b;
+  if(to<from){ var tmp=from; from=to; to=tmp; }
+  var motif = _dashDemType==='conges' ? 'congés' : 'indisponibilité';
+  if(typeof HR_ABSENCES==='undefined'){ window.HR_ABSENCES={}; }
+  if(!HR_ABSENCES[e.id]) HR_ABSENCES[e.id]=[];
+  HR_ABSENCES[e.id].push({from:from, to:to, motif:motif, statut:'attente', demande_le:new Date().toISOString()});
+  try{ if(typeof hrSauverAbsences==='function') hrSauverAbsences(); }catch(err){ console.warn('hrSauverAbsences',err); }
+  var ov=document.getElementById('dash-dem-ov');
+  if(ov){
+    ov.querySelector('div').innerHTML='<div style="text-align:center;padding:18px;">'
+      +'<div style="font-size:2.6rem;margin-bottom:8px;">✅</div>'
+      +'<div style="color:#eee;font-size:1.1rem;font-weight:800;margin-bottom:6px;">Demande envoyée</div>'
+      +'<div style="color:#aaa;font-size:.9rem;margin-bottom:14px;">'+(motif==='congés'?'Congé':'Indisponibilité')+' du '+from+' au '+to+'.<br>Elle sera validée par la personne qui fait les horaires.</div>'
+      +'<button onclick="document.getElementById(\'dash-dem-ov\').remove()" style="background:#2e6fc2;border:none;color:#fff;font-weight:700;border-radius:8px;padding:9px 22px;cursor:pointer;">Fermer</button>'
+      +'</div>';
+  }
+  if(typeof toast==='function') toast('Demande envoyée ✔','success');
+}
+window.dashOpenConges=dashOpenConges;window.dashOpenIndispo=dashOpenIndispo;
+window.dashDemOpen=dashDemOpen;window.dashDemCheckPin=dashDemCheckPin;window.dashDemEnvoyer=dashDemEnvoyer;
 window.initDashboard=initDashboard;window.dashSelectResto=dashSelectResto;window.dashChangeResto=dashChangeResto;
 window.dashOpenHoraires=dashOpenHoraires;window.dashOpenPointer=dashOpenPointer;window.dashClosePanel=dashClosePanel;
 window.dashStartAutoRefresh=dashStartAutoRefresh;window.dashStopAutoRefresh=dashStopAutoRefresh;
@@ -11030,7 +11224,10 @@ function _etatRestoActif(){
 // Liste des équipiers du resto actif (triés par nom)
 function _etatEquipiers(){
   var resto=_etatRestoActif();
-  return (DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto;})
+  return (DB.employees||[]).filter(function(e){
+            return !e.archived && (e.restoId===resto || e.resto_id===resto) &&
+                   (e.role==='equipier'||e.role==='leader'||e.role==='manager');
+          })
                            .sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
 }
 // Sous-vue actuellement ouverte dans État équipe : 'tuiles' | 'etat' | 'dispos' | 'competences'
