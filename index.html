@@ -1603,7 +1603,7 @@ body.tv-mode #eye-viewas{display:none!important;}
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-19 10:34 · v148';
+const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-19 10:44 · v149';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM' éventuellement suivi de ' · vN'
   try{
@@ -2437,7 +2437,8 @@ function bkTilePick(pageId, resto){
   if(t) t.style.display='none';
   if(b) b.style.display='block';
   // ajouter un bouton retour en tête de contenu (une seule fois)
-  if(b && !document.getElementById('bk-back-'+pageId)){
+  // Exception : 'etatequipe' gère son propre retour (3 tuiles internes + ← Restaurants).
+  if(b && pageId!=='etatequipe' && !document.getElementById('bk-back-'+pageId)){
     var back=document.createElement('button');
     back.id='bk-back-'+pageId; back.className='btn btn-gray btn-sm';
     back.style.marginBottom='12px';
@@ -10898,7 +10899,12 @@ function hrEERenderTuiles(){
     {vue:'dispos',      ico:'📅', titre:'Disponibilités',  sub:'Créneaux par jour de semaine',          col:'#1565c0', badge:0},
     {vue:'competences', ico:'🎯', titre:'Compétences',     sub:'Qui sait faire quoi',                   col:'#2e7d32', badge:0}
   ];
-  var html='<div style="font-size:.84rem;color:#aaa;margin-bottom:14px;">Restaurant : <b style="color:#fff;">'+_hrEERestoLabel()+'</b> · '+eq.length+' équipier(s). Choisis ce que tu veux gérer.</div>';
+  var html='';
+  // Pour le franchisé : un bouton pour revenir au choix du restaurant.
+  if(curUser && curUser.role==='franchise'){
+    html+='<div style="margin-bottom:12px;"><button onclick="hrEEVersRestaurants()" style="background:#2a2a2a;border:1px solid #555;color:#ddd;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:.84rem;">← Restaurants</button></div>';
+  }
+  html+='<div style="font-size:.84rem;color:#aaa;margin-bottom:14px;">Restaurant : <b style="color:#fff;">'+_hrEERestoLabel()+'</b> · '+eq.length+' équipier(s). Choisis ce que tu veux gérer.</div>';
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;">';
   tuiles.forEach(function(t){
     html+='<div onclick="hrEEOuvrir(\''+t.vue+'\')" style="cursor:pointer;background:linear-gradient(135deg,#1c1c1c,#262626);border:1px solid #383838;border-left:4px solid '+t.col+';border-radius:14px;padding:18px;transition:transform .1s,border-color .15s;position:relative;" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.borderColor=\''+t.col+'\';" onmouseout="this.style.transform=\'\';this.style.borderColor=\'#383838\';">'
@@ -10915,6 +10921,9 @@ function hrEEOuvrir(vue){ HR_EE_VUE=vue; hrRenderEtatEquipe(); }
 window.hrEEOuvrir=hrEEOuvrir;
 function hrEERetour(){ HR_EE_VUE='tuiles'; hrRenderEtatEquipe(); }
 window.hrEERetour=hrEERetour;
+// Revenir à l'écran de choix du restaurant (franchise uniquement)
+function hrEEVersRestaurants(){ HR_EE_VUE='tuiles'; try{ bkShowTiles('etatequipe'); }catch(e){} }
+window.hrEEVersRestaurants=hrEEVersRestaurants;
 // Petit en-tête commun aux sous-vues : bouton retour + titre
 function _hrEEHeader(titre, sousTitre){
   return '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">'
