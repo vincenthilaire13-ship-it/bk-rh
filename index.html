@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-19 14:43 · v159';
+  var EMBEDDED_VERSION = '2026-06-19 15:38 · v163';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -39,8 +39,6 @@
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%91%91%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%91%91%3C/text%3E%3C/svg%3E">
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-<script>emailjs.init("BSFTPjQ82p7MQPrVx");</script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -1635,7 +1633,7 @@ body.tv-mode #eye-viewas{display:none!important;}
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-19 14:43 · v159';
+const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-19 15:38 · v163';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM' éventuellement suivi de ' · vN'
   try{
@@ -8415,43 +8413,44 @@ function buildTextReport(period){
   Object.keys(RESTOS).forEach(function(rid){var rIncs=incs.filter(function(i){var e=DB.employees.find(function(x){return x.id===i.empId;});return e&&e.restoId===rid;});txt+='\n— '+RESTOS[rid].label+' ('+rIncs.length+' incidents) —\n';rIncs.forEach(function(i){var emp=DB.employees.find(function(e){return e.id===i.empId;});var dt=new Date(i.datetime||i.createdAt).toLocaleString('fr-FR');var types=i.problems.map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});return p?p.label:pid;}).join(', ');txt+='  '+dt+' | '+(emp?emp.name:'?')+' | '+types+'\n';});});
   return txt;
 }
-async function sendReportEmail(period){
+function sendReportEmail(period){
+  // Plus aucun envoi automatique : on OUVRE un mail pré-rempli (Gmail) que l'on contrôle,
+  // exactement comme les mails candidats. L'utilisateur vérifie puis envoie lui-même.
   var pl={today:'Quotidien',week:'Hebdomadaire',month:'Mensuel'};
-  var subj='[BKRH] Rapport '+pl[period]+' - '+new Date().toLocaleDateString('fr-FR');
+  var subj='[BKRH] Rapport '+(pl[period]||'')+' - '+new Date().toLocaleDateString('fr-FR');
+  var body=buildTextReport(period);  // rapport complet, tous restaurants
   var ms=DB.mailSettings||{};
-  var sent=0;
 
-  // Envoyer à chaque directeur le rapport de SON restaurant uniquement
-  var directeurs=DB.employees.filter(function(e){return e.role==='directeur'&&!e.archived&&e.email;});
-  for(var i=0;i<directeurs.length;i++){
-    var dir=directeurs[i];
-    var body=buildTextReportForResto(period, dir.restoId);
-    try{
-      await emailjs.send('checklist_bk','template_ijwamd3',{
-        to_email:dir.email, subject:subj+' — '+( RESTOS[dir.restoId]?RESTOS[dir.restoId].label:dir.restoId),
-        message:body, from_name:'BKRH'
-      });
-      sent++;
-    }catch(e){console.error('EmailJS directeur',dir.email,e);}
+  // Destinataires : adresse RH + directeurs (avec email) + destinataires manuels
+  var tpl=(typeof getMailTpl==='function')?getMailTpl():{};
+  var to=[];
+  if(tpl.expediteur) to.push(tpl.expediteur);
+  try{
+    (DB.employees||[]).filter(function(e){return e.role==='directeur'&&!e.archived&&e.email;})
+      .forEach(function(d){ to.push(d.email); });
+  }catch(e){}
+  (ms.recipients||[]).forEach(function(r){ if(r.email) to.push(r.email); });
+  // dédoublonnage
+  to=to.filter(function(v,i){ return v && to.indexOf(v)===i; });
+  if(!to.length){ toast('Aucun destinataire — ajoutez une adresse RH ou des directeurs avec email','error'); return; }
+
+  var dest=to[0];
+  var ccArr=to.slice(1);
+  var mode=(ms.mailMode)||'gmail';
+  if(mode==='gmail'){
+    var g='https://mail.google.com/mail/?view=cm&fs=1'
+      +'&to='+encodeURIComponent(dest)
+      +'&su='+encodeURIComponent(subj)
+      +'&body='+encodeURIComponent(body);
+    if(ccArr.length) g+='&cc='+encodeURIComponent(ccArr.join(','));
+    var w=window.open(g,'_blank');
+    if(!w){ toast('Autorisez les fenêtres pop-up pour ouvrir Gmail.','error'); }
+    else{ toast('Rapport ouvert dans Gmail — vérifiez puis envoyez ✔','success'); }
+    return;
   }
-
-  // Envoyer le rapport COMPLET (tous restos) aux destinataires manuels — sauf directeurs
-  if(ms.recipients&&ms.recipients.length){
-    var bodyAll=buildTextReport(period);
-    var rcpsFiltres=ms.recipients.filter(function(r){return r.role!=='Directeur';});
-    for(var j=0;j<rcpsFiltres.length;j++){
-      try{
-        await emailjs.send('checklist_bk','template_ijwamd3',{
-          to_email:rcpsFiltres[j].email, subject:subj+' — Tous restaurants',
-          message:bodyAll, from_name:'BKRH'
-        });
-        sent++;
-      }catch(e){console.error('EmailJS rcp',rcpsFiltres[j].email,e);}
-    }
-  }
-
-  if(!sent){toast('Aucun destinataire — ajoutez des directeurs avec email','error');return;}
-  toast('Rapport envoyé à '+sent+' destinataire'+(sent>1?'s':'')+' ✔','success');
+  var params='subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);
+  if(ccArr.length) params+='&cc='+encodeURIComponent(ccArr.join(','));
+  window.location.href='mailto:'+dest+'?'+params;
 }
 
 function renderApercuDestinataires(){
@@ -8484,18 +8483,9 @@ function renderApercuDestinataires(){
 function sendNow(period){ sendReportEmail(period); }
 
 function schedReports(){
+  // Aucun envoi automatique : tous les rapports s'ouvrent désormais dans un mail
+  // pré-rempli que l'utilisateur contrôle et envoie lui-même (bouton « Envoyer maintenant »).
   clearInterval(window._schInt);
-  window._schInt=setInterval(function(){
-    var now=new Date();
-    var h=now.getHours();var m=now.getMinutes();
-    var day=now.getDay();var date=now.getDate();
-    // Tous les jours à 22h00
-    if(h===22&&m===0) sendReportEmail('today');
-    // Tous les lundis à 9h00
-    if(day===1&&h===9&&m===0) sendReportEmail('week');
-    // Le 1er du mois à 9h00
-    if(date===1&&h===9&&m===0) sendReportEmail('month');
-  },60000);
 }
 
 // ── RECHERCHE EMPLOYÉ ─────────────────────────────────────────────────────────
@@ -8823,7 +8813,7 @@ window.hrDiag=hrDiag;
 // Aides à la saisie : mode 30min → seuils ×2 (affichage), mode 1h → seuils ×4.
 // [seuil €/15min, eff, CUISINE, FRITES, SNACK, BROILER, BOARD VOLANT, BORNE, DRIVE, SAT SALLE, PREM CABINE, TABLETTE DRIVE, EMPORTER, COMPTOIR VOL, UBER, SAT EMP UBER]
 // Grille par défaut = BK 526 (resto par défaut). Chaque resto a SA grille (chargée depuis
-// Supabase planning_grilles, clé minuscule bk500/bk509/bk526, OU repli GRILLE_FALLBACK ci-dessous).
+// Supabase planning_grilles, clé minuscule bk500/bk509/bk526). Rien en dur.
 const GRILLE=[
   [0,    0,  0,0,0,0,0,0,0,0,0,0,0,0,0,0],
   [25,   2,  1,0,0,0,0,1,0,0,0,0,0,0,0,0],
@@ -8853,25 +8843,8 @@ let grilleMode = 15; // Référence = 15 min (quart d'heure)
 // ── Séparation par restaurant : chaque resto a sa grille et sa base min ──
 // On mémorise les versions personnalisées ; au changement de resto on recharge.
 let BASEMIN_DEFAULT = null; // initialisé après la déclaration de BASE_MIN
-let GRILLE_BY_RESTO = {};   // { 'BK526': [[...]], ... }
-
-// Repli local des grilles par resto (clés MINUSCULES, comme ACTIVE_RESTO).
-// Source : grilles validées de BK administratif, référence 15 min.
-// Supabase (planning_grilles) reste la source de vérité ; ceci garantit les bonnes
-// grilles même au tout premier rendu ou si Supabase est lent/indisponible.
-const GRILLE_FALLBACK = {
-  bk500: [[0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0],[50,2,1,0,0,0,0,1,0,0,0,0,0,0,0,0],[100,3,1,0,0,0,0,1,1,0,0,0,0,0,0,0],[150,5,2,0,0,0,0,2,1,0,0,0,0,0,0,0],[200,5,2,0,0,0,0,2,1,0,0,0,0,0,0,0],[250,7,3,0,0,0,0,2,1,1,0,0,0,0,0,0],[350,12,4,1,1,0,0,2,2,1,0,0,0,0,1,0],[600,14,4,1,1,1,0,2,2,1,0,1,0,0,1,0],[650,15,4,1,1,1,1,2,2,1,0,1,0,0,1,0],[750,17,4,1,1,1,2,2,2,2,0,1,0,0,1,0],[850,16,4,1,1,1,1,3,2,1,0,1,0,0,1,0],[950,21,4,1,2,1,2,2,3,2,1,1,0,0,2,0],[1150,24,4,1,2,1,2,2,3,2,1,2,0,1,2,1]],
-  bk509: [[0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0],[50,2,1,0,0,0,0,1,0,0,0,0,0,0,0,0],[100,3,1,0,0,0,0,1,1,0,0,0,0,0,0,0],[150,4,2,0,0,0,0,1,1,0,0,0,0,0,0,0],[250,6,3,0,0,0,0,2,1,0,0,0,0,0,0,0],[300,7,3,0,0,0,0,2,2,0,0,0,0,0,0,0],[350,12,4,1,1,0,0,2,2,1,0,0,1,0,0,0],[500,13,4,1,1,0,0,2,2,1,0,1,1,0,0,0],[600,14,4,1,1,1,0,2,2,1,0,1,1,0,0,0],[700,15,4,1,1,1,0,2,2,1,0,1,1,0,1,0],[800,17,4,1,1,1,1,2,2,1,0,1,2,0,1,0],[850,21,4,1,1,1,1,2,2,2,1,2,2,0,2,0],[900,22,4,1,2,1,1,2,2,2,1,2,2,0,2,0],[1050,23,4,1,2,1,2,2,2,2,1,2,2,0,2,0]],
-  bk526: [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[25,2,1,0,0,0,0,1,0,0,0,0,0,0,0,0],[150,3,1,0,0,0,0,1,1,0,0,0,0,0,0,0],[200,4,2,0,0,0,0,1,1,0,0,0,0,0,0,0],[250,6,2,0,0,0,0,2,1,1,0,0,0,0,0,0],[350,7,3,0,0,0,0,2,1,1,0,0,0,0,0,0],[400,9,4,0,0,0,0,2,2,1,0,0,0,0,0,0],[500,12,4,1,1,0,0,2,2,1,0,0,1,0,0,0],[550,14,4,1,1,1,0,2,2,1,0,1,1,0,0,0],[600,15,4,1,1,1,0,2,2,1,0,1,1,0,1,0],[750,16,4,1,1,1,1,2,2,1,0,1,1,0,1,0],[850,18,4,1,1,1,2,2,2,1,0,1,2,0,1,0],[900,20,4,1,1,1,2,2,2,1,0,2,2,0,2,0],[950,22,4,1,2,1,3,2,2,1,0,2,2,0,2,0],[1000,23,4,1,2,1,3,2,2,1,0,2,2,0,2,1],[1100,24,4,1,2,1,4,2,2,1,0,2,2,0,2,1],[1200,26,4,1,2,1,4,2,3,1,0,2,2,1,2,1]]
-};
-// Pré-remplir GRILLE_BY_RESTO avec le repli (clés minuscules ET majuscules pour tolérance).
-try{
-  Object.keys(GRILLE_FALLBACK).forEach(function(k){
-    GRILLE_BY_RESTO[k] = GRILLE_FALLBACK[k].map(function(r){return r.slice();});
-    GRILLE_BY_RESTO[k.toUpperCase()] = GRILLE_FALLBACK[k].map(function(r){return r.slice();});
-  });
-}catch(e){}
-let BASEMIN_BY_RESTO = {};  // { 'BK526': [[...]], ... }
+let GRILLE_BY_RESTO = {};   // { 'bk526': [[...]], ... } — rempli depuis Supabase (planning_grilles)
+let BASEMIN_BY_RESTO = {};  // { 'bk526': [[...]], ... } — rempli depuis Supabase (planning_grilles.basemin)
 let TAUX_BY_RESTO = {};     // { 'BK526': 20, ... } taux horaire € (masse salariale), par resto
 let HR_GRILLE_RESTO = 'BK526'; // resto dont la grille/base est active
 const TAUX_DEFAULT = 20;    // € / heure par défaut si non défini pour le resto
@@ -8895,9 +8868,12 @@ function hrSwitchRestoGrille(resto){
     BASEMIN_BY_RESTO[HR_GRILLE_RESTO] = BASE_MIN.map(b=>[...b]);
   }
   HR_GRILLE_RESTO = resto;
-  // Charger l'état du nouveau resto (ou défaut)
-  GRILLE_EDIT = (GRILLE_BY_RESTO[resto] || GRILLE_DEFAULT).map(r=>[...r]);
-  BASE_MIN    = (BASEMIN_BY_RESTO[resto] || BASEMIN_DEFAULT).map(b=>[...b]);
+  // Charger l'état du nouveau resto (ou défaut) — clés Supabase en minuscules
+  var _rl=(resto||'').toLowerCase(), _ru=(resto||'').toUpperCase();
+  var _g = GRILLE_BY_RESTO[resto] || GRILLE_BY_RESTO[_rl] || GRILLE_BY_RESTO[_ru];
+  var _b = BASEMIN_BY_RESTO[resto] || BASEMIN_BY_RESTO[_rl] || BASEMIN_BY_RESTO[_ru];
+  GRILLE_EDIT = (_g || GRILLE_DEFAULT).map(r=>[...r]);
+  BASE_MIN    = (_b || BASEMIN_DEFAULT || []).map(b=>[...b]);
   try{ window.BASE_MIN = BASE_MIN; }catch(e){}
   // Mettre GRILLE (utilisée par getEff) à jour
   GRILLE.length = 0; GRILLE_EDIT.forEach(r=>GRILLE.push([...r]));
@@ -9025,63 +9001,9 @@ function _hrTxtFor(hex){
 // ── BASE MINIMUM (PDF lundi 15 juin) ─────────────────────────────────────────
 // [poste, debut_min, fin_min, type]
 function hm(h,m=0){const hh=h<5?h+24:h;return hh*60+m;}
-let BASE_MIN=[
-  // NP fixes
-  ['OUVERTURE MANA', hm(8,0),   hm(14,30), 'np'],
-  ['OUVERTURE MANA', hm(15,0),  hm(17,0),  'np'],
-  ['CLOSE MANA',     hm(16,45), hm(21,30), 'np'],
-  ['CLOSE MANA',     hm(22,0),  hm(26,0),  'np'],
-  ['OPEN BROILER',   hm(8,30),  hm(10,30), 'np'],
-  ['MARCH',          hm(8,50),  hm(11,0),  'np'],
-  ['OPEN CAISSE',    hm(9,0),   hm(11,0),  'np'],
-  ['PREP',           hm(9,0),   hm(11,0),  'np'],
-  ['RH HORAIRE',     hm(9,0),   hm(11,30), 'np'],
-  ['OPEN SALLE',     hm(9,0),   hm(11,0),  'np'],
-  ['PLONGE',         hm(14,0),  hm(16,0),  'np'],
-  ['FILT',           hm(14,30), hm(15,0),  'np'],
-  ['PREP',           hm(15,0),  hm(18,0),  'np'],
-  ['PLONGE',         hm(22,0),  hm(25,30), 'np'],
-  ['CLOSE CAISSE',   hm(23,0),  hm(25,0),  'np'],
-  ['FERM SALLE',     hm(23,0),  hm(25,30), 'np'],
-  ['FERM COULOIR',   hm(23,0),  hm(25,30), 'np'],
-  // Productifs minimum
-  ['CUISINE',        hm(11,0),  hm(14,0),  'base'],
-  ['CUISINE',        hm(11,0),  hm(14,30), 'base'],
-  ['BORNE',          hm(11,0),  hm(14,30), 'base'],
-  ['DRIVE',          hm(11,0),  hm(14,30), 'base'],
-  ['BROILER',        hm(11,15), hm(15,15), 'base'],
-  ['CUISINE',        hm(11,30), hm(15,0),  'base'],
-  ['FRITES',         hm(11,30), hm(14,0),  'base'],
-  ['SNACK',          hm(11,30), hm(13,30), 'base'],
-  ['CUISINE',        hm(11,45), hm(15,0),  'base'],
-  ['DRIVE',          hm(11,45), hm(15,0),  'base'],
-  ['SAT SALLE',      hm(11,45), hm(14,30), 'base'],
-  ['TABLETTE DRIVE', hm(11,45), hm(13,45), 'base'],
-  ['SNACK',          hm(12,0),  hm(14,0),  'base'],
-  ['BOARD VOLANT',   hm(12,0),  hm(14,0),  'base'],
-  ['BORNE',          hm(12,0),  hm(15,0),  'base'],
-  ['TABLETTE DRIVE', hm(12,0),  hm(14,0),  'base'],
-  ['EMPORTER',       hm(12,0),  hm(14,45), 'base'],
-  ['CUISINE',        hm(15,0),  hm(17,0),  'base'],
-  ['BORNE',          hm(15,0),  hm(18,0),  'base'],
-  ['DRIVE',          hm(15,0),  hm(18,0),  'base'],
-  ['CUISINE',        hm(17,0),  hm(21,30), 'base'],
-  ['DRIVE',          hm(17,30), hm(22,0),  'base'],
-  ['CUISINE',        hm(18,0),  hm(22,0),  'base'],
-  ['BORNE',          hm(18,0),  hm(22,0),  'base'],
-  ['BORNE',          hm(18,0),  hm(21,45), 'base'],
-  ['DRIVE',          hm(18,0),  hm(22,0),  'base'],
-  ['BROILER',        hm(18,15), hm(22,0),  'base'],
-  ['EMPORTER',       hm(18,30), hm(22,30), 'base'],
-  ['CUISINE',        hm(18,45), hm(23,0),  'base'],
-  ['FRITES',         hm(18,45), hm(21,15), 'base'],
-  ['SNACK',          hm(18,45), hm(22,45), 'base'],
-  ['UBER',           hm(18,45), hm(22,15), 'base'],
-  ['CUISINE',        hm(19,0),  hm(24,0),  'base'],
-  ['SAT SALLE',      hm(19,0),  hm(22,0),  'base'],
-  ['EMPORTER',       hm(19,0),  hm(23,0),  'base'],
-  ['DRIVE',          hm(19,30), hm(24,0),  'base'],
-];
+let BASE_MIN=[];  // VIDE par défaut : la base minimum de chaque resto est chargée
+                  // depuis Supabase (planning_grilles.basemin) par hrChargerGrilles().
+                  // Rien en dur dans le fichier — tout vit dans Supabase.
 // Mémoriser la base minimum par défaut (maintenant que BASE_MIN existe)
 BASEMIN_DEFAULT = BASE_MIN.map(b=>[...b]);
 // Rendre BASE_MIN accessible depuis l'autre bloc <script> (bloc Compétences/Qualifications)
@@ -12897,23 +12819,38 @@ function generateFromCA(){
 function switchGrilleMode(){
   const newMode = parseInt(document.getElementById('hrx-grille-mode').value);
   if(newMode === grilleMode) return;
-  // Les modes 15/30/60 ne sont qu'une AIDE À LA SAISIE pour l'utilisateur.
-  // En interne, le calcul des traits se fait toujours en base 15 min (getEff convertit le CA 15min).
-  // Ici on ne fait que RÉAFFICHER les mêmes seuils dans la nouvelle unité de temps.
-  // Conversion directe d'un mode à l'autre (proportionnelle au temps) ; les effectifs ne bougent jamais.
-  const caFactor = newMode / grilleMode;
-  GRILLE_EDIT = GRILLE_EDIT.map(r=>{
+  // Les modes 15/30/60 ne sont qu'une AIDE À LA SAISIE / un AFFICHAGE.
+  // La grille de RÉFÉRENCE est TOUJOURS en 15 min et ne change jamais.
+  // On reconstruit l'affichage de chaque mode à partir de cette référence :
+  //   30 min = seuils ×2 | 1 h = seuils ×4 | les effectifs ne bougent jamais.
+  // On part toujours de la référence 15 min (jamais d'une valeur déjà convertie),
+  // donc le passage 15→30→60→15 redonne EXACTEMENT les mêmes chiffres.
+  const ref15 = _grilleRef15();           // grille 15 min stable (clone)
+  const factor = newMode / 15;            // 15→1, 30→2, 60→4
+  GRILLE_EDIT = ref15.map(r=>{
     const nr = [...r];
-    nr[0] = Math.round(r[0] * caFactor); // seuil CA reconverti pour l'affichage
-    // effectifs (index 2+) INCHANGÉS
+    nr[0] = r[0] * factor;                // seuil reconverti depuis la base 15 min (pas de cascade)
     nr[1] = nr.slice(2).reduce((a,b)=>a+b,0);
     return nr;
   });
   grilleMode = newMode;
-  GRILLE.length=0; GRILLE_EDIT.forEach(r=>GRILLE.push([...r]));
-  GRILLE_BY_RESTO[HR_GRILLE_RESTO]=GRILLE_EDIT.map(r=>[...r]);
+  // IMPORTANT : on NE réécrit PAS GRILLE_BY_RESTO ici (sinon on perdrait la base 15 min).
+  // GRILLE (utilisée par getEff) doit toujours être en base 15 min pour le calcul des traits.
+  GRILLE.length=0; ref15.forEach(r=>GRILLE.push([...r]));
   renderGrille();
   hrAutoApply();
+}
+
+// Renvoie la grille de RÉFÉRENCE en 15 min (clone), quelle que soit l'unité affichée.
+// Source : GRILLE_BY_RESTO (rempli depuis Supabase, toujours stocké en 15 min).
+// Si l'affichage courant n'est pas en 15 min, on reconvertit GRILLE_EDIT vers 15 min.
+function _grilleRef15(){
+  const _rl=(HR_GRILLE_RESTO||'').toLowerCase(), _ru=(HR_GRILLE_RESTO||'').toUpperCase();
+  let src = GRILLE_BY_RESTO[HR_GRILLE_RESTO] || GRILLE_BY_RESTO[_rl] || GRILLE_BY_RESTO[_ru];
+  if(src && src.length) return src.map(r=>[...r]);
+  // repli : reconvertir l'édition courante vers 15 min
+  const f = 15 / (grilleMode||15);
+  return GRILLE_EDIT.map(r=>{ const nr=[...r]; nr[0]=Math.round(r[0]*f); return nr; });
 }
 
 function recalcEff(rowIdx){
@@ -12929,8 +12866,19 @@ function hrAutoApply(){
   const restoActif = hrCurrentResto();
   if(restoActif !== HR_GRILLE_RESTO) HR_GRILLE_RESTO = restoActif;
   GRILLE_EDIT.sort((a,b)=>a[0]-b[0]);
-  GRILLE.length=0; GRILLE_EDIT.forEach(r=>GRILLE.push([...r]));
-  GRILLE_BY_RESTO[HR_GRILLE_RESTO]=GRILLE_EDIT.map(r=>[...r]);
+  // GRILLE (utilisée par getEff pour calculer les traits) doit TOUJOURS être en
+  // base 15 min, car le CA comparé est celui d'un quart d'heure. On normalise donc
+  // depuis l'affichage courant (÷2 si mode 30, ÷4 si mode 60).
+  const f15 = 15 / (grilleMode || 15);   // 15→1, 30→0.5, 60→0.25
+  const grille15 = GRILLE_EDIT.map(r=>{
+    const nr=[...r];
+    nr[0] = Math.round((r[0]||0) * f15);
+    nr[1] = nr.slice(2).reduce((a,b)=>a+b,0);
+    return nr;
+  });
+  GRILLE.length=0; grille15.forEach(r=>GRILLE.push([...r]));
+  // La RÉFÉRENCE par resto est TOUJOURS stockée en 15 min (jamais le mode affiché).
+  GRILLE_BY_RESTO[HR_GRILLE_RESTO]=grille15.map(r=>[...r]);
   // Rafraîchir l'affichage des jours : la nouvelle signature fera virer à l'orange.
   if(document.getElementById('hrx-days')) renderDays();
 }
@@ -13070,11 +13018,14 @@ function protegerGrille(){
     : '🔒 Protéger la grille de '+nomResto(resto)+' ?\n\nLa grille actuellement affichée sera enregistrée comme grille de sécurité. Elle ne pourra plus être effacée par une réinitialisation accidentelle (vous pourrez toujours la restaurer).';
   if(!confirm(msg)) return;
 
+  // Toujours protéger la grille en base 15 min (indépendante du mode affiché)
+  const _f15 = 15 / (grilleMode || 15);
+  const _grille15 = GRILLE_EDIT.map(r=>{ const nr=[...r]; nr[0]=Math.round((r[0]||0)*_f15); nr[1]=nr.slice(2).reduce((a,b)=>a+b,0); return nr; });
   const snap = {
     resto,
-    grille: GRILLE_EDIT.map(r=>[...r]),
+    grille: _grille15,
     basemin: (typeof BASE_MIN!=='undefined' && BASE_MIN) ? BASE_MIN.map(b=>[...b]) : null,
-    mode: (typeof grilleMode==='number'?grilleMode:15),
+    mode: 15,
     le: new Date().toISOString()
   };
   try{ localStorage.setItem(_kGrilleProt(resto), JSON.stringify(snap)); }catch(e){}
@@ -13109,8 +13060,9 @@ function restaurerGrilleProtegee(){
   if(!confirm('♻️ Restaurer la grille protégée de '+nomResto(resto)+' (du '+(snap.le?new Date(snap.le).toLocaleString('fr-FR'):'?')+') ?\n\nLa grille actuellement affichée sera remplacée.')) return;
   GRILLE_EDIT = snap.grille.map(r=>[...r]);
   if(snap.basemin && typeof BASE_MIN!=='undefined'){ BASE_MIN.length=0; snap.basemin.forEach(b=>BASE_MIN.push([...b])); }
-  grilleMode = (typeof snap.mode==='number'?snap.mode:15);
-  const ms=document.getElementById('hrx-grille-mode'); if(ms) ms.value=String(grilleMode);
+  // La grille protégée est stockée en 15 min → on revient à l'affichage 15 min.
+  grilleMode = 15;
+  const ms=document.getElementById('hrx-grille-mode'); if(ms) ms.value='15';
   GRILLE.length=0; GRILLE_EDIT.forEach(r=>GRILLE.push([...r]));
   GRILLE_BY_RESTO[resto]=GRILLE_EDIT.map(r=>[...r]);
   renderGrille();
@@ -14576,15 +14528,24 @@ async function hrChargerGrilles(){
       }catch(e){ console.warn('grille resto', row.resto, e); }
     });
     HR_GRILLES_CHARGEES = true;
-    // Recharger la grille du resto actif depuis ce qu'on vient de récupérer
-    if(typeof HR_GRILLE_RESTO!=='undefined' && GRILLE_BY_RESTO[HR_GRILLE_RESTO]){
-      GRILLE_EDIT = GRILLE_BY_RESTO[HR_GRILLE_RESTO].map(r=>[...r]);
-      GRILLE.length=0; GRILLE_EDIT.forEach(r=>GRILLE.push([...r]));
+    // Recharger la grille + base minimum du resto actif depuis Supabase.
+    // Les clés Supabase sont en minuscules (bk526) ; HR_GRILLE_RESTO peut être en
+    // majuscules — on teste donc les deux casses.
+    if(typeof HR_GRILLE_RESTO!=='undefined' && HR_GRILLE_RESTO){
+      var _rk = HR_GRILLE_RESTO;
+      var _g = GRILLE_BY_RESTO[_rk] || GRILLE_BY_RESTO[_rk.toLowerCase()] || GRILLE_BY_RESTO[_rk.toUpperCase()];
+      var _b = BASEMIN_BY_RESTO[_rk] || BASEMIN_BY_RESTO[_rk.toLowerCase()] || BASEMIN_BY_RESTO[_rk.toUpperCase()];
+      if(_g){
+        GRILLE_EDIT = _g.map(r=>[...r]);
+        GRILLE.length=0; GRILLE_EDIT.forEach(r=>GRILLE.push([...r]));
+      }
+      if(_b){
+        BASE_MIN = _b.map(b=>[...b]);
+        try{ window.BASE_MIN = BASE_MIN; }catch(e){}
+      }
     }
-    if(typeof HR_GRILLE_RESTO!=='undefined' && BASEMIN_BY_RESTO[HR_GRILLE_RESTO]){
-      BASE_MIN = BASEMIN_BY_RESTO[HR_GRILLE_RESTO].map(b=>[...b]);
-      try{ window.BASE_MIN = BASE_MIN; }catch(e){}
-    }
+    // Régénérer le planning avec la vraie grille + base minimum chargées
+    try{ if(typeof hrAutoApply==='function') hrAutoApply(); }catch(e){}
   }catch(e){
     console.warn('Grilles planning : lecture impossible (table planning_grilles ?).', e.message||e);
     HR_GRILLES_CHARGEES = true;
@@ -14592,18 +14553,28 @@ async function hrChargerGrilles(){
 }
 window.hrChargerGrilles = hrChargerGrilles;
 
-// Sauvegarde la grille + base-min du resto actif dans Supabase
+// Sauvegarde la grille + base-min du resto actif dans Supabase.
+// La grille est TOUJOURS normalisée en base 15 min avant stockage, quel que soit
+// le mode d'affichage courant (15/30/60). Ainsi Supabase contient toujours le ¼h.
 async function hrSauverGrille(){
   const resto = HR_GRILLE_RESTO || HR_RESTO || 'BK526';
-  // maj cache mémoire
-  GRILLE_BY_RESTO[resto]  = GRILLE_EDIT.map(r=>[...r]);
+  // Normaliser GRILLE_EDIT (affiché dans le mode courant) vers la base 15 min
+  const f15 = 15 / (grilleMode || 15);   // 15→1, 30→0.5, 60→0.25
+  const grille15 = GRILLE_EDIT.map(r=>{
+    const nr=[...r];
+    nr[0] = Math.round((r[0]||0) * f15);   // seuil ramené au quart d'heure
+    nr[1] = nr.slice(2).reduce((a,b)=>a+b,0);
+    return nr;
+  });
+  // maj cache mémoire (toujours en 15 min)
+  GRILLE_BY_RESTO[resto]  = grille15.map(r=>[...r]);
   BASEMIN_BY_RESTO[resto] = BASE_MIN.map(b=>[...b]);
   if(!window.SB) return;
   const payloadBase = {
     resto,
     grille:  JSON.stringify(GRILLE_BY_RESTO[resto]),
     basemin: JSON.stringify(BASEMIN_BY_RESTO[resto]),
-    mode:    (typeof grilleMode==='number'?grilleMode:15),
+    mode:    15,
     maj_le:  new Date().toISOString()
   };
   try{
