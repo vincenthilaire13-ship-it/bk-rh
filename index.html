@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-19 12:02 · v157';
+  var EMBEDDED_VERSION = '2026-06-19 14:43 · v159';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1635,7 +1635,7 @@ body.tv-mode #eye-viewas{display:none!important;}
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-19 12:02 · v157';
+const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-19 14:43 · v159';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM' éventuellement suivi de ' · vN'
   try{
@@ -8822,23 +8822,26 @@ window.hrDiag=hrDiag;
 // getEff() compare directement le CA 15min de chaque tranche à ces seuils.
 // Aides à la saisie : mode 30min → seuils ×2 (affichage), mode 1h → seuils ×4.
 // [seuil €/15min, eff, CUISINE, FRITES, SNACK, BROILER, BOARD VOLANT, BORNE, DRIVE, SAT SALLE, PREM CABINE, TABLETTE DRIVE, EMPORTER, COMPTOIR VOL, UBER, SAT EMP UBER]
+// Grille par défaut = BK 526 (resto par défaut). Chaque resto a SA grille (chargée depuis
+// Supabase planning_grilles, clé minuscule bk500/bk509/bk526, OU repli GRILLE_FALLBACK ci-dessous).
 const GRILLE=[
-  [0,    2,  1,0,0,0,0,0,1,0,0,0,0,0,0,0],
-  [50,   3,  1,0,0,0,0,1,1,0,0,0,0,0,0,0],
-  [100,  4,  2,0,0,0,0,1,1,0,0,0,0,0,0,0],
-  [150,  7,  2,0,0,1,0,2,2,0,0,0,0,0,0,0],
-  [200,  10, 3,0,1,1,0,2,2,0,0,0,1,0,0,0],
-  [250,  13, 4,0,1,1,0,2,2,1,0,0,1,0,1,0],
-  [300,  15, 4,1,1,1,0,2,2,1,0,1,1,0,1,0],
-  [350,  18, 4,1,1,1,1,2,2,1,0,2,1,0,2,0],
-  [450,  20, 4,1,1,1,2,2,3,1,0,1,2,0,2,0],
-  [550,  22, 4,1,2,1,2,2,3,1,0,2,2,0,2,0],
-  [650,  24, 4,1,2,1,3,3,3,1,0,2,2,0,2,0],
-  [750,  26, 4,1,2,1,3,3,3,2,0,2,2,0,3,0],
-  [850,  28, 4,2,2,1,3,3,3,2,1,2,2,0,3,0],
-  [950,  30, 4,2,2,1,4,3,3,2,1,2,3,0,3,0],
-  [1050, 32, 4,2,2,2,4,3,3,2,1,2,3,1,3,1],
-  [1150, 33, 4,2,2,2,4,3,3,2,1,2,3,1,3,1],
+  [0,    0,  0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [25,   2,  1,0,0,0,0,1,0,0,0,0,0,0,0,0],
+  [150,  3,  1,0,0,0,0,1,1,0,0,0,0,0,0,0],
+  [200,  4,  2,0,0,0,0,1,1,0,0,0,0,0,0,0],
+  [250,  6,  2,0,0,0,0,2,1,1,0,0,0,0,0,0],
+  [350,  7,  3,0,0,0,0,2,1,1,0,0,0,0,0,0],
+  [400,  9,  4,0,0,0,0,2,2,1,0,0,0,0,0,0],
+  [500,  12, 4,1,1,0,0,2,2,1,0,0,1,0,0,0],
+  [550,  14, 4,1,1,1,0,2,2,1,0,1,1,0,0,0],
+  [600,  15, 4,1,1,1,0,2,2,1,0,1,1,0,1,0],
+  [750,  16, 4,1,1,1,1,2,2,1,0,1,1,0,1,0],
+  [850,  18, 4,1,1,1,2,2,2,1,0,1,2,0,1,0],
+  [900,  20, 4,1,1,1,2,2,2,1,0,2,2,0,2,0],
+  [950,  22, 4,1,2,1,3,2,2,1,0,2,2,0,2,0],
+  [1000, 23, 4,1,2,1,3,2,2,1,0,2,2,0,2,1],
+  [1100, 24, 4,1,2,1,4,2,2,1,0,2,2,0,2,1],
+  [1200, 26, 4,1,2,1,4,2,3,1,0,2,2,1,2,1],
 ];
 const POSTES=['CUISINE','FRITES','SNACK','BROILER','BOARD VOLANT','BORNE','DRIVE','SAT SALLE','PREMIERE CABINE','TABLETTE DRIVE','EMPORTER','COMPTOIR VOLANT','UBER','SAT EMPORTER UBER'];
 
@@ -8851,6 +8854,23 @@ let grilleMode = 15; // Référence = 15 min (quart d'heure)
 // On mémorise les versions personnalisées ; au changement de resto on recharge.
 let BASEMIN_DEFAULT = null; // initialisé après la déclaration de BASE_MIN
 let GRILLE_BY_RESTO = {};   // { 'BK526': [[...]], ... }
+
+// Repli local des grilles par resto (clés MINUSCULES, comme ACTIVE_RESTO).
+// Source : grilles validées de BK administratif, référence 15 min.
+// Supabase (planning_grilles) reste la source de vérité ; ceci garantit les bonnes
+// grilles même au tout premier rendu ou si Supabase est lent/indisponible.
+const GRILLE_FALLBACK = {
+  bk500: [[0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0],[50,2,1,0,0,0,0,1,0,0,0,0,0,0,0,0],[100,3,1,0,0,0,0,1,1,0,0,0,0,0,0,0],[150,5,2,0,0,0,0,2,1,0,0,0,0,0,0,0],[200,5,2,0,0,0,0,2,1,0,0,0,0,0,0,0],[250,7,3,0,0,0,0,2,1,1,0,0,0,0,0,0],[350,12,4,1,1,0,0,2,2,1,0,0,0,0,1,0],[600,14,4,1,1,1,0,2,2,1,0,1,0,0,1,0],[650,15,4,1,1,1,1,2,2,1,0,1,0,0,1,0],[750,17,4,1,1,1,2,2,2,2,0,1,0,0,1,0],[850,16,4,1,1,1,1,3,2,1,0,1,0,0,1,0],[950,21,4,1,2,1,2,2,3,2,1,1,0,0,2,0],[1150,24,4,1,2,1,2,2,3,2,1,2,0,1,2,1]],
+  bk509: [[0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0],[50,2,1,0,0,0,0,1,0,0,0,0,0,0,0,0],[100,3,1,0,0,0,0,1,1,0,0,0,0,0,0,0],[150,4,2,0,0,0,0,1,1,0,0,0,0,0,0,0],[250,6,3,0,0,0,0,2,1,0,0,0,0,0,0,0],[300,7,3,0,0,0,0,2,2,0,0,0,0,0,0,0],[350,12,4,1,1,0,0,2,2,1,0,0,1,0,0,0],[500,13,4,1,1,0,0,2,2,1,0,1,1,0,0,0],[600,14,4,1,1,1,0,2,2,1,0,1,1,0,0,0],[700,15,4,1,1,1,0,2,2,1,0,1,1,0,1,0],[800,17,4,1,1,1,1,2,2,1,0,1,2,0,1,0],[850,21,4,1,1,1,1,2,2,2,1,2,2,0,2,0],[900,22,4,1,2,1,1,2,2,2,1,2,2,0,2,0],[1050,23,4,1,2,1,2,2,2,2,1,2,2,0,2,0]],
+  bk526: [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[25,2,1,0,0,0,0,1,0,0,0,0,0,0,0,0],[150,3,1,0,0,0,0,1,1,0,0,0,0,0,0,0],[200,4,2,0,0,0,0,1,1,0,0,0,0,0,0,0],[250,6,2,0,0,0,0,2,1,1,0,0,0,0,0,0],[350,7,3,0,0,0,0,2,1,1,0,0,0,0,0,0],[400,9,4,0,0,0,0,2,2,1,0,0,0,0,0,0],[500,12,4,1,1,0,0,2,2,1,0,0,1,0,0,0],[550,14,4,1,1,1,0,2,2,1,0,1,1,0,0,0],[600,15,4,1,1,1,0,2,2,1,0,1,1,0,1,0],[750,16,4,1,1,1,1,2,2,1,0,1,1,0,1,0],[850,18,4,1,1,1,2,2,2,1,0,1,2,0,1,0],[900,20,4,1,1,1,2,2,2,1,0,2,2,0,2,0],[950,22,4,1,2,1,3,2,2,1,0,2,2,0,2,0],[1000,23,4,1,2,1,3,2,2,1,0,2,2,0,2,1],[1100,24,4,1,2,1,4,2,2,1,0,2,2,0,2,1],[1200,26,4,1,2,1,4,2,3,1,0,2,2,1,2,1]]
+};
+// Pré-remplir GRILLE_BY_RESTO avec le repli (clés minuscules ET majuscules pour tolérance).
+try{
+  Object.keys(GRILLE_FALLBACK).forEach(function(k){
+    GRILLE_BY_RESTO[k] = GRILLE_FALLBACK[k].map(function(r){return r.slice();});
+    GRILLE_BY_RESTO[k.toUpperCase()] = GRILLE_FALLBACK[k].map(function(r){return r.slice();});
+  });
+}catch(e){}
 let BASEMIN_BY_RESTO = {};  // { 'BK526': [[...]], ... }
 let TAUX_BY_RESTO = {};     // { 'BK526': 20, ... } taux horaire € (masse salariale), par resto
 let HR_GRILLE_RESTO = 'BK526'; // resto dont la grille/base est active
@@ -11681,10 +11701,16 @@ function _hrSemainesTransferees(resto){
 function _hrEtatJour(empId, isoDate){
   if(!empId||!isoDate) return null;
   var lst=HR_ABSENCES[empId]; if(!lst||!lst.length) return null;
+  // Le dimanche est toujours repos : un CP couvrant un dimanche n'est pas affiché
+  // ni compté (le salarié peut poser ses CP du lundi au dimanche, mais le dimanche
+  // reste un repos, jamais un jour de CP payé).
+  var estDimanche=false;
+  try{ estDimanche=(new Date(isoDate+'T12:00:00').getDay()===0); }catch(e){}
   for(var i=0;i<lst.length;i++){
     var a=lst[i]; if(!a||a.statut==='attente') continue;
     var from=a.from, to=a.to||a.from;
     if(isoDate>=from && isoDate<=to){
+      if(estDimanche && a.motif==='cp') return null; // CP le dimanche → repos
       var info=_etatMotifInfo(a.motif);
       var compte=(a.motif==='cp'); // seul le CP compte des heures pour le contrat
       return {motif:a.motif, info:info, compteHeures:compte};
@@ -11697,11 +11723,10 @@ function _hrEtatJour(empId, isoDate){
 function _hrMinCpJour(empId){
   var e=(DB.employees||[]).find(function(x){return x.id===empId;});
   var ch=hrContratHebdo(e); if(ch==null||ch<=0) return 0;
-  var R=(typeof getReglement==='function')?getReglement():null;
-  var nbRepos=(R&&R.joursRepos!=null)?parseInt(R.joursRepos,10):2;
-  if(isNaN(nbRepos)||nbRepos<0||nbRepos>6) nbRepos=2;
-  var joursOuvres=7-nbRepos; if(joursOuvres<1) joursOuvres=5;
-  return Math.round(ch*60/joursOuvres);
+  // Règle CP : un jour de CP vaut toujours le contrat hebdo ÷ 5
+  // (30h → 6h/jour, 20h → 4h/jour, 35h → 7h/jour). Le dimanche est toujours repos
+  // dans la grille, donc jamais compté ici.
+  return Math.round(ch*60/5);
 }
 // Construit le contenu d'une cellule "jour" quand le salarié n'a PAS de trait :
 // soit l'état déclaré (CP/maladie/...), soit "Repos". Renvoie {html, minCompte}.
