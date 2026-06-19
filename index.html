@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-19 10:44 · v149';
+  var EMBEDDED_VERSION = '2026-06-19 11:33 · v152';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -427,6 +427,20 @@ body.tv-mode #eye-viewas{display:none!important;}
       <div id="pin-err" style="color:var(--red);font-size:.8rem;margin-top:12px;min-height:16px;"></div>
     </div>
   </div>
+  <div class="login-step" id="step-resto-actif" style="display:none;">
+    <div class="pin-box">
+      <div style="font-size:2.6rem;margin-bottom:7px;">🏪</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.4rem;color:var(--yellow);text-transform:uppercase;letter-spacing:2px;">Choisir le restaurant</div>
+      <div style="font-size:.78rem;color:#888;margin:4px 0 22px;">Tu travailleras sur ce restaurant. Tu pourras en changer à tout moment en haut de l'écran.</div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <button class="ra-tile" onclick="choisirRestoActif('bk500')" style="cursor:pointer;background:#1A1A1A;border:1px solid #555;border-radius:12px;padding:16px 20px;color:#fff;font-size:1.05rem;font-weight:700;display:flex;align-items:center;gap:12px;transition:all .12s;" onmouseover="this.style.borderColor='#F5A623';this.style.background='#2a2416';" onmouseout="this.style.borderColor='#555';this.style.background='#1A1A1A';">🍔 BK 500 <span style="font-size:.78rem;color:#888;font-weight:400;">Près des Arènes</span></button>
+        <button class="ra-tile" onclick="choisirRestoActif('bk509')" style="cursor:pointer;background:#1A1A1A;border:1px solid #555;border-radius:12px;padding:16px 20px;color:#fff;font-size:1.05rem;font-weight:700;display:flex;align-items:center;gap:12px;transition:all .12s;" onmouseover="this.style.borderColor='#F5A623';this.style.background='#2a2416';" onmouseout="this.style.borderColor='#555';this.style.background='#1A1A1A';">🍔 BK 509 <span style="font-size:.78rem;color:#888;font-weight:400;">Saint-Jean-de-Védas</span></button>
+        <button class="ra-tile" onclick="choisirRestoActif('bk526')" style="cursor:pointer;background:#1A1A1A;border:1px solid #555;border-radius:12px;padding:16px 20px;color:#fff;font-size:1.05rem;font-weight:700;display:flex;align-items:center;gap:12px;transition:all .12s;" onmouseover="this.style.borderColor='#F5A623';this.style.background='#2a2416';" onmouseout="this.style.borderColor='#555';this.style.background='#1A1A1A';">🍔 BK 526 <span style="font-size:.78rem;color:#888;font-weight:400;">Saint-Clément-de-Rivière</span></button>
+        <button class="ra-tile" onclick="choisirRestoActif('ALL')" style="cursor:pointer;background:#16241a;border:1px solid #2e5e33;border-radius:12px;padding:13px 20px;color:#9fe3b5;font-size:.92rem;font-weight:700;display:flex;align-items:center;gap:12px;transition:all .12s;" onmouseover="this.style.borderColor='#3ecf8e';" onmouseout="this.style.borderColor='#2e5e33';">🗂️ Tous les restaurants <span style="font-size:.74rem;color:#6a9a78;font-weight:400;">(je choisirai page par page)</span></button>
+      </div>
+    </div>
+  </div>
+
   <div id="login-version" style="position:fixed;bottom:10px;left:0;right:0;text-align:center;font-size:.7rem;color:#555;"></div>
 </div>
 
@@ -473,6 +487,12 @@ body.tv-mode #eye-viewas{display:none!important;}
     <h1>👑 BK<span>RH</span></h1>
     <span id="maj-badge" style="font-size:.68rem;color:#aaa;background:#1A1A1A;border:1px solid #444;padding:3px 10px;border-radius:14px;margin-left:10px;font-family:Barlow,sans-serif;letter-spacing:.5px;white-space:nowrap;"></span>
     <div id="user-info">
+      <select id="resto-actif-sel" onchange="changerRestoActif(this.value)" title="Restaurant actif" style="display:none;background:#1A1A1A;color:#F5A623;border:1px solid #F5A623;border-radius:6px;padding:4px 9px;font-size:.82rem;font-weight:700;cursor:pointer;margin-right:8px;">
+        <option value="bk500">🍔 BK 500</option>
+        <option value="bk509">🍔 BK 509</option>
+        <option value="bk526">🍔 BK 526</option>
+        <option value="ALL">🗂️ Tous</option>
+      </select>
       <button id="eye-viewas" onclick="toggleViewasBar()" title="Voir comme…" style="display:none;background:transparent;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:6px;padding:3px 9px;font-size:.95rem;cursor:pointer;margin-right:8px;">👁️</button>
       <span id="uname"></span>
       <span id="role-badge"></span>
@@ -589,7 +609,7 @@ body.tv-mode #eye-viewas{display:none!important;}
     <div id="hr-content" style="display:none;">
 <div class="hr-hdr">
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-    <button onclick="hrRetourTuiles()" class="hr-btn" style="white-space:nowrap;">← Restaurants</button>
+    <button id="hr-btn-restos" onclick="hrRetourTuiles()" class="hr-btn" style="white-space:nowrap;">← Restaurants</button>
     <select id="hrx-resto-sel" onchange="hrSelectResto(this.value)" style="background:#1a1a1e;color:#f0f0f2;border:1px solid #3a3a44;border-radius:8px;padding:7px 12px;font-size:14px;font-weight:700;cursor:pointer">
       <option value="BK500">BK 500 — Près des Arènes</option>
       <option value="BK509">BK 509 — Saint-Jean-de-Védas</option>
@@ -616,8 +636,8 @@ body.tv-mode #eye-viewas{display:none!important;}
       <button class="hr-btn hr-btn-ac" id="hrx-refresh-btn" onclick="hrRefreshWeek()" title="Recalcule le planning des 7 jours de la semaine">🔄 Actualiser</button>
       <button class="hr-btn hr-btn-ac" onclick="hrPlacerSemaineCourante()" title="Place les équipiers sur la SEMAINE affichée (sauf si elle est verrouillée).">📆 Placer la semaine</button>
       <div class="hr-cc" style="position:relative;">
-        <button class="hr-btn hr-btn-ac" onclick="hrToggleMoisMenu()" title="Choisir le mois à placer, puis lancer le placement.">🗓️ Placer le mois ▾</button>
-        <div id="hrx-mois-menu" style="display:none;position:absolute;top:100%;left:0;z-index:200;background:#1c1c22;border:1px solid #555;border-radius:10px;padding:6px;min-width:170px;max-height:280px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.5);"></div>
+        <button class="hr-btn hr-btn-ac" onclick="hrPlacerMoisAffiche()" title="Place tout le mois de la semaine affichée.">🗓️ Placer le mois</button>
+        <div id="hrx-mois-menu" style="display:none;"></div>
       </div>
       <button class="hr-btn" id="hrx-lock-sem" onclick="hrToggleVerrouSemaine()" title="Verrouiller / déverrouiller la semaine affichée. Une semaine verrouillée n'est plus modifiée par les recalculs." style="background:#2a2416;border-color:#b8860b;">🔓 Semaine</button>
       <button class="hr-btn" id="hrx-lock-mois" onclick="hrToggleVerrouMois()" title="Verrouiller / déverrouiller le mois affiché. Un mois verrouillé n'est plus modifié par les recalculs." style="background:#2a2416;border-color:#b8860b;">🔓 Mois</button>
@@ -1603,7 +1623,7 @@ body.tv-mode #eye-viewas{display:none!important;}
 // ══════════════════════════════════════════════════════════════════════════════
 // BKRH — Module Recrutement & Entretien
 // ══════════════════════════════════════════════════════════════════════════════
-const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-19 10:44 · v149';
+const APP_VERSION = window.__APP_VERSION_EMBEDDED || '2026-06-19 11:33 · v152';
 function formatMajDate(v){
   // v = 'YYYY-MM-DD HH:MM' éventuellement suivi de ' · vN'
   try{
@@ -2068,7 +2088,7 @@ function startRealtime(){
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
 function showStep(id) {
-  ['step-resto','step-profiles','step-pin'].forEach(function(s){
+  ['step-resto','step-profiles','step-pin','step-resto-actif'].forEach(function(s){
     var el = document.getElementById(s);
     if (el) el.style.display = s===id?'flex':'none';
   });
@@ -2246,12 +2266,12 @@ function checkPin() {
   if (pinVal === pinProf.pin) {
     var r = pinProf.role;
     curUser = {id:pinProf.key,name:pinProf.title,role:r,restoId:pinProf.restoId||null};
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    document.getElementById('uname').textContent = pinProf.title;
 
     // ── MODE ÉCRAN TV : dashboard d'un resto, sans menu ──
     if (r==='tv') {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('uname').textContent = pinProf.title;
       var tvResto = pinProf.tvResto || pinProf.restoId;
       try{ localStorage.setItem('dash_resto', tvResto); }catch(e){}
       document.body.classList.add('tv-mode');
@@ -2260,7 +2280,64 @@ function checkPin() {
       return;
     }
 
+    // ── FRANCHISE (multi-restos) : on choisit d'abord LE restaurant de travail ──
+    // Tout le reste de l'app sera verrouillé sur ce resto (plus de re-sélection page par page).
+    if (r==='franchise') {
+      showStep('step-resto-actif');
+      return;
+    }
+
+    // ── Directeur / manager / autres : mono-resto, entrée directe ──
+    window.ACTIVE_RESTO = (curUser.restoId || 'bk526');
+    _entrerDansApp(r);
+  } else {
+    updatePinDots(true);
+    document.getElementById('pin-err').textContent = 'Code incorrect';
+    setTimeout(function(){ pinVal=''; updatePinDots(); document.getElementById('pin-err').textContent=''; }, 800);
+  }
+}
+
+// Franchise : appelé quand on a choisi le restaurant de travail (ou 'ALL')
+function choisirRestoActif(resto){
+  window.ACTIVE_RESTO = resto; // 'bk500' | 'bk509' | 'bk526' | 'ALL'
+  try{ if(resto && resto!=='ALL' && typeof hrSwitchRestoGrille==='function') hrSwitchRestoGrille(resto); }catch(e){}
+  _entrerDansApp('franchise');
+}
+window.choisirRestoActif=choisirRestoActif;
+
+// Changement de restaurant en cours de route (sélecteur dans l'en-tête)
+function changerRestoActif(resto){
+  window.ACTIVE_RESTO = resto;
+  try{ if(resto && resto!=='ALL' && typeof hrSwitchRestoGrille==='function') hrSwitchRestoGrille(resto); }catch(e){}
+  // recharger la page courante avec le nouveau resto
+  var cur=document.querySelector('.page.active');
+  var id=cur?cur.id.replace('page-',''):'equipe';
+  try{ goPage(id); }catch(e){ console.warn('changerResto goPage',e); }
+  // remettre le bouton de nav actif en surbrillance
+  try{ majBadgeRestoActif(); }catch(e){}
+}
+window.changerRestoActif=changerRestoActif;
+
+// Met à jour l'affichage du sélecteur de resto dans l'en-tête
+function majBadgeRestoActif(){
+  var sel=document.getElementById('resto-actif-sel'); if(!sel) return;
+  if(curUser && curUser.role==='franchise'){
+    sel.style.display='inline-block';
+    sel.value = window.ACTIVE_RESTO || 'ALL';
+  } else {
+    sel.style.display='none';
+  }
+}
+window.majBadgeRestoActif=majBadgeRestoActif;
+
+// Entrée effective dans l'app (commun à tous les rôles après resto choisi)
+function _entrerDansApp(r){
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('uname').textContent = pinProf.title;
+
     applyRolePermissions(r);
+    majBadgeRestoActif();
     // Page de départ selon le rôle
     var startPage;
     if (r==='manager') startPage='incidents';
@@ -2280,7 +2357,9 @@ function checkPin() {
     // Barre "Voir comme" réservée à Admin/RH (franchise)
     try{ var eye=document.getElementById('eye-viewas'); if(eye) eye.style.display=(r==='franchise')?'inline-block':'none'; var vb=document.getElementById('preview-bar'); if(vb) vb.style.display='none'; }catch(e){}
     initForm();
-    renderEquipe();
+    // Si franchise a choisi un resto précis, on entre directement sur la page de départ
+    // verrouillée sur ce resto (au lieu des tuiles). goPage gère le reste.
+    try{ goPage(startPage); }catch(e){ try{ renderEquipe(); }catch(e2){} }
     renderHistory();
     updateVBadge();
     updateRBadge();
@@ -2291,11 +2370,6 @@ function checkPin() {
     renderMailRcps();
     renderCCRcps();
     startSync();
-  } else {
-    updatePinDots(true);
-    document.getElementById('pin-err').textContent = 'Code incorrect';
-    setTimeout(function(){ pinVal=''; updatePinDots(); document.getElementById('pin-err').textContent=''; }, 800);
-  }
 }
 
 function logout() {
@@ -2303,12 +2377,34 @@ function logout() {
   _realUser = null;
   try{ var pr=document.getElementById('preview-role'); if(pr) pr.value=''; var bk=document.getElementById('preview-back'); if(bk) bk.style.display='none'; var st=document.getElementById('preview-status'); if(st) st.textContent=''; }catch(e){}
   curUser = null; pinProf = null; pinVal = ''; curResto = null;
+  try{ window.ACTIVE_RESTO = null; var ras=document.getElementById('resto-actif-sel'); if(ras) ras.style.display='none'; }catch(e){}
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'block';
   showStep('step-resto');
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────────
+// Pour le rôle franchise : si un restaurant actif est choisi (≠ ALL), on NE montre
+// PAS les tuiles — on charge directement ce resto via son pick(). Si 'ALL', on
+// garde les tuiles (choix page par page).
+function bkEntrerPage(pageId){
+  var ra = window.ACTIVE_RESTO;
+  if(ra && ra!=='ALL' && BK_TILE_PAGES[pageId] && typeof BK_TILE_PAGES[pageId].pick==='function'){
+    // masquer l'éventuel écran de tuiles et montrer le contenu
+    var page=document.getElementById('page-'+pageId); if(page) page.classList.remove('bk-tiles-mode');
+    var t=document.getElementById('bk-tiles-'+pageId), b=document.getElementById('bk-body-'+pageId);
+    if(t) t.style.display='none';
+    if(b) b.style.display='block';
+    // retirer un éventuel bouton "← Restaurants" (inutile en mode resto verrouillé)
+    var oldBack=document.getElementById('bk-back-'+pageId); if(oldBack) oldBack.remove();
+    try{ BK_TILE_PAGES[pageId].pick(ra); }catch(e){ console.warn('bkEntrerPage pick',pageId,e); }
+    return;
+  }
+  // sinon (ALL ou page sans config) : comportement tuiles classique
+  bkShowTiles(pageId);
+}
+window.bkEntrerPage=bkEntrerPage;
+
 function goPage(id, btn) {
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.querySelectorAll('nav button').forEach(function(b){b.classList.remove('active');});
@@ -2321,27 +2417,42 @@ function goPage(id, btn) {
       var rt=document.getElementById('rpt-tabs'); if(rt) rt.style.display='none';
       fillRptPersons(); rptClosePanel(); renderRptTiles();
     } else {
-      bkShowTiles('rapports');
+      bkEntrerPage('rapports');
     }
   }
-  if (id==='equipe'){ if(curUser.role==='franchise') eqTab='none'; renderEquipe(); }
+  if (id==='equipe'){
+    if(curUser.role==='franchise'){
+      var ra=window.ACTIVE_RESTO;
+      eqTab = (ra && ra!=='ALL') ? ra : 'none';
+    }
+    renderEquipe();
+  }
   if (id==='dashboard'){ try{ initDashboard(); dashStartAutoRefresh(); }catch(e){console.warn('dash',e);} }
   else { try{ dashStopAutoRefresh(); }catch(e){} }
-  if (id==='incidents'){ if(curUser.role==='franchise'){ bkShowTiles('incidents'); } else { window.__incResto=curUser.restoId; try{ initForm(); }catch(e){} } }
+  if (id==='incidents'){ if(curUser.role==='franchise'){ bkEntrerPage('incidents'); } else { window.__incResto=curUser.restoId; try{ initForm(); }catch(e){} } }
   if (id==='horaires'){ try{
     if(!window.__hrDone && window.__hrInit){ window.__hrInit(); }
-    // Toujours revenir à l'écran des tuiles en entrant sur Horaires
-    var hrT=document.getElementById('hr-tiles'); var hrC=document.getElementById('hr-content');
-    var hrP=document.getElementById('page-horaires'); if(hrP) hrP.classList.add('bk-tiles-mode');
-    if(hrT&&hrC){ hrT.style.display='block'; hrC.style.display='none'; }
+    var ra=window.ACTIVE_RESTO;
+    var _hrBack=document.getElementById('hr-btn-restos');
+    if(ra && ra!=='ALL'){
+      // resto verrouillé : on ouvre directement son planning, pas de tuiles
+      if(_hrBack) _hrBack.style.display='none';
+      try{ if(typeof hrOuvrirResto==='function') hrOuvrirResto(ra.toUpperCase()); }catch(e){ console.warn('hrOuvrirResto',e); }
+    } else {
+      if(_hrBack) _hrBack.style.display='';
+      // mode "Tous" : on montre les tuiles de choix
+      var hrT=document.getElementById('hr-tiles'); var hrC=document.getElementById('hr-content');
+      var hrP=document.getElementById('page-horaires'); if(hrP) hrP.classList.add('bk-tiles-mode');
+      if(hrT&&hrC){ hrT.style.display='block'; hrC.style.display='none'; }
+    }
   }catch(e){console.warn('init horaires',e);} }
   if (id==='docsplanning'){ try{ if(!window.__hrDone && window.__hrInit){ window.__hrInit(); } }catch(e){} try{ docsPlanningStatus&&docsPlanningStatus(); }catch(e){} }
-  if (id==='recrutement'){ if(curUser.role==='franchise'){ bkShowTiles('recrutement'); } else { setCandFilter(candFilter||'nouveau'); } }
-  if (id==='visite'){ if(curUser.role==='franchise'){ bkShowTiles('visite'); } else { renderVisiteList(); } }
-  if (id==='alertes'){ if(curUser.role==='franchise'){ bkShowTiles('alertes'); } else { window.__alertResto=curUser.restoId; renderAlertes(); } }
+  if (id==='recrutement'){ if(curUser.role==='franchise'){ bkEntrerPage('recrutement'); } else { setCandFilter(candFilter||'nouveau'); } }
+  if (id==='visite'){ if(curUser.role==='franchise'){ bkEntrerPage('visite'); } else { renderVisiteList(); } }
+  if (id==='alertes'){ if(curUser.role==='franchise'){ bkEntrerPage('alertes'); } else { window.__alertResto=curUser.restoId; renderAlertes(); } }
   if (id==='etatequipe'){
     try{ window.HR_EE_VUE='tuiles'; }catch(e){}
-    if(curUser.role==='franchise'){ bkShowTiles('etatequipe'); }
+    if(curUser.role==='franchise'){ bkEntrerPage('etatequipe'); }
     else {
       // directeur / autre : son restaurant, pas de tuiles de resto
       HR_ETAT_RESTO_FILTRE=(curUser.restoId||'bk526').toLowerCase();
@@ -2352,8 +2463,8 @@ function goPage(id, btn) {
   if (id==='salaires'){renderSalaires();}
   if (id==='contrats'){renderContrats();}
   if (id==='reglementation'){renderReglement();}
-  if (id==='pointage'){ if(curUser.role==='franchise'){ bkShowTiles('pointage'); } else { window.__ptgRestoActif=null; ptgInit(); } }
-  if (id==='suivipointage'){ if(curUser.role==='franchise'){ bkShowTiles('suivipointage'); } else { window.__ptgRestoActif=null; ptgSuiviInit(); } }
+  if (id==='pointage'){ if(curUser.role==='franchise'){ bkEntrerPage('pointage'); } else { window.__ptgRestoActif=null; ptgInit(); } }
+  if (id==='suivipointage'){ if(curUser.role==='franchise'){ bkEntrerPage('suivipointage'); } else { window.__ptgRestoActif=null; ptgSuiviInit(); } }
   if (id==='planning'){openPlanning();}
   if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();loadSeuilOral();loadMailTpl();renderQr();renderApercuForm();var av=document.getElementById('app-version-badge');if(av){var _now=new Date();var _hd=_now.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})+' à '+String(_now.getHours()).padStart(2,'0')+'h'+String(_now.getMinutes()).padStart(2,'0');av.innerHTML='✓ À jour — '+formatMajDate(APP_VERSION)+' <span style="color:#888;font-weight:400;">· consulté le '+_hd+'</span>';av.style.color='#4CAF50';av.style.borderColor='#2E5E33';} renderParamTiles(); }
 }
@@ -2999,18 +3110,26 @@ function _pdfPartageDessineSemaine(doc, resto, lundiIso, withHeader, affOverride
     doc.text(_strip(e.name||'').slice(0,28), x0+1, y);
     doc.setFont('helvetica','normal');
     var rowH=4;
+    var minEtatPdf=0;
     for(var jj=0;jj<7;jj++){
       var cren=pe.jours[jj].slice().sort(function(a,b){return a.s-b.s;});
       var txt;
-      if(!cren.length){ txt='Repos'; doc.setTextColor(150,150,150); }
+      if(!cren.length){
+        var et=_hrEtatJour(e.id, iso(dates[jj]));
+        if(et){
+          txt=et.info.court; doc.setTextColor(20,20,20);
+          if(et.compteHeures){ minEtatPdf+=_hrMinCpJour(e.id); }
+        } else { txt='Repos'; doc.setTextColor(150,150,150); }
+      }
       else { var plages=[],cur=null; cren.forEach(function(b){ if(cur&&b.s<=cur.e){cur.e=Math.max(cur.e,b.e);}else{cur={s:b.s,e:b.e};plages.push(cur);} }); txt=plages.map(function(p){return hhmm(p.s)+'-'+hhmm(p.e);}).join('  '); doc.setTextColor(20,20,20); }
       var wr=doc.splitTextToSize(txt, dayW-1);
       doc.text(wr, x0+nameW+jj*dayW+1, y);
       if(wr.length*3>rowH) rowH=wr.length*3;
     }
-    var planTxt=fmtHC(pe.totalMin)+' / '+(contrat!=null?fmtHC(Math.round(contrat*60)):'-');
-    if(contrat!=null && pe.totalMin/60<contrat-0.01) doc.setTextColor(224,134,0);
-    else if(contrat!=null && pe.totalMin/60>contrat+0.01) doc.setTextColor(214,35,0);
+    var _totPdf=pe.totalMin+minEtatPdf;
+    var planTxt=fmtHC(_totPdf)+' / '+(contrat!=null?fmtHC(Math.round(contrat*60)):'-');
+    if(contrat!=null && _totPdf/60<contrat-0.01) doc.setTextColor(224,134,0);
+    else if(contrat!=null && _totPdf/60>contrat+0.01) doc.setTextColor(214,35,0);
     else doc.setTextColor(26,152,80);
     doc.setFont('helvetica','bold');
     doc.text(planTxt, x0+nameW+7*dayW+1, y);
@@ -3246,7 +3365,11 @@ function rptPdfPlanHebdo(){
         var cren=(pe&&pe.jours[jj])?pe.jours[jj].slice():[];
         cren.sort(function(a,b){return a.s-b.s;});
         var txt;
-        if(!cren.length){ txt='Repos'; doc.setTextColor(150,150,150); }
+        if(!cren.length){
+          var et=_hrEtatJour(e.id, iso(dates[jj]));
+          if(et){ txt=et.info.court; doc.setTextColor(20,20,20); if(et.compteHeures){ totMin+=_hrMinCpJour(e.id); } }
+          else { txt='Repos'; doc.setTextColor(150,150,150); }
+        }
         else {
           var plages=[],cur=null;
           cren.forEach(function(b){ totMin+=(b.e-b.s); if(cur&&b.s<=cur.e){cur.e=Math.max(cur.e,b.e);}else{cur={s:b.s,e:b.e};plages.push(cur);} });
@@ -3467,11 +3590,12 @@ function renderEquipe(){
   var pageEq1=document.getElementById('page-equipe'); if(pageEq1) pageEq1.classList.remove('bk-tiles-mode');
   if(filtersBox) filtersBox.style.display='flex';
   var restoSel=RESTOS[eqTab]||{label:eqTab};
+  var _peutRevenirTuiles = isGlobal && (window.ACTIVE_RESTO==='ALL' || !window.ACTIVE_RESTO);
   if(tabsBox){
-    tabsBox.innerHTML = (isGlobal
+    tabsBox.innerHTML = (_peutRevenirTuiles
       ? '<button class="rtab" onclick="setEqTab(\'none\')">← Toutes les équipes</button> '
       : '')
-      +'<span class="sec-title" style="margin-left:'+(isGlobal?'10px':'0')+';">🍔 '+restoSel.label+'</span>';
+      +'<span class="sec-title" style="margin-left:'+(_peutRevenirTuiles?'10px':'0')+';">🍔 '+restoSel.label+'</span>';
   }
   var restosToShow=[eqTab];
   var h='';
@@ -8489,6 +8613,11 @@ function initDashboard(){
     try{ if(!tvr){ tvr=localStorage.getItem('dash_resto'); } }catch(e){}
     if(tvr){ DASH_RESTO=tvr; try{localStorage.setItem('dash_resto',tvr);}catch(e){} dashShowBoard(); dashStartClock(); return; }
   }
+  // Franchise avec un restaurant verrouillé (≠ Tous) : on va direct sur son accueil.
+  if(window.ACTIVE_RESTO && window.ACTIVE_RESTO!=='ALL'){
+    DASH_RESTO=window.ACTIVE_RESTO; try{localStorage.setItem('dash_resto',DASH_RESTO);}catch(e){}
+    dashShowBoard(); dashStartClock(); return;
+  }
   // Sinon : on repart sur l'écran « Choisissez votre restaurant »
   dashShowPick();
   dashStartClock();
@@ -8501,7 +8630,12 @@ function dashShowPick(){
     return '<div class="dash-pick-card" style="position:relative;" onclick="dashSelectResto(\''+r.id+'\')"><div class="pc-em">🍔</div><div class="pc-lb">'+r.label+'</div><div class="pc-sub">Appuyer pour ouvrir</div></div>';
   }).join('');
 }
-function dashSelectResto(id){DASH_RESTO=id;try{localStorage.setItem('dash_resto',id);}catch(e){}dashShowBoard();}
+function dashSelectResto(id){
+  DASH_RESTO=id;try{localStorage.setItem('dash_resto',id);}catch(e){}
+  // si franchise en mode resto verrouillé, on aligne le resto actif global
+  try{ if(curUser && curUser.role==='franchise' && window.ACTIVE_RESTO && window.ACTIVE_RESTO!=='ALL'){ window.ACTIVE_RESTO=id; if(typeof majBadgeRestoActif==='function') majBadgeRestoActif(); } }catch(e){}
+  dashShowBoard();
+}
 function dashChangeResto(){dashShowPick();}
 function dashShowBoard(){
   var pick=document.getElementById('dash-resto-pick'),board=document.getElementById('dash-board'),panel=document.getElementById('dash-panel');
@@ -10900,8 +11034,9 @@ function hrEERenderTuiles(){
     {vue:'competences', ico:'🎯', titre:'Compétences',     sub:'Qui sait faire quoi',                   col:'#2e7d32', badge:0}
   ];
   var html='';
-  // Pour le franchisé : un bouton pour revenir au choix du restaurant.
-  if(curUser && curUser.role==='franchise'){
+  // Pour le franchisé EN MODE "Tous" : bouton pour revenir au choix du restaurant.
+  // (En mode resto verrouillé, on change de resto via le sélecteur de l'en-tête.)
+  if(curUser && curUser.role==='franchise' && (window.ACTIVE_RESTO==='ALL' || !window.ACTIVE_RESTO)){
     html+='<div style="margin-bottom:12px;"><button onclick="hrEEVersRestaurants()" style="background:#2a2a2a;border:1px solid #555;color:#ddd;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:.84rem;">← Restaurants</button></div>';
   }
   html+='<div style="font-size:.84rem;color:#aaa;margin-bottom:14px;">Restaurant : <b style="color:#fff;">'+_hrEERestoLabel()+'</b> · '+eq.length+' équipier(s). Choisis ce que tu veux gérer.</div>';
@@ -11381,6 +11516,22 @@ function hrPlacerSemaineCourante(){
 }
 window.hrPlacerSemaineCourante=hrPlacerSemaineCourante;
 
+// Place directement le mois de la SEMAINE AFFICHÉE (plus de menu de choix).
+function hrPlacerMoisAffiche(){
+  // mois de référence = celui du jeudi de la semaine affichée (milieu de semaine)
+  var lundi=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?hrLundiDe(DAY_DATES[0]):null);
+  if(!lundi){ toast&&toast('Choisis d\'abord une semaine','error'); return; }
+  var refMois=lundi;
+  try{ var d=new Date(lundi+'T12:00:00'); d.setDate(d.getDate()+3); refMois=hrISO(d); }catch(e){}
+  var moisNoms=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var lbl=''; try{ var dm=new Date(refMois+'T12:00:00'); lbl=moisNoms[dm.getMonth()]+' '+dm.getFullYear(); }catch(e){}
+  hrAutoAssignMonth(refMois, false);
+  var st=document.getElementById('hrx-assign-status');
+  if(st) st.innerHTML='🗓️ Mois de '+lbl+' placé ✓';
+  toast&&toast('Mois de '+lbl+' placé','success');
+}
+window.hrPlacerMoisAffiche=hrPlacerMoisAffiche;
+
 // Menu déroulant de choix du mois à placer
 function hrToggleMoisMenu(){
   var menu=document.getElementById('hrx-mois-menu'); if(!menu) return;
@@ -11459,6 +11610,48 @@ function _hrSemainesTransferees(resto){
   out.sort();
   return out;
 }
+// ── ÉTAT (CP / maladie / absence) D'UN SALARIÉ À UNE DATE DONNÉE ──────────────
+// Retourne {motif, info, compteHeures:bool, minSiCompte} si une absence VALIDÉE
+// (statut !== 'attente') couvre la date ISO ; sinon null.
+//  - CP  : compte comme heures travaillées pour le contrat (jour payé)
+//  - maladie/absence/indispo : 0h (mais on l'affiche, ce n'est pas du repos)
+function _hrEtatJour(empId, isoDate){
+  if(!empId||!isoDate) return null;
+  var lst=HR_ABSENCES[empId]; if(!lst||!lst.length) return null;
+  for(var i=0;i<lst.length;i++){
+    var a=lst[i]; if(!a||a.statut==='attente') continue;
+    var from=a.from, to=a.to||a.from;
+    if(isoDate>=from && isoDate<=to){
+      var info=_etatMotifInfo(a.motif);
+      var compte=(a.motif==='cp'); // seul le CP compte des heures pour le contrat
+      return {motif:a.motif, info:info, compteHeures:compte};
+    }
+  }
+  return null;
+}
+// Heures (en minutes) qu'un jour de CP rapporte au contrat d'un salarié :
+// contrat hebdo réparti sur les jours ouvrés de la semaine (7 - jours de repos).
+function _hrMinCpJour(empId){
+  var e=(DB.employees||[]).find(function(x){return x.id===empId;});
+  var ch=hrContratHebdo(e); if(ch==null||ch<=0) return 0;
+  var R=(typeof getReglement==='function')?getReglement():null;
+  var nbRepos=(R&&R.joursRepos!=null)?parseInt(R.joursRepos,10):2;
+  if(isNaN(nbRepos)||nbRepos<0||nbRepos>6) nbRepos=2;
+  var joursOuvres=7-nbRepos; if(joursOuvres<1) joursOuvres=5;
+  return Math.round(ch*60/joursOuvres);
+}
+// Construit le contenu d'une cellule "jour" quand le salarié n'a PAS de trait :
+// soit l'état déclaré (CP/maladie/...), soit "Repos". Renvoie {html, minCompte}.
+function _hrCelluleEtatOuRepos(empId, isoDate){
+  var et=_hrEtatJour(empId, isoDate);
+  if(!et){ return {html:'<span style="color:#aaa;">Repos</span>', minCompte:0}; }
+  var min = et.compteHeures ? _hrMinCpJour(empId) : 0;
+  var sousTexte = et.compteHeures ? ('<div style="font-size:9px;color:#1A9850;margin-top:1px;">'+_hhmmFromMin(min)+' payées</div>') : '<div style="font-size:9px;color:#999;margin-top:1px;">0h</div>';
+  var html='<div style="white-space:nowrap;font-weight:700;color:'+et.info.col+';">'+et.info.icon+' '+et.info.court+'</div>'+sousTexte;
+  return {html:html, minCompte:min};
+}
+function _hhmmFromMin(min){ var h=Math.floor(min/60),m=min%60; return m?(h+'h'+String(m).padStart(2,'0')):(h+'h'); }
+
 // Construit le tableau (document blanc) d'UNE semaine pour un resto donné, à partir des placements sauvegardés
 function hrTableauSemaine(resto, lundiIso, affOverride){
   var aff=affOverride||_hrAffectSauve(resto);
@@ -11496,14 +11689,18 @@ function hrTableauSemaine(resto, lundiIso, affOverride){
   liste.forEach(function(e){
     var pe=parEmp[e.id]; var contrat=contratDe(e.id);
     h+='<tr><td style="padding:6px 8px;border:1px solid #e2e2e6;font-weight:600;color:#111;white-space:nowrap;">'+(e.name||'')+'</td>';
+    var minEtat=0; // heures de CP à ajouter au total
     for(var jj=0;jj<7;jj++){
       var cr=pe.jours[jj].slice().sort(function(a,b){return a.s-b.s;});
       var txt;
-      if(!cr.length){ txt='<span style="color:#bbb;">Repos</span>'; }
+      if(!cr.length){
+        var cell=_hrCelluleEtatOuRepos(e.id, iso(dates[jj]));
+        txt=cell.html; minEtat+=cell.minCompte;
+      }
       else { var plages=[],cur=null; cr.forEach(function(b){ if(cur&&b.s<=cur.e){cur.e=Math.max(cur.e,b.e);}else{cur={s:b.s,e:b.e};plages.push(cur);} }); txt=plages.map(function(p){return hhmm(p.s)+' - '+hhmm(p.e);}).join('<br>'); }
       h+='<td style="padding:6px 6px;border:1px solid #e2e2e6;text-align:center;color:#222;white-space:nowrap;">'+txt+'</td>';
     }
-    var totMin=pe.totalMin; var col='#1A9850';
+    var totMin=pe.totalMin+minEtat; var col='#1A9850';
     if(contrat!=null && totMin/60<contrat-0.01) col='#E08600';
     else if(contrat!=null && totMin/60>contrat+0.01) col='#D62300';
     var planTxt=fmtHC(totMin)+' / '+(contrat!=null?fmtHC(Math.round(contrat*60)):'-');
@@ -11743,13 +11940,17 @@ function hrRenderPlanningHebdo(){
     h+='<tr style="border-bottom:1px solid #eee;">';
     h+='<td style="padding:7px 10px;font-weight:600;color:#222;white-space:nowrap;">'+e.name+(mat?' <span style="color:#999;font-weight:400;">('+mat+')</span>':'')+'</td>';
     var totMin=0;
+    var minEtatSem=0; // heures de CP de la semaine (comptées au contrat)
     for(var jj=0;jj<7;jj++){
       var cren=(pe&&pe.jours[jj])?pe.jours[jj].slice():[];
       // fusionner les créneaux contigus du même jour et trier
       cren.sort(function(a,b){return a.s-b.s;});
       var cellHtml;
       if(!cren.length){
-        cellHtml='<span style="color:#aaa;">Repos</span>';
+        // pas de trait : afficher l'état déclaré (CP/maladie/absence) ou "Repos"
+        var isoCel=dates[jj].getFullYear()+'-'+String(dates[jj].getMonth()+1).padStart(2,'0')+'-'+String(dates[jj].getDate()).padStart(2,'0');
+        var cel=_hrCelluleEtatOuRepos(e.id, isoCel);
+        cellHtml=cel.html; totMin+=cel.minCompte; minEtatSem+=cel.minCompte;
       } else {
         // regrouper en plages continues
         var plages=[]; var cur=null;
@@ -11774,6 +11975,16 @@ function hrRenderPlanningHebdo(){
     for(var ws=0; ws<=HR_HEBDO_SEM && ws<R.semaines.length; ws++){
       var peW=R.semaines[ws].parEmp[e.id];
       if(peW && peW.totalMin) cumulMois+=peW.totalMin;
+      // + heures de CP de cette semaine (jours sans trait mais en congés payés)
+      var lundiW=hrParse(R.semaines[ws].lundi);
+      for(var dw=0; dw<7; dw++){
+        var dW=new Date(lundiW); dW.setDate(lundiW.getDate()+dw);
+        var aTrait = peW && peW.jours && peW.jours[dw] && peW.jours[dw].length;
+        if(aTrait) continue;
+        var isoW=dW.getFullYear()+'-'+String(dW.getMonth()+1).padStart(2,'0')+'-'+String(dW.getDate()).padStart(2,'0');
+        var etW=_hrEtatJour(e.id, isoW);
+        if(etW && etW.compteHeures) cumulMois+=_hrMinCpJour(e.id);
+      }
     }
     var moisTxt, contMoisTxt, colMois='#222';
     if(contrat!=null){
@@ -11846,7 +12057,7 @@ function hrRenderPlanningHebdo(){
     h+='</table></div>';
     h+='<div style="text-align:right;font-size:11.5px;color:'+diagCol+';margin-top:8px;font-weight:600;">'+diag+'</div>';
   })();
-  h+='<div style="font-size:10.5px;color:#888;margin-top:12px;">Repos = jour non travaillé · PLAN/CONTRAT = heures de la semaine / contrat hebdo · SUIVI MOIS = heures cumulées depuis le début du mois / contrat mensuel (contrat hebdo × 52/12 : 24h→104h, 35h→151h67, 20h→86h67). <span style="color:#1A9850;">vert</span>=dans les clous · <span style="color:#E08600;">orange</span>=en retard · <span style="color:#D62300;">rouge</span>=en avance. (Les CP, absences et arrêts seront ajoutés ensuite.)</div>';
+  h+='<div style="font-size:10.5px;color:#888;margin-top:12px;">Repos = jour non travaillé · PLAN/CONTRAT = heures de la semaine / contrat hebdo · SUIVI MOIS = heures cumulées depuis le début du mois / contrat mensuel (contrat hebdo × 52/12 : 24h→104h, 35h→151h67, 20h→86h67). <span style="color:#1A9850;">vert</span>=dans les clous · <span style="color:#E08600;">orange</span>=en retard · <span style="color:#D62300;">rouge</span>=en avance. 🟦 CP = congés payés (comptés comme heures faites) · 🟥 Maladie / 🟧 Absence / 🟨 Indispo (0h, déclarés dans État équipe).</div>';
   h+='</div>';
 
   box.innerHTML=tabs+h;
@@ -11984,6 +12195,198 @@ window.hrRenderEmploiSemaine=hrRenderEmploiSemaine;
 const SPAN=DE-DS;
 function pct(m){return((m-DS)/SPAN*100).toFixed(4)+'%';}
 function pctW(s,e){return((e-s)/SPAN*100).toFixed(4)+'%';}
+// ══════════════════════════════════════════════════════════════════════════════
+// AFFECTATION MANUELLE D'UN TRAIT (clic sur un trait du planning)
+// Permet de choisir / remplacer / retirer la personne sur un trait, en ne
+// proposant que les équipiers DISPONIBLES + COMPÉTENTS pour ce trait ce jour-là.
+// ══════════════════════════════════════════════════════════════════════════════
+// Statut d'un équipier vis-à-vis d'un trait [s,e] le jour dayIdx :
+//   {emp, comp:bool, dispo:bool, dejaCePos:bool, occupe:bool, raison:'...'}
+function _hrTraitStatutEmp(emp, poste, dayIdx, s, e, barCible){
+  var jk=(typeof JOURS_KEYS!=='undefined')?JOURS_KEYS[dayIdx]:null;
+  // compétence
+  var comp = hrSaitFaire(emp, poste);
+  // dispo : le jour doit être "on" et la plage [s,e] incluse dans la dispo
+  var dispoOk=false, dispoTxt='—';
+  var d=(emp.infos&&emp.infos.dispos&&jk)?emp.infos.dispos[jk]:null;
+  if(d&&d.on){
+    var from=_dispoMin(d.from), to=_dispoMin(d.to);
+    if(from==null) from=0; if(to==null) to=24*60;
+    dispoTxt=(d.from||'?')+'–'+(d.to||'?');
+    dispoOk = (s>=from && e<=to);
+  }
+  // absence / congé déclaré dans l'état équipe (HR_ABSENCES) pour la date du jour
+  var absent=false, absMotif='';
+  try{
+    var iso=(typeof DAY_DATES!=='undefined')?DAY_DATES[dayIdx]:null;
+    if(iso){
+      (HR_ABSENCES[emp.id]||[]).forEach(function(a){
+        if(!a||a.statut==='attente') return;
+        if(iso>=a.from && iso<=(a.to||a.from)){ absent=true; absMotif=a.motif||'absence'; }
+      });
+    }
+  }catch(e){}
+  // occupé : a-t-il déjà un trait qui CHEVAUCHE [s,e] ce jour (hors le trait cible) ?
+  var occupe=false, posOccupe='';
+  (ROWS_BY_DAY[dayIdx]||[]).forEach(function(r){
+    r.bars.forEach(function(bb){
+      if(bb===barCible) return;
+      if(bb.empId===emp.id){
+        var be=bb.e||bb.s+60;
+        if(bb.s<e && be>s){ occupe=true; posOccupe=bb.l; }
+      }
+    });
+  });
+  return {emp:emp, comp:comp, dispo:dispoOk, dispoTxt:dispoTxt, absent:absent, absMotif:absMotif, occupe:occupe, posOccupe:posOccupe};
+}
+
+// Ouvre le panneau d'affectation pour le trait (ligne rowIdx, barre barIdx) du jour courant.
+function hrTraitAffecterOuvrir(rowIdx, barIdx){
+  var row=ROWS_BY_DAY[curDay] && ROWS_BY_DAY[curDay][rowIdx];
+  var b=row && row.bars && row.bars[barIdx];
+  if(!b){ return; }
+  window.__hrTraitCible={rowIdx:rowIdx, barIdx:barIdx, day:curDay};
+  var poste=b.l, s=b.s, e=b.e||b.s+60;
+  var resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'').toLowerCase();
+  var equipiers=(DB.employees||[]).filter(function(x){return x.role==='equipier'&&!x.archived&&x.restoId===resto;});
+  // calcule le statut de chacun
+  var stats=equipiers.map(function(emp){ return _hrTraitStatutEmp(emp, poste, curDay, s, e, b); });
+  // tri : éligibles d'abord (compétent+dispo+libre+non absent), puis le reste
+  function score(st){
+    if(st.comp && st.dispo && !st.occupe && !st.absent) return 0; // parfait
+    if(st.comp && st.dispo && st.occupe && !st.absent) return 1;   // ok mais déjà occupé
+    if(st.comp && !st.dispo && !st.absent) return 2;               // compétent mais hors dispo
+    if(!st.comp) return 3;                                         // pas la compétence
+    return 4;
+  }
+  stats.sort(function(a,b){ var d=score(a)-score(b); if(d) return d; return (a.emp.name||'').localeCompare(b.emp.name||''); });
+
+  var jourNom=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'][curDay]||'';
+  var h='<div style="margin-bottom:6px;font-size:1.05rem;font-weight:700;color:#fff;">'+poste+' · '+fmt(s)+'–'+fmt(e)+'</div>';
+  h+='<div style="font-size:.82rem;color:#aaa;margin-bottom:14px;">'+jourNom+' · clique un nom pour l\'affecter à ce trait. Seuls les <b style="color:#3ecf8e;">disponibles et compétents</b> sont proposés en premier.</div>';
+  // qui est dessus actuellement
+  if(b.emp){
+    h+='<div style="background:#16321f;border:1px solid #3ecf8e;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:.85rem;color:#dff;">Actuellement : <b>'+b.emp+'</b> '
+      +'<button onclick="hrTraitVider()" style="margin-left:10px;background:#3a1a1a;border:1px solid #cc5555;color:#cc5555;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:.78rem;">✕ Retirer du trait</button></div>';
+  } else {
+    h+='<div style="background:#3a2a16;border:1px solid #e8a020;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:.85rem;color:#fde;">Trait non pourvu pour l\'instant.</div>';
+  }
+  // listes
+  function ligneEmp(st){
+    var emp=st.emp;
+    var dispoOK=st.comp&&st.dispo&&!st.occupe&&!st.absent;
+    var puces=[];
+    puces.push(st.comp?'<span style="color:#3ecf8e;">✓ compétent</span>':'<span style="color:#cc5555;">✕ pas la compétence</span>');
+    puces.push(st.dispo?'<span style="color:#3ecf8e;">✓ dispo '+st.dispoTxt+'</span>':'<span style="color:#e8a020;">⚠ hors dispo ('+st.dispoTxt+')</span>');
+    if(st.absent) puces.push('<span style="color:#cc5555;">⛔ '+(_etatMotifInfo(st.absMotif).court||'absent')+'</span>');
+    if(st.occupe) puces.push('<span style="color:#e8a020;">⏳ déjà sur '+st.posOccupe+'</span>');
+    var contratH=hrContratHebdo(emp);
+    var bg=dispoOK?'#1d2a1d':'#222';
+    var bord=dispoOK?'#2e7d32':'#3a3a3a';
+    var estLui=(window.__hrTraitCible && ROWS_BY_DAY[curDay][window.__hrTraitCible.rowIdx].bars[window.__hrTraitCible.barIdx].empId===emp.id);
+    return '<div onclick="hrTraitChoisir(\''+emp.id+'\')" style="cursor:pointer;background:'+(estLui?'#16321f':bg)+';border:1px solid '+(estLui?'#3ecf8e':bord)+';border-radius:9px;padding:9px 12px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;transition:filter .1s;" onmouseover="this.style.filter=\'brightness(1.25)\'" onmouseout="this.style.filter=\'\'">'
+      +'<div><div style="font-weight:600;color:#fff;font-size:.92rem;">'+emp.name+(estLui?' <span style="color:#3ecf8e;font-size:.78rem;">(sur ce trait)</span>':'')+(contratH?' <span style="color:#888;font-size:.76rem;font-family:\'DM Mono\',monospace;">'+contratH+'h</span>':'')+'</div>'
+      +'<div style="font-size:.74rem;margin-top:2px;display:flex;gap:10px;flex-wrap:wrap;">'+puces.join(' ')+'</div></div>'
+      +(dispoOK?'<span style="background:#3ecf8e;color:#000;font-weight:700;border-radius:6px;padding:3px 10px;font-size:.78rem;">Affecter</span>':'<span style="color:#888;font-size:.76rem;">forcer</span>')
+      +'</div>';
+  }
+  var eligibles=stats.filter(function(st){return st.comp&&st.dispo&&!st.occupe&&!st.absent;});
+  var autres=stats.filter(function(st){return !(st.comp&&st.dispo&&!st.occupe&&!st.absent);});
+  if(eligibles.length){
+    h+='<div style="font-size:.78rem;color:#3ecf8e;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin:4px 0 8px;">✓ Disponibles & compétents ('+eligibles.length+')</div>';
+    h+=eligibles.map(ligneEmp).join('');
+  } else {
+    h+='<div style="background:#3a1a1a;border:1px solid #cc5555;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:.84rem;color:#fcc;">Aucun équipier à la fois compétent ET disponible pour ce créneau. Tu peux quand même en forcer un ci-dessous (à tes risques).</div>';
+  }
+  if(autres.length){
+    h+='<div style="font-size:.78rem;color:#888;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin:14px 0 8px;">Autres (non conformes)</div>';
+    h+=autres.map(ligneEmp).join('');
+  }
+  hrShowTraitModal(h);
+}
+window.hrTraitAffecterOuvrir=hrTraitAffecterOuvrir;
+
+// Affecte l'équipier choisi au trait cible (retire d'abord ses chevauchements du jour)
+function hrTraitChoisir(empId){
+  var c=window.__hrTraitCible; if(!c) return;
+  var row=ROWS_BY_DAY[c.day] && ROWS_BY_DAY[c.day][c.rowIdx];
+  var b=row && row.bars && row.bars[c.barIdx]; if(!b) return;
+  var emp=(DB.employees||[]).find(function(x){return x.id===empId;}); if(!emp) return;
+  var s=b.s, e=b.e||b.s+60;
+  // si l'équipier est déjà sur un AUTRE trait qui chevauche ce créneau, on l'en retire
+  (ROWS_BY_DAY[c.day]||[]).forEach(function(r){
+    r.bars.forEach(function(bb){
+      if(bb===b) return;
+      if(bb.empId===empId){
+        var be=bb.e||bb.s+60;
+        if(bb.s<e && be>s){ bb.emp=null; bb.empId=null; }
+      }
+    });
+  });
+  b.emp=emp.name; b.empId=emp.id;
+  hrTraitFermerModal();
+  hrPersistAffectations();   // écrit HR_AFFECT AVANT le rendu (sinon hrReappliquerAffectations écrase)
+  renderTimeline();
+  hrRenderEmploiSemaine();
+}
+window.hrTraitChoisir=hrTraitChoisir;
+
+// Retire la personne du trait cible
+function hrTraitVider(){
+  var c=window.__hrTraitCible; if(!c) return;
+  var row=ROWS_BY_DAY[c.day] && ROWS_BY_DAY[c.day][c.rowIdx];
+  var b=row && row.bars && row.bars[c.barIdx]; if(!b) return;
+  b.emp=null; b.empId=null;
+  hrTraitFermerModal();
+  hrPersistAffectations();   // écrit HR_AFFECT AVANT le rendu
+  renderTimeline();
+  hrRenderEmploiSemaine();
+}
+window.hrTraitVider=hrTraitVider;
+
+// Persiste les affectations modifiées du jour courant dans HR_AFFECT (mémoire par date
+// ISO réappliquée à chaque rendu) puis sauvegarde durable (Supabase + localStorage).
+function hrPersistAffectations(){
+  try{
+    var iso=(typeof DAY_DATES!=='undefined'&&DAY_DATES[curDay])?DAY_DATES[curDay]:null;
+    if(iso){
+      var aff=[], reste=[];
+      (ROWS_BY_DAY[curDay]||[]).forEach(function(row){
+        row.bars.forEach(function(b){
+          if(estTraitEncadrement(b.l)) return;
+          if(b.empId) aff.push({l:b.l,s:b.s,e:b.e,emp:b.emp,empId:b.empId});
+          else reste.push({l:b.l,s:b.s,e:b.e});
+        });
+      });
+      HR_AFFECT[iso]=aff;
+      if(typeof HR_RESTE!=='undefined') HR_RESTE[iso]=reste;
+    }
+    if(typeof hrSauverAffect==='function') hrSauverAffect();
+  }catch(e){ console.warn('persist affectations', e); }
+}
+
+// Modal générique pour l'affectation d'un trait
+function hrShowTraitModal(html){
+  var ov=document.getElementById('hr-trait-ov');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='hr-trait-ov';
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+    ov.onclick=function(e){ if(e.target===ov) hrTraitFermerModal(); };
+    var box=document.createElement('div'); box.id='hr-trait-box';
+    box.style.cssText='background:#1a1a1a;border:1px solid #444;border-radius:14px;max-width:640px;width:100%;max-height:85vh;overflow:auto;padding:22px;position:relative;';
+    var close=document.createElement('button'); close.textContent='✕';
+    close.style.cssText='position:absolute;top:12px;right:14px;background:#333;border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:15px;';
+    close.onclick=hrTraitFermerModal;
+    box.appendChild(close);
+    var content=document.createElement('div'); content.id='hr-trait-content'; content.style.marginTop='6px';
+    box.appendChild(content); ov.appendChild(box); document.body.appendChild(ov);
+  }
+  ov.style.display='flex';
+  document.getElementById('hr-trait-content').innerHTML=html;
+}
+function hrTraitFermerModal(){ var ov=document.getElementById('hr-trait-ov'); if(ov) ov.style.display='none'; }
+window.hrTraitFermerModal=hrTraitFermerModal;
+
 function renderTimeline(){
   if(typeof hrReappliquerAffectations==='function') hrReappliquerAffectations();
   const ruler=document.getElementById('hrx-ruler');ruler.innerHTML='';
@@ -12122,13 +12525,15 @@ function renderTimeline(){
   const rows=[...ROWS_BY_DAY[curDay]].sort((a,b)=>rowOrder(a)-rowOrder(b));
   const body=document.getElementById('hrx-rows');body.innerHTML='';
   rows.forEach(row=>{
+    // index réel de cette ligne dans ROWS_BY_DAY[curDay] (pour retrouver la barre au clic)
+    const rowIdxReal = ROWS_BY_DAY[curDay].indexOf(row);
     const tr=document.createElement('div');tr.className='hr-tl-row';
     const info=document.createElement('div');info.className='hr-tl-i';tr.appendChild(info);
     const bd=document.createElement('div');bd.className='hr-tl-b';
     const gl=document.createElement('div');gl.className='hr-tl-gl';
     RULER_H.forEach(()=>{const l=document.createElement('div');gl.appendChild(l);});
     bd.appendChild(gl);
-    row.bars.forEach(b=>{
+    row.bars.forEach((b, barIdx)=>{
       const s=b.s,e=b.e||s+60;
       if(e<=DS||s>=DE)return;
       const cs=Math.max(s,DS),ce=Math.min(e,DE);
@@ -12146,7 +12551,20 @@ function renderTimeline(){
       var nomEmp = b.emp ? (' — '+b.emp) : '';
       bar.textContent=`${b.l} ${fmt(s)}–${fmt(e)}${nomEmp}`;
       if(b.emp){ bar.style.fontWeight='600'; }
-      bar.title=`${b.l}\n${fmt(s)} – ${fmt(e)}${b.emp?('\n👤 '+b.emp):'\n(non pourvu)'}\n${row.type==='extra'?'+ CA':'Base'}`;
+      // Les traits d'encadrement (managers/leaders, issus du Planning) ne sont pas affectables ici.
+      var estEncadr = (typeof estTraitEncadrement==='function') && estTraitEncadrement(b.l);
+      if(estEncadr){
+        bar.title=`${b.l}\n${fmt(s)} – ${fmt(e)}\n(encadrement — géré dans Planning)`;
+      } else {
+        bar.title=`${b.l}\n${fmt(s)} – ${fmt(e)}${b.emp?('\n👤 '+b.emp):'\n(non pourvu — clique pour affecter)'}\n${row.type==='extra'?'+ CA':'Base'}`;
+        // Repère visuel : un trait non pourvu est entouré en pointillés rouges
+        if(!b.empId && !b.col){ bar.style.boxShadow='0 0 0 1.5px rgba(231,76,60,.55)'; }
+        // Clic → ouvre l'affectation de ce trait
+        bar.style.cursor='pointer';
+        bar.setAttribute('data-row', rowIdxReal);
+        bar.setAttribute('data-bar', barIdx);
+        bar.onclick=function(ev){ ev.stopPropagation(); hrTraitAffecterOuvrir(rowIdxReal, barIdx); };
+      }
       bd.appendChild(bar);
       // ── INDISPONIBILITÉ du salarié placé : trait gris léger sur ses heures non dispo ──
       if(b.empId){
@@ -13459,6 +13877,14 @@ window.hrSelectResto=function(resto){
     if(typeof renderDays==='function') renderDays();
     if(typeof renderAll==='function') renderAll();
     if(window.hrDiag) hrDiag('✅ '+resto+' — '+Object.keys(HR_ALL[resto]||{}).length+' jours');
+    // Synchroniser le restaurant actif GLOBAL (franchise) + sélecteur d'en-tête,
+    // pour que toute l'app reste alignée sur le resto choisi dans Horaires.
+    try{
+      if(curUser && curUser.role==='franchise' && window.ACTIVE_RESTO && window.ACTIVE_RESTO!=='ALL'){
+        window.ACTIVE_RESTO = (resto||'').toLowerCase();
+        if(typeof majBadgeRestoActif==='function') majBadgeRestoActif();
+      }
+    }catch(e){}
   }
   // Données déjà en mémoire → afficher direct
   if(HR_ALL[resto] && Object.keys(HR_ALL[resto]).length){ afficher(); return; }
