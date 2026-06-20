@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-20 14:19 · v203';
+  var EMBEDDED_VERSION = '2026-06-20 14:32 · v205';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -12402,6 +12402,7 @@ function hrTableauSemaine(resto, lundiIso, affOverride){
     }
     return tot;
   }
+  var _ftPrisSem=0,_ftContSem=0,_ftPrisMois=0,_ftContMois=0; // accumulateurs ligne TOTAUX
   liste.forEach(function(e){
     var pe=parEmp[e.id]; var contrat=contratDe(e.id);
     h+='<tr><td style="padding:6px 8px;border:1px solid #e2e2e6;font-weight:600;color:#111;white-space:nowrap;">'+(e.name||'')+'</td>';
@@ -12431,12 +12432,26 @@ function hrTableauSemaine(resto, lundiIso, affOverride){
       colMois=(cumulMois>attenduMin+60)?'#D62300':(cumulMois<attenduMin-60?'#E08600':'#1A9850');
     }
     h+='<td style="padding:6px 8px;border:1px solid #e2e2e6;text-align:center;font-weight:700;color:'+colMois+';white-space:nowrap;">'+moisTxt+'</td></tr>';
+    // cumul ligne TOTAUX
+    _ftPrisSem+=totMin;
+    if(contrat!=null){ _ftContSem+=Math.round(contrat*60); _ftContMois+=Math.round(contrat*60*52/12); }
+    _ftPrisMois+=cumulMois;
   });
+  // ── Ligne TOTAUX : somme PLAN/CONTRAT (semaine) + SUIVI MOIS (mois cumulé) ──
+  h+='<tr style="border-top:2px solid #333;background:#eef2ff;font-weight:800;">';
+  h+='<td style="padding:8px;border:1px solid #333;color:#111;white-space:nowrap;">📊 TOTAUX</td>';
+  h+='<td colspan="7" style="padding:8px;border:1px solid #e2e2e6;text-align:right;color:#555;font-weight:600;font-size:10.5px;">Heures prises / contrats →</td>';
+  h+='<td style="padding:8px;border:1px solid #333;text-align:center;color:#1A4FFF;white-space:nowrap;">'+fmtHC(_ftPrisSem)+' / '+fmtHC(_ftContSem)+'<br><span style="font-size:9px;color:#888;font-weight:600;">semaine</span></td>';
+  h+='<td style="padding:8px;border:1px solid #333;text-align:center;color:#1A4FFF;white-space:nowrap;">'+fmtHC(_ftPrisMois)+' / '+fmtHC(_ftContMois)+'<br><span style="font-size:9px;color:#888;font-weight:600;">mois (cumulé)</span></td></tr>';
   // ── Ligne : CRÉNEAUX RESTANT À PRENDRE (traits vides) par jour, avec la CAUSE ──
   // Visible TOUTES les semaines (placement hebdo). On lit les traits vides depuis
   // ROWS_BY_DAY si on est sur la semaine affichée ; sinon on ne peut pas les lister.
+  // Visible dès qu'on a les traits de la semaine affichée (ROWS_BY_DAY). Le fallback
+  // dessine TOUJOURS la semaine affichée, donc ROWS_BY_DAY correspond à ce tableau.
+  // On n'exige plus l'égalité stricte HR_WEEK_LUNDI===lundiIso (qui pouvait échouer
+  // au changement de semaine et faire « disparaître » la ligne créneaux + totaux).
   var _memeSemaineReste=false;
-  try{ _memeSemaineReste=(typeof HR_WEEK_LUNDI!=='undefined' && HR_WEEK_LUNDI===lundiIso && typeof ROWS_BY_DAY!=='undefined'); }catch(e){}
+  try{ _memeSemaineReste=(typeof ROWS_BY_DAY!=='undefined' && ROWS_BY_DAY && ROWS_BY_DAY.length===7); }catch(e){}
   if(_memeSemaineReste){
     var _eqResto=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&(e.restoId||'').toLowerCase()===(resto||'').toLowerCase();});
     // busy par jour reconstruit depuis les traits posés (pour savoir qui est déjà occupé)
@@ -12484,7 +12499,7 @@ function hrTableauSemaine(resto, lundiIso, affOverride){
       else { cellR=av.map(function(p){return '<div onclick="hrOuvrirChoixCreneau('+jR2+','+p.s+','+p.e+',\''+(p.l||'').replace(/'/g,"\\'")+'\',\''+lundiIso+'\')" style="white-space:nowrap;font-size:10px;color:#D62300;cursor:pointer;padding:1px 2px;border-radius:3px;" onmouseover="this.style.background=\'#ffe0d8\'" onmouseout="this.style.background=\'transparent\'" title="Cliquer pour placer un équipier sur ce créneau">'+hhmm(p.s)+'-'+hhmm(p.e)+' <span style="color:#777;">'+p.l+'</span> <span style="color:'+p.ccol+';">('+p.cause+')</span></div>';}).join(''); }
       h+='<td style="padding:6px 6px;text-align:center;vertical-align:top;border:1px solid #e2e2e6;">'+cellR+'</td>';
     }
-    h+='<td style="padding:7px 10px;text-align:center;font-weight:700;color:#D62300;border:1px solid #e2e2e6;">'+(totalReste||'✓')+'</td>';
+    h+='<td style="padding:7px 10px;text-align:center;font-weight:700;color:#D62300;border:1px solid #e2e2e6;white-space:nowrap;">'+(totalReste||'✓')+'<br><span style="font-size:9px;color:#888;font-weight:600;">créneaux à prendre</span></td>';
     h+='<td style="border:1px solid #e2e2e6;"></td></tr>';
     // Mémoriser la synthèse des causes pour le récap
     window._hrDiagCauses=causeGlobale;
@@ -12496,9 +12511,10 @@ function hrTableauSemaine(resto, lundiIso, affOverride){
   // (besoin resto < total contrats) ou d'un défaut de placement.
   (function(){
     function fh(min){var hh=Math.floor(min/60),mm=Math.round(min%60);return hh+'h'+(mm?String(mm).padStart(2,'0'):'');}
-    // La semaine du tableau correspond-elle à celle affichée à l'écran (ROWS_BY_DAY) ?
+    // ROWS_BY_DAY = traits de la semaine affichée (= ce tableau). On ne dépend plus
+    // d'une égalité stricte de lundi qui faisait disparaître le récap au changement.
     var memeSemaine=false;
-    try{ memeSemaine=(typeof HR_WEEK_LUNDI!=='undefined' && HR_WEEK_LUNDI===lundiIso && typeof ROWS_BY_DAY!=='undefined'); }catch(e){}
+    try{ memeSemaine=(typeof ROWS_BY_DAY!=='undefined' && ROWS_BY_DAY && ROWS_BY_DAY.length===7); }catch(e){}
     var traitsTotMin=0, posesMin=0, videsMin=0;   // total traits équipiers, posés, restant à pourvoir
     if(memeSemaine){
       for(var d=0;d<7;d++){
@@ -12782,7 +12798,12 @@ function hrRenderPlanningHebdo(){
       return true;
     }catch(e){ return false; }
   }
-  if(!HR_MONTH_RESULT||!HR_MONTH_RESULT.semaines.length){ if(_hebdoFallback()) return; box.innerHTML='<div style="color:var(--mu);font-size:13px;padding:12px;">Cliquez sur « 📆 Placer la semaine » pour générer le planning et le suivi.</div>'; return; }
+  // ROBUSTESSE : on affiche TOUJOURS le tableau basé sur les traits affichés
+  // (fallback), qui fonctionne pour n'importe quelle semaine dès qu'il y a des
+  // noms — qu'elle soit dans HR_MONTH_RESULT ou non. Évite que « ça marche puis
+  // ça ne marche plus » selon la semaine.
+  if(_hebdoFallback()) return;
+  if(!HR_MONTH_RESULT||!HR_MONTH_RESULT.semaines.length){ box.innerHTML='<div style="color:var(--mu);font-size:13px;padding:12px;">Cliquez sur « 📆 Placer la semaine » pour générer le planning et le suivi.</div>'; return; }
   var R=HR_MONTH_RESULT;
   // Synchroniser sur la semaine affichée en haut (les traits) si elle fait partie du mois calculé
   if(typeof HR_WEEK_LUNDI!=='undefined' && HR_WEEK_LUNDI){
