@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-20 13:06 · v196';
+  var EMBEDDED_VERSION = '2026-06-20 13:42 · v198';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -5877,7 +5877,14 @@ var REGLEMENT_DEFAUT={
   maxJoursMemePoste:0,         // [perso] nb max de jours/semaine sur le MÊME poste (0 = pas de limite)
   pauseMiniMin:45,             // [perso/RH] pause minimale entre deux créneaux d'une même journée (min)
   blocContinuMaxH:5.5,         // [perso/RH] durée max d'un bloc de travail continu sans pause (h)
-  amplitudeMaxH:12             // [perso/RH] amplitude max de la journée : du 1er au dernier créneau (h)
+  amplitudeMaxH:12,            // [perso/RH] amplitude max de la journée : du 1er au dernier créneau (h)
+  // [perso] Horaires d'OUVERTURE CLIENT par jour (lun..dim). Le PRODUCTIF n'est
+  // placé que dans cette plage ; le NON PRODUCTIF (prépa/fermeture) peut être hors.
+  horairesOuverture:{
+    lun:{o:'11:00',f:'00:00'}, mar:{o:'11:00',f:'00:00'}, mer:{o:'11:00',f:'00:00'},
+    jeu:{o:'11:00',f:'00:00'}, ven:{o:'11:00',f:'01:00'}, sam:{o:'11:00',f:'01:00'},
+    dim:{o:'11:00',f:'01:00'}
+  }
 };
 var REGLEMENT=null;
 function getReglement(){
@@ -5886,6 +5893,28 @@ function getReglement(){
   REGLEMENT=Object.assign({},REGLEMENT_DEFAUT);
   return REGLEMENT;
 }
+// Enregistre les horaires d'ouverture client saisis (7 jours), persiste et applique.
+function sauverHorairesOuverture(){
+  var R=getReglement();
+  var jours=['lun','mar','mer','jeu','ven','sam','dim'];
+  var ho={};
+  jours.forEach(function(jk){
+    var o=document.getElementById('ho-'+jk+'-o');
+    var f=document.getElementById('ho-'+jk+'-f');
+    ho[jk]={o:(o&&o.value)||'11:00', f:(f&&f.value)||'00:00'};
+  });
+  R.horairesOuverture=ho;
+  try{ localStorage.setItem('bkrh_reglement', JSON.stringify(R)); }catch(e){}
+  // partage tous postes via app_config si dispo
+  try{
+    if(typeof SB!=='undefined' && SB){
+      SB.from('app_config').upsert({cle:'bkrh_reglement', valeur:R},{onConflict:'cle'}).then(function(){}).catch(function(){});
+    }
+  }catch(e){}
+  if(typeof toast==='function') toast('Horaires d\'ouverture enregistrés','success');
+  if(typeof renderReglement==='function') renderReglement();
+}
+window.sauverHorairesOuverture=sauverHorairesOuverture;
 var REGL_LABELS={
   maxHeuresJour:['Durée maximale de travail par jour','h','Au-delà, l\'équipier ne peut plus être placé ce jour-là.'],
   maxSequences:['Nombre de séquences (créneaux) max par jour','','1 coupure = 2 séquences. La convention autorise 1 coupure/jour.'],
@@ -5961,6 +5990,31 @@ function renderReglement(){
     h+='<button class="btn btn-gray btn-sm" onclick="addReglCustom()">➕ Ajouter</button>';
     h+='</div></div>';
   }
+  // ── HORAIRES D'OUVERTURE CLIENT (par jour) ───────────────────────────────────
+  (function(){
+    var jours=[['lun','Lundi'],['mar','Mardi'],['mer','Mercredi'],['jeu','Jeudi'],['ven','Vendredi'],['sam','Samedi'],['dim','Dimanche']];
+    var ho=R.horairesOuverture||{};
+    h+='<div style="margin-top:22px;background:#141414;border:1px solid #2A2A2A;border-radius:10px;padding:16px;">';
+    h+='<div style="font-size:.95rem;font-weight:700;color:#7FB3FF;margin-bottom:4px;">🕒 Horaires d\'ouverture client</div>';
+    h+='<div style="font-size:.76rem;color:#999;margin-bottom:12px;">Le <b style="color:#1A9850;">productif</b> n\'est placé que pendant ces heures (selon le CA). Le <b style="color:#E08600;">non productif</b> (prépa, fermeture) peut être avant ou après.</div>';
+    jours.forEach(function(j){
+      var d=ho[j[0]]||{o:'11:00',f:'00:00'};
+      h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;flex-wrap:wrap;">';
+      h+='<div style="width:90px;font-size:.85rem;color:#eee;">'+j[1]+'</div>';
+      if(canEdit){
+        h+='<label style="font-size:.72rem;color:#888;">Ouverture <input type="time" id="ho-'+j[0]+'-o" value="'+d.o+'" class="fi" style="width:auto;margin-left:4px;"></label>';
+        h+='<label style="font-size:.72rem;color:#888;">Fermeture <input type="time" id="ho-'+j[0]+'-f" value="'+d.f+'" class="fi" style="width:auto;margin-left:4px;"></label>';
+      } else {
+        h+='<div style="font-size:.82rem;color:#7FB3FF;">'+d.o+' → '+d.f+'</div>';
+      }
+      h+='</div>';
+    });
+    if(canEdit){
+      h+='<div style="font-size:.72rem;color:#777;margin-top:8px;">Astuce : une fermeture à 00:00 ou 01:00 = le lendemain matin. C\'est la limite au-delà de laquelle aucun productif n\'est placé, même s\'il y a du CA.</div>';
+      h+='<button class="btn btn-gray btn-sm" style="margin-top:10px;" onclick="sauverHorairesOuverture()">💾 Enregistrer les horaires d\'ouverture</button>';
+    }
+    h+='</div>';
+  })();
   box.innerHTML=h;
   renderReglNewForm();
 }
@@ -9578,12 +9632,30 @@ function buildRows(caMap, dayIdx, isoDate){
   if((caMap['00:00']||0)>0) tranches.push('00:00');
 
   POSTES.forEach(poste=>{
+    // Bornes d'OUVERTURE CLIENT du jour (en minutes, après-minuit compté +24h),
+    // pour ne placer le PRODUCTIF que dans cette plage (le CA hors plage est ignoré
+    // côté productif). Le non productif n'est pas concerné (généré en partie 1).
+    var _ouv=null, _fer=null;
+    try{
+      var _R=getReglement(); var _ho=_R&&_R.horairesOuverture;
+      var _jk=['lun','mar','mer','jeu','ven','sam','dim'][dayIdx];
+      if(_ho && _jk && _ho[_jk]){
+        var _po=_ho[_jk].o.split(':').map(Number), _pf=_ho[_jk].f.split(':').map(Number);
+        _ouv=_po[0]*60+_po[1]; if(_po[0]<5)_ouv+=24*60;
+        _fer=_pf[0]*60+_pf[1]; if(_pf[0]<5)_fer+=24*60;
+        // fermeture à 00:00 → minuit = fin de journée = 24h
+        if(_fer<=_ouv) _fer+=24*60;
+      }
+    }catch(e){ _ouv=null; _fer=null; }
     // Profil de l'effectif requis par tranche
     const profil=tranches.map(t=>{
       const ca15=caMap[t]||0;
       const [h,m]=t.split(':').map(Number);
       const minVal=h<5?h*60+m+24*60:h*60+m;
-      return {minVal, n:(getEff(ca15)[poste])||0};
+      // Hors plage d'ouverture client → aucun productif (effectif forcé à 0).
+      var nEff=(getEff(ca15)[poste])||0;
+      if(_ouv!=null && _fer!=null && (minVal<_ouv || minVal>=_fer)) nEff=0;
+      return {minVal, n:nEff};
     }).sort((a,b)=>a.minVal-b.minVal);
     if(!profil.length) return;
     const slots=profil.map(p=>p.minVal);
@@ -12172,14 +12244,12 @@ function _hrEtatJour(empId, isoDate){
   return null;
 }
 // Heures (en minutes) qu'un jour de CP rapporte au contrat d'un salarié :
-// contrat hebdo réparti sur les jours ouvrés de la semaine (7 - jours de repos).
+// RÈGLE : un jour de CP vaut le contrat hebdo ÷ 6 (CP du lundi au samedi, dimanche
+// toujours repos). Ex : 24h → 4h/jour, 30h → 5h, 35h → 5h83, 20h → 3h33.
 function _hrMinCpJour(empId){
   var e=(DB.employees||[]).find(function(x){return x.id===empId;});
   var ch=hrContratHebdo(e); if(ch==null||ch<=0) return 0;
-  // Règle CP : un jour de CP vaut toujours le contrat hebdo ÷ 5
-  // (30h → 6h/jour, 20h → 4h/jour, 35h → 7h/jour). Le dimanche est toujours repos
-  // dans la grille, donc jamais compté ici.
-  return Math.round(ch*60/5);
+  return Math.round(ch*60/6);
 }
 // Construit le contenu d'une cellule "jour" quand le salarié n'a PAS de trait :
 // soit l'état déclaré (CP/maladie/...), soit "Repos". Renvoie {html, minCompte}.
@@ -12214,6 +12284,23 @@ function hrTableauSemaine(resto, lundiIso, affOverride){
       parEmp[b.empId].totalMin+=(b.e-b.s);
     });
   }
+  // + équipiers SANS trait mais en CONGÉ/ABSENCE validé cette semaine (sinon
+  // une personne en CP toute la semaine n'apparaîtrait pas dans le planning).
+  (function(){
+    try{
+      var restoL=(resto||'').toLowerCase();
+      (DB.employees||[]).forEach(function(e){
+        if(e.role!=='equipier'||e.archived) return;
+        if((e.restoId||'').toLowerCase()!==restoL) return;
+        if(parEmp[e.id]) return;
+        for(var d=0; d<7; d++){
+          if(typeof hrEstAbsent==='function' && hrEstAbsent(e.id, iso(dates[d]))){
+            parEmp[e.id]={name:e.name,jours:[[],[],[],[],[],[],[]],totalMin:0}; break;
+          }
+        }
+      });
+    }catch(_e){}
+  })();
   var liste=Object.keys(parEmp).map(function(id){return {id:id,name:parEmp[id].name};}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
   function contratDe(id){ var e=(DB.employees||[]).find(function(x){return x.id===id;}); return hrContratHebdo(e); }
   var h='<div style="background:#fff;color:#222;border-radius:10px;padding:22px 20px;box-shadow:0 2px 14px rgba(0,0,0,.25);margin-bottom:16px;">';
@@ -12753,6 +12840,23 @@ function hrRenderPlanningHebdo(){
 
   // équipiers présents ce mois (toutes semaines), triés par nom
   var ids={}; R.semaines.forEach(function(s){ Object.keys(s.parEmp).forEach(function(id){ ids[id]=s.parEmp[id].name; }); });
+  // + AJOUTER les équipiers SANS trait cette semaine mais en CONGÉ/ABSENCE validé
+  // (sinon une personne en CP toute la semaine disparaîtrait du planning).
+  (function(){
+    try{
+      var restoL=(HR_GRILLE_RESTO||'').toLowerCase();
+      (DB.employees||[]).forEach(function(e){
+        if(e.role!=='equipier'||e.archived) return;
+        if((e.restoId||'').toLowerCase()!==restoL) return;
+        if(ids[e.id]) return; // déjà présent (a des traits)
+        // a-t-il une absence validée sur au moins un jour de la semaine affichée ?
+        for(var d=0; d<7; d++){
+          var isoD=dates[d].getFullYear()+'-'+String(dates[d].getMonth()+1).padStart(2,'0')+'-'+String(dates[d].getDate()).padStart(2,'0');
+          if(typeof hrEstAbsent==='function' && hrEstAbsent(e.id, isoD)){ ids[e.id]=e.name; break; }
+        }
+      });
+    }catch(_e){}
+  })();
   var liste=Object.keys(ids).map(function(id){return {id:id,name:ids[id]};});
   liste.sort(function(a,b){return a.name.localeCompare(b.name);});
 
