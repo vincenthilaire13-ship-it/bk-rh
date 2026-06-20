@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-20 13:42 · v198';
+  var EMBEDDED_VERSION = '2026-06-20 14:19 · v203';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -666,6 +666,7 @@ body.tv-mode #eye-viewas{display:none!important;}
     </div>
     <div class="hr-ssub" style="margin:0 0 .8rem;">Heures par semaine et suivi du mois de chaque équipier. Visible dès que la semaine est placée.</div>
     <div id="hrx-emploi-semaine"></div>
+    <div id="hrx-ff-semaine" style="margin-top:1.4rem;"></div>
   </div>
 </div>
 
@@ -2054,6 +2055,7 @@ function hrRefreshPageActive(){
         break;
       case 'planning':
         if(typeof hrRenderPlanningHebdo==='function') hrRenderPlanningHebdo();
+        if(typeof hrRenderEmploiSemaine==='function') hrRenderEmploiSemaine();
         break;
       case 'docsplanning':
         if(typeof docsPlanningStatus==='function') docsPlanningStatus();
@@ -5868,7 +5870,7 @@ var REGLEMENT_DEFAUT={
   viseContratExact:true, // chaque semaine vise le contrat exact
   traitMiniHeures:2,     // [perso] durée minimale d'un trait (créneau)
   traitMaxiHeures:4,     // [perso] durée maximale d'un trait (créneau)
-  maxTraitsJour:3,       // [perso] nombre maximum de traits par jour et par personne (3 pour atteindre les gros contrats)
+  maxTraitsJour:2,       // [perso] nombre maximum de traits par jour et par personne (Vincent : 2 maxi)
   groupementFermeture:true,    // [perso] journée groupée pour ceux qui ferment
   coupureMaxFermetureMin:30,   // [perso] coupure maxi (min) entre les 2 créneaux d'un fermant
   heureFermetureDepuisH:22,    // [perso] un créneau finissant à partir de cette heure = fermeture
@@ -5889,7 +5891,10 @@ var REGLEMENT_DEFAUT={
 var REGLEMENT=null;
 function getReglement(){
   if(REGLEMENT) return REGLEMENT;
-  try{var raw=localStorage.getItem('bkrh_reglement');if(raw){REGLEMENT=Object.assign({},REGLEMENT_DEFAUT,JSON.parse(raw));return REGLEMENT;}}catch(e){}
+  try{var raw=localStorage.getItem('bkrh_reglement');if(raw){REGLEMENT=Object.assign({},REGLEMENT_DEFAUT,JSON.parse(raw));
+    // Migration : l'ancien défaut était 3 traits/jour ; la règle est désormais 2 maxi.
+    if(REGLEMENT.maxTraitsJour===3){ REGLEMENT.maxTraitsJour=2; try{localStorage.setItem('bkrh_reglement',JSON.stringify(REGLEMENT));}catch(e){} }
+    return REGLEMENT;}}catch(e){}
   REGLEMENT=Object.assign({},REGLEMENT_DEFAUT);
   return REGLEMENT;
 }
@@ -10509,6 +10514,14 @@ function hrReglesConvention(emp,dayIdx,b,ctx,duree){
   // [perso] nombre de TRAITS max par jour (compte les créneaux, pas les séquences)
   var nbTraitsJour=(((ctx.busyJour||{})[emp.id]||{})[dayIdx]||[]).length + 1;
   if(R.maxTraitsJour && nbTraitsJour>R.maxTraitsJour) return false;
+  // [perso/RH] AMPLITUDE MAX de la journée : du début du 1er créneau à la fin du
+  // dernier (coupures comprises), pas plus de amplitudeMaxH (ex. 12h).
+  // Ex : commence à 11h → fin au plus tard 23h ; commence à 10h → 22h.
+  if(R.amplitudeMaxH){
+    var ampMax=parseFloat(R.amplitudeMaxH)*60;
+    var amplitude=seqs[seqs.length-1].e - seqs[0].s;
+    if(amplitude>ampMax) return false;
+  }
   var totJour=0; seqs.forEach(function(s){ totJour+=(s.e-s.s); });
   if(totJour>(R.maxHeuresJour||10)*60) return false;                // max h/jour
   if(seqs.length>=2){
@@ -12559,70 +12572,26 @@ window.hrTableauSemaine=hrTableauSemaine;
 // LE PLUS D'HEURES pour son contrat. Affiche X / contrat à côté de chaque nom.
 function hrOuvrirChoixCreneau(jour, s, e, poste, lundiIso){
   try{
-    var resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'').toLowerCase();
-    var eq=(DB.employees||[]).filter(function(x){return x.role==='equipier'&&!x.archived&&(x.restoId||'').toLowerCase()===resto;});
-    var R=(typeof getReglement==='function')?getReglement():{};
-    var nbRepos=(R&&R.joursRepos!=null)?parseInt(R.joursRepos,10):2; if(isNaN(nbRepos)||nbRepos<0)nbRepos=2;
-    var joursMax=7-nbRepos;
-    var maxTJ=(R&&R.maxTraitsJour!=null)?parseInt(R.maxTraitsJour,10):3; if(isNaN(maxTJ)||maxTJ<1)maxTJ=3;
-    // heures placées sur la semaine + occupation par jour, depuis les traits affichés
-    var minSem={}, busyJ={}, traitsJ={};
-    for(var d=0;d<7;d++){
-      (ROWS_BY_DAY[d]||[]).forEach(function(r){ r.bars.forEach(function(b){
-        if(!b.empId) return;
-        if(!estTraitEncadrement(b.l)) minSem[b.empId]=(minSem[b.empId]||0)+(b.e-b.s);
-        (busyJ[b.empId]=busyJ[b.empId]||{}); (busyJ[b.empId][d]=busyJ[b.empId][d]||[]).push({s:b.s,e:b.e});
-        (traitsJ[b.empId]=traitsJ[b.empId]||{}); traitsJ[b.empId][d]=(traitsJ[b.empId][d]||0)+1;
-      }); });
+    // On délègue à la fenêtre complète des traits (compétents+dispos ET autres à
+    // forcer, avec « déjà/contrat » de la semaine). On bascule sur le bon jour,
+    // puis on retrouve le trait (rowIdx/barIdx) dans ROWS_BY_DAY[jour].
+    if(typeof jour==='number' && jour>=0 && jour<7){
+      if(typeof curDay!=='undefined' && curDay!==jour){
+        curDay=jour;
+        try{ if(typeof renderAll==='function') renderAll(); }catch(e){}
+      }
     }
-    function dispoOk(emp){ var jk=JOURS_KEYS[jour]; var dd=(emp.infos&&emp.infos.dispos&&emp.infos.dispos[jk])||null; if(!dd||!dd.on)return false; var f=_dispoMin(dd.from),t=_dispoMin(dd.to); if(f==null||t==null)return false; return s>=f&&e<=t; }
-    function libre(id){ var a=(busyJ[id]||{})[jour]||[]; for(var i=0;i<a.length;i++){ if(s<a[i].e&&e>a[i].s)return false; } return true; }
-    function joursTravailles(id){ var t=traitsJ[id]||{}; var n=0; for(var k in t){ if(t[k])n++; } return n; }
-    // candidats plaçables
-    var cands=[];
-    eq.forEach(function(emp){
-      if(!hrSaitFaire(emp,poste)) return;          // compétence
-      if(!dispoOk(emp)) return;                     // dispo
-      if(!libre(emp.id)) return;                    // pas déjà occupé sur ce créneau
-      // repos imposé ce jour ? (déclaré en État équipe) → on exclut
-      var isoJ=hrISO((function(){var L=hrParse(lundiIso);var dt=new Date(L);dt.setDate(L.getDate()+jour);return dt;})());
-      if(typeof hrEstAbsent==='function' && hrEstAbsent(emp.id,isoJ)) return;
-      // max de jours travaillés atteint et ce jour pas déjà travaillé → exclut
-      var dejaCeJour=(traitsJ[emp.id]&&traitsJ[emp.id][jour])?true:false;
-      if(joursTravailles(emp.id)>=joursMax && !dejaCeJour) return;
-      // max traits/jour atteint ce jour → exclut
-      if((traitsJ[emp.id]&&traitsJ[emp.id][jour]||0)>=maxTJ) return;
-      var ch=hrContratHebdo(emp); var contratMin=ch!=null?Math.round(ch*60):null;
-      var fait=minSem[emp.id]||0;
-      var manque=contratMin!=null?(contratMin-fait):0;
-      cands.push({id:emp.id, name:emp.name, fait:fait, contratMin:contratMin, manque:manque});
-    });
-    // tri : celui à qui il manque LE PLUS d'heures d'abord
-    cands.sort(function(a,b){ return b.manque-a.manque; });
-    function fh(min){var hh=Math.floor(min/60),mm=Math.round(min%60);return hh+'h'+(mm?String(mm).padStart(2,'0'):'');}
-    function hhmm(min){var h=Math.floor(min/60)%24,m=min%60;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
-    var H='<div style="font-family:Barlow,sans-serif;">';
-    H+='<div style="font-size:1.05rem;font-weight:800;color:#fff;margin-bottom:2px;">Placer sur '+hhmm(s)+'–'+hhmm(e)+' · '+poste+'</div>';
-    var joursN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
-    H+='<div style="font-size:.85rem;color:#aaa;margin-bottom:12px;">'+joursN[jour]+' — clique sur un équipier pour le placer</div>';
-    if(!cands.length){
-      H+='<div style="color:#e57373;font-weight:600;">Aucun équipier plaçable ici (compétence, dispo, repos ou règles). Ce créneau ne peut pas être pourvu en l\'état.</div>';
-    } else {
-      H+='<table class="rpt-table" style="font-size:.82rem;width:100%;"><thead><tr><th style="text-align:left;">Équipier</th><th>Déjà / Contrat</th><th>Manque</th><th></th></tr></thead><tbody>';
-      cands.forEach(function(c){
-        var contTxt=c.contratMin!=null?(fh(c.fait)+' / '+fh(c.contratMin)):(fh(c.fait)+' / —');
-        var col=c.manque>60?'#ff8a80':(c.manque>0?'#ffb74d':'#81c784');
-        H+='<tr>'
-          +'<td style="text-align:left;font-weight:600;">'+c.name+'</td>'
-          +'<td style="text-align:center;">'+contTxt+'</td>'
-          +'<td style="text-align:center;color:'+col+';font-weight:700;">'+(c.manque>0?fh(c.manque):'✓')+'</td>'
-          +'<td style="text-align:center;"><button onclick="hrPlacerSurCreneau(\''+c.id+'\','+jour+','+s+','+e+',\''+poste.replace(/'/g,"\\'")+'\')" style="background:#3ecf8e;border:none;color:#0a2a1c;font-weight:700;border-radius:6px;padding:5px 12px;cursor:pointer;">Placer</button></td>'
-          +'</tr>';
-      });
-      H+='</tbody></table>';
+    var rows=ROWS_BY_DAY[jour]||[];
+    var ri=-1, bi=-1;
+    for(var r=0;r<rows.length && ri<0;r++){
+      var bars=rows[r].bars||[];
+      for(var b=0;b<bars.length;b++){
+        var bb=bars[b];
+        if(!bb.empId && bb.s===s && (bb.e||bb.s+60)===e && (bb.l||'')===poste){ ri=r; bi=b; break; }
+      }
     }
-    H+='</div>';
-    if(typeof hrShowAnalyseModal==='function') hrShowAnalyseModal(H,'jour');
+    if(ri<0){ if(typeof toast==='function') toast('Créneau introuvable (déjà pourvu ?)','error'); return; }
+    if(typeof hrTraitAffecterOuvrir==='function') hrTraitAffecterOuvrir(ri, bi);
   }catch(err){ console.warn('hrOuvrirChoixCreneau', err); }
 }
 window.hrOuvrirChoixCreneau=hrOuvrirChoixCreneau;
@@ -12664,6 +12633,7 @@ function hrPlacerSurCreneau(id, jour, s, e, poste){
     try{ var ovc=document.getElementById('hr-analyse-ov'); if(ovc) ovc.style.display='none'; }catch(e){}
     if(typeof renderAll==='function') renderAll();
     if(typeof hrRenderPlanningHebdo==='function') hrRenderPlanningHebdo();
+    if(typeof hrRenderEmploiSemaine==='function') hrRenderEmploiSemaine();
     if(typeof toast==='function') toast(emp.name+' placé sur '+poste,'success');
   }catch(err){ console.warn('hrPlacerSurCreneau', err); }
 }
@@ -12910,6 +12880,8 @@ function hrRenderPlanningHebdo(){
   var jourAuj=-1;
   (function(){var n=new Date();for(var k=0;k<7;k++){if(dates[k].getDate()===n.getDate()&&dates[k].getMonth()===n.getMonth()&&dates[k].getFullYear()===n.getFullYear()){jourAuj=k;break;}}})();
 
+  // Accumulateurs pour la ligne TOTAUX (sommes des colonnes PLAN/CONTRAT et SUIVI MOIS).
+  var _totPrisSem=0, _totContratSem=0, _totPrisMois=0, _totContratMois=0;
   liste.forEach(function(e){
     var pe=sem.parEmp[e.id];
     var mat=matriculeDe(e.id); var contrat=contratDe(e.id);
@@ -12973,8 +12945,21 @@ function hrRenderPlanningHebdo(){
       moisTxt='—'; contMoisTxt='—';
     }
     h+='<td style="padding:7px 10px;text-align:center;font-weight:700;color:'+colMois+';border-left:2px solid #333;white-space:nowrap;">'+moisTxt+' / '+contMoisTxt+'</td>';
+    // Cumul pour la ligne TOTAUX
+    _totPrisSem += totMin;
+    if(contrat!=null){ _totContratSem += Math.round(contrat*60); _totContratMois += Math.round(contrat*60*52/12); }
+    _totPrisMois += cumulMois;
     h+='</tr>';
   });
+  // ── Ligne TOTAUX : somme PLAN/CONTRAT (semaine) et SUIVI MOIS (mois cumulé) ──
+  (function(){
+    h+='<tr style="border-top:2px solid #333;background:#eef2ff;font-weight:800;">';
+    h+='<td style="padding:9px 10px;color:#111;white-space:nowrap;">📊 TOTAUX</td>';
+    h+='<td colspan="7" style="padding:9px 10px;text-align:right;color:#555;font-weight:600;font-size:11px;">Heures prises / contrats →</td>';
+    h+='<td style="padding:9px 10px;text-align:center;color:#1A4FFF;border-left:2px solid #333;white-space:nowrap;">'+fmtHC(_totPrisSem)+' / '+fmtHC(_totContratSem)+'<br><span style="font-size:9.5px;color:#888;font-weight:600;">semaine</span></td>';
+    h+='<td style="padding:9px 10px;text-align:center;color:#1A4FFF;border-left:2px solid #333;white-space:nowrap;">'+fmtHC(_totPrisMois)+' / '+fmtHC(_totContratMois)+'<br><span style="font-size:9.5px;color:#888;font-weight:600;">mois (cumulé)</span></td>';
+    h+='</tr>';
+  })();
   // ── Ligne : CRÉNEAUX RESTANT À PRENDRE (traits non pourvus) par jour ──
   (function(){
     var lundiIsoBig=dates[0].getFullYear()+'-'+String(dates[0].getMonth()+1).padStart(2,'0')+'-'+String(dates[0].getDate()).padStart(2,'0');
@@ -13020,7 +13005,7 @@ function hrRenderPlanningHebdo(){
       }
       h+='<td style="padding:6px 6px;text-align:center;vertical-align:top;border-left:1px solid #eee;">'+cell+'</td>';
     }
-    h+='<td style="padding:7px 10px;text-align:center;font-weight:700;color:#D62300;border-left:2px solid #333;">'+(total||'✓')+'</td>';
+    h+='<td style="padding:7px 10px;text-align:center;font-weight:700;color:#D62300;border-left:2px solid #333;white-space:nowrap;">'+(total||'✓')+'<br><span style="font-size:9.5px;color:#888;font-weight:600;">créneaux à prendre</span></td>';
     h+='<td style="border-left:2px solid #333;"></td>';
     h+='</tr>';
   })();
@@ -13129,7 +13114,7 @@ function hrRenderEmploiMois_OLD(){
 
 // Construit l'emploi du temps de la semaine, par équipier (créneaux + total d'heures)
 function hrRenderEmploiSemaine(){
-  var box=document.getElementById('hrx-emploi-semaine'); if(!box) return;
+  var box=document.getElementById('hrx-ff-semaine'); if(!box) return;
   var jours=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
   // Rassembler par équipier : empId -> {name, jours:[ [ {l,s,e} ], ... 7 ], totalMin}
   var parEmp={};
@@ -13262,7 +13247,9 @@ function hrTraitAffecterOuvrir(rowIdx, barIdx){
   stats.sort(function(a,b){ var d=score(a)-score(b); if(d) return d; return (a.emp.name||'').localeCompare(b.emp.name||''); });
 
   var jourNom=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'][curDay]||'';
-  var h='<div style="margin-bottom:6px;font-size:1.05rem;font-weight:700;color:#fff;">'+poste+' · '+fmt(s)+'–'+fmt(e)+'</div>';
+  var _durMin=(e-s); var _dh=Math.floor(_durMin/60), _dm=_durMin%60;
+  var _durTxt=_dh+'h'+(_dm?String(_dm).padStart(2,'0'):'');
+  var h='<div style="margin-bottom:6px;font-size:1.05rem;font-weight:700;color:#fff;">'+poste+' · '+fmt(s)+'–'+fmt(e)+' <span style="color:#3ecf8e;font-family:\'DM Mono\',monospace;font-size:.95rem;">= '+_durTxt+'</span></div>';
   h+='<div style="font-size:.82rem;color:#aaa;margin-bottom:14px;">'+jourNom+' · clique un nom pour l\'affecter à ce trait. Seuls les <b style="color:#3ecf8e;">disponibles et compétents</b> sont proposés en premier.</div>';
   // qui est dessus actuellement
   if(b.emp){
@@ -13271,6 +13258,17 @@ function hrTraitAffecterOuvrir(rowIdx, barIdx){
   } else {
     h+='<div style="background:#3a2a16;border:1px solid #e8a020;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:.85rem;color:#fde;">Trait non pourvu pour l\'instant.</div>';
   }
+  // Heures DÉJÀ placées sur la semaine affichée pour chaque équipier (cumul des 7 jours),
+  // pour afficher « déjà / contrat » (ex. 32h15 / 35h) comme dans le tableau du bas.
+  var _minSemEmp={};
+  try{
+    for(var _d=0; _d<7; _d++){
+      (ROWS_BY_DAY[_d]||[]).forEach(function(r){ r.bars.forEach(function(bb){
+        if(bb.empId && !estTraitEncadrement(bb.l)){ _minSemEmp[bb.empId]=(_minSemEmp[bb.empId]||0)+((bb.e||bb.s+60)-bb.s); }
+      }); });
+    }
+  }catch(e){}
+  function _fhSem(min){var hh=Math.floor(min/60),mm=Math.round(min%60);return hh+'h'+(mm?String(mm).padStart(2,'0'):'');}
   // listes
   function ligneEmp(st){
     var emp=st.emp;
@@ -13281,11 +13279,24 @@ function hrTraitAffecterOuvrir(rowIdx, barIdx){
     if(st.absent) puces.push('<span style="color:#cc5555;">⛔ '+(_etatMotifInfo(st.absMotif).court||'absent')+'</span>');
     if(st.occupe) puces.push('<span style="color:#e8a020;">⏳ déjà sur '+st.posOccupe+'</span>');
     var contratH=hrContratHebdo(emp);
+    // « déjà / contrat » de la semaine + ce qu'il manque
+    var faitMin=_minSemEmp[emp.id]||0;
+    var suiviTxt='';
+    if(contratH!=null){
+      var contMin=Math.round(contratH*60);
+      var manqueMin=contMin-faitMin;
+      var colS=manqueMin>60?'#ff8a80':(manqueMin>0?'#ffb74d':'#81c784');
+      // Projection : total APRÈS ajout de ce créneau (faitMin + durée), pour voir
+      // d'un coup d'œil qui se rapproche le plus de son contrat.
+      var apresMin=faitMin+_durMin;
+      var apresTxt='<span style="color:#7FB3FF;">→ '+_fhSem(apresMin)+'</span>';
+      suiviTxt='<span style="color:'+colS+';font-size:.76rem;font-family:\'DM Mono\',monospace;margin-left:8px;">'+_fhSem(faitMin)+' / '+_fhSem(contMin)+(manqueMin>0?(' · manque '+_fhSem(manqueMin)):' ✓')+' '+apresTxt+'</span>';
+    }
     var bg=dispoOK?'#1d2a1d':'#222';
     var bord=dispoOK?'#2e7d32':'#3a3a3a';
     var estLui=(window.__hrTraitCible && ROWS_BY_DAY[curDay][window.__hrTraitCible.rowIdx].bars[window.__hrTraitCible.barIdx].empId===emp.id);
     return '<div onclick="hrTraitChoisir(\''+emp.id+'\')" style="cursor:pointer;background:'+(estLui?'#16321f':bg)+';border:1px solid '+(estLui?'#3ecf8e':bord)+';border-radius:9px;padding:9px 12px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;transition:filter .1s;" onmouseover="this.style.filter=\'brightness(1.25)\'" onmouseout="this.style.filter=\'\'">'
-      +'<div><div style="font-weight:600;color:#fff;font-size:.92rem;">'+emp.name+(estLui?' <span style="color:#3ecf8e;font-size:.78rem;">(sur ce trait)</span>':'')+(contratH?' <span style="color:#888;font-size:.76rem;font-family:\'DM Mono\',monospace;">'+contratH+'h</span>':'')+'</div>'
+      +'<div><div style="font-weight:600;color:#fff;font-size:.92rem;">'+emp.name+(estLui?' <span style="color:#3ecf8e;font-size:.78rem;">(sur ce trait)</span>':'')+(contratH?' <span style="color:#888;font-size:.76rem;font-family:\'DM Mono\',monospace;">'+contratH+'h</span>':'')+suiviTxt+'</div>'
       +'<div style="font-size:.74rem;margin-top:2px;display:flex;gap:10px;flex-wrap:wrap;">'+puces.join(' ')+'</div></div>'
       +(dispoOK?'<span style="background:#3ecf8e;color:#000;font-weight:700;border-radius:6px;padding:3px 10px;font-size:.78rem;">Affecter</span>':'<span style="color:#888;font-size:.76rem;">forcer</span>')
       +'</div>';
@@ -14832,7 +14843,12 @@ function hrShow(id){
   }
   if(id==='grille'){ try{ if(typeof renderGrille==='function') renderGrille(); }catch(e){} }
 }
-function renderAll(){renderDays();renderMetrics();renderTimeline();}
+function renderAll(){
+  renderDays();renderMetrics();renderTimeline();
+  // Les 3 vues empilées : frise (timeline ci-dessus) → planning → FF (postes/jour).
+  try{ if(typeof hrRenderPlanningHebdo==='function') hrRenderPlanningHebdo(); }catch(e){}
+  try{ if(typeof hrRenderEmploiSemaine==='function') hrRenderEmploiSemaine(); }catch(e){}
+}
 
 window.__hrInit=function(){
   if(window.__hrDone)return; window.__hrDone=true;
