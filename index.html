@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-21 01:27 · v230';
+  var EMBEDDED_VERSION = '2026-06-21 21:52 · v231';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1818,6 +1818,8 @@ var selSanction = null;
 var extraData = {};
 var empFilter = 'actif';
 var eqTab = 'none';
+var eqOpenCats = {}; // catégories d'équipe dépliées (accordéon) : {manager:true,...}
+function eqToggleCat(cat){ eqOpenCats[cat] = !eqOpenCats[cat]; renderEquipe(); }
 var rptTab = 'all';
 
 const RESTOS = {bk500:{id:'bk500',label:'BK 500'},bk509:{id:'bk509',label:'BK 509'},bk526:{id:'bk526',label:'BK 526'}};
@@ -3798,13 +3800,31 @@ function renderEquipe(){
     if(empFilter==='actif')emps=emps.filter(function(e){return !e.archived;});
     else if(empFilter==='archive')emps=emps.filter(function(e){return !!e.archived;});
     if(!emps.length){h+='<p style="color:#555;font-size:.83rem;padding:8px 0 18px;">Aucun membre dans cette catégorie.</p>';return;}
-    ['directeur','manager','leader','equipier'].forEach(function(ro){
-      var grp=emps.filter(function(e){return e.role===ro;});if(!grp.length)return;
-      var ico=ro==='directeur'?'👑':ro==='manager'?'⭐':ro==='leader'?'🎖️':'👤';
-
-      h+='<div style="font-size:.76rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin:10px 0 5px;">'+ico+' '+cap(ro)+'s</div>';
+    // Apprenti = équipier dont le contrat est à 35h ; Équipier = équipier < 35h
+    function estApprenti(e){
+      if(e.role!=='equipier')return false;
+      var hc=(window.hrContratHebdo?window.hrContratHebdo(e):null);
+      return hc!=null && hc>=35;
+    }
+    var CATS=[
+      {key:'directeur',label:'Directeurs',ico:'👑',test:function(e){return e.role==='directeur';}},
+      {key:'manager',  label:'Managers',  ico:'⭐',test:function(e){return e.role==='manager';}},
+      {key:'leader',   label:'Leaders',   ico:'🎖️',test:function(e){return e.role==='leader';}},
+      {key:'apprenti', label:'Apprentis', ico:'🎓',test:estApprenti},
+      {key:'equipier', label:'Équipiers', ico:'👤',test:function(e){return e.role==='equipier'&&!estApprenti(e);}}
+    ];
+    CATS.forEach(function(cat){
+      var grp=emps.filter(cat.test);if(!grp.length)return;
+      var open=!!eqOpenCats[cat.key];
       grp.sort(function(a,b){return a.name.localeCompare(b.name,'fr');});
-      grp.forEach(function(e){ h+=empCardHtml(e,ro,canView,canManage); });
+      h+='<button onclick="eqToggleCat(\''+cat.key+'\')" '
+        +'style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;'
+        +'background:#16321f;border:1px solid #3ecf8e;color:#3ecf8e;font-weight:700;'
+        +'border-radius:10px;padding:11px 14px;margin:10px 0 6px;cursor:pointer;font-size:.95rem;text-align:left;">'
+        +'<span>'+cat.ico+' '+cat.label+' <span style="opacity:.8;font-weight:600;">('+grp.length+')</span></span>'
+        +'<span style="font-size:1.1rem;'+(open?'transform:rotate(180deg);display:inline-block;':'')+'">▾</span>'
+        +'</button>';
+      if(open){ grp.forEach(function(e){ h+=empCardHtml(e,e.role,canView,canManage); }); }
     });
     if(restosToShow.length>1)h+='<div style="height:10px;"></div>';
   });
@@ -9859,6 +9879,7 @@ function hrContratHebdo(emp){
   }
   return null;
 }
+window.hrContratHebdo = hrContratHebdo;
 // Nombre de lundis (semaines) dans le mois de la semaine actuellement affichée
 function hrSemainesDuMois(){
   try{
