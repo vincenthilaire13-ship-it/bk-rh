@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-22 12:10 · v235';
+  var EMBEDDED_VERSION = '2026-06-22 13:00 · v236';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -2030,6 +2030,18 @@ function hrRefreshPageActive(){
         if(typeof hrRenderEtatEquipe==='function' && window.HR_EE_VUE!=='tuiles') hrRenderEtatEquipe();
         break;
       case 'horaires': {
+        // Recharge les traits réellement posés (HR_AFFECT) depuis Supabase pour
+        // refléter en quasi temps réel le travail fait sur un autre appareil
+        // (ex. la superviseuse). On NE recharge PAS si des modifications locales
+        // ne sont pas encore enregistrées (_grilleDirty) afin de ne pas écraser
+        // un travail en cours. hrChargerAffect() redessine la timeline une fois
+        // les données Supabase reçues.
+        try{
+          if(typeof _grilleDirty==='undefined' || !_grilleDirty){
+            if(typeof hrChargerAffect==='function') hrChargerAffect();
+            if(typeof hrChargerLocks==='function') hrChargerLocks();
+          }
+        }catch(e){}
         // Redessine les jours (vert/orange) + métriques si le planning est l'onglet ouvert.
         if(typeof renderDays==='function') renderDays();
         var planOuvert = document.getElementById('hrx-sec-planning') &&
