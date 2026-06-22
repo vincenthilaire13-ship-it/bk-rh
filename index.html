@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-22 15:26 · v250';
+  var EMBEDDED_VERSION = '2026-06-22 22:01 · v254';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -13210,9 +13210,11 @@ window.hrPlacerSemaineCourante=hrPlacerSemaineCourante;
 // L'humain ne reclique pas : le moteur fait tout le travail d'optimisation.
 // ══════════════════════════════════════════════════════════════════════════════
 function hrPlacerIntelligentSemaine(){
+  var __st0=document.getElementById('hrx-assign-status'); if(__st0) __st0.innerHTML='🧠 Placement intelligent en cours…';
+  try{
   var lundi=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?hrLundiDe(DAY_DATES[0]):null);
   if(!lundi){ toast&&toast('Choisis d\'abord une semaine','error'); return; }
-  if(hrSemaineVerrouillee(lundi)){ toast&&toast('Cette semaine est verrouillée 🔒','error'); return; }
+  try{ if(hrSemaineVerrouillee(lundi)){ toast&&toast('Cette semaine est verrouillée 🔒','error'); return; } }catch(e){ console.warn('verrou check',e); }
   var R=(typeof getReglement==='function')?getReglement():{};
   var traitMin=(R.traitMiniHeures!=null)?Math.round(parseFloat(R.traitMiniHeures)*60):120;
   var traitMax=(R.traitMaxiHeures!=null)?Math.round(parseFloat(R.traitMaxiHeures)*60):300;
@@ -13226,6 +13228,12 @@ function hrPlacerIntelligentSemaine(){
   var weekendActif=(R.petitsContratsWeekend!==false);
   var _resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'').toLowerCase();
   var eq=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===_resto&&hrContratHebdo(e)!=null&&hrContratHebdo(e)>0;});
+  if(!eq.length){
+    var __stv=document.getElementById('hrx-assign-status');
+    if(__stv) __stv.innerHTML='⚠️ Placement intelligent : aucun équipier trouvé pour ce resto ('+_resto+')';
+    toast&&toast('Aucun équipier à placer ('+_resto+')','error');
+    return;
+  }
 
   // État de placement
   var minSem={}, busy={}, jt={};
@@ -13235,6 +13243,37 @@ function hrPlacerIntelligentSemaine(){
   function reste(e){ return contratMin(e)-(minSem[e.id]||0); }
   function nbJoursTrav(id){ var o=jt[id]||{},n=0; for(var k in o)if(o[k])n++; return n; }
   function occupe(id,d,s,e){ var a=(busy[id]||{})[d]||[]; for(var i=0;i<a.length;i++){ if(s<a[i].e&&e>a[i].s) return true; } return false; }
+  function jourDispoSimple(emp,d){ var jk=JOURS_KEYS[d]; var dd=(emp.infos&&emp.infos.dispos&&emp.infos.dispos[jk])||null; return !!(dd&&dd.on); }
+  // RÈGLE OBLIGATOIRE des 2 jours de repos CONSÉCUTIFS : plutôt que de bloquer au
+  // fil de l'eau (ce qui peut tout figer), on RÉSERVE à chaque salarié une paire de
+  // jours de repos collés AVANT de placer. Les paires sont réparties équitablement
+  // sur la semaine pour ne vider aucun jour. Un 3e repos éventuel se pose librement.
+  var reposReserve={};
+  (function construireRepos(){
+    var PAIRES=[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6]];
+    var usage={}; PAIRES.forEach(function(p){ usage[p.join('-')]=0; });
+    // trier les salariés du plus contraint (moins de jours dispo) au moins contraint
+    var ordre=eq.slice().sort(function(a,b){
+      var da=0,db=0; for(var d=0;d<7;d++){ if(jourDispoSimple(a,d))da++; if(jourDispoSimple(b,d))db++; }
+      return da-db;
+    });
+    ordre.forEach(function(e){
+      var petit=ch(e)<=seuilPetit;
+      var best=null,bs=-1e9;
+      PAIRES.forEach(function(p){
+        // petit contrat (ven/sam/dim only) : repos forcément en semaine (lun..jeu)
+        if(petit && (p.indexOf(4)>=0||p.indexOf(5)>=0||p.indexOf(6)>=0)) return;
+        var indispo=0; p.forEach(function(d){ if(!jourDispoSimple(e,d)) indispo++; });
+        var sc = indispo*5 - usage[p.join('-')]*2 - ((p.indexOf(5)>=0||p.indexOf(6)>=0)?1:0);
+        if(sc>bs){ bs=sc; best=p; }
+      });
+      if(!best) best=[1,2];
+      usage[best.join('-')]++;
+      reposReserve[e.id]=best;
+    });
+  })();
+  // Un jour est-il un repos réservé pour ce salarié (et il n'y bosse pas encore) ?
+  function estReposReserve(id,d){ return reposReserve[id] && reposReserve[id].indexOf(d)>=0; }
   function dispoOkJ(emp,d,s,e){
     var jk=JOURS_KEYS[d]; var dd=(emp.infos&&emp.infos.dispos&&emp.infos.dispos[jk])||null;
     if(!dd||!dd.on) return false;
@@ -13268,6 +13307,9 @@ function hrPlacerIntelligentSemaine(){
     if(occupe(emp.id,d,s,e)) return false;
     if(jt[emp.id]&&!jt[emp.id][d]&&nbJoursTrav(emp.id)>=joursMax) return false;
     if(!reglesOk(emp,d,s,e)) return false;
+    // Règle des 2 repos consécutifs : on n'autorise pas un nouveau jour qui
+    // tomberait sur la paire de repos réservée à ce salarié (voir reposReserve).
+    if(!(jt[emp.id]&&jt[emp.id][d]) && estReposReserve(emp.id,d)) return false;
     return true;
   }
   function poser(emp,d,s,e,bar){
@@ -13338,6 +13380,7 @@ function hrPlacerIntelligentSemaine(){
           var e=eq[ei];
           if(ch(e)<=0||!hrSaitFaire(e,vide.l)) continue;
           if(weekendActif && ch(e)<=seuilPetit && [4,5,6].indexOf(d)<0) continue;
+          if(estReposReserve(e.id,d) && !(jt[e.id]&&jt[e.id][d])) continue;
           if(!dispoOkJ(e,d,vide.s,vide.e)) continue;
           var conflits=(busy[e.id][d]||[]).filter(function(seg){return vide.s<seg.e&&vide.e>seg.s;});
           if(conflits.length!==1) continue;
@@ -13366,6 +13409,7 @@ function hrPlacerIntelligentSemaine(){
     for(var i=0;i<eq.length;i++){ var e=eq[i];
       if(ch(e)<=0||!hrSaitFaire(e,t.l)) continue;
       if(weekendActif && ch(e)<=seuilPetit && [4,5,6].indexOf(d)<0) continue;
+      if(estReposReserve(e.id,d)) continue;
       if(!dispoOkJ(e,d,t.s,t.e)) continue;
       n++;
     }
@@ -13380,6 +13424,42 @@ function hrPlacerIntelligentSemaine(){
     tousTraits.sort(function(a,b){ return (a.nc-b.nc) || ((b.t.e-b.t.s)-(a.t.e-a.t.s)); });
     tousTraits.forEach(function(x){ if(!x.t.empId) placerSurTrait(x.d,x.t); });
   }
+  // ★ PASSE DE DÉPLACEMENT DE REPOS ★ — pour les créneaux qui restent vides :
+  // si un salarié compétent+dispo a son repos réservé pile ce jour-là, on tente de
+  // DÉCALER sa paire de repos vers une autre paire consécutive (sans tomber sur un
+  // jour déjà travaillé), ce qui le libère pour prendre le créneau. Les 2 repos
+  // restent toujours collés. C'est le « déplacer les repos » du placement itératif.
+  function deplacerRepos(){
+    var g=0; var PAIRES=[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6]];
+    for(var d=0; d<7; d++){
+      var vides=traitsJour[d].filter(function(t){return !t.empId;});
+      vides.forEach(function(vide){
+        if(vide.empId) return;
+        for(var ei=0; ei<eq.length; ei++){
+          var e=eq[ei];
+          if(ch(e)<=0||!hrSaitFaire(e,vide.l)) continue;
+          if(weekendActif && ch(e)<=seuilPetit && [4,5,6].indexOf(d)<0) continue;
+          if(!estReposReserve(e.id,d)) continue;        // ne traiter que ceux en repos ce jour
+          if(!dispoOkJ(e,d,vide.s,vide.e)) continue;     // doit pouvoir bosser le créneau
+          var trav=[]; for(var dd=0; dd<7; dd++){ if(jt[e.id]&&jt[e.id][dd]) trav.push(dd); }
+          var petit=ch(e)<=seuilPetit;
+          var nouvelle=null;
+          for(var pi=0; pi<PAIRES.length; pi++){ var p=PAIRES[pi];
+            if(p.indexOf(d)>=0) continue;                       // ne pas reposer le jour à libérer
+            if(p.some(function(x){return trav.indexOf(x)>=0;})) continue; // pas sur un jour déjà bossé
+            if(petit && (p.indexOf(4)>=0||p.indexOf(5)>=0||p.indexOf(6)>=0)) continue;
+            nouvelle=p; break;
+          }
+          if(!nouvelle) continue;
+          var ancien=reposReserve[e.id];
+          reposReserve[e.id]=nouvelle;
+          if(eligible(e,d,vide.s,vide.e,vide.l)){ poser(e,d,vide.s,vide.e,vide); g++; return; }
+          else { reposReserve[e.id]=ancien; } // annuler si ça ne passe pas
+        }
+      });
+    }
+    return g;
+  }
   function mesure(){
     var place=0,vides=0,n=0;
     traitsJour.forEach(function(ts){ts.forEach(function(t){n++; if(t.empId)place+=(t.e-t.s); else vides++;});});
@@ -13389,10 +13469,11 @@ function hrPlacerIntelligentSemaine(){
   passePlacement();
   var prev=null;
   for(var passe=1; passe<=40; passe++){
-    var g=reparer();
+    var g1=reparer();
+    var g2=deplacerRepos();
     passePlacement();
     var m=mesure();
-    if(prev && m.vides===prev.vides && g===0) break;
+    if(prev && m.vides===prev.vides && g1===0 && g2===0) break;
     prev=m;
   }
 
@@ -13418,6 +13499,12 @@ function hrPlacerIntelligentSemaine(){
   var st=document.getElementById('hrx-assign-status');
   if(st) st.innerHTML='🧠 Placement intelligent · besoin couvert '+pct+'% ('+(m2.place/60).toFixed(0)+'h/'+(besoinTot/60).toFixed(0)+'h) · '+m2.vides+' créneaux restants · '+m2.sc+'/'+eq.length+' sous contrat';
   toast&&toast('Placement intelligent : '+pct+'% du besoin couvert','success');
+  }catch(__err){
+    console.error('Placement intelligent — erreur:', __err);
+    var __ste=document.getElementById('hrx-assign-status');
+    if(__ste) __ste.innerHTML='⚠️ Placement intelligent : erreur — '+(__err&&__err.message?__err.message:__err);
+    toast&&toast('Placement intelligent : erreur ('+(__err&&__err.message||__err)+')','error');
+  }
 }
 window.hrPlacerIntelligentSemaine=hrPlacerIntelligentSemaine;
 
@@ -16399,7 +16486,18 @@ window.__hrInit=function(){
           try{ renderDays&&renderDays(); }catch(e){}
           try{ renderAll&&renderAll(); }catch(e){}
           try{ hrFillConsultSelect&&hrFillConsultSelect(); }catch(e){}
-          try{ const vs=document.getElementById('hrx-ca-vue'); if((!vs||vs.value==='jour')){ const ds=document.getElementById('hrx-ca-day-sel'); if(ds&&ds.value&&/^\d{4}-\d{2}-\d{2}$/.test(ds.value)&&typeof hrGenFromDate==='function') hrGenFromDate(ds.value,true); } }catch(e){}
+          try{
+            var vs=document.getElementById('hrx-vue-sel');
+            var vueCourante=vs?vs.value:'semaine';
+            if(vueCourante==='jour'){
+              var ds=document.getElementById('hrx-ca-day-sel');
+              if(ds&&ds.value&&/^\d{4}-\d{2}-\d{2}$/.test(ds.value)&&typeof hrGenFromDate==='function') hrGenFromDate(ds.value,true);
+            } else {
+              // Vue semaine (cas par défaut) : on régénère la SEMAINE sur le bon lundi,
+              // surtout pas la vue jour (qui faisait s'ouvrir l'app sur dimanche).
+              if(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI&&typeof hrGenFromWeek==='function') hrGenFromWeek(HR_WEEK_LUNDI,true);
+            }
+          }catch(e){}
         }
       })();
     }
