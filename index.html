@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-22 13:39 · v239';
+  var EMBEDDED_VERSION = '2026-06-22 14:01 · v240';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -10681,10 +10681,15 @@ function hrReglesConvention(emp,dayIdx,b,ctx,duree){
   });
   if(seqs.length>(R.maxSequences||2)) return false;                 // nb séquences max
   // ── RÈGLES RH (perso) appliquées au placement ──
-  // R3 — Durée max d'un bloc continu sans pause (ex. 5h30)
-  if(R.blocContinuMaxH){
-    var blocMax=parseFloat(R.blocContinuMaxH)*60;
-    for(var _bi=0;_bi<seqs.length;_bi++){ if((seqs[_bi].e-seqs[_bi].s)>blocMax+0.001) return false; }
+  // R3 — Durée max d'un bloc continu sans pause (ex. 5h). Deux traits qui se
+  // touchent fusionnent en une séquence : on garde le PLUS STRICT entre la durée
+  // maxi d'un trait et blocContinuMaxH, pour qu'on ne puisse jamais coller deux
+  // créneaux en un long bloc sans pause (ex. 16:00→02:00 interdit).
+  var _blocMax=null;
+  if(R.traitMaxiHeures!=null) _blocMax=parseFloat(R.traitMaxiHeures)*60;
+  if(R.blocContinuMaxH!=null){ var _bc=parseFloat(R.blocContinuMaxH)*60; _blocMax=(_blocMax==null)?_bc:Math.min(_blocMax,_bc); }
+  if(_blocMax!=null){
+    for(var _bi=0;_bi<seqs.length;_bi++){ if((seqs[_bi].e-seqs[_bi].s)>_blocMax+0.001) return false; }
   }
   // R2 — Pause minimum entre deux créneaux d'une même journée (ex. 45 min)
   if(R.pauseMiniMin && seqs.length>=2){
@@ -10740,7 +10745,12 @@ function hrReglesConvention(emp,dayIdx,b,ctx,duree){
       var hFerm=(R.heureFermetureDepuisH!=null?parseFloat(R.heureFermetureDepuisH):22)*60;
       var finJournee=seqs[seqs.length-1].e; // fin du dernier créneau (peut être >24h)
       var ferme=(finJournee>=hFerm)||(finJournee>=hFerm+24*60); // gère l'après-minuit
-      if(ferme){
+      // Le créneau candidat est-il un poste NON PRODUCTIF (ex. fermeture : FERM/CLOSE) ?
+      // Si oui, on N'IMPOSE PAS la coupure ≤30 min : une fermeture peut suivre un
+      // service du soir avec une pause normale (sinon les fermetures ne se placent
+      // jamais). Le groupement serré ne s'applique qu'entre deux créneaux PRODUCTIFS.
+      var bEstNP=(typeof hrCategorieTrait==='function') && (hrCategorieTrait(b.l)==='np');
+      if(ferme && !bEstNP){
         var coupMaxFerm=(R.coupureMaxFermetureMin!=null?parseFloat(R.coupureMaxFermetureMin):30);
         if(coupure>coupMaxFerm) return false; // fermant : créneaux à regrouper (≤ 30 min de coupure)
       }
@@ -12384,6 +12394,13 @@ function hrConsoliderContrat(ctx, equipiers, cible){
     arr.forEach(function(p){ if(cur&&p.s<=cur.e){cur.e=Math.max(cur.e,p.e);} else {cur={s:p.s,e:p.e};seqs.push(cur);} });
     if(seqs.length>maxTJ) return false;                          // max 2 créneaux/jour
     if((b.e-b.s) < seuil-0.001) return false;                    // créneau trop court
+    // BLOC CONTINU MAX (pause obligatoire) : on n'autorise JAMAIS de coller deux
+    // traits en un bloc plus long que le trait maxi (ex. 5h). Si deux créneaux se
+    // touchent et forment un bloc > traitMaxi, il FAUT une pause → refusé.
+    // (Garde-fou conservé même dans la passe allégée 35h.)
+    var blocMax=(R.traitMaxiHeures!=null)?parseFloat(R.traitMaxiHeures)*60
+               :((R.blocContinuMaxH!=null)?parseFloat(R.blocContinuMaxH)*60:300);
+    for(var _bk=0;_bk<seqs.length;_bk++){ if((seqs[_bk].e-seqs[_bk].s)>blocMax+0.001) return false; }
     // coupure max entre 2 séquences (réglementaire, ex. 4h)
     if(seqs.length>=2){
       var coupureMax=(R.coupureMaxHeures!=null)?parseFloat(R.coupureMaxHeures)*60:240;
