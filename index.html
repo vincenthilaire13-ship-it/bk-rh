@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-22 22:39 · v258';
+  var EMBEDDED_VERSION = '2026-06-23 00:47 · v266';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -646,6 +646,7 @@ body.tv-mode #eye-viewas{display:none!important;}
       <button class="hr-btn hr-btn-ac" id="hrx-refresh-btn" onclick="hrRefreshWeek()" title="Recalcule les TRAITS (besoin) des 7 jours de la semaine selon le CA et la grille">🔄 Actualiser les traits de la semaine</button>
       <!-- Bouton "Placement des salariés sur la semaine" retiré à la demande : on utilise désormais le Placement intelligent. La fonction hrPlacerSemaineCourante reste disponible si besoin. -->
       <button class="hr-btn" id="hrx-placer-intel-btn" onclick="hrPlacerIntelligentSemaine()" title="Place les salariés sur les traits de la grille CA (jamais touchée), en BOUCLE automatique : place → contrôle les créneaux restants → retravaille → recontrôle, jusqu'à couvrir le maximum du besoin et viser les contrats. Coupures 30 min autorisées." style="background:#2a1a3a;border-color:#a855f7;color:#d8b4fe;font-weight:700;">🧠 Placement intelligent</button>
+      <button class="hr-btn" id="hrx-mois-btn" onclick="hrAnalyseRecrutementMois()" title="Analyse le MOIS entier (toutes ses semaines) en simulation, sans toucher au planning : combien de créneaux restent, quels profils recruter, quels salariés sont bloquants par leurs dispos." style="background:#1a2a3a;border-color:#3b82f6;color:#93c5fd;font-weight:700;">📅 Analyse recrutement du mois</button>
       <span id="hrx-contrat-touches" style="display:inline-flex;gap:8px;flex-wrap:wrap;align-items:flex-end"></span>
       <button class="hr-btn" id="hrx-vider-btn" onclick="hrViderSemaine()" title="Retire TOUS les salariés des traits de la semaine affichée : les traits redeviennent vides pour repartir à zéro." style="background:#3a1a1a;border-color:#cc5555;color:#ff9090;">🧹 Vider la semaine</button>
       <button class="hr-btn" id="hrx-lock-sem" onclick="hrToggleVerrouSemaine()" title="Verrouiller / déverrouiller la semaine affichée. Une semaine verrouillée n'est plus modifiée par les recalculs." style="background:#2a2416;border-color:#b8860b;">🔓 Semaine</button>
@@ -655,6 +656,7 @@ body.tv-mode #eye-viewas{display:none!important;}
       <span id="hrx-valid-status" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--mu);align-self:center;margin-left:4px"></span>
     </div>
   </div>
+  <div id="hrx-mois-analyse" style="margin:0 0 1rem 0;padding:0;"></div>
   <div class="hr-mrow" id="hrx-mrow"></div>
   <div class="hr-days" id="hrx-days" style="margin-bottom:1.2rem"></div>
   <div class="hr-scx"><div class="hr-tl-wrap">
@@ -1461,6 +1463,14 @@ body.tv-mode #eye-viewas{display:none!important;}
       <button class="btn btn-gray" style="flex:1;" onclick="closeModal('modal-cancel-inc')">Annuler</button>
       <button class="btn btn-red" style="flex:1;" onclick="confirmAnnulation()">✔ Confirmer</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-ov" id="modal-fiche-salarie">
+  <div class="modal" style="width:520px;max-width:96vw;">
+    <div class="modal-title" id="fiche-sal-title">👤 Fiche salarié</div>
+    <div id="fiche-sal-content" style="font-size:13px;"></div>
+    <button class="btn btn-gray" style="margin-top:14px;width:100%;" onclick="closeModal('modal-fiche-salarie')">Fermer</button>
   </div>
 </div>
 
@@ -6021,57 +6031,60 @@ function sauverHorairesOuverture(){
 }
 window.sauverHorairesOuverture=sauverHorairesOuverture;
 var REGL_LABELS={
-  maxHeuresJour:['Durée maximale de travail par jour','h','Au-delà, l\'équipier ne peut plus être placé ce jour-là.'],
-  maxSequences:['Nombre de séquences (créneaux) max par jour','','1 coupure = 2 séquences. La convention autorise 1 coupure/jour.'],
-  seqMiniHeures:['Durée minimale d\'une séquence de travail','h','Pas de mini-créneaux : chaque venue dure au moins ce temps.'],
-  coupureMaxHeures:['Durée maximale d\'une coupure','h','Temps maximum entre deux séquences dans la journée.'],
-  seuilSansCoupureH:['Seuil de contrat sans coupure','h','En-dessous de ce contrat hebdo, journée d\'un seul bloc.'],
-  joursRepos:['Jours de repos consécutifs par semaine','j','Nombre de jours de repos qui se suivent.'],
-  reposQuotidienH:['Repos minimum entre deux journées','h','Au moins ce temps entre la fin d\'un jour et la reprise le lendemain. Appliqué au placement.'],
-  viseContratExact:['Viser le contrat exact chaque semaine','oui/non','Si activé, chaque semaine vise pile le contrat.'],
-  traitMiniHeures:['◆ Durée minimale d\'un trait (créneau)','h','Votre règle : un créneau dure au moins ce temps.'],
-  traitMaxiHeures:['◆ Durée maximale d\'un trait (créneau)','h','Votre règle : un créneau ne dépasse pas ce temps.'],
-  maxTraitsJour:['◆ Nombre de traits max par jour','','Votre règle : nombre de créneaux maximum par personne et par jour.'],
-  groupementFermeture:['◆ Journée groupée pour les fermetures','oui/non','Votre règle : pour ceux qui ferment (créneau finissant tard), regrouper leurs créneaux du jour au lieu de faire midi + soir.'],
-  coupureMaxFermetureMin:['◆ Coupure maxi un jour de fermeture','min','Votre règle : pour un fermant, coupure maximale entre ses deux créneaux (ex : 30 min).'],
-  heureFermetureDepuisH:['◆ Heure à partir de laquelle c\'est une fermeture','h','Votre règle : un créneau qui finit à partir de cette heure est considéré comme une fermeture.'],
-  petitsContratsWeekend:['◆ Petits contrats : week-end obligatoire','oui/non','Votre règle : les petits contrats (étudiants) ne travaillent que le week-end (ven/sam/dim). À désactiver pendant les vacances scolaires.'],
-  petitsContratsSeuilH:['◆ Seuil "petit contrat" (week-end only)','h','Votre règle : en-dessous de ce contrat hebdo, l\'équipier ne travaille que le week-end.'],
-  maxJoursMemePoste:['◆ Jours max/semaine sur le même poste','j','Votre règle : éviter de mettre quelqu\'un au même poste tous les jours (0 = pas de limite).'],
-  pauseMiniMin:['◆ Pause minimum entre deux créneaux','min','RH : entre deux créneaux d\'une même journée (coupure), la pause doit être au moins de ce temps (ex. 45 min).'],
-  blocContinuMaxH:['◆ Durée max d\'un bloc continu','h','RH : un créneau ne doit pas dépasser ce temps d\'affilée sans pause (ex. 5,5 h = 5h30).'],
-  amplitudeMaxH:['◆ Amplitude maximale de la journée','h','RH : du début du 1er créneau à la fin du dernier (coupures comprises), la journée ne dépasse pas ce temps (ex. 12 h).'],
-  improductifAvantProductif:['◆ Improductifs placés avant les productifs','oui/non','RÈGLE 2 : le moteur positionne d\'abord tous les créneaux improductifs (LIVRAISON, MARCH, prép, fermeture…) puis complète avec les productifs.'],
-  fermetureCreneauPlusTot:['◆ Fermeture = créneau finissant le plus tôt','oui/non','RÈGLE 1 : quand un créneau improductif de « fermeture » est présent, le créneau qui se termine le plus tôt lui est affilié. (En attente de validation — sans effet tant que désactivé.)']
+  // 4e champ : 'legal' = obligation convention restauration rapide (IDCC 1501) ; 'perso' = regle interne.
+  // 5e champ : true = reellement appliquee par le Placement intelligent.
+  maxHeuresJour:['Duree maximale de travail par jour','h','Convention : un temps partiel ne depasse pas ce temps par jour (10h).','legal',true],
+  amplitudeMaxH:['Amplitude maximale de la journee','h','Convention IDCC 1501 : du debut du 1er creneau a la fin du dernier (coupures comprises), max 12h.','legal',true],
+  coupureMaxHeures:['Duree maximale d\'une coupure','h','Convention : une seule coupure par jour, au maximum 5h (sauf demande du salarie).','legal',true],
+  maxCoupuresSemaine:['Nombre maxi de coupures par semaine','','Convention : pas plus de 4 coupures par semaine (sauf demande du salarie).','legal',false],
+  seqMiniHeures:['Duree minimale d\'une sequence de travail','h','Convention : chaque venue (sequence) dure au moins 2h consecutives.','legal',true],
+  seuilSansCoupureH:['Seuil de contrat sans coupure','h','Convention : en-dessous de 12h/semaine (ou 52h/mois), aucune coupure autorisee.','legal',false],
+  pauseMiniMin:['Pause minimum apres 6h de travail','min','Convention/loi : au moins 20 min de pause des que la journee atteint 6h. Ici sert aussi de pause mini entre 2 creneaux.','legal',true],
+  reposQuotidienH:['Repos minimum entre deux journees','h','Loi : au moins 11h (12h applique ici, plus favorable) entre la fin d\'un jour et la reprise le lendemain.','legal',true],
+  joursRepos:['Jours de repos consecutifs par semaine','j','Convention : jours de repos hebdomadaire (2 jours consecutifs appliques ici).','legal',true],
+  nuitMaxHeures:['Travailleur de nuit : max heures/jour','h','Convention : un travailleur de nuit (3h+ entre 22h-7h, 2x/sem) ne depasse pas 10h/jour.','legal',false],
+  traitMiniHeures:['Duree minimale d\'un creneau','h','Regle perso : un creneau dure au moins ce temps (evite les mini-creneaux).','perso',true],
+  traitMaxiHeures:['Duree maximale d\'un creneau','h','Regle perso : un creneau ne depasse pas ce temps d\'affilee.','perso',true],
+  maxTraitsJour:['Nombre de creneaux max par jour','','Regle perso : nombre de creneaux maximum par personne et par jour (2 = midi + soir).','perso',true],
+  petitsContratsWeekend:['Petits contrats : week-end obligatoire','oui/non','Regle perso : les petits contrats (etudiants) ne travaillent que ven/sam/dim. A desactiver pendant les vacances scolaires.','perso',true],
+  petitsContratsSeuilH:['Seuil "petit contrat" (week-end only)','h','Regle perso : en-dessous de ce contrat hebdo, l\'equipier ne travaille que le week-end.','perso',true]
 };
 function renderReglement(){
   var box=document.getElementById('regl-list'); if(!box) return;
   var R=getReglement();
   var canEdit=(curUser&&(curUser.role==='franchise'||curUser.role==='directeur'))&&!window.__readOnly;
-  // clés "personnelles" (modifiables/ajoutables par l'utilisateur) vs convention
-  var clesPerso=['traitMiniHeures','traitMaxiHeures','maxTraitsJour','groupementFermeture','coupureMaxFermetureMin','heureFermetureDepuisH','improductifAvantProductif','fermetureCreneauPlusTot','petitsContratsWeekend','petitsContratsSeuilH','maxJoursMemePoste','pauseMiniMin','blocContinuMaxH','amplitudeMaxH'];
-  var clesConvention=Object.keys(REGL_LABELS).filter(function(k){return clesPerso.indexOf(k)<0;});
+  // Sections basées sur le type de la règle (lab[3] : 'legal' ou 'perso')
+  var clesLegal=Object.keys(REGL_LABELS).filter(function(k){return REGL_LABELS[k][3]==='legal';});
+  var clesPersoNew=Object.keys(REGL_LABELS).filter(function(k){return REGL_LABELS[k][3]==='perso';});
   function ligneRegle(k){
     var lab=REGL_LABELS[k]; if(!lab) return ''; var val=R[k];
+    var appliquee=(lab[4]===true);
+    var badge='<span style="font-size:.66rem;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap;'+(appliquee?'background:rgba(62,207,142,.16);color:#3ecf8e;':'background:rgba(150,150,150,.14);color:#999;')+'">'+(appliquee?'\u2705 appliqu\u00e9e':'\u26aa pas encore')+'</span>';
     var s='<div style="display:flex;align-items:center;gap:12px;background:#141414;border:1px solid #2A2A2A;border-radius:8px;padding:11px 13px;margin-bottom:8px;flex-wrap:wrap;">';
-    s+='<div style="flex:1;min-width:200px;"><div style="font-size:.88rem;color:#eee;">'+lab[0]+'</div><div style="font-size:.72rem;color:#777;margin-top:2px;">'+lab[2]+'</div></div>';
+    s+='<div style="flex:1;min-width:200px;"><div style="font-size:.88rem;color:#eee;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'+lab[0]+' '+badge+'</div><div style="font-size:.72rem;color:#777;margin-top:2px;">'+lab[2]+'</div></div>';
     if(lab[1]==='oui/non'){
-      s+='<label style="display:flex;align-items:center;gap:6px;cursor:'+(canEdit?'pointer':'default')+';"><input type="checkbox" '+(val?'checked':'')+' '+(canEdit?'':'disabled')+' onchange="setReglement(\''+k+'\',this.checked)" style="width:17px;height:17px;accent-color:var(--orange);"><span style="font-size:.8rem;color:#bbb;">'+(val?'Activé':'Désactivé')+'</span></label>';
+      s+='<label style="display:flex;align-items:center;gap:6px;cursor:'+(canEdit?'pointer':'default')+';"><input type="checkbox" '+(val?'checked':'')+' '+(canEdit?'':'disabled')+' onchange="setReglement(\''+k+'\',this.checked)" style="width:17px;height:17px;accent-color:var(--orange);"><span style="font-size:.8rem;color:#bbb;">'+(val?'Activ\u00e9':'D\u00e9sactiv\u00e9')+'</span></label>';
     } else {
-      s+='<div style="display:flex;align-items:center;gap:5px;"><input type="number" step="0.25" min="0" value="'+val+'" '+(canEdit?'':'disabled')+' onchange="setReglement(\''+k+'\',parseFloat(this.value))" class="fi" style="width:70px;text-align:center;padding:5px;"><span style="font-size:.78rem;color:#999;">'+lab[1]+'</span></div>';
+      s+='<div style="display:flex;align-items:center;gap:5px;"><input type="number" step="0.25" min="0" value="'+(val!=null?val:'')+'" '+(canEdit?'':'disabled')+' onchange="setReglement(\''+k+'\',parseFloat(this.value))" class="fi" style="width:70px;text-align:center;padding:5px;"><span style="font-size:.78rem;color:#999;">'+lab[1]+'</span></div>';
     }
     s+='</div>'; return s;
   }
   var h='';
-  // ════ SECTION 1 : RÉGLEMENTATION DES HORAIRES (convention, obligatoire) ════
-  h+='<div style="font-size:.82rem;color:#3ecf8e;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">⚖️ Réglementation des horaires (convention)</div>';
-  h+='<p style="font-size:.74rem;color:#777;margin:0 0 10px;">Règles issues de la convention collective de la restauration rapide. Appliquées automatiquement au placement.</p>';
-  clesConvention.forEach(function(k){ h+=ligneRegle(k); });
+  // ── Légende : ce que veulent dire les badges ──
+  h+='<div style="background:#141414;border:1px solid #2A2A2A;border-radius:8px;padding:10px 13px;margin-bottom:14px;font-size:.74rem;color:#aaa;line-height:1.5;">';
+  h+='<b style="color:#ddd;">À jour au '+(typeof EMBEDDED_VERSION!=='undefined'?EMBEDDED_VERSION.split('·').pop().trim():'')+'</b><br>';
+  h+='<span style="color:#3ecf8e;font-weight:700;">✅ appliquée</span> = cette règle est réellement utilisée par le 🧠 Placement intelligent. ';
+  h+='<span style="color:#999;font-weight:700;">⚪ pas encore</span> = la règle existe mais n\'agit pas encore sur le placement (référence / prochaine étape).';
+  h+='</div>';
+  // SECTION 1 : REGLES OBLIGATOIRES (convention restauration rapide IDCC 1501)
+  h+='<div style="font-size:.82rem;color:#3ecf8e;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">\u2696\ufe0f R\u00e8gles obligatoires \u2014 convention restauration rapide</div>';
+  h+='<p style="font-size:.74rem;color:#777;margin:0 0 10px;">Obligations de la convention collective IDCC 1501. Elles doivent \u00eatre respect\u00e9es. Le badge indique si le Placement intelligent les applique d\u00e9j\u00e0.</p>';
+  clesLegal.forEach(function(k){ h+=ligneRegle(k); });
 
-  // ════ SECTION 2 : MES RÈGLES PERSONNELLES ════
-  h+='<div style="font-size:.82rem;color:#F5A623;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin:22px 0 4px;border-top:1px solid #333;padding-top:18px;">🛠️ Mes règles personnelles</div>';
-  h+='<p style="font-size:.74rem;color:#777;margin:0 0 10px;">Vos propres règles, en plus de la convention. Modifiables, et vous pouvez en ajouter.</p>';
-  clesPerso.forEach(function(k){ h+=ligneRegle(k); });
+  // SECTION 2 : MES REGLES PERSONNELLES
+  h+='<div style="font-size:.82rem;color:#F5A623;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin:22px 0 4px;border-top:1px solid #333;padding-top:18px;">\ud83d\udee0\ufe0f Mes r\u00e8gles personnelles</div>';
+  h+='<p style="font-size:.74rem;color:#777;margin:0 0 10px;">Vos r\u00e8gles internes, en plus de la convention, pour faire de bons plannings. Modifiables.</p>';
+  clesPersoNew.forEach(function(k){ h+=ligneRegle(k); });
 
   // ── Règles personnalisées ajoutées librement ──
   var cust=R._custom||[];
@@ -13232,6 +13245,7 @@ function hrPlacerIntelligentSemaine(){
   var ampMax=(R.amplitudeMaxH!=null)?parseFloat(R.amplitudeMaxH)*60:720;
   var maxHJ=(R.maxHeuresJour!=null)?parseFloat(R.maxHeuresJour)*60:600;
   var maxTJ=(R.maxTraitsJour!=null)?parseInt(R.maxTraitsJour,10):2;
+  var reposQuot=(R.reposQuotidienH!=null)?parseFloat(R.reposQuotidienH)*60:720; // repos mini entre 2 jours (min), défaut 12h
   var nbRepos=(R.joursRepos!=null)?parseInt(R.joursRepos,10):2; var joursMax=7-(isNaN(nbRepos)?2:nbRepos);
   var seuilPetit=(R.petitsContratsSeuilH!=null)?parseFloat(R.petitsContratsSeuilH):15;
   var weekendActif=(R.petitsContratsWeekend!==false);
@@ -13307,6 +13321,26 @@ function hrPlacerIntelligentSemaine(){
     var tot=0; seqs.forEach(function(x){tot+=(x.e-x.s);}); if(tot>maxHJ+0.001) return false;
     return true;
   }
+  // ★ REPOS QUOTIDIEN 12h (légal, obligatoire) : entre la FIN du travail d'un jour et
+  // le DÉBUT du jour suivant, il doit y avoir au moins reposQuot minutes (12h).
+  // On vérifie avec la veille (d-1) ET le lendemain (d+1). Les minutes après minuit
+  // sont déjà codées >1440 (s/e peuvent dépasser 1440), ce qui rend le calcul correct
+  // d'un jour à l'autre en ajoutant 1440 au début du jour suivant.
+  function reposQuotidienOk(emp,d,s,e){
+    var a=busy[emp.id]||{};
+    // 1) avec la VEILLE : fin max de d-1 + reposQuot ≤ début aujourd'hui (s)
+    if(d>0 && a[d-1] && a[d-1].length){
+      var finVeille=Math.max.apply(null, a[d-1].map(function(x){return x.e;})); // peut être >1440 (nuit)
+      var debutAuj=s+1440; // s d'aujourd'hui exprimé en minutes depuis le lundi de la veille
+      if(debutAuj-finVeille < reposQuot-0.001) return false;
+    }
+    // 2) avec le LENDEMAIN : fin aujourd'hui (e) + reposQuot ≤ début min de d+1
+    if(d<6 && a[d+1] && a[d+1].length){
+      var debutDemain=Math.min.apply(null, a[d+1].map(function(x){return x.s;}))+1440;
+      if(debutDemain-e < reposQuot-0.001) return false;
+    }
+    return true;
+  }
   function eligible(emp,d,s,e,poste){
     if(ch(emp)<=0) return false;
     if(weekendActif && ch(emp)<=seuilPetit && [4,5,6].indexOf(d)<0) return false; // petits contrats → ven/sam/dim
@@ -13316,6 +13350,7 @@ function hrPlacerIntelligentSemaine(){
     if(occupe(emp.id,d,s,e)) return false;
     if(jt[emp.id]&&!jt[emp.id][d]&&nbJoursTrav(emp.id)>=joursMax) return false;
     if(!reglesOk(emp,d,s,e)) return false;
+    if(!reposQuotidienOk(emp,d,s,e)) return false;
     // Règle des 2 repos consécutifs : on n'autorise pas un nouveau jour qui
     // tomberait sur la paire de repos réservée à ce salarié (voir reposReserve).
     if(!(jt[emp.id]&&jt[emp.id][d]) && estReposReserve(emp.id,d)) return false;
@@ -13516,6 +13551,244 @@ function hrPlacerIntelligentSemaine(){
   }
 }
 window.hrPlacerIntelligentSemaine=hrPlacerIntelligentSemaine;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 📅 PLACEMENT & ANALYSE RECRUTEMENT DU MOIS  (autonome — ne touche PAS la semaine)
+// Simule le placement intelligent sur TOUTES les semaines du mois affiché, en
+// mémoire (sans rien écrire dans HR_AFFECT ni Supabase), puis agrège les créneaux
+// restants et produit une analyse de recrutement (quels profils embaucher, quels
+// salariés sont bloquants par leurs dispos), en tenant compte de la saisonnalité.
+// ══════════════════════════════════════════════════════════════════════════════
+function hrAnalyseRecrutementMois(){
+  var box=document.getElementById('hrx-mois-analyse'); 
+  // TOGGLE : si l'analyse est déjà affichée, un nouveau clic la ferme.
+  if(box && box.innerHTML && box.innerHTML.trim()!==''){ box.innerHTML=''; return; }
+  var lundiAff=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?DAY_DATES[0]:null);
+  if(!lundiAff){ toast&&toast('Choisis une semaine du mois à analyser','error'); return; }
+  // Mois de référence = mois du jeudi de la semaine affichée
+  var refMois=lundiAff; try{ var dRef=new Date(lundiAff+'T12:00:00'); dRef.setDate(dRef.getDate()+3); refMois=hrISO(dRef); }catch(e){}
+  var lundis=(typeof hrLundisDuMois==='function')?hrLundisDuMois(refMois):[lundiAff];
+  if(!lundis||!lundis.length){ toast&&toast('Mois introuvable','error'); return; }
+  var moisLabel=refMois.slice(0,7);
+  if(box) box.innerHTML='<div style="padding:14px;color:#a855f7;">📅 Analyse du mois '+moisLabel+' en cours… ('+lundis.length+' semaines)</div>';
+
+  var R=(typeof getReglement==='function')?getReglement():{};
+  var traitMin=(R.traitMiniHeures!=null)?Math.round(parseFloat(R.traitMiniHeures)*60):120;
+  var traitMax=(R.traitMaxiHeures!=null)?Math.round(parseFloat(R.traitMaxiHeures)*60):300;
+  var pauseMin=(R.pauseMiniMin!=null)?parseFloat(R.pauseMiniMin):30;
+  var coupMax=(R.coupureMaxHeures!=null)?parseFloat(R.coupureMaxHeures)*60:240;
+  var ampMax=(R.amplitudeMaxH!=null)?parseFloat(R.amplitudeMaxH)*60:720;
+  var maxHJ=(R.maxHeuresJour!=null)?parseFloat(R.maxHeuresJour)*60:600;
+  var maxTJ=(R.maxTraitsJour!=null)?parseInt(R.maxTraitsJour,10):2;
+  var seuilPetit=(R.petitsContratsSeuilH!=null)?parseFloat(R.petitsContratsSeuilH):15;
+  var weekendActif=(R.petitsContratsWeekend!==false);
+  var _resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'').toLowerCase();
+  var eq=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===_resto&&hrContratHebdo(e)!=null&&hrContratHebdo(e)>0;});
+  if(!eq.length){ if(box) box.innerHTML='<div style="padding:14px;color:#f5a623;">Aucun équipier pour ce resto.</div>'; return; }
+  var JK=(typeof JOURS_KEYS!=='undefined')?JOURS_KEYS:['lun','mar','mer','jeu','ven','sam','dim'];
+
+  function ch(e){ return hrContratHebdo(e)||0; }
+  function dmin(s){ return (typeof _dispoMin==='function')?_dispoMin(s):null; }
+  function dispoOkJ(emp,d,s,e){
+    var dd=(emp.infos&&emp.infos.dispos&&emp.infos.dispos[JK[d]])||null;
+    if(!dd||!dd.on) return false;
+    if(Array.isArray(dd.creneaux)&&dd.creneaux.length){
+      for(var i=0;i<dd.creneaux.length;i++){ var c=dd.creneaux[i]; var f=dmin(c.from),t=dmin(c.to); if(f!=null&&t!=null&&s>=f&&e<=t) return true; }
+      return false;
+    }
+    var f=dmin(dd.from),t=dmin(dd.to); if(f==null||t==null) return false; return s>=f&&e<=t;
+  }
+  function saitFaire(e,poste){ return (typeof hrSaitFaire==='function')?hrSaitFaire(e,poste):false; }
+
+  // ── Accumulateurs MOIS ──
+  var minMois={};      // minutes placées sur le mois par employé
+  var ciblesMois={};   // cible mensuelle (contrat hebdo × 52/12)
+  eq.forEach(function(e){ minMois[e.id]=0; ciblesMois[e.id]=Math.round(ch(e)*(52/12)*60); });
+  var videsMois=[];    // créneaux non couverts {sem,d,l,s,e}
+  var besoinMoisMin=0, placeMoisMin=0;
+  var presenceJourType={}; // pour analyse : par (jourSemaine, tranche) combien de vides
+
+  // ── Placement d'UNE semaine (autonome, en mémoire) ──
+  function placerSemaine(lundi, semIdx){
+    var base=hrParse(lundi);
+    // générer traits productifs des 7 jours (vraies fonctions de l'app)
+    var traitsJour=[]; var datesJour=[];
+    for(var i=0;i<7;i++){
+      var dt=new Date(base); dt.setDate(base.getDate()+i); var iso=hrISO(dt); datesJour.push(iso);
+      var r=(typeof hrCourbeJour==='function')?hrCourbeJour(iso):{ca:{}};
+      var ca=(r&&r.ca)?r.ca:{};
+      var rows=(typeof buildRows==='function')?buildRows(ca,i,iso):[];
+      var tl=[];
+      rows.forEach(function(row){ row.bars.forEach(function(b){
+        if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return;
+        var cat=(typeof hrCategorieTrait==='function')?hrCategorieTrait(b.l):'prod';
+        if(cat==='np') return; // on ne place que le productif
+        tl.push({l:b.l,s:b.s,e:b.e,empId:null});
+      }); });
+      traitsJour.push(tl);
+    }
+    // état semaine
+    var minSem={},busy={},jt={};
+    eq.forEach(function(e){ minSem[e.id]=0; busy[e.id]={}; jt[e.id]={}; });
+    function reste(e){ // reste = min(cible hebdo, ce qui manque sur le mois) — on lisse
+      var hebdoMin=Math.round(ch(e)*60);
+      var resteMois=ciblesMois[e.id]-minMois[e.id];
+      return Math.max(0, Math.min(hebdoMin-(minSem[e.id]||0), resteMois-(minSem[e.id]||0)+0)) ;
+    }
+    function contratMinHebdo(e){ return Math.round(ch(e)*60); }
+    function nbJours(id){ var o=jt[id]||{},n=0; for(var k in o)if(o[k])n++; return n; }
+    function occupe(id,d,s,e){ var a=(busy[id]||{})[d]||[]; for(var i=0;i<a.length;i++){ if(s<a[i].e&&e>a[i].s) return true; } return false; }
+    function reglesOk(e,d,s,en){ var arr=((busy[e.id]||{})[d]||[]).map(function(p){return{s:p.s,e:p.e};}); arr.push({s:s,e:en}); arr.sort(function(x,y){return x.s-y.s;}); var seqs=[],cur=null; arr.forEach(function(p){ if(cur&&p.s<=cur.e)cur.e=Math.max(cur.e,p.e); else{cur={s:p.s,e:p.e};seqs.push(cur);} }); if(seqs.length>maxTJ)return false; for(var i=0;i<seqs.length;i++)if(seqs[i].e-seqs[i].s>traitMax+0.001)return false; for(var si=1;si<seqs.length;si++){var gap=seqs[si].s-seqs[si-1].e; if(gap>0&&gap<pauseMin)return false; if(gap>coupMax)return false;} if(seqs.length&&seqs[seqs.length-1].e-seqs[0].s>ampMax+0.001)return false; var tot=0; seqs.forEach(function(x){tot+=(x.e-x.s);}); if(tot>maxHJ+0.001)return false; return true; }
+    // repos consécutifs réservés
+    var reposReserve={};
+    (function(){ var P=[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6]]; var u={}; P.forEach(function(p){u[p.join('-')]=0;});
+      var ordre=eq.slice().sort(function(a,b){ var da=0,db=0; for(var d=0;d<7;d++){ if(dispoJ(a,d))da++; if(dispoJ(b,d))db++; } return da-db; });
+      function dispoJ(e,d){ var dd=(e.infos&&e.infos.dispos&&e.infos.dispos[JK[d]])||null; return !!(dd&&dd.on); }
+      ordre.forEach(function(e){ var petit=ch(e)<=seuilPetit; var best=null,bs=-1e9;
+        P.forEach(function(p){ if(petit&&(p.indexOf(4)>=0||p.indexOf(5)>=0||p.indexOf(6)>=0))return; var ind=0; p.forEach(function(d){ if(!dispoJ(e,d))ind++; }); var sc=ind*5-u[p.join('-')]*2-((p.indexOf(5)>=0||p.indexOf(6)>=0)?1:0); if(sc>bs){bs=sc;best=p;} });
+        if(!best)best=[1,2]; u[best.join('-')]++; reposReserve[e.id]=best;
+      });
+    })();
+    function estRepos(id,d){ return reposReserve[id]&&reposReserve[id].indexOf(d)>=0; }
+    function eligible(e,d,s,en,poste){
+      if(ch(e)<=0)return false;
+      if(weekendActif && ch(e)<=seuilPetit && [4,5,6].indexOf(d)<0)return false;
+      if(reste(e)<60)return false;
+      if(!saitFaire(e,poste))return false;
+      if(!dispoOkJ(e,d,s,en))return false;
+      if(occupe(e.id,d,s,en))return false;
+      if(jt[e.id]&&!jt[e.id][d]&&nbJours(e.id)>=5)return false;
+      if(!reglesOk(e,d,s,en))return false;
+      if(!(jt[e.id]&&jt[e.id][d]) && estRepos(e.id,d))return false;
+      return true;
+    }
+    function poser(e,d,s,en,bar){ var seg={s:s,e:en,bar:bar}; if(bar){bar.empId=e.id;bar._seg=seg;} busy[e.id][d]=busy[e.id][d]||[]; busy[e.id][d].push(seg); minSem[e.id]+=(en-s); jt[e.id][d]=true; }
+    function meilleur(d,s,en,poste,excl){ var best=null,bs=-1; for(var i=0;i<eq.length;i++){ var e=eq[i]; if(excl&&e.id===excl)continue; if(!eligible(e,d,s,en,poste))continue; var sc=reste(e)/(contratMinHebdo(e)||1)+(((busy[e.id]||{})[d]||[]).length>0?0.3:0)+(ch(e)>=35?0.05:0)-(nbJours(e.id)*0.04); if(sc>bs){bs=sc;best=e;} } return best; }
+    function placerSurTrait(d,t){ for(var dur=t.e-t.s; dur>=traitMin-0.001; dur-=15){ var s=t.s,en=t.s+dur; var c=meilleur(d,s,en,t.l); if(c){ poser(c,d,s,en,t); t.s=s; t.e=en; return true; } } return false; }
+    function nbCand(d,t){ var n=0; for(var i=0;i<eq.length;i++){ var e=eq[i]; if(ch(e)<=0||!saitFaire(e,t.l))continue; if(weekendActif&&ch(e)<=seuilPetit&&[4,5,6].indexOf(d)<0)continue; if(estRepos(e.id,d))continue; if(!dispoOkJ(e,d,t.s,t.e))continue; n++; } return n; }
+    var tous=[]; for(var d=0;d<7;d++) traitsJour[d].forEach(function(t){ tous.push({d:d,t:t}); });
+    function passe(){ tous.forEach(function(x){ x.nc=nbCand(x.d,x.t); }); tous.sort(function(a,b){ return (a.nc-b.nc)||((b.t.e-b.t.s)-(a.t.e-a.t.s)); }); tous.forEach(function(x){ if(!x.t.empId) placerSurTrait(x.d,x.t); }); }
+    function reparer(){ var g=0; for(var d=0;d<7;d++){ var v=traitsJour[d].filter(function(t){return !t.empId;}); v.forEach(function(vide){ if(vide.empId)return; for(var ei=0;ei<eq.length;ei++){ var e=eq[ei]; if(ch(e)<=0||!saitFaire(e,vide.l))continue; if(weekendActif&&ch(e)<=seuilPetit&&[4,5,6].indexOf(d)<0)continue; if(estRepos(e.id,d)&&!(jt[e.id]&&jt[e.id][d]))continue; if(!dispoOkJ(e,d,vide.s,vide.e))continue; var cf=(busy[e.id][d]||[]).filter(function(seg){return vide.s<seg.e&&vide.e>seg.s;}); if(cf.length!==1)continue; var bb=cf[0].bar; if(!bb)continue; var sQ=bb.s,eQ=bb.e,pQ=bb.l; (function(){ var seg=bb._seg; var a=busy[e.id][d]||[]; var ix=a.indexOf(seg); if(ix>=0)a.splice(ix,1); minSem[e.id]-=(seg.e-seg.s); if(!(busy[e.id][d]||[]).length)delete jt[e.id][d]; bb.empId=null; bb._seg=null; })(); var r=meilleur(d,sQ,eQ,pQ,e.id); if(r&&eligible(e,d,vide.s,vide.e,vide.l)){ poser(r,d,sQ,eQ,bb); poser(e,d,vide.s,vide.e,vide); g++; return; } else { poser(e,d,sQ,eQ,bb); } } }); } return g; }
+    function deplacerRepos(){ var g=0; var P=[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6]]; for(var d=0;d<7;d++){ var vs=traitsJour[d].filter(function(t){return !t.empId;}); vs.forEach(function(vide){ if(vide.empId)return; for(var ei=0;ei<eq.length;ei++){ var e=eq[ei]; if(ch(e)<=0||!saitFaire(e,vide.l))continue; if(weekendActif&&ch(e)<=seuilPetit&&[4,5,6].indexOf(d)<0)continue; if(!estRepos(e.id,d))continue; if(!dispoOkJ(e,d,vide.s,vide.e))continue; var trav=[]; for(var dd=0;dd<7;dd++)if(jt[e.id]&&jt[e.id][dd])trav.push(dd); var petit=ch(e)<=seuilPetit; var nouv=null; for(var pi=0;pi<P.length;pi++){ var p=P[pi]; if(p.indexOf(d)>=0)continue; if(p.some(function(x){return trav.indexOf(x)>=0;}))continue; if(petit&&(p.indexOf(4)>=0||p.indexOf(5)>=0||p.indexOf(6)>=0))continue; nouv=p; break; } if(!nouv)continue; var anc=reposReserve[e.id]; reposReserve[e.id]=nouv; if(eligible(e,d,vide.s,vide.e,vide.l)){ poser(e,d,vide.s,vide.e,vide); g++; return; } else reposReserve[e.id]=anc; } }); } return g; }
+    passe(); var prev=null;
+    for(var p=1;p<=40;p++){ var g1=reparer(); var g2=deplacerRepos(); passe(); var v=0; traitsJour.forEach(function(ts){ts.forEach(function(t){if(!t.empId)v++;});}); if(prev!=null&&v===prev&&g1===0&&g2===0)break; prev=v; }
+    // cumuler dans le mois
+    eq.forEach(function(e){ minMois[e.id]+=(minSem[e.id]||0); });
+    for(var d=0;d<7;d++){ traitsJour[d].forEach(function(t){ besoinMoisMin+=(t.e-t.s); if(t.empId){ placeMoisMin+=(t.e-t.s); } else { videsMois.push({sem:semIdx,d:d,l:t.l,s:t.s,e:t.e}); } }); }
+  }
+
+  // lancer toutes les semaines
+  lundis.forEach(function(lundi,idx){ try{ placerSemaine(lundi,idx); }catch(e){ console.warn('placerSemaine',lundi,e); } });
+
+  // ══ ANALYSE ══
+  var J=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  function tranche(s){ var m=s%1440; return m<16*60?'MIDI':'SOIR'; }
+  // regrouper vides par (jourSemaine, tranche)
+  var grp={}; videsMois.forEach(function(v){ var k=J[v.d]+' '+tranche(v.s); grp[k]=(grp[k]||0)+1; });
+  // par poste
+  var parPoste={}; videsMois.forEach(function(v){ parPoste[v.l]=(parPoste[v.l]||0)+1; });
+  // midi/soir + we/sem
+  var midi=0,soir=0,we=0,sem=0; videsMois.forEach(function(v){ if(tranche(v.s)==='MIDI')midi++;else soir++; if(v.d>=4)we++;else sem++; });
+  var pct=besoinMoisMin>0?Math.round(100*placeMoisMin/besoinMoisMin):0;
+
+  // ── DIAGNOSTIC CAPACITÉ : besoin du mois VS contrats du mois ──
+  // Capacité contractuelle mensuelle = somme des cibles mensuelles (h hebdo × 52/12).
+  var capaciteMoisMin=0; eq.forEach(function(e){ capaciteMoisMin+=ciblesMois[e.id]; });
+  var ecartMin=capaciteMoisMin-besoinMoisMin; // >0 = trop de contrats ; <0 = il manque des heures
+  var besoinH=Math.round(besoinMoisMin/60), capaciteH=Math.round(capaciteMoisMin/60), ecartH=Math.round(ecartMin/60);
+
+  // ── CLASSER CHAQUE TROU PAR VRAIE CAUSE ──
+  // (A) aucun salarié COMPÉTENT dans l'effectif → vrai manque (former/recruter)
+  // (B) compétents existent mais AUCUN dispo ce moment → élargir les dispos
+  // (C) compétent+dispo existe mais bloqué (déjà en poste/règles) → réorganisation interne
+  function competentsDuPoste(poste){ return eq.filter(function(e){ return saitFaire(e,poste); }); }
+  function dispoCeMoment(e,d,s,en){ return dispoOkJ(e,d,s,en); }
+  var causeA=0, causeB=0, causeC=0;
+  var posteSansCompetent={}; // poste -> nb trous sans compétent
+  videsMois.forEach(function(v){
+    var comp=competentsDuPoste(v.l);
+    if(comp.length===0){ causeA++; posteSansCompetent[v.l]=(posteSansCompetent[v.l]||0)+1; return; }
+    var dispo=comp.filter(function(e){ return dispoCeMoment(e,v.d,v.s,v.e); });
+    if(dispo.length>0){ causeC++; } else { causeB++; }
+  });
+
+  // salariés sous leur cible mensuelle (potentiellement bloqués par dispos)
+  var sousContrat=[]; eq.forEach(function(e){ var manque=ciblesMois[e.id]-minMois[e.id]; if(manque>120){ // > 2h de manque
+    // nb de jours où il est dispo
+    var nd=0; for(var d=0;d<7;d++){ var dd=(e.infos&&e.infos.dispos&&e.infos.dispos[JK[d]])||null; if(dd&&dd.on)nd++; }
+    sousContrat.push({nom:e.name||e.id, manqueH:Math.round(manque/60), cibleH:Math.round(ciblesMois[e.id]/60), faitH:Math.round(minMois[e.id]/60), nbJoursDispo:nd, ch:ch(e)}); } });
+  sousContrat.sort(function(a,b){ return b.manqueH-a.manqueH; });
+
+  // construire le HTML de resultat
+  var html='';
+  html+='<div style="font-size:1.05rem;font-weight:700;color:#93c5fd;margin-bottom:6px;">\ud83d\udcc5 Analyse du mois '+moisLabel+' ('+lundis.length+' semaines)</div>';
+  html+='<div style="color:#cbd5e1;margin-bottom:6px;">Besoin couvert (simulation) : <b style="color:'+(pct>=98?'#3ecf8e':'#f5a623')+'">'+pct+'%</b> \u00b7 cr\u00e9neaux non couverts : <b>'+videsMois.length+'</b> sur le mois</div>';
+
+  // ── BLOC 1 : DIAGNOSTIC CAPACITE (le plus important) ──
+  if(ecartH>0){
+    html+='<div style="margin:8px 0;padding:10px;background:rgba(245,166,35,.12);border-radius:8px;border-left:3px solid #f5a623;">';
+    html+='<b style="color:#f5a623;">\u26a0\ufe0f Tu as plus de contrats que de besoin.</b><br>';
+    html+='<span style="color:#e2e8f0;">Besoin du mois : <b>'+besoinH+'h</b> \u00b7 Total des contrats : <b>'+capaciteH+'h</b> \u2192 <b style="color:#f5a623;">'+ecartH+'h de contrats EN TROP</b> par mois.</span><br>';
+    html+='<span style="color:#cbd5e1;font-size:.9rem;">Donc il ne faut PAS recruter : tu as d\u00e9j\u00e0 assez (voire trop) de monde. Les cr\u00e9neaux vides ne viennent pas d\u2019un manque d\u2019effectif, mais d\u2019un mauvais alignement des disponibilit\u00e9s.</span>';
+    html+='</div>';
+  } else {
+    html+='<div style="margin:8px 0;padding:10px;background:rgba(62,207,142,.10);border-radius:8px;border-left:3px solid #3ecf8e;">';
+    html+='<span style="color:#e2e8f0;">Besoin du mois : <b>'+besoinH+'h</b> \u00b7 Total des contrats : <b>'+capaciteH+'h</b> \u2192 <b style="color:#3ecf8e;">'+Math.abs(ecartH)+'h manquantes</b> en capacit\u00e9.</span>';
+    html+='</div>';
+  }
+
+  if(videsMois.length===0){
+    html+='<div style="color:#3ecf8e;padding:10px;background:rgba(62,207,142,.1);border-radius:8px;">\u2705 100% du besoin couvert ce mois.</div>';
+  } else {
+    // ── BLOC 2 : POURQUOI les cr\u00e9neaux restent vides (vraie cause) ──
+    html+='<div style="margin:10px 0 4px;"><b style="color:#cbd5e1;">Pourquoi '+videsMois.length+' cr\u00e9neaux restent vides :</b><ul style="margin:6px 0 0;padding-left:18px;color:#cbd5e1;">';
+    if(causeC>0) html+='<li><b>'+causeC+'</b> : quelqu\u2019un de comp\u00e9tent ET dispo existe, mais il est <b>d\u00e9j\u00e0 occup\u00e9 ailleurs</b> au m\u00eame moment (ou bloqu\u00e9 par ses 5 jours / la pause / l\u2019amplitude). \u2192 <b style="color:#93c5fd;">r\u00e9organisation interne</b>, pas de recrutement.</li>';
+    if(causeB>0) html+='<li><b>'+causeB+'</b> : des salari\u00e9s comp\u00e9tents existent mais <b>aucun n\u2019est disponible</b> \u00e0 ce moment. \u2192 <b style="color:#f5a623;">\u00e9largir des disponibilit\u00e9s</b>.</li>';
+    if(causeA>0) html+='<li><b>'+causeA+'</b> : <b>aucun salari\u00e9 comp\u00e9tent</b> pour ce poste. \u2192 <b style="color:#fca5a5;">former quelqu\u2019un ou recruter</b>.</li>';
+    html+='</ul></div>';
+
+    // ── BLOC 3 : moments / postes en tension (info) ──
+    var moments=Object.keys(grp).map(function(k){return{k:k,n:grp[k]};}).sort(function(a,b){return b.n-a.n;}).slice(0,5);
+    html+='<div style="margin:8px 0 4px;"><b style="color:#cbd5e1;">Moments les plus en tension :</b><ul style="margin:4px 0 0;padding-left:18px;color:#cbd5e1;">';
+    moments.forEach(function(m){ html+='<li>'+m.k+' : '+m.n+' cr\u00e9neaux</li>'; });
+    html+='</ul></div>';
+
+    // ── BLOC 4 : ce que je conseille (selon la vraie cause) ──
+    html+='<div style="margin:10px 0 4px;padding:10px;background:rgba(168,85,247,.12);border-radius:8px;"><b style="color:#d8b4fe;">\ud83d\udca1 Ma recommandation :</b><ul style="margin:6px 0 0;padding-left:18px;color:#e2e8f0;">';
+    if(ecartH>0){
+      html+='<li><b>Ne pas recruter</b> : tu as '+ecartH+'h de contrats en trop. Recruter aggraverait le sur-effectif.</li>';
+      if(causeB>0) html+='<li>Pour '+causeB+' cr\u00e9neaux : <b>\u00e9largir les dispos</b> de salari\u00e9s vers ces moments (voir liste ci-dessous).</li>';
+      if(causeC>0) html+='<li>Pour '+causeC+' cr\u00e9neaux : ils sont th\u00e9oriquement faisables mais coinc\u00e9s par les r\u00e8gles (occupation simultan\u00e9e, 5 jours, pause). C\u2019est le maximum atteignable sans assouplir une r\u00e8gle.</li>';
+    } else {
+      // il manque vraiment de la capacit\u00e9 -> recrutement cibl\u00e9 15h/24h
+      function trouPour15h(v){ if(v.d===5||v.d===6) return true; if(v.d===4 && tranche(v.s)==='SOIR') return true; return false; }
+      var t15=0,t24=0; videsMois.forEach(function(v){ if(trouPour15h(v))t15++; else t24++; });
+      if(t24>0) html+='<li>Recruter du <b>24h (dispo total)</b> pour les trous de semaine/midi.</li>';
+      if(t15>0) html+='<li>Recruter du <b>15h \u00e9tudiant (ven soir + sam + dim)</b> pour les trous du week-end.</li>';
+    }
+    if(causeA>0){
+      var postesA=Object.keys(posteSansCompetent).sort(function(a,b){return posteSansCompetent[b]-posteSansCompetent[a];});
+      html+='<li><b style="color:#fca5a5;">Former</b> des salari\u00e9s sur : '+postesA.join(', ')+' (aucun comp\u00e9tent actuellement).</li>';
+    }
+    html+='</ul></div>';
+  }
+
+  // ── BLOC 5 : salari\u00e9s qui n\u2019atteignent pas leur contrat (\u00e0 cause de leurs dispos) ──
+  if(sousContrat.length){
+    html+='<div style="margin:10px 0 4px;"><b style="color:#cbd5e1;">Salari\u00e9s sous leur contrat mensuel (dispos \u00e0 revoir en priorit\u00e9) :</b><ul style="margin:6px 0 0;padding-left:18px;color:#cbd5e1;">';
+    sousContrat.slice(0,8).forEach(function(sc){
+      var conseil = sc.nbJoursDispo<=3 ? ' \u2192 seulement '+sc.nbJoursDispo+' jours dispo : <b style="color:#f5a623;">\u00e9largir ses disponibilit\u00e9s</b>.' : '';
+      html+='<li>'+sc.nom+' ('+sc.ch+'h) : '+sc.faitH+'h / '+sc.cibleH+'h vis\u00e9es \u2014 manque '+sc.manqueH+'h'+conseil+'</li>';
+    });
+    html+='</ul></div>';
+  }
+  html+='<div style="margin-top:8px;font-size:.8rem;color:#64748b;">Simulation en m\u00e9moire \u2014 n\u2019\u00e9crit rien dans le planning r\u00e9el. Dispos et comp\u00e9tences actuelles utilis\u00e9es.</div>';
+  if(box) box.innerHTML=html;
+  toast&&toast('Analyse du mois terminée','success');
+}
+window.hrAnalyseRecrutementMois=hrAnalyseRecrutementMois;
+
+
 
 
 // ── PLACEMENT EN 3 ÉTAPES (contrôlable) ──────────────────────────────────────
@@ -13863,7 +14136,7 @@ function hrTableauSemaine(resto, lundiIso, affOverride){
   var _ftPrisSem=0,_ftContSem=0,_ftPrisMois=0,_ftContMois=0; // accumulateurs ligne TOTAUX
   liste.forEach(function(e){
     var pe=parEmp[e.id]; var contrat=contratDe(e.id);
-    h+='<tr><td style="padding:6px 8px;border:1px solid #e2e2e6;font-weight:600;color:#111;white-space:nowrap;">'+(e.name||'')+'</td>';
+    h+='<tr><td onclick="hrFicheSalarie(\''+e.id+'\')" title="Voir compétences et disponibilités" style="padding:6px 8px;border:1px solid #e2e2e6;font-weight:600;color:#1A4FFF;white-space:nowrap;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;">'+(e.name||'')+'</td>';
     var minEtat=0; // heures de CP à ajouter au total
     for(var jj=0;jj<7;jj++){
       var cr=pe.jours[jj].slice().sort(function(a,b){return a.s-b.s;});
@@ -14285,6 +14558,54 @@ function hrSetHebdoSem(i){
 window.hrSetHebdoSem=hrSetHebdoSem;
 
 // Planning hebdomadaire imprimable, façon document RH (fond blanc)
+// ── FICHE SALARIÉ (clic sur un nom dans le planning hebdo) : compétences + dispos ──
+function hrFicheSalarie(empId){
+  try{
+    var e=(DB.employees||[]).find(function(x){return x.id===empId;});
+    if(!e){ toast&&toast('Salarié introuvable','error'); return; }
+    var inf=e.infos||{};
+    var titEl=document.getElementById('fiche-sal-title');
+    var box=document.getElementById('fiche-sal-content');
+    if(!box) return;
+    var ch=(typeof hrContratHebdo==='function')?hrContratHebdo(e):(inf.contrat_hebdo||'');
+    if(titEl) titEl.innerHTML='👤 '+(e.name||'')+(ch?' <span style="font-size:12px;color:#888;font-weight:500;">— '+ch+'h/sem</span>':'');
+    var h='';
+    // ── COMPÉTENCES ──
+    var qualifs=Array.isArray(inf.qualifs)?inf.qualifs:[];
+    h+='<div style="margin-bottom:14px;">';
+    h+='<div style="font-weight:700;color:#1A4FFF;margin-bottom:6px;">🛠️ Compétences ('+qualifs.length+')</div>';
+    if(qualifs.length){
+      h+='<div style="display:flex;flex-wrap:wrap;gap:5px;">';
+      qualifs.forEach(function(q){ h+='<span style="background:#eef2ff;color:#3046b5;border:1px solid #c9d4ff;border-radius:12px;padding:2px 9px;font-size:11.5px;font-weight:600;">'+q+'</span>'; });
+      h+='</div>';
+    } else {
+      h+='<div style="color:#c0392b;font-size:12px;">Aucune compétence renseignée.</div>';
+    }
+    h+='</div>';
+    // ── DISPONIBILITÉS ──
+    var JL=[['lun','Lundi'],['mar','Mardi'],['mer','Mercredi'],['jeu','Jeudi'],['ven','Vendredi'],['sam','Samedi'],['dim','Dimanche']];
+    var disp=inf.dispos||{};
+    h+='<div><div style="font-weight:700;color:#1A9850;margin-bottom:6px;">🕒 Disponibilités</div>';
+    h+='<table style="width:100%;border-collapse:collapse;font-size:12.5px;">';
+    JL.forEach(function(j){
+      var d=disp[j[0]];
+      var txt;
+      if(!d||!d.on){ txt='<span style="color:#bbb;">Repos / indispo</span>'; }
+      else if(Array.isArray(d.creneaux)&&d.creneaux.length){
+        txt=d.creneaux.map(function(c){return c.from+' → '+c.to;}).join('  •  ');
+        txt='<span style="color:#1A9850;font-weight:600;">'+txt+'</span>';
+      } else if(d.from&&d.to){
+        txt='<span style="color:#1A9850;font-weight:600;">'+d.from+' → '+d.to+'</span>';
+      } else { txt='<span style="color:#1A9850;font-weight:600;">Disponible</span>'; }
+      h+='<tr><td style="padding:5px 8px;border-bottom:1px solid #eee;font-weight:600;color:#333;width:90px;">'+j[1]+'</td><td style="padding:5px 8px;border-bottom:1px solid #eee;">'+txt+'</td></tr>';
+    });
+    h+='</table></div>';
+    box.innerHTML=h;
+    var mod=document.getElementById('modal-fiche-salarie'); if(mod) mod.classList.add('open');
+  }catch(err){ console.warn('hrFicheSalarie',err); toast&&toast('Erreur ouverture fiche','error'); }
+}
+window.hrFicheSalarie=hrFicheSalarie;
+
 function hrRenderPlanningHebdo(){
   var box=document.getElementById('hrx-emploi-semaine'); if(!box) return;
   // FALLBACK PERMANENT : dès qu'il y a des NOMS SUR LES TRAITS affichés (ROWS_BY_DAY),
