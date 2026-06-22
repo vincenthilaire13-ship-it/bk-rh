@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-22 13:08 · v237';
+  var EMBEDDED_VERSION = '2026-06-22 13:39 · v239';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -5957,6 +5957,8 @@ var REGLEMENT_DEFAUT={
   groupementFermeture:true,    // [perso] journée groupée pour ceux qui ferment
   coupureMaxFermetureMin:30,   // [perso] coupure maxi (min) entre les 2 créneaux d'un fermant
   heureFermetureDepuisH:22,    // [perso] un créneau finissant à partir de cette heure = fermeture
+  improductifAvantProductif:true, // [RÈGLE 2] placer les créneaux improductifs avant les productifs
+  fermetureCreneauPlusTot:false,  // [RÈGLE 1] le créneau qui finit le plus tôt est affilié à la fermeture (logique à confirmer — inactif par défaut)
   petitsContratsWeekend:true,  // [perso] les petits contrats ne travaillent que le week-end
   petitsContratsSeuilH:15,     // [perso] seuil (h) en-dessous duquel = petit contrat (week-end only)
   maxJoursMemePoste:0,         // [perso] nb max de jours/semaine sur le MÊME poste (0 = pas de limite)
@@ -6038,14 +6040,16 @@ var REGL_LABELS={
   maxJoursMemePoste:['◆ Jours max/semaine sur le même poste','j','Votre règle : éviter de mettre quelqu\'un au même poste tous les jours (0 = pas de limite).'],
   pauseMiniMin:['◆ Pause minimum entre deux créneaux','min','RH : entre deux créneaux d\'une même journée (coupure), la pause doit être au moins de ce temps (ex. 45 min).'],
   blocContinuMaxH:['◆ Durée max d\'un bloc continu','h','RH : un créneau ne doit pas dépasser ce temps d\'affilée sans pause (ex. 5,5 h = 5h30).'],
-  amplitudeMaxH:['◆ Amplitude maximale de la journée','h','RH : du début du 1er créneau à la fin du dernier (coupures comprises), la journée ne dépasse pas ce temps (ex. 12 h).']
+  amplitudeMaxH:['◆ Amplitude maximale de la journée','h','RH : du début du 1er créneau à la fin du dernier (coupures comprises), la journée ne dépasse pas ce temps (ex. 12 h).'],
+  improductifAvantProductif:['◆ Improductifs placés avant les productifs','oui/non','RÈGLE 2 : le moteur positionne d\'abord tous les créneaux improductifs (LIVRAISON, MARCH, prép, fermeture…) puis complète avec les productifs.'],
+  fermetureCreneauPlusTot:['◆ Fermeture = créneau finissant le plus tôt','oui/non','RÈGLE 1 : quand un créneau improductif de « fermeture » est présent, le créneau qui se termine le plus tôt lui est affilié. (En attente de validation — sans effet tant que désactivé.)']
 };
 function renderReglement(){
   var box=document.getElementById('regl-list'); if(!box) return;
   var R=getReglement();
   var canEdit=(curUser&&(curUser.role==='franchise'||curUser.role==='directeur'))&&!window.__readOnly;
   // clés "personnelles" (modifiables/ajoutables par l'utilisateur) vs convention
-  var clesPerso=['traitMiniHeures','traitMaxiHeures','maxTraitsJour','groupementFermeture','coupureMaxFermetureMin','heureFermetureDepuisH','petitsContratsWeekend','petitsContratsSeuilH','maxJoursMemePoste','pauseMiniMin','blocContinuMaxH','amplitudeMaxH'];
+  var clesPerso=['traitMiniHeures','traitMaxiHeures','maxTraitsJour','groupementFermeture','coupureMaxFermetureMin','heureFermetureDepuisH','improductifAvantProductif','fermetureCreneauPlusTot','petitsContratsWeekend','petitsContratsSeuilH','maxJoursMemePoste','pauseMiniMin','blocContinuMaxH','amplitudeMaxH'];
   var clesConvention=Object.keys(REGL_LABELS).filter(function(k){return clesPerso.indexOf(k)<0;});
   function ligneRegle(k){
     var lab=REGL_LABELS[k]; if(!lab) return ''; var val=R[k];
@@ -9991,7 +9995,18 @@ function hrAutoAssignDay(dayIdx, ctx){
   rows.forEach(function(r){
     r.bars.forEach(function(b){ if(!estTraitEncadrement(b.l)) allBars.push(b); });
   });
-  allBars.sort(function(a,b){return a.s-b.s;});
+  // RÈGLE 2 : si activée, les créneaux IMPRODUCTIFS (np) sont placés AVANT les
+  // productifs. À catégorie égale, on garde l'ordre chronologique (heure de début).
+  var _R2=(typeof getReglement==='function')?getReglement():{};
+  var _npAvant=(_R2.improductifAvantProductif!==false);
+  allBars.sort(function(a,b){
+    if(_npAvant){
+      var ca=(hrCategorieTrait(a.l)==='np')?0:1;
+      var cb=(hrCategorieTrait(b.l)==='np')?0:1;
+      if(ca!==cb) return ca-cb;   // np (0) avant prod (1)
+    }
+    return a.s-b.s;
+  });
 
   // DIAGNOSTIC : compteurs de raisons de rejet (pour comprendre les traits vides)
   ctx._diag=ctx._diag||{dispo:0,libre:0,repos:0,max5j:0,plafond:0,conv:0,traitsVides:0,placeOK:0};
@@ -12798,7 +12813,27 @@ function hrAutoAssignMonth(isoRefArg, silencieux, lundiUnique, filtreEtape){
       return;
     }
     // contexte hebdo, mais le plafond tient compte du reste MENSUEL
-    var ctx={minSemaine:{},joursTravailles:{},busy:{},repos:{}};
+    var ctx={minSemaine:{},joursTravailles:{},busy:{},busyJour:{},repos:{}};
+    // ── PRISE EN COMPTE DE L'EXISTANT (productif + NON PRODUCTIF) ──────────────
+    // Les règles de réglementation (repos 12h, amplitude, bloc continu, pause,
+    // max h/jour) doivent porter sur la JOURNÉE COMPLÈTE de la personne : ses
+    // traits productifs ET non productifs (LIVRAISON, MARCH, PREP…) déjà posés,
+    // pas seulement ceux placés dans cette passe. On amorce donc busy/busyJour
+    // avec TOUS les traits déjà nommés (hors encadrement) de la semaine.
+    for(var _sd=0;_sd<7;_sd++){
+      (ROWS_BY_DAY[_sd]||[]).forEach(function(_r){ (_r.bars||[]).forEach(function(_b){
+        if(_b.empId && !estTraitEncadrement(_b.l)){
+          ctx.busy[_b.empId]=ctx.busy[_b.empId]||[];
+          ctx.busy[_b.empId].push({s:_b.s,e:_b.e});
+          ctx.busyJour[_b.empId]=ctx.busyJour[_b.empId]||{};
+          ctx.busyJour[_b.empId][_sd]=ctx.busyJour[_b.empId][_sd]||[];
+          ctx.busyJour[_b.empId][_sd].push({s:_b.s,e:_b.e});
+          ctx.minSemaine[_b.empId]=(ctx.minSemaine[_b.empId]||0)+(_b.e-_b.s);
+          ctx.joursTravailles[_b.empId]=ctx.joursTravailles[_b.empId]||{};
+          ctx.joursTravailles[_b.empId][_sd]=true;
+        }
+      }); });
+    }
     hrReserverReposConsecutifs(ctx);
     // ABSENCES : pour chaque équipier absent un jour de cette semaine, on bloque
     // ce jour (ajouté à ctx.repos) pour qu'il ne soit jamais placé dessus.
