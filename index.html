@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-22 22:01 · v254';
+  var EMBEDDED_VERSION = '2026-06-22 22:39 · v258';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -644,14 +644,13 @@ body.tv-mode #eye-viewas{display:none!important;}
         <select id="hrx-sem-sel2" onchange="hrGenFromWeek(this.value);document.getElementById('hrx-sem-sel')&&(document.getElementById('hrx-sem-sel').value=this.value)"></select>
       </div>
       <button class="hr-btn hr-btn-ac" id="hrx-refresh-btn" onclick="hrRefreshWeek()" title="Recalcule les TRAITS (besoin) des 7 jours de la semaine selon le CA et la grille">🔄 Actualiser les traits de la semaine</button>
-      <button class="hr-btn hr-btn-ac" id="hrx-placer-btn" onclick="hrPlacerSemaineCourante()" title="Place les SALARIÉS sur les traits de la semaine affichée, en visant le contrat hebdo et en lissant pour atteindre le contrat mensuel.">📆 Placement des salariés sur la semaine</button>
+      <!-- Bouton "Placement des salariés sur la semaine" retiré à la demande : on utilise désormais le Placement intelligent. La fonction hrPlacerSemaineCourante reste disponible si besoin. -->
       <button class="hr-btn" id="hrx-placer-intel-btn" onclick="hrPlacerIntelligentSemaine()" title="Place les salariés sur les traits de la grille CA (jamais touchée), en BOUCLE automatique : place → contrôle les créneaux restants → retravaille → recontrôle, jusqu'à couvrir le maximum du besoin et viser les contrats. Coupures 30 min autorisées." style="background:#2a1a3a;border-color:#a855f7;color:#d8b4fe;font-weight:700;">🧠 Placement intelligent</button>
       <span id="hrx-contrat-touches" style="display:inline-flex;gap:8px;flex-wrap:wrap;align-items:flex-end"></span>
       <button class="hr-btn" id="hrx-vider-btn" onclick="hrViderSemaine()" title="Retire TOUS les salariés des traits de la semaine affichée : les traits redeviennent vides pour repartir à zéro." style="background:#3a1a1a;border-color:#cc5555;color:#ff9090;">🧹 Vider la semaine</button>
       <button class="hr-btn" id="hrx-lock-sem" onclick="hrToggleVerrouSemaine()" title="Verrouiller / déverrouiller la semaine affichée. Une semaine verrouillée n'est plus modifiée par les recalculs." style="background:#2a2416;border-color:#b8860b;">🔓 Semaine</button>
       <button class="hr-btn" id="hrx-transfert" onclick="hrTransfererSemaine()" title="Marque la semaine comme finie : elle est verrouillée et partagée aux employés (Accueil) et aux Rapports." style="background:#16321f;border-color:#3ecf8e;color:#3ecf8e;font-weight:700;">✅ Horaires finis — transférer</button>
-      <button class="hr-btn hr-btn-ac" onclick="hrAnalyseOuvrir('jour')" title="Analyse par jour ou sur la semaine : pourquoi des créneaux restent vides et pourquoi certains n'atteignent pas leur contrat" style="background:#3a2a5a;border-color:#6d4aad;">🔍 Analyser</button>
-      <button class="hr-btn" onclick="hrControleDispos()" title="Contrôle de toutes les disponibilités et compétences des salariés telles que l'app les lit (repère les dispos manquantes, plages inversées, compétences absentes)." style="background:#163a2a;border-color:#2ec27e;color:#7fffc4;">🔬 Contrôle dispos/comp.</button>
+      <!-- Boutons "Analyser" et "Contrôle dispos/comp." retirés à la demande (outils de diagnostic, aucun impact sur le placement). Les fonctions hrAnalyseOuvrir / hrControleDispos restent disponibles si besoin. -->
       <span id="hrx-assign-status" style="font-size:11px;color:#60a5fa;align-self:center;margin-left:4px"></span>
       <span id="hrx-valid-status" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--mu);align-self:center;margin-left:4px"></span>
     </div>
@@ -13215,6 +13214,16 @@ function hrPlacerIntelligentSemaine(){
   var lundi=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?hrLundiDe(DAY_DATES[0]):null);
   if(!lundi){ toast&&toast('Choisis d\'abord une semaine','error'); return; }
   try{ if(hrSemaineVerrouillee(lundi)){ toast&&toast('Cette semaine est verrouillée 🔒','error'); return; } }catch(e){ console.warn('verrou check',e); }
+  // Le Placement intelligent n'est autorisé QU'APRÈS actualisation des traits de la
+  // semaine (bouton « Actualiser les traits » passé en vert « à jour »).
+  try{
+    if(typeof hrSemaineValidee==='function' && !hrSemaineValidee(lundi)){
+      var __sta=document.getElementById('hrx-assign-status');
+      if(__sta) __sta.innerHTML='⚠️ Actualise les traits de la semaine (bouton 🔄) avant le placement intelligent.';
+      toast&&toast('Actualise les traits de la semaine 🔄','error');
+      return;
+    }
+  }catch(e){ console.warn('check traits a jour',e); }
   var R=(typeof getReglement==='function')?getReglement():{};
   var traitMin=(R.traitMiniHeures!=null)?Math.round(parseFloat(R.traitMiniHeures)*60):120;
   var traitMax=(R.traitMaxiHeures!=null)?Math.round(parseFloat(R.traitMaxiHeures)*60):300;
@@ -13536,6 +13545,12 @@ window._hrPlacerContrat=_hrPlacerContrat;
 // équipiers du resto courant. Appelée à chaque changement de resto/semaine.
 function hrRenderTouchesContrat(){
   var box=document.getElementById('hrx-contrat-touches'); if(!box) return;
+  // Touches de placement par valeur de contrat (10h/12h/15h/24h/28h/30h/35h)
+  // retirées à la demande : on ne place plus heure par heure, tout passe par le
+  // Placement intelligent. La logique _hrPlacerContrat reste disponible si besoin.
+  box.innerHTML='';
+  return;
+  /* --- ancien affichage des touches (désactivé) ---
   var resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(typeof hrCurrentResto==='function'?hrCurrentResto():''))||'').toLowerCase();
   var eq=(DB.employees||[]).filter(function(e){
     return e.role==='equipier' && !e.archived && (!resto || (e.restoId||'').toLowerCase()===resto);
@@ -13559,6 +13574,7 @@ function hrRenderTouchesContrat(){
     b.onclick=function(){ _hrPlacerContrat(v, v+'h'); };
     box.appendChild(b);
   });
+  --- fin ancien affichage --- */
 }
 window.hrRenderTouchesContrat=hrRenderTouchesContrat;
 
@@ -14100,7 +14116,7 @@ window.hrPlacerSurCreneau=hrPlacerSurCreneau;
 // ── VIDER LA SEMAINE : retire tous les salariés des traits (traits redeviennent vides) ──
 function hrViderSemaine(){
   try{
-    if(!confirm('Retirer TOUS les salariés de la semaine affichée ?\nLes traits redeviennent vides pour repartir à zéro.\n(Le CA, la grille et les traits ne sont pas touchés.)')) return;
+    // Vidage direct en un seul clic (confirmation retirée à la demande).
     // 1) Vider les noms dans ROWS_BY_DAY (les 7 jours affichés)
     for(var d=0; d<7; d++){
       (ROWS_BY_DAY[d]||[]).forEach(function(r){ r.bars.forEach(function(b){ b.emp=null; b.empId=null; }); });
@@ -14144,6 +14160,7 @@ function hrViderSemaine(){
     if(typeof hrSauverAffect==='function') hrSauverAffect();
     try{ if(typeof hrInvaliderPlacement==='function' && typeof HR_WEEK_LUNDI!=='undefined') hrInvaliderPlacement(HR_WEEK_LUNDI); }catch(e){}
     // 4) Rafraîchir les vues
+    if(typeof renderTimeline==='function') renderTimeline();
     if(typeof renderAll==='function') renderAll();
     if(typeof hrRenderPlanningHebdo==='function') hrRenderPlanningHebdo();
     if(typeof hrRenderEmploiSemaine==='function') hrRenderEmploiSemaine();
@@ -17551,6 +17568,23 @@ function hrMajBoutonActualiser(){
       btn.innerHTML='🔄 Actualiser les traits de la semaine';
       btn.title='À actualiser — grille ou CA modifié. Clique pour recalculer les traits.';
     }
+    // Placement intelligent autorisé UNIQUEMENT après actualisation des traits :
+    // on grise le bouton tant que les traits ne sont pas à jour.
+    try{
+      var bi=document.getElementById('hrx-placer-intel-btn');
+      if(bi){
+        var aJour=(typeof hrSemaineValidee==='function' && hrSemaineValidee(lundi));
+        if(aJour){
+          bi.disabled=false; bi.style.opacity='1'; bi.style.cursor='pointer';
+          bi.style.background='#2a1a3a'; bi.style.borderColor='#a855f7'; bi.style.color='#d8b4fe';
+          bi.title='Place les salariés sur les traits de la grille CA, en boucle automatique.';
+        }else{
+          bi.disabled=true; bi.style.opacity='.45'; bi.style.cursor='not-allowed';
+          bi.style.background='#241a2e'; bi.style.borderColor='#5a4a6a'; bi.style.color='#8a7a9a';
+          bi.title='Actualise les traits de la semaine (bouton 🔄) pour activer le placement intelligent.';
+        }
+      }
+    }catch(e){}
   }catch(e){}
 }
 window.hrMajBoutonActualiser = hrMajBoutonActualiser;
