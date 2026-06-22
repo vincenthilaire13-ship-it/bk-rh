@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-21 21:52 · v231';
+  var EMBEDDED_VERSION = '2026-06-22 12:10 · v235';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -9880,6 +9880,18 @@ function hrContratHebdo(emp){
   return null;
 }
 window.hrContratHebdo = hrContratHebdo;
+// Catégorie/rôle lisible d'un salarié (mêmes règles que l'accordéon Équipe) :
+// Directeur / Manager / Leader / Apprenti (équipier contrat >=35h) / Équipier (<35h)
+function hrRoleInfo(e){
+  if(!e) return {key:'equipier',label:'Équipier',ico:'👤'};
+  if(e.role==='directeur') return {key:'directeur',label:'Directeur',ico:'👑'};
+  if(e.role==='manager')   return {key:'manager',label:'Manager',ico:'⭐'};
+  if(e.role==='leader')    return {key:'leader',label:'Leader',ico:'🎖️'};
+  var hc=(window.hrContratHebdo?window.hrContratHebdo(e):null);
+  if(e.role==='equipier' && hc!=null && hc>=35) return {key:'apprenti',label:'Apprenti',ico:'🎓'};
+  return {key:'equipier',label:'Équipier',ico:'👤'};
+}
+window.hrRoleInfo = hrRoleInfo;
 // Nombre de lundis (semaines) dans le mois de la semaine actuellement affichée
 function hrSemainesDuMois(){
   try{
@@ -11918,6 +11930,13 @@ function _hrEtatRenderAbsences(){
 
 // ════════ SOUS-VUE DISPONIBILITÉS (éditable) ════════
 // Stockage : e.infos.dispos = { lun:{on,from,to}, mar:{...}, ... }. Sauvegarde Supabase par employé.
+// Accordéon par catégorie (Directeurs/Managers/Leaders/Apprentis/Équipiers) : ouvert par défaut.
+var hrEEDispoOpenCats = {directeur:true,manager:true,leader:true,apprenti:true,equipier:true};
+function hrEEDispoToggleCat(key){
+  hrEEDispoOpenCats[key]=!hrEEDispoOpenCats[key];
+  hrEERenderDispos();
+}
+window.hrEEDispoToggleCat=hrEEDispoToggleCat;
 function _hrEEDispoBuf(id){
   var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return null;
   if(!e.infos) e.infos={};
@@ -11933,27 +11952,59 @@ function hrEERenderDispos(){
   h+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.8rem;"><thead><tr style="border-bottom:2px solid #444;">';
   h+='<th style="text-align:left;padding:6px 8px;color:#fff;position:sticky;left:0;background:#1a1a1a;">Salarié</th>';
   JOURS.forEach(function(j){ h+='<th style="padding:6px 8px;color:#fff;min-width:118px;">'+j[1]+'</th>'; });
+  h+='<th style="padding:6px 8px;color:#7fffc4;min-width:92px;border-left:2px solid #2ec27e;">🟢 Dispo<br>totale</th>';
   h+='</tr></thead><tbody>';
-  eq.forEach(function(e){
+  var NB_COLS=1+JOURS.length+2; // nom + jours + dispo totale + actions
+  // construit une ligne salarié
+  function _ligneSalarie(e){
     var d=(e.infos&&e.infos.dispos)||{};
-    h+='<tr style="border-bottom:1px solid #2a2a2a;"><td style="padding:6px 8px;font-weight:600;color:#eee;white-space:nowrap;position:sticky;left:0;background:#161616;">'+e.name+'</td>';
+    var totale=!!d.totale;
+    var _ch=(window.hrContratHebdo?window.hrContratHebdo(e):null);
+    var _clab=(e.infos&&e.infos.contratLabel)||e.contratLabel||'';
+    var _ctxt=_clab?_clab:(_ch?_ch+'h':'');
+    if(_clab&&_ch&&(''+_clab).indexOf(''+_ch)<0) _ctxt=_clab+' · '+_ch+'h';
+    var _ri=(window.hrRoleInfo?window.hrRoleInfo(e):{label:'',ico:''});
+    var _rbadge='<span style="font-size:.68rem;font-weight:700;color:#ffd98a;background:#3a2e12;border:1px solid #b8860b;border-radius:10px;padding:1px 7px;white-space:nowrap;margin-left:5px;">'+_ri.ico+' '+_ri.label+'</span>';
+    var _cbadge='<div style="margin-top:3px;"><span style="font-size:.68rem;font-weight:700;color:#7fffc4;background:#163a2a;border:1px solid #2ec27e;border-radius:10px;padding:1px 7px;white-space:nowrap;">📄 '+(_ctxt||'contrat ?')+'</span>'+_rbadge+'</div>';
+    var r='<tr style="border-bottom:1px solid #2a2a2a;"><td style="padding:6px 8px;font-weight:600;color:#eee;white-space:nowrap;position:sticky;left:0;background:#161616;">'+e.name+_cbadge+'</td>';
     JOURS.forEach(function(j){
       var jk=j[0]; var x=d[jk]||{}; var on=!!x.on;
       var from=x.from||'11:00', to=x.to||'15:00';
-      h+='<td style="padding:5px 6px;text-align:center;vertical-align:top;">'
+      r+='<td style="padding:5px 6px;text-align:center;vertical-align:top;'+(totale?'opacity:.35;pointer-events:none;':'')+'">'
         +'<div onclick="hrEEToggleDispo(\''+e.id+'\',\''+jk+'\')" style="cursor:pointer;width:26px;height:26px;margin:0 auto 4px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;'+(on?'background:#1565c0;color:#fff;':'background:#2a2a2a;color:#555;border:1px solid #444;')+'">'+(on?'✓':'')+'</div>';
       if(on){
-        h+='<div style="display:flex;flex-direction:column;gap:3px;align-items:center;">'
+        r+='<div style="display:flex;flex-direction:column;gap:3px;align-items:center;">'
           +'<input type="time" value="'+from+'" onchange="hrEESetDispoHeure(\''+e.id+'\',\''+jk+'\',\'from\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#cfe;border-radius:5px;padding:2px 4px;font-size:.72rem;width:78px;">'
           +'<input type="time" value="'+to+'" onchange="hrEESetDispoHeure(\''+e.id+'\',\''+jk+'\',\'to\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#cfe;border-radius:5px;padding:2px 4px;font-size:.72rem;width:78px;">'
           +'</div>';
       }
-      h+='</td>';
+      r+='</td>';
     });
-    h+='<td style="padding:5px 6px;white-space:nowrap;">'
-      +'<button onclick="hrEECopierDispo(\''+e.id+'\')" title="Copier la 1re plage active sur toute la semaine" style="background:#2a2a2a;border:1px solid #555;color:#bbb;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.72rem;">⎘ Toute la semaine</button>'
+    r+='<td style="padding:5px 6px;text-align:center;vertical-align:top;border-left:2px solid #2ec27e;">'
+      +'<div onclick="hrEEToggleDispoTotale(\''+e.id+'\')" title="Disponible toute la semaine — plus aucun blocage de disponibilité" style="cursor:pointer;width:26px;height:26px;margin:0 auto;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;'+(totale?'background:#2ec27e;color:#062;':'background:#2a2a2a;color:#555;border:1px solid #444;')+'">'+(totale?'✓':'')+'</div></td>';
+    r+='<td style="padding:5px 6px;white-space:nowrap;">'
+      +'<button onclick="hrEECopierDispo(\''+e.id+'\')" title="Copier la 1re plage active sur toute la semaine" style="background:#2a2a2a;border:1px solid #555;color:#bbb;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.72rem;'+(totale?'opacity:.35;pointer-events:none;':'')+'">⎘ Toute la semaine</button>'
       +' <span id="ee-dispo-st-'+e.id+'" style="font-size:.72rem;color:#3ecf8e;"></span></td>';
-    h+='</tr>';
+    r+='</tr>';
+    return r;
+  }
+  // catégories (mêmes règles que l'accordéon Équipe), via hrRoleInfo
+  var CATS=[
+    {key:'directeur',label:'Directeurs',ico:'👑'},
+    {key:'manager',  label:'Managers',  ico:'⭐'},
+    {key:'leader',   label:'Leaders',   ico:'🎖️'},
+    {key:'apprenti', label:'Apprentis', ico:'🎓'},
+    {key:'equipier', label:'Équipiers', ico:'👤'}
+  ];
+  CATS.forEach(function(cat){
+    var membres=eq.filter(function(e){ return (window.hrRoleInfo?window.hrRoleInfo(e).key:'equipier')===cat.key; });
+    if(!membres.length) return;
+    var open=!!hrEEDispoOpenCats[cat.key];
+    h+='<tr><td colspan="'+NB_COLS+'" onclick="hrEEDispoToggleCat(\''+cat.key+'\')" style="cursor:pointer;background:#1d3a2a;border-top:2px solid #2ec27e;padding:8px 10px;position:sticky;left:0;">'
+      +'<span style="display:inline-block;width:14px;color:#7fffc4;font-weight:800;transform:rotate('+(open?'90':'0')+'deg);transition:transform .12s;">▸</span>'
+      +'<span style="font-weight:800;color:#cfead7;font-size:.9rem;">'+cat.ico+' '+cat.label+'</span>'
+      +'<span style="color:#7fae90;font-size:.78rem;margin-left:8px;">('+membres.length+')</span></td></tr>';
+    if(open){ membres.forEach(function(e){ h+=_ligneSalarie(e); }); }
   });
   h+='</tbody></table></div>';
   box.innerHTML=h;
@@ -11980,6 +12031,25 @@ function hrEECopierDispo(id){
   hrEERenderDispos();
   _hrEESaveInfos(id,'ee-dispo-st-');
 }
+function hrEEToggleDispoTotale(id){
+  var e=_hrEEDispoBuf(id); if(!e) return;
+  var on=!e.infos.dispos.totale;
+  if(on){
+    // mémorise les jours actuels pour pouvoir les restaurer au décochage
+    e.infos.dispos._avantTotale=JSON.parse(JSON.stringify((function(){var o={};JOURS.forEach(function(j){o[j[0]]=e.infos.dispos[j[0]]||null;});return o;})()));
+    e.infos.dispos.totale=true;
+    // disponible toute la semaine, amplitude max (05:00 -> 03:00) : plus aucun blocage
+    JOURS.forEach(function(j){ e.infos.dispos[j[0]]={on:true,from:'05:00',to:'03:00'}; });
+  }else{
+    delete e.infos.dispos.totale;
+    var prev=e.infos.dispos._avantTotale;
+    if(prev){ JOURS.forEach(function(j){ e.infos.dispos[j[0]]=prev[j[0]]?prev[j[0]]:{on:false}; }); }
+    delete e.infos.dispos._avantTotale;
+  }
+  hrEERenderDispos();
+  _hrEESaveInfos(id,'ee-dispo-st-');
+}
+window.hrEEToggleDispoTotale=hrEEToggleDispoTotale;
 window.hrEEToggleDispo=hrEEToggleDispo;
 window.hrEESetDispoHeure=hrEESetDispoHeure;
 window.hrEECopierDispo=hrEECopierDispo;
