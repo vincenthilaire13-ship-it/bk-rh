@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-22 14:01 · v240';
+  var EMBEDDED_VERSION = '2026-06-22 15:26 · v250';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -645,6 +645,7 @@ body.tv-mode #eye-viewas{display:none!important;}
       </div>
       <button class="hr-btn hr-btn-ac" id="hrx-refresh-btn" onclick="hrRefreshWeek()" title="Recalcule les TRAITS (besoin) des 7 jours de la semaine selon le CA et la grille">🔄 Actualiser les traits de la semaine</button>
       <button class="hr-btn hr-btn-ac" id="hrx-placer-btn" onclick="hrPlacerSemaineCourante()" title="Place les SALARIÉS sur les traits de la semaine affichée, en visant le contrat hebdo et en lissant pour atteindre le contrat mensuel.">📆 Placement des salariés sur la semaine</button>
+      <button class="hr-btn" id="hrx-placer-intel-btn" onclick="hrPlacerIntelligentSemaine()" title="Place les salariés sur les traits de la grille CA (jamais touchée), en BOUCLE automatique : place → contrôle les créneaux restants → retravaille → recontrôle, jusqu'à couvrir le maximum du besoin et viser les contrats. Coupures 30 min autorisées." style="background:#2a1a3a;border-color:#a855f7;color:#d8b4fe;font-weight:700;">🧠 Placement intelligent</button>
       <span id="hrx-contrat-touches" style="display:inline-flex;gap:8px;flex-wrap:wrap;align-items:flex-end"></span>
       <button class="hr-btn" id="hrx-vider-btn" onclick="hrViderSemaine()" title="Retire TOUS les salariés des traits de la semaine affichée : les traits redeviennent vides pour repartir à zéro." style="background:#3a1a1a;border-color:#cc5555;color:#ff9090;">🧹 Vider la semaine</button>
       <button class="hr-btn" id="hrx-lock-sem" onclick="hrToggleVerrouSemaine()" title="Verrouiller / déverrouiller la semaine affichée. Une semaine verrouillée n'est plus modifiée par les recalculs." style="background:#2a2416;border-color:#b8860b;">🔓 Semaine</button>
@@ -5962,7 +5963,7 @@ var REGLEMENT_DEFAUT={
   petitsContratsWeekend:true,  // [perso] les petits contrats ne travaillent que le week-end
   petitsContratsSeuilH:15,     // [perso] seuil (h) en-dessous duquel = petit contrat (week-end only)
   maxJoursMemePoste:0,         // [perso] nb max de jours/semaine sur le MÊME poste (0 = pas de limite)
-  pauseMiniMin:45,             // [perso/RH] pause minimale entre deux créneaux d'une même journée (min)
+  pauseMiniMin:30,             // [perso/RH] pause minimale entre deux créneaux d'une même journée (min)
   blocContinuMaxH:5.5,         // [perso/RH] durée max d'un bloc de travail continu sans pause (h)
   amplitudeMaxH:12,            // [perso/RH] amplitude max de la journée : du 1er au dernier créneau (h)
   // [perso] Horaires d'OUVERTURE CLIENT par jour (lun..dim). Le PRODUCTIF n'est
@@ -12330,10 +12331,29 @@ function hrMinPlaceesSemaine(empId, lundiISO){
 function hrCibleSemaineLissee(emp, lundis, wi, lundiCourantISO){
   var ch=hrContratHebdo(emp);
   if(ch==null) return null;
+  // ── LISSAGE MENSUEL DÉSACTIVÉ ────────────────────────────────────────────────
+  // Demande de Vincent : chaque semaine vise EXACTEMENT le contrat hebdo, toutes
+  // les semaines (24h = 24h, 35h = 35h), sans aucune dilution sur le mois et sans
+  // marge. Le plafond = le contrat pile.
+  var mc=Math.round(ch*60);
+  return {cibleMin:mc, plancherMin:mc, plafondMin:mc, impossiblePile:false, exc35:(ch>=35)};
+}
+function _hrCibleSemaineLisseeOLD(emp, lundis, wi, lundiCourantISO){
+  var ch=hrContratHebdo(emp);
+  if(ch==null) return null;
   if(ch>=35){
     // Exception 35h : 35h pile, marge technique minime pour boucher les traits.
     var m35=Math.round(35*60);
     return {cibleMin:m35, plancherMin:m35, plafondMin:Math.round(35*60*1.05), impossiblePile:false, exc35:true};
+  }
+  // VISER LE CONTRAT EXACT (réglementation) : chaque semaine vise le CONTRAT HEBDO
+  // COMPLET (ex. 24h = 24h cette semaine), sans diluer sur le nombre de semaines du
+  // mois. Sinon un 24h plafonnait à ~21h/semaine (104h ÷ 5 semaines) et des traits
+  // restaient libres alors que les contrats n'étaient pas atteints.
+  var _Rve=(typeof getReglement==='function')?getReglement():{};
+  if(_Rve && _Rve.viseContratExact){
+    var mc=Math.round(ch*60);
+    return {cibleMin:mc, plancherMin:mc, plafondMin:Math.round(mc*1.05), impossiblePile:false, exc35:false};
   }
   var nbSem = (lundis && lundis.length) ? lundis.length : 1;
   var cibleMoisMin = Math.round(ch*60*52/12);        // ex 24h -> 6240 min (104h)
@@ -12752,6 +12772,94 @@ function hrAgrandirTraits35h(ctx, equipiers){
     });
   }
 }
+// ══ PLACEMENT DES FERMETURES EN PRIORITÉ ══════════════════════════════════════
+// Place les créneaux de FERMETURE (non productifs finissant tard) AVANT le reste.
+// Pour chaque créneau de fermeture vide, on choisit le salarié QUALIFIÉ et
+// DISPONIBLE qui a le MOINS d'autres fermetures possibles dans la semaine (le plus
+// « rare » pour fermer), afin de ne pas gaspiller un fermant polyvalent. Toutes
+// les contraintes habituelles sont respectées (dispo, repos, plafond, règles).
+function hrPlacerFermeturesDabord(ctx, eq){
+  var R=(typeof getReglement==='function')?getReglement():{};
+  var hFerm=(R.heureFermetureDepuisH!=null?parseFloat(R.heureFermetureDepuisH):22)*60;
+  var nbRepos=(R&&R.joursRepos!=null)?parseInt(R.joursRepos,10):2; if(isNaN(nbRepos)||nbRepos<0) nbRepos=2;
+  var joursMax=7-nbRepos;
+  var npSet=(typeof hrNpLabels==='function')?hrNpLabels():new Set();
+  function estFermeture(b){
+    // non productif ET finissant à partir de l'heure de fermeture (gère après-minuit)
+    var estNP = npSet.has((b.l||'').toUpperCase()) || (typeof hrCategorieTrait==='function' && hrCategorieTrait(b.l)==='np');
+    if(!estNP) return false;
+    return (b.e>=hFerm) || (b.e>=hFerm+24*60);
+  }
+  function dispoOkJ(emp,d,s,e){
+    var jk=JOURS_KEYS[d]; var dd=(emp.infos&&emp.infos.dispos&&emp.infos.dispos[jk])||null;
+    if(!dd||!dd.on) return false;
+    if(Array.isArray(dd.creneaux) && dd.creneaux.length>1){
+      for(var ci=0;ci<dd.creneaux.length;ci++){ var cf=_dispoMin(dd.creneaux[ci].from),ct=_dispoMin(dd.creneaux[ci].to); if(cf!=null&&ct!=null&&s>=cf&&e<=ct) return true; }
+      return false;
+    }
+    var f=_dispoMin(dd.from),t=_dispoMin(dd.to); if(f==null||t==null) return false; return s>=f && e<=t;
+  }
+  function occupe(id,d,s,e){ var a=(((ctx.busyJour||{})[id]||{})[d])||[]; for(var i=0;i<a.length;i++){ if(s<a[i].e&&e>a[i].s) return true; } return false; }
+  function nbJoursTrav(id){ var o=(ctx.joursTravailles||{})[id]||{},n=0; for(var k in o){ if(o[k]) n++; } return n; }
+  function plaf(e){ return (ctx&&typeof ctx._plafondOverride==='function')?ctx._plafondOverride(e):hrPlafondHebdoMin(e); }
+  // Combien de créneaux de fermeture DISTINCTS un salarié pourrait-il prendre cette
+  // semaine (compétence + dispo) ? Sert à mesurer sa « rareté » pour fermer.
+  function nbFermeturesPossibles(e){
+    var n=0;
+    for(var d=0;d<7;d++){
+      (ROWS_BY_DAY[d]||[]).forEach(function(r){ r.bars.forEach(function(b){
+        if(!estFermeture(b)) return;
+        if(!hrSaitFaire(e,b.l)) return;
+        if(!dispoOkJ(e,d,b.s,b.e)) return;
+        n++;
+      }); });
+    }
+    return n;
+  }
+  // Collecte tous les créneaux de fermeture vides, triés par heure de début.
+  var fermetures=[];
+  for(var d=0;d<7;d++){
+    (ROWS_BY_DAY[d]||[]).forEach(function(r){ r.bars.forEach(function(b){
+      if(b.empId) return;
+      if(estTraitEncadrement(b.l)) return;
+      if(estFermeture(b)) fermetures.push({d:d,b:b});
+    }); });
+  }
+  fermetures.sort(function(x,y){ return x.b.s-y.b.s; });
+  fermetures.forEach(function(item){
+    var d=item.d, b=item.b, duree=b.e-b.s;
+    if(b.empId) return; // déjà pris entre-temps
+    var cands=(eq||[]).filter(function(e){
+      if(hrContratHebdo(e)==null) return false;
+      if(!hrSaitFaire(e,b.l)) return false;
+      if(!dispoOkJ(e,d,b.s,b.e)) return false;
+      if(occupe(e.id,d,b.s,b.e)) return false;
+      if(ctx.repos&&ctx.repos[e.id]&&ctx.repos[e.id].indexOf(d)>=0) return false;
+      var jt=(ctx.joursTravailles||{})[e.id];
+      if(jt){ var nj=0; for(var k in jt){ if(jt[k]) nj++; } if(nj>=joursMax && !jt[d]) return false; }
+      var p=plaf(e); if(p!=null && (((ctx.minSemaine||{})[e.id])||0)+duree>p) return false;
+      if(!hrReglesConvention(e,d,b,ctx,duree)) return false;
+      return true;
+    });
+    if(!cands.length) return;
+    // Le PLUS RARE pour fermer d'abord (peu de fermetures possibles), puis le plus
+    // gros contrat, puis le plus loin de son contrat.
+    cands.sort(function(a,c){
+      var fa=nbFermeturesPossibles(a), fc=nbFermeturesPossibles(c);
+      if(fa!==fc) return fa-fc;
+      var ha=hrContratHebdo(a)||0, hc=hrContratHebdo(c)||0;
+      if(ha!==hc) return hc-ha;
+      return hrResteMin(c,ctx)-hrResteMin(a,ctx);
+    });
+    var e=cands[0];
+    b.emp=e.name; b.empId=e.id;
+    ctx.busy[e.id]=ctx.busy[e.id]||[]; ctx.busy[e.id].push({s:b.s,e:b.e});
+    ctx.busyJour=ctx.busyJour||{}; ctx.busyJour[e.id]=ctx.busyJour[e.id]||{}; ctx.busyJour[e.id][d]=ctx.busyJour[e.id][d]||[];
+    ctx.busyJour[e.id][d].push({s:b.s,e:b.e});
+    ctx.minSemaine[e.id]=(ctx.minSemaine[e.id]||0)+duree;
+    ctx.joursTravailles[e.id]=ctx.joursTravailles[e.id]||{}; ctx.joursTravailles[e.id][d]=true;
+  });
+}
 function hrAutoAssignMonth(isoRefArg, silencieux, lundiUnique, filtreEtape){
   var isoRef=isoRefArg || ((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?DAY_DATES[0]:null);
   if(!isoRef){ toast&&toast('Choisis d\'abord une semaine','error'); return; }
@@ -12935,6 +13043,13 @@ function hrAutoAssignMonth(isoRefArg, silencieux, lundiUnique, filtreEtape){
       if(Math.abs(ra-rb)>0.01) return ra-rb;        // puis le plus contraint (ratio bas) d'abord
       return _ch(b)-_ch(a);                          // à égalité, gros contrat d'abord
     });
+    // ── PASSE FERMETURES D'ABORD ────────────────────────────────────────────
+    // RÈGLE MÉTIER : on place les créneaux de FERMETURE (non productifs finissant
+    // tard) AVANT tout le reste. On les attribue en priorité aux salariés les
+    // MOINS disponibles pour ces créneaux (ceux qui ont peu d'autres possibilités
+    // de fermer), pour ne pas les « gâcher » sur quelqu'un qui pourrait fermer
+    // un autre jour. Respecte dispo, compétence, repos, plafond et les règles.
+    try{ hrPlacerFermeturesDabord(ctx, _eq); }catch(e){ console.warn('hrPlacerFermeturesDabord', e); }
     // 1) Tout le monde dans l'ordre de rareté (les plus durs à caser en premier).
     _ordre.forEach(function(e){
       // petits contrats (≤ seuil) : on les oriente vers le week-end (règle perso)
@@ -12957,6 +13072,20 @@ function hrAutoAssignMonth(isoRefArg, silencieux, lundiUnique, filtreEtape){
     // Vaut pour les 4 touches (15/20/24/35). Réserve les traits de 5h aux 35h.
     if(filtreEtape){
       try{ hrConsoliderContrat(ctx, equipiers, filtreEtape); }catch(e){ console.warn('hrConsoliderContrat', e); }
+    } else {
+      // PLACEMENT GLOBAL (bouton « Placement des salariés ») : on consolide CHAQUE
+      // valeur de contrat présente, du PLUS GROS au plus petit (35h d'abord), pour
+      // que tout le monde atteigne son contrat. Sans ça, les salariés plafonnaient
+      // à ~1 créneau/jour et des traits restaient libres (contrats non atteints).
+      try{
+        var _valsConso={};
+        (_eq||[]).forEach(function(e){ var v=Math.round(hrContratHebdo(e)||0); if(v>0) _valsConso[v]=1; });
+        Object.keys(_valsConso).map(function(v){return parseInt(v,10);})
+          .sort(function(a,b){return b-a;})   // 35 → 10
+          .forEach(function(v){
+            try{ hrConsoliderContrat(ctx, _eq, v); }catch(e){ console.warn('hrConsoliderContrat '+v, e); }
+          });
+      }catch(e){ console.warn('consolidation globale', e); }
     }
     hrOptimiserContrats(ctx, _idsCible);  // OPTIMISATION : déplace repos + échange créneaux pour atteindre les contrats
     // AGRANDISSEMENT 4h→5h : seulement pour les 35h, et seulement si les traits sont
@@ -13070,6 +13199,228 @@ function hrPlacerSemaineCourante(){
   toast&&toast('Semaine placée','success');
 }
 window.hrPlacerSemaineCourante=hrPlacerSemaineCourante;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 🧠 PLACEMENT INTELLIGENT ITÉRATIF
+// Place les salariés sur les TRAITS EXISTANTS de la grille CA (jamais recréés ni
+// supprimés). Tourne EN BOUCLE tout seul : place → contrôle les créneaux vides →
+// retravaille par déplacements (gain net) → recontrôle, jusqu'à convergence.
+// Respecte : compétences, dispos, contrat hebdo, 2 créneaux/jour, pause 30 min,
+// coupure max, amplitude 12h, repos, jours de repos. Coupures autorisées.
+// L'humain ne reclique pas : le moteur fait tout le travail d'optimisation.
+// ══════════════════════════════════════════════════════════════════════════════
+function hrPlacerIntelligentSemaine(){
+  var lundi=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?hrLundiDe(DAY_DATES[0]):null);
+  if(!lundi){ toast&&toast('Choisis d\'abord une semaine','error'); return; }
+  if(hrSemaineVerrouillee(lundi)){ toast&&toast('Cette semaine est verrouillée 🔒','error'); return; }
+  var R=(typeof getReglement==='function')?getReglement():{};
+  var traitMin=(R.traitMiniHeures!=null)?Math.round(parseFloat(R.traitMiniHeures)*60):120;
+  var traitMax=(R.traitMaxiHeures!=null)?Math.round(parseFloat(R.traitMaxiHeures)*60):300;
+  var pauseMin=(R.pauseMiniMin!=null)?parseFloat(R.pauseMiniMin):30;
+  var coupMax=(R.coupureMaxHeures!=null)?parseFloat(R.coupureMaxHeures)*60:240;
+  var ampMax=(R.amplitudeMaxH!=null)?parseFloat(R.amplitudeMaxH)*60:720;
+  var maxHJ=(R.maxHeuresJour!=null)?parseFloat(R.maxHeuresJour)*60:600;
+  var maxTJ=(R.maxTraitsJour!=null)?parseInt(R.maxTraitsJour,10):2;
+  var nbRepos=(R.joursRepos!=null)?parseInt(R.joursRepos,10):2; var joursMax=7-(isNaN(nbRepos)?2:nbRepos);
+  var seuilPetit=(R.petitsContratsSeuilH!=null)?parseFloat(R.petitsContratsSeuilH):15;
+  var weekendActif=(R.petitsContratsWeekend!==false);
+  var _resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'').toLowerCase();
+  var eq=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===_resto&&hrContratHebdo(e)!=null&&hrContratHebdo(e)>0;});
+
+  // État de placement
+  var minSem={}, busy={}, jt={};
+  eq.forEach(function(e){ minSem[e.id]=0; busy[e.id]={}; jt[e.id]={}; });
+  function ch(e){ return hrContratHebdo(e)||0; }
+  function contratMin(e){ return Math.round(ch(e)*60); }
+  function reste(e){ return contratMin(e)-(minSem[e.id]||0); }
+  function nbJoursTrav(id){ var o=jt[id]||{},n=0; for(var k in o)if(o[k])n++; return n; }
+  function occupe(id,d,s,e){ var a=(busy[id]||{})[d]||[]; for(var i=0;i<a.length;i++){ if(s<a[i].e&&e>a[i].s) return true; } return false; }
+  function dispoOkJ(emp,d,s,e){
+    var jk=JOURS_KEYS[d]; var dd=(emp.infos&&emp.infos.dispos&&emp.infos.dispos[jk])||null;
+    if(!dd||!dd.on) return false;
+    if(Array.isArray(dd.creneaux)&&dd.creneaux.length>1){
+      for(var i=0;i<dd.creneaux.length;i++){ var f=_dispoMin(dd.creneaux[i].from),t=_dispoMin(dd.creneaux[i].to); if(f!=null&&t!=null&&s>=f&&e<=t) return true; }
+      return false;
+    }
+    var f=_dispoMin(dd.from),t=_dispoMin(dd.to); if(f==null||t==null) return false; return s>=f&&e<=t;
+  }
+  function seqsAvec(emp,d,extra){
+    var arr=((busy[emp.id]||{})[d]||[]).map(function(p){return {s:p.s,e:p.e};}); if(extra)arr.push(extra);
+    arr.sort(function(x,y){return x.s-y.s;});
+    var seqs=[],cur=null; arr.forEach(function(p){ if(cur&&p.s<=cur.e)cur.e=Math.max(cur.e,p.e); else {cur={s:p.s,e:p.e};seqs.push(cur);} });
+    return seqs;
+  }
+  function reglesOk(emp,d,s,e){
+    var seqs=seqsAvec(emp,d,{s:s,e:e});
+    if(seqs.length>maxTJ) return false;
+    for(var i=0;i<seqs.length;i++){ if(seqs[i].e-seqs[i].s>traitMax+0.001) return false; }
+    for(var si=1;si<seqs.length;si++){ var gap=seqs[si].s-seqs[si-1].e; if(gap>0&&gap<pauseMin) return false; if(gap>coupMax) return false; }
+    if(seqs.length && seqs[seqs.length-1].e-seqs[0].s>ampMax+0.001) return false;
+    var tot=0; seqs.forEach(function(x){tot+=(x.e-x.s);}); if(tot>maxHJ+0.001) return false;
+    return true;
+  }
+  function eligible(emp,d,s,e,poste){
+    if(ch(emp)<=0) return false;
+    if(weekendActif && ch(emp)<=seuilPetit && [4,5,6].indexOf(d)<0) return false; // petits contrats → ven/sam/dim
+    if(reste(emp)<60) return false;
+    if(!hrSaitFaire(emp,poste)) return false;
+    if(!dispoOkJ(emp,d,s,e)) return false;
+    if(occupe(emp.id,d,s,e)) return false;
+    if(jt[emp.id]&&!jt[emp.id][d]&&nbJoursTrav(emp.id)>=joursMax) return false;
+    if(!reglesOk(emp,d,s,e)) return false;
+    return true;
+  }
+  function poser(emp,d,s,e,bar){
+    var seg={s:s,e:e,bar:bar};
+    if(bar){ bar.empId=emp.id; bar.emp=emp.name; bar._seg=seg; }
+    busy[emp.id][d]=busy[emp.id][d]||[]; busy[emp.id][d].push(seg);
+    minSem[emp.id]+=(e-s); jt[emp.id][d]=true; return seg;
+  }
+  function retirer(emp,d,bar){
+    var seg=bar._seg; var a=busy[emp.id][d]||[]; var i=a.indexOf(seg); if(i>=0)a.splice(i,1);
+    minSem[emp.id]-=(seg.e-seg.s); if(!(busy[emp.id][d]||[]).length) delete jt[emp.id][d];
+    bar.empId=null; bar.emp=null; bar._seg=null;
+  }
+  function meilleur(d,s,e,poste,exclId){
+    var best=null,bs=-1;
+    for(var i=0;i<eq.length;i++){ var emp=eq[i]; if(exclId&&emp.id===exclId) continue;
+      if(!eligible(emp,d,s,e,poste)) continue;
+      // Score : priorité à qui manque le plus de contrat + se colle à sa journée,
+      // MAIS on PÉNALISE ceux qui ont déjà beaucoup de jours travaillés, pour
+      // étaler les présences sur les 7 jours (sinon un jour entier se vide).
+      var sc=reste(emp)/(contratMin(emp)||1)
+            +(((busy[emp.id]||{})[d]||[]).length>0?0.3:0)
+            +(ch(emp)>=35?0.05:0)
+            -(nbJoursTrav(emp.id)*0.04);
+      if(sc>bs){bs=sc;best=emp;}
+    }
+    return best;
+  }
+  // pose un trait, en raccourcissant si besoin pour trouver quelqu'un
+  function placerSurTrait(d,t){
+    for(var dur=t.e-t.s; dur>=traitMin-0.001; dur-=15){
+      var s=t.s,e=t.s+dur; var c=meilleur(d,s,e,t.l);
+      if(c){ poser(c,d,s,e,t); t.s=s; t.e=e; return true; }
+    }
+    return false;
+  }
+
+  // ── Récupère les bars PRODUCTIFS existants (générés par la grille CA) ────────
+  // On NE TOUCHE JAMAIS aux traits : on lit ceux de ROWS_BY_DAY, on vide juste
+  // leur affectation, et on (re)place les gens dessus.
+  var traitsJour=[]; // [d] = [bars productifs]
+  for(var d=0; d<7; d++){
+    traitsJour[d]=[];
+    var rows=ROWS_BY_DAY[d]||[];
+    rows.forEach(function(row){
+      row.bars.forEach(function(b){
+        if(estTraitEncadrement(b.l)) return;
+        var cat=(typeof hrCategorieTrait==='function')?hrCategorieTrait(b.l):'prod';
+        if(cat==='np'){
+          // IMPRODUCTIF (fermetures, ouvertures…) : trait fixe, on place aussi dessus
+          b.empId=null; b.emp=null; b._seg=null; traitsJour[d].push(b);
+        } else {
+          b.empId=null; b.emp=null; b._seg=null; traitsJour[d].push(b);
+        }
+      });
+    });
+  }
+  var besoinTot=0; traitsJour.forEach(function(ts){ts.forEach(function(t){besoinTot+=(t.e-t.s);});});
+
+  // ── RÉPARATION par déplacement (gain net strict) ────────────────────────────
+  function reparer(){
+    var gains=0;
+    for(var d=0; d<7; d++){
+      var vides=traitsJour[d].filter(function(t){return !t.empId;});
+      vides.forEach(function(vide){
+        if(vide.empId) return;
+        for(var ei=0; ei<eq.length; ei++){
+          var e=eq[ei];
+          if(ch(e)<=0||!hrSaitFaire(e,vide.l)) continue;
+          if(weekendActif && ch(e)<=seuilPetit && [4,5,6].indexOf(d)<0) continue;
+          if(!dispoOkJ(e,d,vide.s,vide.e)) continue;
+          var conflits=(busy[e.id][d]||[]).filter(function(seg){return vide.s<seg.e&&vide.e>seg.s;});
+          if(conflits.length!==1) continue;
+          var barBloq=conflits[0].bar; if(!barBloq) continue;
+          var sQ=barBloq.s,eQ=barBloq.e,pQ=barBloq.l;
+          retirer(e,d,barBloq);
+          var rempl=meilleur(d,sQ,eQ,pQ,e.id);
+          if(rempl && eligible(e,d,vide.s,vide.e,vide.l)){
+            poser(rempl,d,sQ,eQ,barBloq); poser(e,d,vide.s,vide.e,vide); gains++; return;
+          } else {
+            poser(e,d,sQ,eQ,barBloq); // annuler
+          }
+        }
+      });
+    }
+    return gains;
+  }
+
+  // ── BOUCLE AUTOMATIQUE : place → contrôle → répare → recontrôle ──────────────
+  // STRATÉGIE : on ne remplit PAS jour par jour (ça vide un jour entier). On trie
+  // TOUS les traits de la semaine par DIFFICULTÉ (le moins de candidats d'abord) et
+  // on place en parallèle sur les 7 jours → aucun jour n'est sacrifié.
+  // Nb de candidats POTENTIELS d'un trait (compétent+dispo, en ignorant l'occupation).
+  function nbCandidats(d,t){
+    var n=0;
+    for(var i=0;i<eq.length;i++){ var e=eq[i];
+      if(ch(e)<=0||!hrSaitFaire(e,t.l)) continue;
+      if(weekendActif && ch(e)<=seuilPetit && [4,5,6].indexOf(d)<0) continue;
+      if(!dispoOkJ(e,d,t.s,t.e)) continue;
+      n++;
+    }
+    return n;
+  }
+  // Liste plate de tous les traits de la semaine, avec leur jour.
+  var tousTraits=[];
+  for(var dd0=0; dd0<7; dd0++){ traitsJour[dd0].forEach(function(t){ tousTraits.push({d:dd0,t:t}); }); }
+  function passePlacement(){
+    // recalcule la difficulté (elle évolue au fil des placements) et trie
+    tousTraits.forEach(function(x){ x.nc=nbCandidats(x.d,x.t); });
+    tousTraits.sort(function(a,b){ return (a.nc-b.nc) || ((b.t.e-b.t.s)-(a.t.e-a.t.s)); });
+    tousTraits.forEach(function(x){ if(!x.t.empId) placerSurTrait(x.d,x.t); });
+  }
+  function mesure(){
+    var place=0,vides=0,n=0;
+    traitsJour.forEach(function(ts){ts.forEach(function(t){n++; if(t.empId)place+=(t.e-t.s); else vides++;});});
+    var sc=0; eq.forEach(function(e){ if(minSem[e.id]<contratMin(e)-30) sc++; });
+    return {place:place,vides:vides,n:n,sc:sc};
+  }
+  passePlacement();
+  var prev=null;
+  for(var passe=1; passe<=40; passe++){
+    var g=reparer();
+    passePlacement();
+    var m=mesure();
+    if(prev && m.vides===prev.vides && g===0) break;
+    prev=m;
+  }
+
+  // ── Écriture dans HR_AFFECT (store canonique) + sauvegarde + redraw ──────────
+  // On NE rappelle PAS hrGenFromWeek (qui reconstruirait les traits). Les bars de
+  // ROWS_BY_DAY portent déjà empId/emp ; on rend directement.
+  for(var dj=0; dj<7; dj++){
+    var isoJ=(DAY_DATES&&DAY_DATES[dj])?DAY_DATES[dj]:null; if(!isoJ) continue;
+    var affJ=[];
+    (ROWS_BY_DAY[dj]||[]).forEach(function(row){
+      row.bars.forEach(function(b){ if(b.empId){ affJ.push({l:b.l,s:b.s,e:b.e,emp:b.emp,empId:b.empId}); } });
+    });
+    HR_AFFECT[isoJ]=affJ;
+  }
+  try{ hrSauverAffect(); }catch(e){ console.warn(e); }
+  try{ if(typeof renderTimeline==='function') renderTimeline(); }catch(e){}
+  try{ if(typeof renderAll==='function') renderAll(); }catch(e){}
+  try{ if(typeof hrRenderPlanningHebdo==='function') hrRenderPlanningHebdo(); }catch(e){}
+  try{ if(typeof hrEnregistrerPlacement==='function') hrEnregistrerPlacement(lundi); }catch(e){}
+
+  var m2=mesure();
+  var pct=besoinTot?Math.round(100*m2.place/besoinTot):0;
+  var st=document.getElementById('hrx-assign-status');
+  if(st) st.innerHTML='🧠 Placement intelligent · besoin couvert '+pct+'% ('+(m2.place/60).toFixed(0)+'h/'+(besoinTot/60).toFixed(0)+'h) · '+m2.vides+' créneaux restants · '+m2.sc+'/'+eq.length+' sous contrat';
+  toast&&toast('Placement intelligent : '+pct+'% du besoin couvert','success');
+}
+window.hrPlacerIntelligentSemaine=hrPlacerIntelligentSemaine;
+
 
 // ── PLACEMENT EN 3 ÉTAPES (contrôlable) ──────────────────────────────────────
 // Chaque étape AJOUTE aux précédentes (les traits déjà pris sont conservés).
