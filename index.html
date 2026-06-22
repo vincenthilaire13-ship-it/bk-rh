@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-22 13:00 · v236';
+  var EMBEDDED_VERSION = '2026-06-22 13:08 · v237';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -2123,7 +2123,17 @@ function startRealtime(){
         var data=JSON.parse(msg.data);
         if(data.event==='phx_reply' && data.payload && data.payload.status==='ok'){ _rtOk=true; }
         if(data.event==='postgres_changes' || (data.payload && data.payload.data)){
-          // un changement est arrivé → on rafraîchit, mais en regroupant les changements rapprochés
+          // Un changement est arrivé.
+          // Sur la page Horaires : synchro INSTANTANÉE et ciblée des traits posés
+          // (sans le délai de 800 ms et sans recharger toute l'app), pour voir
+          // immédiatement le travail fait sur un autre appareil.
+          try{
+            var _ep=document.getElementById('page-horaires');
+            if(_ep && _ep.classList.contains('active') && typeof hrFastSyncAffect==='function'){
+              hrFastSyncAffect();
+            }
+          }catch(e){}
+          // Pour le reste de l'app : rafraîchissement doux groupé (debounce).
           if(_rtDebounce)clearTimeout(_rtDebounce);
           _rtDebounce=setTimeout(doSoftRefresh, 800);
         }
@@ -11619,6 +11629,66 @@ function hrChargerAffect(resto){
   }catch(e){}
 }
 window.hrChargerAffect=hrChargerAffect;
+
+// ══ SYNCHRO RAPIDE DES PLACEMENTS (quasi temps réel) ══════════════════════════
+// Va chercher DIRECTEMENT dans Supabase les traits posés du resto courant et
+// redessine la timeline tout de suite, sans recharger toute l'application.
+// Utilisé par le temps réel (WebSocket) et par un filet de sécurité périodique
+// pendant qu'on est sur la page Horaires. Ne fait rien si des modifications
+// locales ne sont pas encore enregistrées (_grilleDirty), pour ne pas écraser
+// un travail en cours sur cet appareil.
+var _hrFastSyncBusy=false;
+function hrFastSyncAffect(){
+  try{
+    if(typeof _grilleDirty!=='undefined' && _grilleDirty) return;   // édition locale non sauvée → on ne touche pas
+    if(_hrFastSyncBusy) return;
+    if(typeof SB==='undefined' || !SB) return;
+    var resto=_hrAffectResto();
+    var cle='hr_affect_'+resto;
+    _hrFastSyncBusy=true;
+    SB.from('app_config').select('valeur').eq('cle',cle).maybeSingle().then(function(r){
+      _hrFastSyncBusy=false;
+      var data=r&&r.data;
+      var val=(data&&data.valeur&&typeof data.valeur==='object')?data.valeur:{};
+      // Ne redessiner que si le contenu a réellement changé (évite de casser un
+      // glissement en cours et d'osciller inutilement).
+      var ancien=JSON.stringify(HR_AFFECT_BY_RESTO[resto]||{});
+      var nouveau=JSON.stringify(val);
+      if(ancien===nouveau) return;
+      // Re-vérifier juste avant d'appliquer : si l'utilisateur a commencé une
+      // édition locale entre-temps, on laisse tomber.
+      if(typeof _grilleDirty!=='undefined' && _grilleDirty) return;
+      HR_AFFECT_BY_RESTO[resto]=val;
+      if(_hrAffectResto()===resto){ HR_AFFECT=val; }
+      try{ localStorage.setItem(cle, JSON.stringify(val)); }catch(e){}
+      try{ if(typeof renderTimeline==='function') renderTimeline(); }catch(e){}
+      try{ if(typeof renderDays==='function') renderDays(); }catch(e){}
+      try{
+        var planOuvert=document.getElementById('hrx-sec-planning') &&
+                       document.getElementById('hrx-sec-planning').classList.contains('hr-on');
+        if(planOuvert && typeof renderMetrics==='function') renderMetrics();
+      }catch(e){}
+    }).catch(function(){ _hrFastSyncBusy=false; });
+  }catch(e){ _hrFastSyncBusy=false; }
+}
+window.hrFastSyncAffect=hrFastSyncAffect;
+
+// Filet de sécurité : tant qu'on est sur la page Horaires, re-vérifie les
+// placements toutes les 3 s même si le WebSocket a loupé un évènement (ou si le
+// Realtime n'est pas activé sur la table côté Supabase). C'est ce qui évite
+// d'avoir à relancer l'app plusieurs fois pour « voir » le travail de l'autre.
+var _hrAffectPoll=null;
+function hrDemarrerSyncHoraires(){
+  if(_hrAffectPoll) return;
+  _hrAffectPoll=setInterval(function(){
+    try{
+      var ep=document.getElementById('page-horaires');
+      if(ep && ep.classList.contains('active')){ hrFastSyncAffect(); }
+    }catch(e){}
+  }, 3000);
+}
+window.hrDemarrerSyncHoraires=hrDemarrerSyncHoraires;
+try{ hrDemarrerSyncHoraires(); }catch(e){}
 
 // ══ ABSENCES (congés, maladie) ════════════════════════════════════════════════
 // HR_ABSENCES = { empId: [ {from:'AAAA-MM-JJ', to:'AAAA-MM-JJ', motif:'congés'} ] }
