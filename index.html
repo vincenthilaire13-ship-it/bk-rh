@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-23 18:03 · v292';
+  var EMBEDDED_VERSION = '2026-06-23 18:20 · v295';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -648,13 +648,17 @@ body.tv-mode #eye-viewas{display:none!important;}
       <button class="hr-btn" id="hrx-placer-intel-btn" onclick="hrPlacerIntelligentSemaine()" title="Place les salariés sur les traits VIDES de la grille CA. NON DESTRUCTIF : conserve ce qui est déjà placé (placements précédents enregistrés ou modifications manuelles) et complète seulement le reste. Pour tout remettre à zéro, utilise « 🧹 Vider la semaine » d'abord." style="background:#2a1a3a;border-color:#a855f7;color:#d8b4fe;font-weight:700;">🧠 Placement intelligent</button>
       <button class="hr-btn" id="hrx-enregistrer-btn" onclick="hrEnregistrerSemaineManuel()" title="Enregistre le planning travaillé de la semaine affichée (placements + modifications de créneaux) dans la base. Au retour sur l'application, la semaine est rechargée telle quelle, sans repartir de zéro." style="background:#16321f;border-color:#3ecf8e;color:#3ecf8e;font-weight:700;">💾 Enregistrer</button>
       <span id="hrx-enregistre-info" style="font-size:11px;color:#3ecf8e;align-self:center;margin-left:2px"></span>
-      <button class="hr-btn" id="hrx-mois-btn" onclick="hrAnalyseRecrutementMois()" title="Analyse le MOIS entier (toutes ses semaines) en simulation, sans toucher au planning : combien de créneaux restent, quels profils recruter, quels salariés sont bloquants par leurs dispos." style="background:#1a2a3a;border-color:#3b82f6;color:#93c5fd;font-weight:700;">📅 Analyse recrutement du mois</button>
+      <button class="hr-btn" id="hrx-transfert-gestion" onclick="hrOuvrirTransfert()" title="Voir si la semaine affichée est transférée aux employés, la transférer, ou annuler le transfert pour corriger." style="background:#16321f;border-color:#3ecf8e;color:#3ecf8e;font-weight:700;">📤 Transférer les emplois du temps</button>
       <span id="hrx-contrat-touches" style="display:inline-flex;gap:8px;flex-wrap:wrap;align-items:flex-end"></span>
-      <button class="hr-btn" id="hrx-vider-btn" onclick="hrViderSemaine()" title="Retire TOUS les salariés des traits de la semaine affichée : les traits redeviennent vides pour repartir à zéro." style="background:#3a1a1a;border-color:#cc5555;color:#ff9090;">🧹 Vider la semaine</button>
-      <button class="hr-btn" id="hrx-transfert-gestion" onclick="hrOuvrirTransfert()" title="Voir si la semaine affichée est transférée aux employés, la transférer, ou annuler le transfert pour corriger." style="background:#16321f;border-color:#3ecf8e;color:#3ecf8e;font-weight:700;">📤 Transfert aux employés</button>
       <!-- Boutons "Analyser" et "Contrôle dispos/comp." retirés à la demande (outils de diagnostic, aucun impact sur le placement). Les fonctions hrAnalyseOuvrir / hrControleDispos restent disponibles si besoin. -->
       <span id="hrx-assign-status" style="font-size:11px;color:#60a5fa;align-self:center;margin-left:4px"></span>
       <span id="hrx-valid-status" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--mu);align-self:center;margin-left:4px"></span>
+      <!-- Touches ancrées tout à droite : Analyse recrutement du mois + Vider la semaine -->
+      <span style="flex:1 1 auto"></span>
+      <span style="display:inline-flex;gap:10px;margin-left:auto;align-items:flex-end">
+        <button class="hr-btn" id="hrx-mois-btn" onclick="hrAnalyseRecrutementMois()" title="Analyse le MOIS entier (toutes ses semaines) en simulation, sans toucher au planning : combien de créneaux restent, quels profils recruter, quels salariés sont bloquants par leurs dispos." style="background:#1a2a3a;border-color:#3b82f6;color:#93c5fd;font-weight:700;">📅 Analyse recrutement du mois</button>
+        <button class="hr-btn" id="hrx-vider-btn" onclick="hrViderSemaine()" title="Retire TOUS les salariés des traits de la semaine affichée : les traits redeviennent vides pour repartir à zéro." style="background:#3a1a1a;border-color:#cc5555;color:#ff9090;">🧹 Vider la semaine</button>
+      </span>
     </div>
   </div>
   <div id="hrx-mois-analyse" style="margin:0 0 1rem 0;padding:0;"></div>
@@ -14040,6 +14044,7 @@ function hrPlacerIntelligentSemaine(repartirZero){
   var st=document.getElementById('hrx-assign-status');
   if(st) st.innerHTML='🧠 Placement intelligent · besoin couvert '+pct+'% ('+(m2.place/60).toFixed(0)+'h/'+(besoinTot/60).toFixed(0)+'h) · '+m2.vides+' créneaux restants · '+m2.sc+'/'+eq.length+' sous contrat';
   toast&&toast('Placement intelligent : '+pct+'% du besoin couvert','success');
+  try{ if(typeof hrMarquerPlacementFait==='function') hrMarquerPlacementFait(); }catch(e){}
   }catch(__err){
     console.error('Placement intelligent — erreur:', __err);
     var __ste=document.getElementById('hrx-assign-status');
@@ -15029,7 +15034,10 @@ window.hrPlacerSurCreneau=hrPlacerSurCreneau;
 // ── VIDER LA SEMAINE : retire tous les salariés des traits (traits redeviennent vides) ──
 function hrViderSemaine(){
   try{
-    // Vidage direct en un seul clic (confirmation retirée à la demande).
+    // Confirmation obligatoire : action destructive (retire tout le monde de la semaine).
+    var _lbl='';
+    try{ var _l=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?DAY_DATES[0]:''); if(_l) _lbl=' du '+_l.slice(8,10)+'/'+_l.slice(5,7)+'/'+_l.slice(0,4); }catch(_e){}
+    if(!confirm('Vider la semaine'+_lbl+' ?\n\nTous les salariés seront retirés des traits : les créneaux redeviennent vides. Cette action ne peut pas être annulée.')) return;
     // 1) Vider les noms dans ROWS_BY_DAY (les 7 jours affichés)
     for(var d=0; d<7; d++){
       (ROWS_BY_DAY[d]||[]).forEach(function(r){ r.bars.forEach(function(b){ b.emp=null; b.empId=null; }); });
@@ -18926,8 +18934,66 @@ function hrAfficherDernierEnreg(){
     var ts=HR_ENREG_HORODATE[resto+'|'+lundi];
     info.textContent = ts ? ('✅ Enregistré le '+ts) : '';
   }catch(e){ info.textContent=''; }
+  try{ if(typeof hrMajEtatBoutonsFlux==='function') hrMajEtatBoutonsFlux(); }catch(e){}
 }
 window.hrAfficherDernierEnreg = hrAfficherDernierEnreg;
+
+// ── FLUX D'ÉTAPES (grisage des boutons) ───────────────────────────────────────
+// Enchaînement imposé : Actualiser → Placement intelligent → Enregistrer → Transférer.
+//   • Enregistrer  : grisé tant que le placement intelligent n'a pas été lancé au
+//                    moins une fois sur cette semaine (ou si déjà enregistrée).
+//   • Transférer   : grisé tant que la semaine n'a pas été enregistrée au moins une
+//                    fois (ou déjà transférée).
+// Les drapeaux sont mémorisés par resto|lundi (persistés en localStorage) pour que
+// la réouverture d'une semaine déjà traitée rende les boutons actifs d'emblée.
+var HR_PLACE_FAIT = {};
+try{ var _pf=localStorage.getItem('hr_place_fait'); if(_pf){ HR_PLACE_FAIT=JSON.parse(_pf)||{}; } }catch(e){ HR_PLACE_FAIT={}; }
+function _hrFluxCle(){
+  try{
+    var lundi=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?hrLundiDe(DAY_DATES[0]):null);
+    if(!lundi) return null;
+    return _hrAffectResto()+'|'+lundi;
+  }catch(e){ return null; }
+}
+function hrMarquerPlacementFait(){
+  var cle=_hrFluxCle(); if(!cle) return;
+  HR_PLACE_FAIT[cle]=true;
+  try{ localStorage.setItem('hr_place_fait', JSON.stringify(HR_PLACE_FAIT)); }catch(e){}
+  hrMajEtatBoutonsFlux();
+}
+window.hrMarquerPlacementFait=hrMarquerPlacementFait;
+// Applique l'état grisé/actif à un bouton
+function _hrSetBtnDispo(id, actif, raisonGrise){
+  var b=document.getElementById(id); if(!b) return;
+  b.disabled = !actif;
+  b.style.opacity = actif ? '' : '.4';
+  b.style.cursor = actif ? 'pointer' : 'not-allowed';
+  b.style.pointerEvents = actif ? '' : 'none';
+  if(!actif && raisonGrise){ b.setAttribute('data-flux-tip', raisonGrise); }
+}
+function hrMajEtatBoutonsFlux(){
+  try{
+    var cle=_hrFluxCle();
+    var enregistre = false, place = false, transfere = false;
+    if(cle){
+      // déjà enregistrée si un horodatage existe
+      enregistre = !!(typeof HR_ENREG_HORODATE!=='undefined' && HR_ENREG_HORODATE[cle]);
+      // placement fait si le drapeau est posé OU si déjà enregistrée (forcément placée)
+      place = !!HR_PLACE_FAIT[cle] || enregistre;
+      // transférée : si une fonction d'état existe, on la consulte ; sinon basé sur enregistré
+      try{
+        var lundi=cle.split('|')[1];
+        if(typeof hrSemaineTransferee==='function') transfere = !!hrSemaineTransferee(lundi);
+        else if(typeof hrSemaineVerrouillee==='function') transfere = !!hrSemaineVerrouillee(lundi);
+      }catch(e){}
+    }
+    // Enregistrer : actif si placement fait (ou déjà enregistré)
+    _hrSetBtnDispo('hrx-enregistrer-btn', place, 'Fais d’abord « Placement intelligent ».');
+    // Transférer : actif si déjà enregistré au moins une fois (ou déjà transféré)
+    _hrSetBtnDispo('hrx-transfert-gestion', (enregistre || transfere), 'Enregistre d’abord le planning.');
+  }catch(e){ console.warn('maj flux boutons', e); }
+}
+window.hrMajEtatBoutonsFlux=hrMajEtatBoutonsFlux;
 
 // 💾 ENREGISTRER (manuel) : fige le planning travaillé de la semaine affichée
 // (placements automatiques + modifications manuelles de créneaux) dans HR_AFFECT,
@@ -18963,6 +19029,7 @@ function hrEnregistrerSemaineManuel(){
     try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:'hr_enreg_horodate', valeur:HR_ENREG_HORODATE},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
     // 4) Affichage
     hrAfficherDernierEnreg();
+    try{ if(typeof hrMajEtatBoutonsFlux==='function') hrMajEtatBoutonsFlux(); }catch(e){}
     toast&&toast('Planning enregistré · '+stamp,'success');
     var info=document.getElementById('hrx-enregistre-info'); if(info){ info.style.color='#3ecf8e'; }
   }catch(__e){
