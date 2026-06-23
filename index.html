@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-23 11:52 · v283';
+  var EMBEDDED_VERSION = '2026-06-23 12:18 · v285';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -5164,6 +5164,17 @@ function empfEdit(){
   }
   h+='<div style="margin-bottom:9px;"><label class="flabel">Nom complet</label><input type="text" class="fi" id="ef__name" value="'+e.name.replace(/"/g,'&quot;')+'"></div>';
   h+='<div style="margin-bottom:9px;"><label class="flabel">Rôle</label><select class="fi" id="ef__role"><option value="equipier">Équipier</option><option value="leader">Leader</option><option value="manager">Manager</option><option value="directeur">Directeur</option></select></div>';
+  var _efRqthOui=String(inf.rqth||'').toLowerCase()==='oui';
+  h+='<div style="margin-bottom:9px;padding:10px 12px;border-radius:9px;background:'+(_efRqthOui?'#10304d':'#1a1a1a')+';border:1px solid '+(_efRqthOui?'#2f7fc4':'#3a3a3a')+';">'
+    +'<label style="display:flex;align-items:center;gap:9px;cursor:pointer;text-transform:none;font-size:.9rem;color:'+(_efRqthOui?'#9fd3ff':'#ddd')+';">'
+    +'<input type="checkbox" id="ef__rqth" '+(_efRqthOui?'checked':'')+' style="width:17px;height:17px;cursor:pointer;accent-color:#2f7fc4;">'
+    +'<span>\u267f Ce salarié est reconnu travailleur handicapé (RQTH)</span></label></div>';
+  // ── RQTH (travailleur handicapé) — case à cocher ──
+  var _efRqthOui=String(inf.rqth||'').toLowerCase()==='oui';
+  h+='<div style="margin-bottom:9px;padding:9px 11px;border-radius:8px;background:'+(_efRqthOui?'#10304d':'#1a1a1a')+';border:1px solid '+(_efRqthOui?'#2f7fc4':'#3a3a3a')+';">'
+    +'<label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.9rem;font-weight:600;color:'+(_efRqthOui?'#9fd3ff':'#ddd')+';text-transform:none;letter-spacing:0;">'
+    +'<input type="checkbox" id="ef__rqth" '+(_efRqthOui?'checked':'')+' style="width:17px;height:17px;cursor:pointer;accent-color:#2f7fc4;">'
+    +'<span>\u267f Travailleur handicapé (RQTH)</span></label></div>';
   EMPF_SECTIONS.forEach(function(sec){
     if(sec.title==='Emploi & contrat'){
       h+='<div style="font-size:.74rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin:14px 0 6px;font-weight:700;">'+sec.icon+' '+sec.title+'</div>';
@@ -5195,6 +5206,8 @@ async function empfSave(){
   });
   var nm=document.getElementById('ef__name');if(nm&&nm.value.trim())patch.name=nm.value.trim();
   var rl=document.getElementById('ef__role');if(rl)patch.role=rl.value;
+  var rqEl=document.getElementById('ef__rqth'); if(rqEl) inf.rqth=rqEl.checked?'oui':'non';
+  var rqEl=document.getElementById('ef__rqth');if(rqEl)inf.rqth=rqEl.checked?'oui':'non';
   // dates de visite médicale reportées sur les colonnes dédiées
   if(inf.vm_derniere!==undefined)patch.visite_date=inf.vm_derniere||'';
   if(inf.vm_expiration!==undefined)patch.visite_prochaine=inf.vm_expiration||'';
@@ -7313,7 +7326,9 @@ async function candContratSigne(){
     var deja=DB.employees.find(function(e){return e.fromCandId===c.id;});
     if(!deja){
       var eid='u'+Date.now();
-      await sb.insert('bks_employees',{id:eid,name:nom,role:'equipier',resto_id:c.restoId,archived:false,email:c.email||'',phone:c.phone||'',from_cand_id:c.id});
+      var _infosEmb={};
+      if(String(c.rqth||'').toLowerCase()==='oui') _infosEmb.rqth='oui';
+      await sb.insert('bks_employees',{id:eid,name:nom,role:'equipier',resto_id:c.restoId,archived:false,email:c.email||'',phone:c.phone||'',from_cand_id:c.id,infos:_infosEmb});
     }
   }catch(e){console.error('Création employé échec',e);}
   _candUpdate({statut:'essai',contrat_signe:true},'Contrat signé — salarié ajouté à l\'équipe 🚀',function(){loadAll();});
@@ -12413,9 +12428,7 @@ function hrEERenderFixes(){
     var _ri=(window.hrRoleInfo?window.hrRoleInfo(e):{label:'',ico:''});
     var _rbadge='<span style="font-size:.68rem;font-weight:700;color:#ffd98a;background:#3a2e12;border:1px solid #b8860b;border-radius:10px;padding:1px 7px;white-space:nowrap;margin-left:5px;">'+_ri.ico+' '+_ri.label+'</span>';
     var _cbadge='<div style="margin-top:3px;"><span style="font-size:.68rem;font-weight:700;color:#7fffc4;background:#163a2a;border:1px solid #2ec27e;border-radius:10px;padding:1px 7px;white-space:nowrap;">\ud83d\udcc4 '+(_ctxt||'contrat ?')+'</span>'+_rbadge+hrRqthBadge(e)+'</div>';
-    var _rq=((e.infos&&e.infos.rqth)||e.rqth||'');
-    var _rqOui=(String(_rq).toLowerCase()==='oui');
-    var _rqCapsule='<span onclick="hrEEToggleRqth(\''+e.id+'\')" title="Cliquer pour indiquer si ce salarié est RQTH" style="cursor:pointer;font-size:.66rem;font-weight:800;border-radius:10px;padding:2px 8px;white-space:nowrap;margin-left:8px;'+(_rqOui?'color:#9fd3ff;background:#10304d;border:1px solid #2f7fc4;':'color:#666;background:#1d1d1d;border:1px solid #3a3a3a;')+'">♿ RQTH'+(_rqOui?' ✓':'')+'</span>';
+    var _rqCapsule='';
     var r='<tr style="border-bottom:1px solid #2a2a2a;"><td style="padding:6px 8px;font-weight:600;color:#eee;white-space:nowrap;position:sticky;left:0;background:#161616;vertical-align:top;"><span style="display:inline-flex;align-items:center;">'+e.name+_rqCapsule+'</span>'+_cbadge
       +'<div style="margin-top:5px;"><span id="ee-fix-st-'+e.id+'" style="font-size:.72rem;color:#3ecf8e;"></span></div></td>';
     JOURS.forEach(function(j){
@@ -12423,13 +12436,24 @@ function hrEERenderFixes(){
       r+='<td style="padding:5px 6px;text-align:center;vertical-align:top;">'
         +'<div onclick="hrEEFixToggle(\''+e.id+'\',\''+jk+'\')" style="cursor:pointer;width:26px;height:26px;margin:0 auto 4px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;'+(on?'background:#8e44ad;color:#fff;':'background:#2a2a2a;color:#555;border:1px solid #444;')+'" title="'+(on?'Fixé ce jour':'Repos')+'">'+(on?'📌':'')+'</div>';
       if(on){
-        var from=x.from||'09:00', to=x.to||'17:00', poste=x.poste||'', prod=(x.prod!==false);
-        r+='<div style="display:flex;flex-direction:column;gap:3px;align-items:center;">'
-          +'<input type="time" value="'+from+'" onchange="hrEEFixSet(\''+e.id+'\',\''+jk+'\',\'from\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#e8d6ff;border-radius:5px;padding:2px 4px;font-size:.72rem;width:90px;">'
-          +'<input type="time" value="'+to+'" onchange="hrEEFixSet(\''+e.id+'\',\''+jk+'\',\'to\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#e8d6ff;border-radius:5px;padding:2px 4px;font-size:.72rem;width:90px;">'
-          +'<select onchange="hrEEFixSet(\''+e.id+'\',\''+jk+'\',\'poste\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#cfe;border-radius:5px;padding:2px 4px;font-size:.7rem;width:96px;">'+optionsPostes(poste)+'</select>'
-          +'<div onclick="hrEEFixToggleProd(\''+e.id+'\',\''+jk+'\')" style="cursor:pointer;font-size:.68rem;font-weight:700;border-radius:9px;padding:2px 7px;'+(prod?'background:#3a1d4d;color:#d9a8ff;border:1px solid #8e44ad;':'background:#3a2e12;color:#ffc97a;border:1px solid #b8860b;')+'" title="Cliquer pour basculer">'+(prod?'Productif':'Improductif')+'</div>'
-          +'</div>';
+        var _xn=_hrEEFixNorm(x);
+        var crs=_xn.creneaux||[];
+        if(!crs.length){ crs=[{from:'09:00',to:'17:00',poste:'',prod:true}]; }
+        r+='<div style="display:flex;flex-direction:column;gap:6px;align-items:center;">';
+        crs.forEach(function(cr, ci){
+          var from=cr.from||'09:00', to=cr.to||'17:00', poste=cr.poste||'', prod=(cr.prod!==false);
+          r+='<div style="display:flex;flex-direction:column;gap:3px;align-items:center;padding:4px;border:1px solid #2f2640;border-radius:7px;background:#181122;position:relative;">'
+            +(crs.length>1?'<div onclick="hrEEFixRemoveCreneau(\''+e.id+'\',\''+jk+'\','+ci+')" style="position:absolute;top:-7px;right:-7px;cursor:pointer;width:16px;height:16px;border-radius:50%;background:#b8860b;color:#000;font-weight:800;font-size:.62rem;display:flex;align-items:center;justify-content:center;" title="Retirer ce créneau">✕</div>':'')
+            +'<input type="time" value="'+from+'" onchange="hrEEFixSet(\''+e.id+'\',\''+jk+'\','+ci+',\'from\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#e8d6ff;border-radius:5px;padding:2px 4px;font-size:.72rem;width:90px;">'
+            +'<input type="time" value="'+to+'" onchange="hrEEFixSet(\''+e.id+'\',\''+jk+'\','+ci+',\'to\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#e8d6ff;border-radius:5px;padding:2px 4px;font-size:.72rem;width:90px;">'
+            +'<select onchange="hrEEFixSet(\''+e.id+'\',\''+jk+'\','+ci+',\'poste\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#cfe;border-radius:5px;padding:2px 4px;font-size:.7rem;width:96px;">'+optionsPostes(poste)+'</select>'
+            +'<div onclick="hrEEFixToggleProd(\''+e.id+'\',\''+jk+'\','+ci+')" style="cursor:pointer;font-size:.68rem;font-weight:700;border-radius:9px;padding:2px 7px;'+(prod?'background:#3a1d4d;color:#d9a8ff;border:1px solid #8e44ad;':'background:#3a2e12;color:#ffc97a;border:1px solid #b8860b;')+'" title="Cliquer pour basculer">'+(prod?'Productif':'Improductif')+'</div>'
+            +'</div>';
+        });
+        if(crs.length<2){
+          r+='<div onclick="hrEEFixAddCreneau(\''+e.id+'\',\''+jk+'\')" style="cursor:pointer;font-size:.68rem;font-weight:700;color:#9fd3ff;border:1px dashed #2f7fc4;border-radius:7px;padding:2px 8px;" title="Ajouter un 2e créneau">+ créneau</div>';
+        }
+        r+='</div>';
       }
       r+='</td>';
     });
@@ -12471,29 +12495,70 @@ function hrEEToggleRqth(id){
   _hrEESaveInfos(id,'ee-fix-st-');
 }
 window.hrEEToggleRqth=hrEEToggleRqth;
+// Normalise un jour fixé vers le format { on, creneaux:[{from,to,poste,prod}] }.
+// Compatibilité ascendante : ancien format à plat {on,from,to,poste,prod} -> creneaux[0].
+function _hrEEFixNorm(x){
+  if(!x) return {on:false, creneaux:[]};
+  if(!Array.isArray(x.creneaux)){
+    var c0={from:x.from||'09:00', to:x.to||'17:00', poste:x.poste||'', prod:(x.prod!==false)};
+    x.creneaux=[c0];
+    delete x.from; delete x.to; delete x.poste; delete x.prod;
+  }
+  if(typeof x.on==='undefined') x.on=false;
+  return x;
+}
 function hrEEFixToggle(id, jk){
   var e=_hrEEFixBuf(id); if(!e) return;
-  if(!e.infos.fixes[jk]) e.infos.fixes[jk]={from:'09:00',to:'17:00',poste:'',prod:true};
-  e.infos.fixes[jk].on=!e.infos.fixes[jk].on;
+  if(!e.infos.fixes[jk]) e.infos.fixes[jk]={on:false, creneaux:[]};
+  var x=_hrEEFixNorm(e.infos.fixes[jk]);
+  x.on=!x.on;
+  if(x.on && (!x.creneaux || !x.creneaux.length)) x.creneaux=[{from:'09:00',to:'17:00',poste:'',prod:true}];
   hrEERenderFixes();
   _hrEESaveInfos(id,'ee-fix-st-');
 }
 window.hrEEFixToggle=hrEEFixToggle;
-function hrEEFixSet(id, jk, champ, val){
+// Modifie un champ d'un créneau donné (idx) d'un jour
+function hrEEFixSet(id, jk, idx, champ, val){
   var e=_hrEEFixBuf(id); if(!e) return;
-  if(!e.infos.fixes[jk]) e.infos.fixes[jk]={on:true};
-  e.infos.fixes[jk][champ]=val;
+  if(!e.infos.fixes[jk]) e.infos.fixes[jk]={on:true, creneaux:[]};
+  var x=_hrEEFixNorm(e.infos.fixes[jk]);
+  if(!x.creneaux[idx]) x.creneaux[idx]={from:'09:00',to:'17:00',poste:'',prod:true};
+  x.creneaux[idx][champ]=val;
   _hrEESaveInfos(id,'ee-fix-st-');
 }
 window.hrEEFixSet=hrEEFixSet;
-function hrEEFixToggleProd(id, jk){
+// Bascule productif/improductif d'un créneau donné
+function hrEEFixToggleProd(id, jk, idx){
   var e=_hrEEFixBuf(id); if(!e) return;
-  if(!e.infos.fixes[jk]) e.infos.fixes[jk]={on:true};
-  e.infos.fixes[jk].prod=(e.infos.fixes[jk].prod===false)?true:false;
+  if(!e.infos.fixes[jk]) e.infos.fixes[jk]={on:true, creneaux:[]};
+  var x=_hrEEFixNorm(e.infos.fixes[jk]);
+  if(!x.creneaux[idx]) x.creneaux[idx]={from:'09:00',to:'17:00',poste:'',prod:true};
+  x.creneaux[idx].prod=(x.creneaux[idx].prod===false)?true:false;
   hrEERenderFixes();
   _hrEESaveInfos(id,'ee-fix-st-');
 }
 window.hrEEFixToggleProd=hrEEFixToggleProd;
+// Ajoute un 2e créneau (max 2)
+function hrEEFixAddCreneau(id, jk){
+  var e=_hrEEFixBuf(id); if(!e) return;
+  if(!e.infos.fixes[jk]) e.infos.fixes[jk]={on:true, creneaux:[]};
+  var x=_hrEEFixNorm(e.infos.fixes[jk]);
+  if(x.creneaux.length>=2) return;
+  x.creneaux.push({from:'18:00',to:'23:00',poste:'',prod:true});
+  hrEERenderFixes();
+  _hrEESaveInfos(id,'ee-fix-st-');
+}
+window.hrEEFixAddCreneau=hrEEFixAddCreneau;
+// Retire un créneau donné
+function hrEEFixRemoveCreneau(id, jk, idx){
+  var e=_hrEEFixBuf(id); if(!e) return;
+  var x=_hrEEFixNorm(e.infos.fixes[jk]||{});
+  x.creneaux.splice(idx,1);
+  if(!x.creneaux.length) x.on=false;
+  hrEERenderFixes();
+  _hrEESaveInfos(id,'ee-fix-st-');
+}
+window.hrEEFixRemoveCreneau=hrEEFixRemoveCreneau;
 
 function hrEERenderCompetences(){
   var box=document.getElementById('etat-equipe-list'); if(!box) return;
@@ -15942,6 +16007,25 @@ function renderTimeline(){
 
   // Liste des salariés triée alphabétiquement
   var empList=Object.keys(EMP_IDX).map(function(id){ return {id:id, nom:EMP_IDX[id].nom}; });
+
+  // ── FILTRE DISPONIBILITÉ DU JOUR AFFICHÉ ───────────────────────────────────
+  // Sur le jour affiché (curDay), on n'affiche un salarié QUE s'il est disponible
+  // ce jour-là (dispos[jour].on === true) OU s'il a déjà un créneau placé ce jour
+  // (sinon le créneau deviendrait invisible). Il réapparaît les jours où il est
+  // disponible. Ce filtre concerne la DISPONIBILITÉ, pas les repos.
+  function _dispoJourOk(empObj, dayIdx){
+    if(!empObj) return false;
+    var jk=(typeof JOURS_KEYS!=='undefined')?JOURS_KEYS[dayIdx]:null; if(!jk) return true;
+    var d=(empObj.infos&&empObj.infos.dispos&&empObj.infos.dispos[jk])||null;
+    return !!(d&&d.on);
+  }
+  empList=empList.filter(function(emp){
+    var rec=EMP_IDX[emp.id];
+    if(rec && rec.jours[curDay].bars.length>0) return true; // a un créneau placé ce jour → on garde
+    var empObj=(DB.employees||[]).find(function(x){return x.id===emp.id;});
+    return _dispoJourOk(empObj, curDay);
+  });
+
   empList.sort(function(a,b){ return (a.nom||'').localeCompare(b.nom||'','fr'); });
 
   const body=document.getElementById('hrx-rows');body.innerHTML='';
