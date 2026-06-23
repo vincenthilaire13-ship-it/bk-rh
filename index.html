@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-23 10:51 · v281';
+  var EMBEDDED_VERSION = '2026-06-23 11:40 · v282';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -262,7 +262,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 .pl-total{text-align:center;background:#161616;min-width:64px;font-size:.82rem;}
 
 /* MODULE HORAIRE */
-#sec-horaires{--bg:#3a3a44;--s1:#44444f;--s2:#4e4e59;--bd:#5e5e6a;--bd2:#6e6e7a;--tx:#f7f7f9;--mu:#c2c2cf;--ac:#e8e020;}#sec-horaires *{box-sizing:border-box;margin:0;padding:0;}#sec-horaires{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;}#sec-horaires .hr-hdr{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:1px solid var(--bd);background:var(--s1);position:sticky;top:0;z-index:100;}#sec-horaires .hr-hdr-title{font-size:26px;font-weight:800;letter-spacing:.3px;line-height:1.15;}#sec-horaires .hr-hdr-sub{font-size:13px;color:var(--mu);font-family:'DM Mono',monospace;margin-top:3px;}#sec-horaires .hr-nav{display:flex;gap:4px;}#sec-horaires .hr-nt{padding:6px 13px;border-radius:8px;font-size:13px;cursor:pointer;color:var(--mu);border:1px solid transparent;transition:all .15s;}#sec-horaires .hr-nt:hover{color:var(--tx);background:var(--s2);}#sec-horaires .hr-nt.hr-on{color:var(--ac);border-color:var(--bd2);background:var(--s2);}#sec-horaires .hr-hdr-r{display:flex;gap:8px;}#sec-horaires .hr-btn{padding:6px 13px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid var(--bd2);background:var(--s2);color:var(--tx);transition:all .15s;}#sec-horaires .hr-btn:hover{background:var(--bd);}#sec-horaires .hr-btn-ac{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}#sec-horaires .hr-btn-ac:hover{background:#f5e820;}#sec-horaires .hr-sec{display:none;padding:1.2rem 1.5rem;}#sec-horaires .hr-sec.hr-on{display:block;}#sec-horaires .hr-mrow{display:flex;gap:10px;margin-bottom:1.2rem;flex-wrap:wrap;}#sec-horaires .hr-mc{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:.7rem 1rem;flex:1;min-width:110px;}#sec-horaires .hr-mc-l{font-size:10px;color:var(--mu);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}#sec-horaires .hr-mc-v{font-size:22px;font-weight:500;}#sec-horaires .hr-mc-s{font-size:11px;color:var(--mu);margin-top:1px;}#sec-horaires .hr-plan-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:10px;}#sec-horaires .hr-days{display:flex;gap:5px;flex-wrap:wrap;}#sec-horaires .hr-db{padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid var(--bd);background:var(--s2);color:var(--mu);cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:135px;}#sec-horaires .hr-db:hover{color:var(--tx);border-color:var(--bd2);}#sec-horaires .hr-db.hr-on{color:var(--ac);border-color:var(--ac);background:rgba(232,224,32,.07);}#sec-horaires .hr-db-day{font-size:13px;font-weight:600;}#sec-horaires .hr-db-ca{font-size:10px;font-family:'DM Mono',monospace;opacity:.7;}#sec-horaires .hr-scx{overflow-x:auto;}#sec-horaires .hr-tl-wrap{background:var(--s1);border:1px solid var(--bd);border-radius:14px;overflow:hidden;}#sec-horaires .hr-tl-top{display:flex;border-bottom:1px solid var(--bd);position:sticky;top:53px;z-index:50;background:var(--s1);}#sec-horaires .hr-tl-lh{display:none;}#sec-horaires .hr-tl-hh{flex:1;display:flex;min-width:920px;}#sec-horaires .hr-tl-h{flex:1;text-align:center;font-size:10px;color:var(--mu);font-family:'DM Mono',monospace;padding:12px 0;border-right:1px solid var(--bd);}#sec-horaires .hr-tl-h:last-child{border-right:none;}#sec-horaires .hr-tl-row{display:flex;border-bottom:1px solid var(--bd);min-height:28px;}#sec-horaires .hr-tl-row:last-child{border-bottom:none;}#sec-horaires .hr-tl-row:hover{background:rgba(255,255,255,.015);}#sec-horaires .hr-tl-i{display:none;}#sec-horaires .hr-tl-b{flex:1;position:relative;display:flex;align-items:center;min-width:920px;}#sec-horaires .hr-tl-gl{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;pointer-events:none;}#sec-horaires .hr-tl-gl div{flex:1;border-right:1px solid rgba(255,255,255,.025);}#sec-horaires .hr-tl-gl div:last-child{border-right:none;}#sec-horaires .hr-bar{position:absolute;height:19px;border-radius:4px;display:flex;align-items:center;padding:0 5px;font-size:9px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;top:50%;transform:translateY(-50%);letter-spacing:.3px;transition:filter .12s;}#sec-horaires .hr-bar:hover{filter:brightness(1.2);z-index:20;}#sec-horaires .hr-leg{display:flex;flex-wrap:wrap;gap:8px;padding:.7rem 1.2rem;border-top:1px solid var(--bd);}#sec-horaires .hr-li{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--mu);}#sec-horaires .hr-ld{width:9px;height:9px;border-radius:2px;}#sec-horaires .hr-ca-ctrl{display:flex;gap:12px;margin-bottom:1.2rem;flex-wrap:wrap;align-items:flex-end;}#sec-horaires .hr-cc{display:flex;flex-direction:column;gap:4px;}#sec-horaires .hr-cc label{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);text-transform:uppercase;}#sec-horaires .hr-cc select{background:var(--s1);border:1px solid var(--bd2);border-radius:8px;padding:6px 11px;font-size:13px;color:var(--tx);font-family:'DM Sans',sans-serif;outline:none;}#sec-horaires .hr-ca-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;margin-bottom:1.2rem;}#sec-horaires .hr-ca-cell{background:var(--s1);border:1px solid var(--bd);border-radius:9px;padding:.5rem .8rem;}#sec-horaires .hr-ca-cell label{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);display:flex;justify-content:space-between;margin-bottom:4px;}#sec-horaires .hr-ca-cell label span{color:var(--ac);font-size:9px;}#sec-horaires .hr-ca-cell input{width:100%;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:4px 7px;font-size:12px;color:var(--tx);font-family:'DM Mono',monospace;outline:none;}#sec-horaires .hr-ca-cell input:focus{border-color:var(--ac);}#sec-horaires .hr-ca-bar{height:3px;border-radius:2px;margin-top:4px;background:var(--ac);min-width:1px;}#sec-horaires .hr-ca-cell.hr-hi{border-color:rgba(232,224,32,.4);}#sec-horaires .hr-gt-wrap{overflow-x:auto;border:1px solid var(--bd);border-radius:12px;}#sec-horaires .hr-gt{width:100%;border-collapse:collapse;font-size:11px;font-family:'DM Mono',monospace;}#sec-horaires .hr-gt th{background:var(--s2);color:var(--mu);padding:6px 9px;border-bottom:1px solid var(--bd);border-right:1px solid var(--bd);text-align:center;font-weight:500;white-space:nowrap;}#sec-horaires .hr-gt td{padding:4px 7px;border-bottom:1px solid var(--bd);border-right:1px solid var(--bd);text-align:center;color:var(--tx);}#sec-horaires .hr-gt tr:last-child td{border-bottom:none;}#sec-horaires .hr-gt td:first-child, #sec-horaires .hr-gt th:first-child{text-align:left;padding-left:12px;}#sec-horaires .hr-cv{display:inline-block;padding:2px 6px;border-radius:4px;font-weight:600;}#sec-horaires .hr-np-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;}#sec-horaires .hr-np-card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:.9rem 1.1rem;display:flex;flex-direction:column;gap:6px;}#sec-horaires .hr-np-top{display:flex;align-items:center;justify-content:space-between;}#sec-horaires .hr-np-nm{font-size:14px;font-weight:500;}#sec-horaires .hr-np-bg{font-size:9px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px;background:rgba(120,144,156,.15);color:#78909c;border:1px solid rgba(120,144,156,.3);}#sec-horaires .hr-np-ds{font-size:12px;color:var(--mu);line-height:1.5;}#sec-horaires .hr-np-ft{display:flex;gap:6px;align-items:center;}#sec-horaires .hr-np-dt{width:8px;height:8px;border-radius:2px;flex-shrink:0;}#sec-horaires .hr-np-tm{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);}#sec-horaires .hr-stitle{font-size:16px;font-weight:500;margin-bottom:.4rem;}#sec-horaires .hr-ssub{font-size:12px;color:var(--mu);margin-bottom:1.2rem;}#sec-horaires .hr-db.hr-ok{border-color:#3ecf8e!important;background:rgba(62,207,142,.14)!important;color:#3ecf8e!important;transition:all .25s;}#sec-horaires .hr-db.hr-ok .hr-db-day{color:#3ecf8e!important;}#sec-horaires .hr-db.hr-ok::after{content:'✓';position:absolute;top:6px;right:8px;color:#3ecf8e;font-weight:700;font-size:12px;}#sec-horaires .hr-db.hr-warn{border-color:#f5a623!important;background:rgba(245,166,35,.12)!important;color:#f5a623!important;transition:all .25s;}#sec-horaires .hr-db.hr-warn .hr-db-day{color:#f5a623!important;}#sec-horaires .hr-db.hr-warn::after{content:'⚠';position:absolute;top:6px;right:8px;color:#f5a623;font-weight:700;font-size:12px;}#sec-horaires .hr-db{position:relative;}@keyframes hrSpin{to{transform:rotate(360deg)}}#sec-horaires .hr-btn.hr-spinning{opacity:.7;pointer-events:none;}#sec-horaires .hr-btn .hr-spin-ico{display:inline-block;}#sec-horaires .hr-btn.hr-spinning .hr-spin-ico{animation:hrSpin .7s linear infinite;}#sec-horaires #hrx-rows{padding-top:62px;}#sec-horaires #hrx-rows .hr-tl-row:first-child{min-height:34px;}#sec-horaires .hr-np-jour{padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--bd2);background:var(--s2);color:var(--mu);font-family:'DM Sans',sans-serif;transition:all .12s;}#sec-horaires .hr-np-jour:hover{color:var(--tx);border-color:var(--mu);}#sec-horaires .hr-np-jour.hr-j-on{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}#sec-horaires .hr-np-freq{padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--bd2);background:var(--s2);color:var(--mu);font-family:'DM Sans',sans-serif;transition:all .12s;}#sec-horaires .hr-np-freq:hover{color:var(--tx);border-color:var(--mu);}#sec-horaires .hr-np-freq.hr-f-on{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}
+#sec-horaires{--bg:#3a3a44;--s1:#44444f;--s2:#4e4e59;--bd:#5e5e6a;--bd2:#6e6e7a;--tx:#f7f7f9;--mu:#c2c2cf;--ac:#e8e020;}#sec-horaires *{box-sizing:border-box;margin:0;padding:0;}#sec-horaires{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;}#sec-horaires .hr-hdr{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:1px solid var(--bd);background:var(--s1);position:sticky;top:0;z-index:100;}#sec-horaires .hr-hdr-title{font-size:26px;font-weight:800;letter-spacing:.3px;line-height:1.15;}#sec-horaires .hr-hdr-sub{font-size:13px;color:var(--mu);font-family:'DM Mono',monospace;margin-top:3px;}#sec-horaires .hr-nav{display:flex;gap:4px;}#sec-horaires .hr-nt{padding:6px 13px;border-radius:8px;font-size:13px;cursor:pointer;color:var(--mu);border:1px solid transparent;transition:all .15s;}#sec-horaires .hr-nt:hover{color:var(--tx);background:var(--s2);}#sec-horaires .hr-nt.hr-on{color:var(--ac);border-color:var(--bd2);background:var(--s2);}#sec-horaires .hr-hdr-r{display:flex;gap:8px;}#sec-horaires .hr-btn{padding:6px 13px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid var(--bd2);background:var(--s2);color:var(--tx);transition:all .15s;}#sec-horaires .hr-btn:hover{background:var(--bd);}#sec-horaires .hr-btn-ac{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}#sec-horaires .hr-btn-ac:hover{background:#f5e820;}#sec-horaires .hr-sec{display:none;padding:1.2rem 1.5rem;}#sec-horaires .hr-sec.hr-on{display:block;}#sec-horaires .hr-mrow{display:flex;gap:10px;margin-bottom:1.2rem;flex-wrap:wrap;}#sec-horaires .hr-mc{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:.7rem 1rem;flex:1;min-width:110px;}#sec-horaires .hr-mc-l{font-size:10px;color:var(--mu);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}#sec-horaires .hr-mc-v{font-size:22px;font-weight:500;}#sec-horaires .hr-mc-s{font-size:11px;color:var(--mu);margin-top:1px;}#sec-horaires .hr-plan-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:10px;}#sec-horaires .hr-days{display:flex;gap:5px;flex-wrap:wrap;}#sec-horaires .hr-db{padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid var(--bd);background:var(--s2);color:var(--mu);cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:135px;}#sec-horaires .hr-db:hover{color:var(--tx);border-color:var(--bd2);}#sec-horaires .hr-db.hr-on{color:var(--ac);border-color:var(--ac);background:rgba(232,224,32,.07);}#sec-horaires .hr-db-day{font-size:13px;font-weight:600;}#sec-horaires .hr-db-ca{font-size:10px;font-family:'DM Mono',monospace;opacity:.7;}#sec-horaires .hr-scx{overflow:visible;}#sec-horaires .hr-tl-wrap{background:var(--s1);border:1px solid var(--bd);border-radius:14px;overflow:auto;max-height:calc(100vh - 230px);}#sec-horaires .hr-tl-top{display:flex;border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:50;background:var(--s1);}#sec-horaires .hr-tl-lh{display:block;width:185px;min-width:185px;max-width:185px;border-right:1px solid var(--bd);background:var(--s1);position:sticky;left:0;z-index:55;}#sec-horaires .hr-tl-hh{flex:1;display:flex;min-width:920px;}#sec-horaires .hr-tl-h{flex:1;text-align:center;font-size:10px;color:var(--mu);font-family:'DM Mono',monospace;padding:12px 0;border-right:1px solid var(--bd);}#sec-horaires .hr-tl-h:last-child{border-right:none;}#sec-horaires .hr-tl-row{display:flex;border-bottom:1px solid var(--bd);min-height:28px;}#sec-horaires .hr-tl-row:last-child{border-bottom:none;}#sec-horaires .hr-tl-row:hover{background:rgba(255,255,255,.015);}#sec-horaires .hr-tl-i{display:flex;flex-direction:column;justify-content:center;gap:2px;width:185px;min-width:185px;max-width:185px;padding:5px 10px;border-right:1px solid var(--bd);background:var(--s1);position:sticky;left:0;z-index:30;}#sec-horaires .hr-tl-i.hr-emp-clic{cursor:pointer;}#sec-horaires .hr-tl-i.hr-emp-clic:hover{background:var(--s2);}#sec-horaires .hr-tl-nm{font-size:12px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px;}#sec-horaires .hr-tl-chev{font-size:9px;color:var(--mu);transition:transform .15s;}#sec-horaires .hr-tl-chev.hr-open{transform:rotate(90deg);}#sec-horaires .hr-tl-hbadge{display:inline-flex;align-items:center;gap:5px;font-size:9.5px;font-family:'DM Mono',monospace;}#sec-horaires .hr-tl-hpill{padding:1px 5px;border-radius:4px;font-weight:700;}#sec-horaires .hr-tl-week{background:rgba(0,0,0,.12);border-bottom:1px solid var(--bd);}#sec-horaires .hr-tl-wkrow{display:flex;border-bottom:1px solid rgba(255,255,255,.05);min-height:24px;}#sec-horaires .hr-tl-wkrow:last-child{border-bottom:none;}#sec-horaires .hr-tl-wkd{width:185px;min-width:185px;max-width:185px;padding:3px 10px 3px 24px;font-size:11px;color:var(--mu);display:flex;align-items:center;gap:6px;border-right:1px solid var(--bd);position:sticky;left:0;background:var(--s1);z-index:20;}#sec-horaires .hr-tl-wkb{flex:1;position:relative;display:flex;align-items:center;min-width:920px;}#sec-horaires .hr-tl-b{flex:1;position:relative;display:flex;align-items:center;min-width:920px;}#sec-horaires .hr-tl-gl{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;pointer-events:none;}#sec-horaires .hr-tl-gl div{flex:1;border-right:1px solid rgba(255,255,255,.025);}#sec-horaires .hr-tl-gl div:last-child{border-right:none;}#sec-horaires .hr-bar{position:absolute;height:19px;border-radius:4px;display:flex;align-items:center;padding:0 5px;font-size:9px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;top:50%;transform:translateY(-50%);letter-spacing:.3px;transition:filter .12s;}#sec-horaires .hr-bar:hover{filter:brightness(1.2);z-index:20;}#sec-horaires .hr-leg{display:flex;flex-wrap:wrap;gap:8px;padding:.7rem 1.2rem;border-top:1px solid var(--bd);}#sec-horaires .hr-li{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--mu);}#sec-horaires .hr-ld{width:9px;height:9px;border-radius:2px;}#sec-horaires .hr-ca-ctrl{display:flex;gap:12px;margin-bottom:1.2rem;flex-wrap:wrap;align-items:flex-end;}#sec-horaires .hr-cc{display:flex;flex-direction:column;gap:4px;}#sec-horaires .hr-cc label{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);text-transform:uppercase;}#sec-horaires .hr-cc select{background:var(--s1);border:1px solid var(--bd2);border-radius:8px;padding:6px 11px;font-size:13px;color:var(--tx);font-family:'DM Sans',sans-serif;outline:none;}#sec-horaires .hr-ca-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;margin-bottom:1.2rem;}#sec-horaires .hr-ca-cell{background:var(--s1);border:1px solid var(--bd);border-radius:9px;padding:.5rem .8rem;}#sec-horaires .hr-ca-cell label{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);display:flex;justify-content:space-between;margin-bottom:4px;}#sec-horaires .hr-ca-cell label span{color:var(--ac);font-size:9px;}#sec-horaires .hr-ca-cell input{width:100%;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:4px 7px;font-size:12px;color:var(--tx);font-family:'DM Mono',monospace;outline:none;}#sec-horaires .hr-ca-cell input:focus{border-color:var(--ac);}#sec-horaires .hr-ca-bar{height:3px;border-radius:2px;margin-top:4px;background:var(--ac);min-width:1px;}#sec-horaires .hr-ca-cell.hr-hi{border-color:rgba(232,224,32,.4);}#sec-horaires .hr-gt-wrap{overflow-x:auto;border:1px solid var(--bd);border-radius:12px;}#sec-horaires .hr-gt{width:100%;border-collapse:collapse;font-size:11px;font-family:'DM Mono',monospace;}#sec-horaires .hr-gt th{background:var(--s2);color:var(--mu);padding:6px 9px;border-bottom:1px solid var(--bd);border-right:1px solid var(--bd);text-align:center;font-weight:500;white-space:nowrap;}#sec-horaires .hr-gt td{padding:4px 7px;border-bottom:1px solid var(--bd);border-right:1px solid var(--bd);text-align:center;color:var(--tx);}#sec-horaires .hr-gt tr:last-child td{border-bottom:none;}#sec-horaires .hr-gt td:first-child, #sec-horaires .hr-gt th:first-child{text-align:left;padding-left:12px;}#sec-horaires .hr-cv{display:inline-block;padding:2px 6px;border-radius:4px;font-weight:600;}#sec-horaires .hr-np-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;}#sec-horaires .hr-np-card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:.9rem 1.1rem;display:flex;flex-direction:column;gap:6px;}#sec-horaires .hr-np-top{display:flex;align-items:center;justify-content:space-between;}#sec-horaires .hr-np-nm{font-size:14px;font-weight:500;}#sec-horaires .hr-np-bg{font-size:9px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px;background:rgba(120,144,156,.15);color:#78909c;border:1px solid rgba(120,144,156,.3);}#sec-horaires .hr-np-ds{font-size:12px;color:var(--mu);line-height:1.5;}#sec-horaires .hr-np-ft{display:flex;gap:6px;align-items:center;}#sec-horaires .hr-np-dt{width:8px;height:8px;border-radius:2px;flex-shrink:0;}#sec-horaires .hr-np-tm{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);}#sec-horaires .hr-stitle{font-size:16px;font-weight:500;margin-bottom:.4rem;}#sec-horaires .hr-ssub{font-size:12px;color:var(--mu);margin-bottom:1.2rem;}#sec-horaires .hr-db.hr-ok{border-color:#3ecf8e!important;background:rgba(62,207,142,.14)!important;color:#3ecf8e!important;transition:all .25s;}#sec-horaires .hr-db.hr-ok .hr-db-day{color:#3ecf8e!important;}#sec-horaires .hr-db.hr-ok::after{content:'✓';position:absolute;top:6px;right:8px;color:#3ecf8e;font-weight:700;font-size:12px;}#sec-horaires .hr-db.hr-warn{border-color:#f5a623!important;background:rgba(245,166,35,.12)!important;color:#f5a623!important;transition:all .25s;}#sec-horaires .hr-db.hr-warn .hr-db-day{color:#f5a623!important;}#sec-horaires .hr-db.hr-warn::after{content:'⚠';position:absolute;top:6px;right:8px;color:#f5a623;font-weight:700;font-size:12px;}#sec-horaires .hr-db{position:relative;}@keyframes hrSpin{to{transform:rotate(360deg)}}#sec-horaires .hr-btn.hr-spinning{opacity:.7;pointer-events:none;}#sec-horaires .hr-btn .hr-spin-ico{display:inline-block;}#sec-horaires .hr-btn.hr-spinning .hr-spin-ico{animation:hrSpin .7s linear infinite;}#sec-horaires #hrx-rows .hr-tl-row:first-child{min-height:34px;}#sec-horaires .hr-np-jour{padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--bd2);background:var(--s2);color:var(--mu);font-family:'DM Sans',sans-serif;transition:all .12s;}#sec-horaires .hr-np-jour:hover{color:var(--tx);border-color:var(--mu);}#sec-horaires .hr-np-jour.hr-j-on{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}#sec-horaires .hr-np-freq{padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--bd2);background:var(--s2);color:var(--mu);font-family:'DM Sans',sans-serif;transition:all .12s;}#sec-horaires .hr-np-freq:hover{color:var(--tx);border-color:var(--mu);}#sec-horaires .hr-np-freq.hr-f-on{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}
 #sec-horaires #hrx-taux-input::-webkit-outer-spin-button,#sec-horaires #hrx-taux-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
 #sec-horaires .hr-np-card.hr-np-editing{border-color:var(--ac);box-shadow:0 0 0 1px rgba(232,224,32,.25);}
 #sec-horaires .hr-qh{position:absolute;top:6px;left:8px;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;cursor:help;line-height:1}
@@ -1405,7 +1405,6 @@ body.tv-mode #eye-viewas{display:none!important;}
     <div style="margin-bottom:11px;"><label class="flabel">E-mail</label><input type="email" id="edit-email" class="fi" placeholder="email@exemple.com"></div>
     <div style="margin-bottom:11px;"><label class="flabel">Téléphone</label><input type="tel" id="edit-phone" class="fi" placeholder="06 12 34 56 78"></div>
     <div style="margin-bottom:11px;"><label class="flabel">Transport / véhicule</label><input type="text" id="edit-transport" class="fi" placeholder="Ex : Voiture, scooter, transports en commun…"></div>
-    <div style="margin-bottom:11px;"><label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.9rem;color:#ddd;"><input type="checkbox" id="edit-rqth" style="width:18px;height:18px;accent-color:#2f7fc4;cursor:pointer;"><span>♿ Ce salarié est <b style="color:#9fd3ff;">RQTH</b> (travailleur handicapé)</span></label></div>
     <div style="margin-bottom:11px;"><label class="flabel">Restaurant</label><select id="edit-resto" class="fi"><option value="bk500">BK 500</option><option value="bk509">BK 509</option><option value="bk526">BK 526</option></select></div>
     <div id="edit-pin-row" style="display:none;margin-bottom:11px;">
       <label class="flabel">🔑 Code PIN (4 chiffres)</label>
@@ -3921,7 +3920,6 @@ function openEdit(id){
   document.getElementById('edit-email').value=e.email||'';
   var ph=document.getElementById('edit-phone');if(ph)ph.value=e.phone||'';
   var tr=document.getElementById('edit-transport');if(tr)tr.value=e.transport||'';
-  var rq=document.getElementById('edit-rqth');if(rq)rq.checked=(String((e.infos&&e.infos.rqth)||e.rqth||'').toLowerCase()==='oui');
   var rs=document.getElementById('edit-resto');if(rs)rs.value=e.restoId||'bk500';
   var row=document.getElementById('edit-exit-date-row');
   if(e.archived){row.style.display='block';document.getElementById('edit-exit-def').value=e.exitDateDefinitive||e.exitDate||'';}
@@ -3949,8 +3947,6 @@ async function saveEdit(){
   var data={name:document.getElementById('edit-name').value.trim()||e.name,role:document.getElementById('edit-role').value,email:document.getElementById('edit-email').value.trim()};
   var ph=document.getElementById('edit-phone');if(ph)data.phone=ph.value.trim();
   var tr=document.getElementById('edit-transport');if(tr)data.transport=tr.value.trim();
-  var rq=document.getElementById('edit-rqth');
-  if(rq){ if(!e.infos) e.infos={}; e.infos.rqth=rq.checked?'oui':'non'; data.infos=e.infos; }
   var rs=document.getElementById('edit-resto');if(rs)data.resto_id=rs.value;
   try {
     await sb.patch('bks_employees','id=eq.'+id,data);
@@ -12389,34 +12385,25 @@ function hrEERenderFixes(){
   var box=document.getElementById('etat-equipe-list'); if(!box) return;
   var eq=_etatEquipiers();
   var h=_hrEEHeader('Salariés fixés','horaires fixes + poste — le placement intelligent les respecte');
-  h+='<div style="font-size:.82rem;color:#aaa;margin-bottom:10px;">Choisis un salarié dans le menu de sa catégorie pour le fixer. Une fois fixé, il reste affiché. Pour chaque jour : <b>Repos</b>, ou clique 📌 puis ajoute 1 ou 2 créneaux (horaire + poste). <b style="color:#c9a0ff;">Productif</b> = pendant l\u2019ouverture client. <b style="color:#ffc97a;">Improductif</b> = hors ouverture.</div>';
+  h+='<div style="font-size:.82rem;color:#aaa;margin-bottom:10px;">Pour chaque salarié et chaque jour : laisse en <b>Repos</b>, ou active le jour et indique l\u2019horaire + le poste. <b style="color:#c9a0ff;">Productif</b> = pendant l\u2019ouverture client (le moteur retire ce besoin et place les autres autour). <b style="color:#ffc97a;">Improductif</b> = hors ouverture (ex. mise en place, ménage).</div>';
   if(!eq.length){ box.innerHTML=h+'<div style="padding:14px;color:#777;">Aucun équipier sur ce restaurant.</div>'; return; }
+  // Liste des postes proposés
   var postes=[]; try{ postes=(window.POSTES&&window.POSTES.length)?window.POSTES.slice():[]; }catch(e){}
   if(!postes.length) postes=['CUISINE','FRITES','SNACK','BROILER','BOARD VOLANT','BORNE','DRIVE','SAT SALLE','EMPORTER','UBER'];
+  // on ajoute quelques postes d'encadrement / improductifs courants
   var postesEncadr=['MANAGER','LEADER','OUVERTURE','FERMETURE','MISE EN PLACE','MÉNAGE','LIVRAISON','MARCHANDISES'];
   function optionsPostes(sel){
-    var s='<option value="">— poste —</option><optgroup label="Productifs">';
+    var s='<option value="">— poste —</option>';
+    s+='<optgroup label="Productifs">';
     postes.forEach(function(p){ s+='<option value="'+p+'"'+(sel===p?' selected':'')+'>'+p+'</option>'; });
     s+='</optgroup><optgroup label="Encadrement / autres">';
     postesEncadr.forEach(function(p){ s+='<option value="'+p+'"'+(sel===p?' selected':'')+'>'+p+'</option>'; });
     s+='</optgroup>';
     return s;
   }
-  // Un salarié est "fixé" s'il a au moins un jour avec on:true
-  function estFixe(e){
-    var fx=(e.infos&&e.infos.fixes)||{};
-    return JOURS.some(function(j){ return fx[j[0]]&&fx[j[0]].on; });
-  }
-  // Récupère les créneaux d'un jour (gère l'ancien format mono-créneau)
-  function creneauxDe(x){
-    if(!x) return [];
-    if(Array.isArray(x.creneaux)) return x.creneaux;
-    if(x.from||x.to||x.poste) return [{from:x.from||'09:00',to:x.to||'17:00',poste:x.poste||'',prod:(x.prod!==false)}];
-    return [];
-  }
   h+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.8rem;"><thead><tr style="border-bottom:2px solid #444;">';
   h+='<th style="text-align:left;padding:6px 8px;color:#fff;position:sticky;left:0;background:#1a1a1a;">Salarié</th>';
-  JOURS.forEach(function(j){ h+='<th style="padding:6px 8px;color:#fff;min-width:170px;">'+j[1]+'</th>'; });
+  JOURS.forEach(function(j){ h+='<th style="padding:6px 8px;color:#fff;min-width:150px;">'+j[1]+'</th>'; });
   h+='</tr></thead><tbody>';
   var NB_COLS_FIX=1+JOURS.length;
   function ligne(e){
@@ -12426,35 +12413,30 @@ function hrEERenderFixes(){
     var _ri=(window.hrRoleInfo?window.hrRoleInfo(e):{label:'',ico:''});
     var _rbadge='<span style="font-size:.68rem;font-weight:700;color:#ffd98a;background:#3a2e12;border:1px solid #b8860b;border-radius:10px;padding:1px 7px;white-space:nowrap;margin-left:5px;">'+_ri.ico+' '+_ri.label+'</span>';
     var _cbadge='<div style="margin-top:3px;"><span style="font-size:.68rem;font-weight:700;color:#7fffc4;background:#163a2a;border:1px solid #2ec27e;border-radius:10px;padding:1px 7px;white-space:nowrap;">\ud83d\udcc4 '+(_ctxt||'contrat ?')+'</span>'+_rbadge+hrRqthBadge(e)+'</div>';
-    var r='<tr style="border-bottom:1px solid #2a2a2a;"><td style="padding:6px 8px;font-weight:600;color:#eee;white-space:nowrap;position:sticky;left:0;background:#161616;vertical-align:top;"><span style="display:inline-flex;align-items:center;">'+e.name+'</span>'+_cbadge
-      +'<div style="margin-top:5px;display:flex;align-items:center;gap:8px;"><button onclick="hrEEFixRetirer(\''+e.id+'\')" title="Retirer ce salarié des fixés" style="background:#3a1a1a;border:1px solid #a04040;color:#ff9b9b;border-radius:6px;padding:2px 8px;cursor:pointer;font-size:.7rem;">✕ Retirer</button><span id="ee-fix-st-'+e.id+'" style="font-size:.72rem;color:#3ecf8e;"></span></div></td>';
+    var _rq=((e.infos&&e.infos.rqth)||e.rqth||'');
+    var _rqOui=(String(_rq).toLowerCase()==='oui');
+    var _rqCapsule='<span onclick="hrEEToggleRqth(\''+e.id+'\')" title="Cliquer pour indiquer si ce salarié est RQTH" style="cursor:pointer;font-size:.66rem;font-weight:800;border-radius:10px;padding:2px 8px;white-space:nowrap;margin-left:8px;'+(_rqOui?'color:#9fd3ff;background:#10304d;border:1px solid #2f7fc4;':'color:#666;background:#1d1d1d;border:1px solid #3a3a3a;')+'">♿ RQTH'+(_rqOui?' ✓':'')+'</span>';
+    var r='<tr style="border-bottom:1px solid #2a2a2a;"><td style="padding:6px 8px;font-weight:600;color:#eee;white-space:nowrap;position:sticky;left:0;background:#161616;vertical-align:top;"><span style="display:inline-flex;align-items:center;">'+e.name+_rqCapsule+'</span>'+_cbadge
+      +'<div style="margin-top:5px;"><span id="ee-fix-st-'+e.id+'" style="font-size:.72rem;color:#3ecf8e;"></span></div></td>';
     JOURS.forEach(function(j){
       var jk=j[0]; var x=fx[jk]||{}; var on=!!x.on;
-      var crns=creneauxDe(x);
       r+='<td style="padding:5px 6px;text-align:center;vertical-align:top;">'
         +'<div onclick="hrEEFixToggle(\''+e.id+'\',\''+jk+'\')" style="cursor:pointer;width:26px;height:26px;margin:0 auto 4px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;'+(on?'background:#8e44ad;color:#fff;':'background:#2a2a2a;color:#555;border:1px solid #444;')+'" title="'+(on?'Fixé ce jour':'Repos')+'">'+(on?'📌':'')+'</div>';
       if(on){
-        if(!crns.length) crns=[{from:'09:00',to:'17:00',poste:'',prod:true}];
-        crns.forEach(function(c,ci){
-          var prod=(c.prod!==false);
-          r+='<div style="display:flex;flex-direction:column;gap:2px;align-items:center;border:1px solid #333;border-radius:7px;padding:4px;margin-bottom:4px;background:#141019;">'
-            +'<input type="time" value="'+(c.from||'09:00')+'" onchange="hrEEFixSetCrn(\''+e.id+'\',\''+jk+'\','+ci+',\'from\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#e8d6ff;border-radius:5px;padding:2px 4px;font-size:.72rem;width:92px;">'
-            +'<input type="time" value="'+(c.to||'17:00')+'" onchange="hrEEFixSetCrn(\''+e.id+'\',\''+jk+'\','+ci+',\'to\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#e8d6ff;border-radius:5px;padding:2px 4px;font-size:.72rem;width:92px;">'
-            +'<select onchange="hrEEFixSetCrn(\''+e.id+'\',\''+jk+'\','+ci+',\'poste\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#cfe;border-radius:5px;padding:2px 4px;font-size:.7rem;width:98px;">'+optionsPostes(c.poste||'')+'</select>'
-            +'<div style="display:flex;gap:3px;align-items:center;">'
-            +'<div onclick="hrEEFixToggleProdCrn(\''+e.id+'\',\''+jk+'\','+ci+')" style="cursor:pointer;font-size:.66rem;font-weight:700;border-radius:9px;padding:2px 7px;'+(prod?'background:#3a1d4d;color:#d9a8ff;border:1px solid #8e44ad;':'background:#3a2e12;color:#ffc97a;border:1px solid #b8860b;')+'" title="Cliquer pour basculer">'+(prod?'Productif':'Improductif')+'</div>'
-            +(crns.length>1?'<div onclick="hrEEFixDelCrn(\''+e.id+'\',\''+jk+'\','+ci+')" title="Supprimer ce créneau" style="cursor:pointer;color:#ff9b9b;font-size:.8rem;padding:0 3px;">✕</div>':'')
-            +'</div></div>';
-        });
-        if(crns.length<2){
-          r+='<div onclick="hrEEFixAddCrn(\''+e.id+'\',\''+jk+'\')" style="cursor:pointer;font-size:.68rem;color:#9fd3ff;border:1px dashed #2f7fc4;border-radius:6px;padding:3px;margin-top:2px;">+ 2e créneau</div>';
-        }
+        var from=x.from||'09:00', to=x.to||'17:00', poste=x.poste||'', prod=(x.prod!==false);
+        r+='<div style="display:flex;flex-direction:column;gap:3px;align-items:center;">'
+          +'<input type="time" value="'+from+'" onchange="hrEEFixSet(\''+e.id+'\',\''+jk+'\',\'from\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#e8d6ff;border-radius:5px;padding:2px 4px;font-size:.72rem;width:90px;">'
+          +'<input type="time" value="'+to+'" onchange="hrEEFixSet(\''+e.id+'\',\''+jk+'\',\'to\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#e8d6ff;border-radius:5px;padding:2px 4px;font-size:.72rem;width:90px;">'
+          +'<select onchange="hrEEFixSet(\''+e.id+'\',\''+jk+'\',\'poste\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#cfe;border-radius:5px;padding:2px 4px;font-size:.7rem;width:96px;">'+optionsPostes(poste)+'</select>'
+          +'<div onclick="hrEEFixToggleProd(\''+e.id+'\',\''+jk+'\')" style="cursor:pointer;font-size:.68rem;font-weight:700;border-radius:9px;padding:2px 7px;'+(prod?'background:#3a1d4d;color:#d9a8ff;border:1px solid #8e44ad;':'background:#3a2e12;color:#ffc97a;border:1px solid #b8860b;')+'" title="Cliquer pour basculer">'+(prod?'Productif':'Improductif')+'</div>'
+          +'</div>';
       }
       r+='</td>';
     });
     r+='</tr>';
     return r;
   }
+  // Accordéon par catégories (mêmes règles que l'onglet Équipe)
   var CATS=[
     {key:'directeur',label:'Directeurs',ico:'👑'},
     {key:'manager',  label:'Managers',  ico:'⭐'},
@@ -12465,27 +12447,12 @@ function hrEERenderFixes(){
   CATS.forEach(function(cat){
     var membres=eq.filter(function(e){ return (window.hrRoleInfo?window.hrRoleInfo(e).key:'equipier')===cat.key; });
     if(!membres.length) return;
-    var fixes=membres.filter(estFixe);
-    var libres=membres.filter(function(e){ return !estFixe(e); });
     var open=!!hrEEFixOpenCats[cat.key];
-    // En-tête catégorie
     h+='<tr><td colspan="'+NB_COLS_FIX+'" onclick="hrEEFixToggleCat(\''+cat.key+'\')" style="cursor:pointer;background:#2a1d3a;border-top:2px solid #8e44ad;padding:8px 10px;position:sticky;left:0;">'
       +'<span style="display:inline-block;width:14px;color:#d9a8ff;font-weight:800;transform:rotate('+(open?'90':'0')+'deg);transition:transform .12s;">▸</span>'
       +'<span style="font-weight:800;color:#e8d6ff;font-size:.9rem;">'+cat.ico+' '+cat.label+'</span>'
-      +'<span style="color:#b08fd0;font-size:.78rem;margin-left:8px;">('+fixes.length+' fixé'+(fixes.length>1?'s':'')+')</span></td></tr>';
-    if(open){
-      // Menu déroulant pour ajouter un salarié de cette catégorie
-      var optLibres='<option value="">+ Fixer un salarié…</option>';
-      libres.sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
-      libres.forEach(function(e){ optLibres+='<option value="'+e.id+'">'+e.name+'</option>'; });
-      h+='<tr><td colspan="'+NB_COLS_FIX+'" style="padding:7px 10px;background:#161320;position:sticky;left:0;">'
-        +'<select onchange="if(this.value){hrEEFixAjouter(this.value);}" style="background:#1a1a1a;border:1px solid #2f7fc4;color:#cfe;border-radius:7px;padding:5px 10px;font-size:.8rem;min-width:230px;">'+optLibres+'</select>'
-        +(libres.length?'':'<span style="color:#666;font-size:.76rem;margin-left:8px;">tous fixés</span>')
-        +'</td></tr>';
-      // Lignes des salariés fixés uniquement
-      fixes.sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
-      fixes.forEach(function(e){ h+=ligne(e); });
-    }
+      +'<span style="color:#b08fd0;font-size:.78rem;margin-left:8px;">('+membres.length+')</span></td></tr>';
+    if(open){ membres.forEach(function(e){ h+=ligne(e); }); }
   });
   h+='</tbody></table></div>';
   box.innerHTML=h;
@@ -12494,81 +12461,7 @@ window.hrEERenderFixes=hrEERenderFixes;
 var hrEEFixOpenCats={directeur:true,manager:true,leader:true,apprenti:true,equipier:true};
 function hrEEFixToggleCat(key){ hrEEFixOpenCats[key]=!hrEEFixOpenCats[key]; hrEERenderFixes(); }
 window.hrEEFixToggleCat=hrEEFixToggleCat;
-// Convertit un jour vers le format créneaux[] (rétrocompat)
-function _hrFixNorm(e, jk){
-  if(!e.infos) e.infos={};
-  if(!e.infos.fixes) e.infos.fixes={};
-  var x=e.infos.fixes[jk]||{};
-  if(!Array.isArray(x.creneaux)){
-    var c=[];
-    if(x.from||x.to||x.poste) c=[{from:x.from||'09:00',to:x.to||'17:00',poste:x.poste||'',prod:(x.prod!==false)}];
-    x={on:!!x.on, creneaux:c};
-    e.infos.fixes[jk]=x;
-  }
-  return x;
-}
-// Ajouter un salarié aux fixés (active lundi par défaut pour qu'il apparaisse)
-function hrEEFixAjouter(id){
-  var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return;
-  var j=_hrFixNorm(e,'lun'); j.on=true;
-  if(!j.creneaux.length) j.creneaux=[{from:'09:00',to:'17:00',poste:'',prod:true}];
-  hrEERenderFixes();
-  _hrEESaveInfos(id,'ee-fix-st-');
-}
-window.hrEEFixAjouter=hrEEFixAjouter;
-// Retirer complètement un salarié des fixés
-function hrEEFixRetirer(id){
-  var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return;
-  if(!confirm('Retirer '+e.name+' des salariés fixés ? Ses horaires fixes seront effacés.')) return;
-  if(e.infos) e.infos.fixes={};
-  hrEERenderFixes();
-  _hrEESaveInfos(id,'ee-fix-st-');
-}
-window.hrEEFixRetirer=hrEEFixRetirer;
-function hrEEFixToggle(id, jk){
-  var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return;
-  var j=_hrFixNorm(e,jk);
-  j.on=!j.on;
-  if(j.on && !j.creneaux.length) j.creneaux=[{from:'09:00',to:'17:00',poste:'',prod:true}];
-  hrEERenderFixes();
-  _hrEESaveInfos(id,'ee-fix-st-');
-}
-window.hrEEFixToggle=hrEEFixToggle;
-function hrEEFixAddCrn(id, jk){
-  var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return;
-  var j=_hrFixNorm(e,jk);
-  if(j.creneaux.length<2) j.creneaux.push({from:'18:00',to:'22:00',poste:'',prod:true});
-  hrEERenderFixes();
-  _hrEESaveInfos(id,'ee-fix-st-');
-}
-window.hrEEFixAddCrn=hrEEFixAddCrn;
-function hrEEFixDelCrn(id, jk, ci){
-  var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return;
-  var j=_hrFixNorm(e,jk);
-  j.creneaux.splice(ci,1);
-  if(!j.creneaux.length) j.on=false;
-  hrEERenderFixes();
-  _hrEESaveInfos(id,'ee-fix-st-');
-}
-window.hrEEFixDelCrn=hrEEFixDelCrn;
-function hrEEFixSetCrn(id, jk, ci, champ, val){
-  var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return;
-  var j=_hrFixNorm(e,jk);
-  if(!j.creneaux[ci]) j.creneaux[ci]={from:'09:00',to:'17:00',poste:'',prod:true};
-  j.creneaux[ci][champ]=val;
-  _hrEESaveInfos(id,'ee-fix-st-');
-}
-window.hrEEFixSetCrn=hrEEFixSetCrn;
-function hrEEFixToggleProdCrn(id, jk, ci){
-  var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return;
-  var j=_hrFixNorm(e,jk);
-  if(!j.creneaux[ci]) return;
-  j.creneaux[ci].prod=(j.creneaux[ci].prod===false)?true:false;
-  hrEERenderFixes();
-  _hrEESaveInfos(id,'ee-fix-st-');
-}
-window.hrEEFixToggleProdCrn=hrEEFixToggleProdCrn;
-// Basculer le statut RQTH (conservé pour compat, plus utilisé dans la vue)
+// Basculer le statut RQTH d'un salarié (oui / non) — visible partout via le badge bleu.
 function hrEEToggleRqth(id){
   var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return;
   if(!e.infos) e.infos={};
@@ -12578,6 +12471,29 @@ function hrEEToggleRqth(id){
   _hrEESaveInfos(id,'ee-fix-st-');
 }
 window.hrEEToggleRqth=hrEEToggleRqth;
+function hrEEFixToggle(id, jk){
+  var e=_hrEEFixBuf(id); if(!e) return;
+  if(!e.infos.fixes[jk]) e.infos.fixes[jk]={from:'09:00',to:'17:00',poste:'',prod:true};
+  e.infos.fixes[jk].on=!e.infos.fixes[jk].on;
+  hrEERenderFixes();
+  _hrEESaveInfos(id,'ee-fix-st-');
+}
+window.hrEEFixToggle=hrEEFixToggle;
+function hrEEFixSet(id, jk, champ, val){
+  var e=_hrEEFixBuf(id); if(!e) return;
+  if(!e.infos.fixes[jk]) e.infos.fixes[jk]={on:true};
+  e.infos.fixes[jk][champ]=val;
+  _hrEESaveInfos(id,'ee-fix-st-');
+}
+window.hrEEFixSet=hrEEFixSet;
+function hrEEFixToggleProd(id, jk){
+  var e=_hrEEFixBuf(id); if(!e) return;
+  if(!e.infos.fixes[jk]) e.infos.fixes[jk]={on:true};
+  e.infos.fixes[jk].prod=(e.infos.fixes[jk].prod===false)?true:false;
+  hrEERenderFixes();
+  _hrEESaveInfos(id,'ee-fix-st-');
+}
+window.hrEEFixToggleProd=hrEEFixToggleProd;
 
 function hrEERenderCompetences(){
   var box=document.getElementById('etat-equipe-list'); if(!box) return;
@@ -15107,7 +15023,7 @@ function hrFicheSalarie(empId){
     var box=document.getElementById('fiche-sal-content');
     if(!box) return;
     var ch=(typeof hrContratHebdo==='function')?hrContratHebdo(e):(inf.contrat_hebdo||'');
-    if(titEl) titEl.innerHTML='👤 '+(e.name||'')+(ch?' <span style="font-size:12px;color:#888;font-weight:500;">— '+ch+'h/sem</span>':'')+(typeof hrRqthBadge==='function'?hrRqthBadge(e):'');
+    if(titEl) titEl.innerHTML='👤 '+(e.name||'')+(ch?' <span style="font-size:12px;color:#888;font-weight:500;">— '+ch+'h/sem</span>':'');
     var h='';
     // ── COMPÉTENCES ──
     var qualifs=Array.isArray(inf.qualifs)?inf.qualifs:[];
@@ -15967,90 +15883,134 @@ function renderTimeline(){
   // Tri des lignes par catégorie — ordre voulu en haut :
   // CUISINE → BOARD VOLANT → BROILER → FRITES → SNACK, puis le reste.
   // Note : 'BOARD VOLANT' doit être testé avant 'BOARD' (includes), d'où l'ordre des clés.
-  const ORDER={'CUISINE':1,'BOARD VOLANT':2,'BOARD':2,'BROILER':3,'FRITES':4,'SNACK':5,
-    'DRIVE':10,'TABLETTE DRIVE':11,'TABLETTE':11,'PREMIERE CABINE':12,'PREMIERE':12,
-    'BORNE':20,'EMPORTER':21,'UBER':22,'SAT SALLE':23,'SAT EMP':23,'COMPTOIR VOLANT':24,
-    'PLONGE':30,'PREP':31,'FILT':32,'MARCH':33,'RH HORAIRE':34,'OPEN BROILER':35,
-    'OPEN CAISSE':36,'OPEN SALLE':37,'OUVERTURE MANA':38,'CLOSE MANA':39,
-    'CLOSE CAISSE':40,'FERM SALLE':41,'FERM COULOIR':42};
-  function rowOrder(r){
-    const l=(r.bars[0]&&r.bars[0].l)||'';
-    const u=l.toUpperCase();
-    // On teste les clés les plus SPÉCIFIQUES d'abord (les plus longues), pour que
-    // 'OPEN BROILER' ne soit pas capté par 'BROILER', ni 'BOARD VOLANT' par 'BOARD'.
-    const k=Object.keys(ORDER).sort((a,b)=>b.length-a.length).find(k=>u.includes(k));
-    return k?ORDER[k]:50;
+  // ══════════════════════════════════════════════════════════════════════════
+  // VUE PAR SALARIÉ (style MyRHIS) : une ligne = un salarié.
+  // Colonne gauche = nom + badge heures (jour / contrat). Sur la ligne, les
+  // 1 ou 2 créneaux du salarié pour le jour affiché (curDay), couleurs conservées.
+  // Clic sur le nom → déplie la semaine (lun→dim) avec les créneaux de chaque jour.
+  // PERF : on parcourt ROWS_BY_DAY UNE SEULE FOIS pour construire tout l'index.
+  // ══════════════════════════════════════════════════════════════════════════
+  function _fmtHmin(min){ var h=Math.floor(min/60),m=Math.round(min%60); return m?(h+'h'+String(m).padStart(2,'0')):(h+'h'); }
+
+  // Index unique : empId -> { nom, jours:[7] (chaque jour = {bars:[...], min:N}), totSem }
+  var EMP_IDX={};
+  for(var _d=0; _d<7; _d++){
+    var rowsD=ROWS_BY_DAY[_d]||[];
+    for(var _ri=0; _ri<rowsD.length; _ri++){
+      var _bars=rowsD[_ri].bars;
+      for(var _bi=0; _bi<_bars.length; _bi++){
+        var b=_bars[_bi];
+        if(!b.empId) continue;
+        if(estTraitEncadrement && estTraitEncadrement(b.l)) continue;
+        if(!EMP_IDX[b.empId]){
+          EMP_IDX[b.empId]={nom:b.emp||b.empId, jours:[{bars:[],min:0},{bars:[],min:0},{bars:[],min:0},{bars:[],min:0},{bars:[],min:0},{bars:[],min:0},{bars:[],min:0}], totSem:0};
+        }
+        var _e=b.e||b.s+60;
+        EMP_IDX[b.empId].jours[_d].bars.push({s:b.s,e:_e,l:b.l,col:b.col,rowIdx:_ri,barIdx:_bi});
+        EMP_IDX[b.empId].jours[_d].min += (_e-b.s);
+        EMP_IDX[b.empId].totSem += (_e-b.s);
+      }
+    }
   }
-  const rows=[...ROWS_BY_DAY[curDay]].sort((a,b)=>rowOrder(a)-rowOrder(b));
+
+  // Liste des salariés triée alphabétiquement
+  var empList=Object.keys(EMP_IDX).map(function(id){ return {id:id, nom:EMP_IDX[id].nom}; });
+  empList.sort(function(a,b){ return (a.nom||'').localeCompare(b.nom||'','fr'); });
+
   const body=document.getElementById('hrx-rows');body.innerHTML='';
-  rows.forEach(row=>{
-    // index réel de cette ligne dans ROWS_BY_DAY[curDay] (pour retrouver la barre au clic)
-    const rowIdxReal = ROWS_BY_DAY[curDay].indexOf(row);
+
+  if(!empList.length){
+    var vide=document.createElement('div'); vide.className='hr-tl-row';
+    vide.innerHTML='<div class="hr-tl-i"><div class="hr-tl-nm" style="color:var(--mu)">Aucun salarié placé</div></div><div class="hr-tl-b"></div>';
+    body.appendChild(vide);
+  }
+
+  if(typeof window._hrEmpOpen==='undefined') window._hrEmpOpen={};
+
+  empList.forEach(function(emp){
+    var empId=emp.id;
+    var rec=EMP_IDX[empId];
+    var minJour=rec.jours[curDay].min;
+    var minSem=rec.totSem;
+    var empObj=(DB.employees||[]).find(function(x){return x.id===empId;});
+    var contrat=empObj?hrContratHebdo(empObj):null;
+    var contratMin=contrat!=null?contrat*60:null;
+    var pillBg='rgba(120,144,156,.2)', pillTx='#c2c2cf';
+    if(contratMin!=null && minSem>0){
+      if(Math.abs(minSem-contratMin)<=30){ pillBg='rgba(62,207,142,.22)'; pillTx='#3ecf8e'; }
+      else if(minSem<contratMin){ pillBg='rgba(245,166,35,.20)'; pillTx='#f5a623'; }
+      else { pillBg='rgba(231,76,60,.20)'; pillTx='#f87171'; }
+    }
+    var ouvert=!!window._hrEmpOpen[empId];
+
+    // ── Ligne principale du salarié ──
     const tr=document.createElement('div');tr.className='hr-tl-row';
-    const info=document.createElement('div');info.className='hr-tl-i';tr.appendChild(info);
+    const info=document.createElement('div');info.className='hr-tl-i hr-emp-clic';
+    info.innerHTML=
+      '<div class="hr-tl-nm"><span class="hr-tl-chev'+(ouvert?' hr-open':'')+'">▶</span>'+(emp.nom||empId)+'</div>'+
+      '<div class="hr-tl-hbadge"><span class="hr-tl-hpill" style="background:'+pillBg+';color:'+pillTx+'">'+_fmtHmin(minJour)+'</span>'+
+      '<span style="color:var(--mu)">sem '+_fmtHmin(minSem)+(contrat!=null?(' / '+contrat+'h'):'')+'</span></div>';
+    info.onclick=function(){ window._hrEmpOpen[empId]=!window._hrEmpOpen[empId]; renderTimeline(); };
+    tr.appendChild(info);
+
     const bd=document.createElement('div');bd.className='hr-tl-b';
     const gl=document.createElement('div');gl.className='hr-tl-gl';
     RULER_H.forEach(()=>{const l=document.createElement('div');gl.appendChild(l);});
     bd.appendChild(gl);
-    row.bars.forEach((b, barIdx)=>{
-      const s=b.s,e=b.e||s+60;
-      if(e<=DS||s>=DE)return;
-      const cs=Math.max(s,DS),ce=Math.min(e,DE);
-      const c=colFor(b.l);
-      const bar=document.createElement('div');bar.className='hr-bar';
-      // Base minimum = opacité pleine, extra = légèrement plus clair
-      const opacity=row.type==='extra'?'CC':'FF';
-      if(b.col){
-        // Trait issu du Planning encadrement : couleur vive du code + contour pour bien ressortir
-        bar.style.cssText=`left:${pct(cs)};width:${pctW(cs,ce)};background:${b.col};color:#fff;box-shadow:0 0 0 1.5px rgba(255,255,255,.55);font-weight:700;z-index:8;`;
-      } else {
-        bar.style.cssText=`left:${pct(cs)};width:${pctW(cs,ce)};background:${c.bg};color:${c.tx};`;
-      }
-      // Texte : poste + heures, et nom de l'équipier affecté si présent
-      var nomEmp = b.emp ? (' — '+b.emp) : '';
-      bar.textContent=`${b.l} ${fmt(s)}–${fmt(e)}${nomEmp}`;
-      if(b.emp){ bar.style.fontWeight='600'; }
-      // Les traits d'encadrement (managers/leaders, issus du Planning) ne sont pas affectables ici.
-      var estEncadr = (typeof estTraitEncadrement==='function') && estTraitEncadrement(b.l);
-      if(estEncadr){
-        bar.title=`${b.l}\n${fmt(s)} – ${fmt(e)}\n(encadrement — géré dans Planning)`;
-      } else {
-        bar.title=`${b.l}\n${fmt(s)} – ${fmt(e)}${b.emp?('\n👤 '+b.emp):'\n(non pourvu — clique pour affecter)'}\n${row.type==='extra'?'+ CA':'Base'}`;
-        // Repère visuel : un trait non pourvu est entouré en pointillés rouges
-        if(!b.empId && !b.col){ bar.style.boxShadow='0 0 0 1.5px rgba(231,76,60,.55)'; }
-        // Clic → ouvre l'affectation de ce trait
-        bar.style.cursor='pointer';
-        bar.setAttribute('data-row', rowIdxReal);
-        bar.setAttribute('data-bar', barIdx);
-        bar.onclick=function(ev){ ev.stopPropagation(); hrTraitAffecterOuvrir(rowIdxReal, barIdx); };
-      }
+
+    var bars=rec.jours[curDay].bars;
+    bars.forEach(function(b){
+      var s=b.s, e=b.e; if(e<=DS||s>=DE) return;
+      var cs=Math.max(s,DS),ce=Math.min(e,DE);
+      var c=colFor(b.l);
+      var bar=document.createElement('div');bar.className='hr-bar';
+      if(b.col){ bar.style.cssText='left:'+pct(cs)+';width:'+pctW(cs,ce)+';background:'+b.col+';color:#fff;box-shadow:0 0 0 1.5px rgba(255,255,255,.55);font-weight:700;z-index:8;'; }
+      else { bar.style.cssText='left:'+pct(cs)+';width:'+pctW(cs,ce)+';background:'+c.bg+';color:'+c.tx+';'; }
+      bar.textContent=b.l+' '+fmt(s)+'–'+fmt(e);
+      bar.title=b.l+'\n'+fmt(s)+' – '+fmt(e)+'\n👤 '+(emp.nom||empId);
+      bar.style.cursor='pointer';
+      (function(ri,bi){ bar.onclick=function(ev){ ev.stopPropagation(); hrTraitAffecterOuvrir(ri,bi); }; })(b.rowIdx,b.barIdx);
       bd.appendChild(bar);
-      // ── INDISPONIBILITÉ du salarié placé : trait gris léger sur ses heures non dispo ──
-      if(b.empId){
-        var _emp=(DB.employees||[]).find(function(x){return x.id===b.empId;});
-        var _jk=(typeof JOURS_KEYS!=='undefined')?JOURS_KEYS[curDay]:null;
-        var _disp=(_emp&&_emp.infos&&_emp.infos.dispos&&_jk)?_emp.infos.dispos[_jk]:null;
-        var _indispos=[];
-        if(!_disp||!_disp.on){ _indispos.push([DS,DE]); }
-        else {
-          var _from=_dispoMin(_disp.from), _to=_dispoMin(_disp.to);
-          if(_from==null) _from=DS; if(_to==null) _to=DE;
-          if(_from>DS) _indispos.push([DS,Math.min(_from,DE)]);
-          if(_to<DE)   _indispos.push([Math.max(_to,DS),DE]);
-        }
-        _indispos.forEach(function(iv){
-          var gs=Math.max(iv[0],DS), ge=Math.min(iv[1],DE); if(ge<=gs) return;
-          var gi=document.createElement('div'); gi.className='hr-bar';
-          gi.style.cssText='left:'+pct(gs)+';width:'+pctW(gs,ge)+';height:19px;background:rgba(255,255,255,.05);border:none;box-shadow:none;z-index:1;pointer-events:none;';
-          gi.title=(b.emp||'')+' indisponible '+fmt(gs)+' – '+fmt(ge);
-          bd.appendChild(gi);
-        });
-      }
     });
     tr.appendChild(bd);body.appendChild(tr);
+
+    // ── Semaine dépliée (lun→dim) ──
+    if(ouvert){
+      var wk=document.createElement('div'); wk.className='hr-tl-week';
+      var JLABEL=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+      for(var dd=0;dd<7;dd++){
+        var dj=rec.jours[dd];
+        var wkr=document.createElement('div'); wkr.className='hr-tl-wkrow';
+        var wkd=document.createElement('div'); wkd.className='hr-tl-wkd';
+        var dateLbl=(typeof DAY_DATES!=='undefined'&&DAY_DATES[dd])?(' '+DAY_DATES[dd].slice(8,10)+'/'+DAY_DATES[dd].slice(5,7)):'';
+        wkd.innerHTML='<span style="font-weight:600;color:var(--tx)">'+JLABEL[dd]+'</span><span style="font-family:\'DM Mono\',monospace;font-size:9.5px">'+dateLbl+'</span><span style="margin-left:auto;color:'+(dj.min>0?'#3ecf8e':'var(--mu)')+';font-family:\'DM Mono\',monospace;font-size:10px">'+(dj.min>0?_fmtHmin(dj.min):'—')+'</span>';
+        wkr.appendChild(wkd);
+        var wkb=document.createElement('div'); wkb.className='hr-tl-wkb';
+        var wgl=document.createElement('div'); wgl.className='hr-tl-gl';
+        RULER_H.forEach(function(){var l=document.createElement('div');wgl.appendChild(l);});
+        wkb.appendChild(wgl);
+        dj.bars.forEach(function(b){
+          var s=b.s,e=b.e; if(e<=DS||s>=DE) return;
+          var cs=Math.max(s,DS),ce=Math.min(e,DE);
+          var c=colFor(b.l);
+          var bar=document.createElement('div');bar.className='hr-bar';
+          if(b.col){ bar.style.cssText='height:15px;left:'+pct(cs)+';width:'+pctW(cs,ce)+';background:'+b.col+';color:#fff;font-weight:700;'; }
+          else { bar.style.cssText='height:15px;left:'+pct(cs)+';width:'+pctW(cs,ce)+';background:'+c.bg+';color:'+c.tx+';'; }
+          bar.textContent=b.l+' '+fmt(s)+'–'+fmt(e);
+          bar.title=b.l+'\n'+fmt(s)+' – '+fmt(e);
+          (function(di,ri,bi){ bar.style.cursor='pointer'; bar.onclick=function(ev){ ev.stopPropagation(); if(di!==curDay){ curDay=di; renderTimeline(); setTimeout(function(){hrTraitAffecterOuvrir(ri,bi);},60);} else { hrTraitAffecterOuvrir(ri,bi);} }; })(dd,b.rowIdx,b.barIdx);
+          wkb.appendChild(bar);
+        });
+        wkr.appendChild(wkb);
+        wk.appendChild(wkr);
+      }
+      body.appendChild(wk);
+    }
   });
   const seen=new Set();const leg=document.getElementById('hrx-leg');leg.innerHTML='';
-  rows.forEach(r=>r.bars.forEach(b=>{
+  (ROWS_BY_DAY[curDay]||[]).forEach(r=>r.bars.forEach(b=>{
+    if(!b.empId) return;
+    if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return;
     if(!seen.has(b.l)){seen.add(b.l);const c=colFor(b.l);const it=document.createElement('div');it.className='hr-li';it.innerHTML=`<div class="hr-ld" style="background:${c.bg}"></div>${b.l}`;leg.appendChild(it);}
   }));
 }
