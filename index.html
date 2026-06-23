@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-23 13:46 · v286';
+  var EMBEDDED_VERSION = '2026-06-23 13:48 · v287';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -16130,6 +16130,43 @@ function renderTimeline(){
       body.appendChild(wk);
     }
   });
+
+  // ── LIGNE « CRÉNEAUX RESTANT À PRENDRE » (sous le dernier salarié, à gauche) ──
+  // Traits du jour affiché non encore affectés (sans empId) = besoin non pourvu.
+  var _resteBars=[];
+  (ROWS_BY_DAY[curDay]||[]).forEach(function(row,ri){
+    row.bars.forEach(function(b,bi){
+      if(b.empId) return;
+      if(estTraitEncadrement && estTraitEncadrement(b.l)) return;
+      _resteBars.push({s:b.s,e:b.e||b.s+60,l:b.l,rowIdx:ri,barIdx:bi});
+    });
+  });
+  if(_resteBars.length){
+    var _restMin=0; _resteBars.forEach(function(b){ _restMin+=(b.e-b.s); });
+    var trR=document.createElement('div'); trR.className='hr-tl-row'; trR.style.cssText='border-top:2px solid #D62300;background:rgba(214,35,0,.06);';
+    var infoR=document.createElement('div'); infoR.className='hr-tl-i'; infoR.style.background='rgba(214,35,0,.10)';
+    infoR.innerHTML='<div class="hr-tl-nm" style="color:#f87171;">⚠️ Créneaux restant à prendre</div>'
+      +'<div class="hr-tl-hbadge"><span class="hr-tl-hpill" style="background:rgba(214,35,0,.20);color:#f87171;">'+_resteBars.length+' créneau'+(_resteBars.length>1?'x':'')+'</span>'
+      +'<span style="color:var(--mu)">'+_fmtHmin(_restMin)+' à couvrir</span></div>';
+    trR.appendChild(infoR);
+    var bdR=document.createElement('div'); bdR.className='hr-tl-b';
+    var glR=document.createElement('div'); glR.className='hr-tl-gl';
+    RULER_H.forEach(function(){var l=document.createElement('div');glR.appendChild(l);});
+    bdR.appendChild(glR);
+    _resteBars.forEach(function(b){
+      var s=b.s, e=b.e; if(e<=DS||s>=DE) return;
+      var cs=Math.max(s,DS),ce=Math.min(e,DE);
+      var c=colFor(b.l);
+      var bar=document.createElement('div');bar.className='hr-bar';
+      bar.style.cssText='left:'+pct(cs)+';width:'+pctW(cs,ce)+';background:'+c.bg+';color:'+c.tx+';opacity:.92;border:1.5px dashed rgba(255,255,255,.5);';
+      bar.textContent=b.l+' '+fmt(s)+'–'+fmt(e);
+      bar.title='Créneau à pourvoir\n'+b.l+'\n'+fmt(s)+' – '+fmt(e);
+      bar.style.cursor='pointer';
+      (function(ri,bi){ bar.onclick=function(ev){ ev.stopPropagation(); hrTraitAffecterOuvrir(ri,bi); }; })(b.rowIdx,b.barIdx);
+      bdR.appendChild(bar);
+    });
+    trR.appendChild(bdR); body.appendChild(trR);
+  }
   const seen=new Set();const leg=document.getElementById('hrx-leg');leg.innerHTML='';
   (ROWS_BY_DAY[curDay]||[]).forEach(r=>r.bars.forEach(b=>{
     if(!b.empId) return;
