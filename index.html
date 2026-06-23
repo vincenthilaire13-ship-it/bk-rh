@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-23 00:47 · v266';
+  var EMBEDDED_VERSION = '2026-06-23 10:28 · v279';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -649,8 +649,7 @@ body.tv-mode #eye-viewas{display:none!important;}
       <button class="hr-btn" id="hrx-mois-btn" onclick="hrAnalyseRecrutementMois()" title="Analyse le MOIS entier (toutes ses semaines) en simulation, sans toucher au planning : combien de créneaux restent, quels profils recruter, quels salariés sont bloquants par leurs dispos." style="background:#1a2a3a;border-color:#3b82f6;color:#93c5fd;font-weight:700;">📅 Analyse recrutement du mois</button>
       <span id="hrx-contrat-touches" style="display:inline-flex;gap:8px;flex-wrap:wrap;align-items:flex-end"></span>
       <button class="hr-btn" id="hrx-vider-btn" onclick="hrViderSemaine()" title="Retire TOUS les salariés des traits de la semaine affichée : les traits redeviennent vides pour repartir à zéro." style="background:#3a1a1a;border-color:#cc5555;color:#ff9090;">🧹 Vider la semaine</button>
-      <button class="hr-btn" id="hrx-lock-sem" onclick="hrToggleVerrouSemaine()" title="Verrouiller / déverrouiller la semaine affichée. Une semaine verrouillée n'est plus modifiée par les recalculs." style="background:#2a2416;border-color:#b8860b;">🔓 Semaine</button>
-      <button class="hr-btn" id="hrx-transfert" onclick="hrTransfererSemaine()" title="Marque la semaine comme finie : elle est verrouillée et partagée aux employés (Accueil) et aux Rapports." style="background:#16321f;border-color:#3ecf8e;color:#3ecf8e;font-weight:700;">✅ Horaires finis — transférer</button>
+      <button class="hr-btn" id="hrx-transfert-gestion" onclick="hrOuvrirTransfert()" title="Voir si la semaine affichée est transférée aux employés, la transférer, ou annuler le transfert pour corriger." style="background:#16321f;border-color:#3ecf8e;color:#3ecf8e;font-weight:700;">📤 Transfert aux employés</button>
       <!-- Boutons "Analyser" et "Contrôle dispos/comp." retirés à la demande (outils de diagnostic, aucun impact sur le placement). Les fonctions hrAnalyseOuvrir / hrControleDispos restent disponibles si besoin. -->
       <span id="hrx-assign-status" style="font-size:11px;color:#60a5fa;align-self:center;margin-left:4px"></span>
       <span id="hrx-valid-status" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--mu);align-self:center;margin-left:4px"></span>
@@ -1463,6 +1462,14 @@ body.tv-mode #eye-viewas{display:none!important;}
       <button class="btn btn-gray" style="flex:1;" onclick="closeModal('modal-cancel-inc')">Annuler</button>
       <button class="btn btn-red" style="flex:1;" onclick="confirmAnnulation()">✔ Confirmer</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-ov" id="modal-transfert">
+  <div class="modal" style="width:480px;max-width:96vw;">
+    <div class="modal-title">📤 Transfert aux employés</div>
+    <div id="transfert-content" style="font-size:14px;"></div>
+    <button class="btn btn-gray" style="margin-top:16px;width:100%;" onclick="closeModal('modal-transfert')">Fermer</button>
   </div>
 </div>
 
@@ -3761,7 +3768,7 @@ function empCardHtml(e,ro,canView,canManage){
     +'<div style="min-width:0;"><div style="font-weight:600;font-size:.9rem;">'+e.name+(arch?' <span style="font-size:.68rem;color:#888;background:#2A1A00;padding:1px 6px;border-radius:9px;">📁</span>':'')+sortieBadge+'</div>'
     +'<div style="font-size:.73rem;color:#888;">'+cap(e.role)+' · '+myInc+' incident'+(myInc!==1?'s':'')+(e.infos&&e.infos.matricule?' · n°'+e.infos.matricule:'')+(e.email?' · '+e.email:'')+'</div></div></div>'
     +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">'
-    +'<span class="role-pill rp-'+ro[0]+'">'+cap(ro)+'</span>'
+    +'<span class="role-pill rp-'+ro[0]+'">'+cap(ro)+'</span>'+hrRqthBadge(e)
     +(canView?'<button class="btn btn-gray btn-sm" onclick="openEmpFiche(\''+e.id+'\')">👁️ Fiche</button>':'')
     +(canManage&&!arch?'<button class="btn btn-gray btn-sm" onclick="openEdit(\''+e.id+'\')">✏️</button>':'')
     +(canManage&&!arch?'<button class="btn btn-gray btn-sm" onclick="openHistorique(\''+e.id+'\')">📋 Historique</button>':'')
@@ -9082,12 +9089,177 @@ function dashOpenPanel(title){
 function dashClosePanel(){_dashOpenTile=null;document.getElementById('dash-panel').style.display='none';document.getElementById('dash-board').style.display='block';}
 function dashOpenHoraires(){
   _dashOpenTile='dashOpenHoraires';
-  var lbl=(dashRestoList().find(function(x){return x.id===DASH_RESTO;})||{}).label;
+  var resto=DASH_RESTO;
+  if(!resto){ if(typeof toast==='function') toast('Choisis d\'abord un restaurant','error'); return; }
+  var lbl=(dashRestoList().find(function(x){return x.id===resto;})||{}).label||'';
   var body=dashOpenPanel('Mes horaires — '+lbl);
-  body.innerHTML='<div id="dash-horaires-box"></div>';
-  try{ hrRenderPlanningPartage(DASH_RESTO, document.getElementById('dash-horaires-box')); }
-  catch(e){ document.getElementById('dash-horaires-box').innerHTML='<div style="color:#aaa;padding:10px;">Impossible d\'afficher les horaires pour le moment.</div>'; }
+  // Chaque salarié clique sur sa tuile puis saisit son code (jour+mois de naissance)
+  // pour voir SON calendrier personnel (façon Google), uniquement ses horaires.
+  _dashRenderTuiles(body, resto, 'dashHorairesOpen');
 }
+// ══ MES HORAIRES — CALENDRIER PERSONNEL DU SALARIÉ (façon agenda Google) ═══════
+// Le salarié clique sur sa tuile → saisit son code (jour+mois de naissance) →
+// voit UNIQUEMENT ses horaires, semaine par semaine, sur les semaines transférées.
+var _dashHorEmp=null;
+function dashHorairesOpen(empId){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
+  if(!e) return;
+  _dashHorEmp=null;
+  var ov=document.getElementById('dash-hor-ov'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='dash-hor-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.66);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:50px 16px;overflow:auto;';
+  ov.innerHTML='<div style="background:#1c1c1f;border:1px solid #555;border-radius:16px;max-width:420px;width:100%;padding:22px;font-family:Barlow,sans-serif;text-align:center;">'
+    +'<button onclick="document.getElementById(\'dash-hor-ov\').remove()" style="float:right;background:none;border:none;color:#aaa;font-size:1.5rem;cursor:pointer;line-height:1;">×</button>'
+    +'<div class="ptg-tile-av" style="background:'+ptgAvColor(e.name)+';margin:4px auto 12px;width:56px;height:56px;font-size:1.3rem;">'+ptgInitials(e.name)+'</div>'
+    +'<div style="font-size:1.15rem;font-weight:800;color:#fff;margin-bottom:2px;">'+(e.name||'')+'</div>'
+    +'<div style="color:#1565c0;font-size:.9rem;font-weight:700;margin-bottom:14px;">Mes horaires</div>'
+    +'<div style="color:#bbb;font-size:.82rem;margin-bottom:8px;">Saisis ton code : jour + mois de naissance (4 chiffres, ex. 0309 pour le 3 septembre)</div>'
+    +'<input id="dash-hor-pin" type="tel" inputmode="numeric" maxlength="4" placeholder="••••" style="width:140px;background:#111;border:1px solid #444;color:#eee;border-radius:10px;padding:11px;font-size:1.3rem;letter-spacing:.35em;text-align:center;" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');dashHorairesCheckPin(\''+e.id+'\');">'
+    +'<div id="dash-hor-msg" style="font-size:.84rem;min-height:18px;margin:8px 0;"></div>'
+    +'<div id="dash-hor-cal" style="display:none;margin-top:6px;"></div>'
+    +'</div>';
+  document.body.appendChild(ov);
+  setTimeout(function(){ var p=document.getElementById('dash-hor-pin'); if(p) p.focus(); }, 60);
+}
+window.dashHorairesOpen=dashHorairesOpen;
+
+function dashHorairesCheckPin(empId){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
+  var msg=document.getElementById('dash-hor-msg');
+  var cal=document.getElementById('dash-hor-cal');
+  var pin=((document.getElementById('dash-hor-pin')||{}).value||'').trim();
+  var attendu=_dashCodeNaissance(e);
+  if(!attendu){ msg.style.color='#F5A623'; msg.textContent='Date de naissance non renseignée : préviens le RH.'; return; }
+  if(pin.length<4){ msg.textContent=''; cal.style.display='none'; return; }
+  if(pin!==attendu){ msg.style.color='#e8623a'; msg.textContent='Code incorrect, réessaie.'; cal.style.display='none'; _dashHorEmp=null; return; }
+  _dashHorEmp=e;
+  msg.style.color='#3ecf8e'; msg.textContent='✓ Code validé.';
+  cal.style.display='block';
+  cal.innerHTML='<div style="color:#aaa;padding:14px;font-size:.86rem;">Chargement de tes horaires… <span style="color:#666;font-size:.75rem;">('+((DASH_RESTO||'aucun resto').toString().toUpperCase())+')</span></div>';
+  // Important : sur le téléphone du salarié, les placements ne sont pas en mémoire.
+  // On va donc les chercher directement dans Supabase AVANT d'afficher.
+  _dashChargerHorairesPuisAfficher(e);
+}
+window.dashHorairesCheckPin=dashHorairesCheckPin;
+
+// Charge depuis Supabase les placements (hr_affect_) et les semaines transférées
+// (hr_locks_) du restaurant, PUIS affiche le calendrier perso du salarié.
+function _dashChargerHorairesPuisAfficher(emp){
+  var resto=(DASH_RESTO||'').toUpperCase();
+  var cleA='hr_affect_'+resto, cleL='hr_locks_'+resto;
+  var fini=false;
+  window.__dashDiag={};
+  function afficher(){ if(fini) return; fini=true; try{ dashRenderCalendrierPerso(emp); }catch(err){ console.warn('calperso',err); var c=document.getElementById('dash-hor-cal'); if(c) c.innerHTML='<div style="color:#aaa;">Impossible d\'afficher tes horaires.</div>'; } }
+  setTimeout(afficher, 8000);
+  // Fetch DIRECT vers l'API REST Supabase (le plus fiable, et on voit le vrai statut HTTP).
+  var URL='https://qggkbtzhkomhldhacohd.supabase.co/rest/v1/app_config?select=valeur&cle=eq.';
+  var KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZ2tidHpoa29taGxkaGFjb2hkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNzc0MzIsImV4cCI6MjA5NDc1MzQzMn0.l4W4rH4CFREugjImoRqN8hocmEXFcVqnN1-H78x3S-c';
+  function charger(cle, cible, tag){
+    return fetch(URL+encodeURIComponent(cle), {headers:{apikey:KEY, Authorization:'Bearer '+KEY}})
+      .then(function(r){ window.__dashDiag[tag+'_status']=r.status; return r.json(); })
+      .then(function(rows){
+        var row=Array.isArray(rows)?rows[0]:rows;
+        if(row && row.valeur && typeof row.valeur==='object'){
+          cible[resto]=row.valeur;
+          window.__dashDiag[tag+'_n']=Object.keys(row.valeur).length;
+          try{ localStorage.setItem(cle, JSON.stringify(row.valeur)); }catch(e){}
+        } else {
+          window.__dashDiag[tag+'_n']=0;
+          window.__dashDiag[tag+'_raw']=JSON.stringify(rows).slice(0,60);
+        }
+      })
+      .catch(function(e){ window.__dashDiag[tag+'_err']=String((e&&e.message)||e); });
+  }
+  Promise.all([ charger(cleA, HR_AFFECT_BY_RESTO, 'affect'), charger(cleL, HR_LOCKS_BY_RESTO, 'locks') ])
+    .then(afficher).catch(afficher);
+}
+window._dashChargerHorairesPuisAfficher=_dashChargerHorairesPuisAfficher;
+
+// Récupère les créneaux d'UN salarié sur une semaine (lundi ISO) → [{date,jourN,jjmm,creneaux:[{s,e}],etat}]
+function _dashHorSemaineEmp(resto, lundiIso, empId){
+  var aff=_hrAffectSauve(resto);
+  var lundi=hrParse(lundiIso);
+  var joursN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  function iso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  var out=[];
+  for(var i=0;i<7;i++){
+    var d=new Date(lundi); d.setDate(lundi.getDate()+i);
+    var di=iso(d);
+    var arr=aff[di]||[];
+    var creneaux=[];
+    arr.forEach(function(b){ if(String(b.empId)===String(empId)){ creneaux.push({s:b.s,e:b.e}); } });
+    creneaux.sort(function(a,b){return a.s-b.s;});
+    var etat=null; try{ etat=_hrEtatJour(empId, di); }catch(e){}
+    out.push({date:di, jourN:joursN[i], jj:String(d.getDate()).padStart(2,'0'), mm:String(d.getMonth()+1).padStart(2,'0'), creneaux:creneaux, etat:etat});
+  }
+  return out;
+}
+
+function _dashHhmm(min){ var h=Math.floor(min/60)%24, m=min%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
+function _dashDureeStr(min){ var h=Math.floor(min/60), m=min%60; return m?(h+'h'+String(m).padStart(2,'0')):(h+'h'); }
+
+// Le calendrier perso : liste des semaines transférées, chacune façon agenda
+function dashRenderCalendrierPerso(emp){
+  var cal=document.getElementById('dash-hor-cal'); if(!cal) return;
+  var resto=DASH_RESTO;
+  var sems=[]; try{ sems=_hrSemainesTransferees((resto||'').toUpperCase())||[]; }catch(e){ sems=[]; }
+  if(!sems.length){
+    var rUp=(resto||'').toUpperCase();
+    var nbLocks=0; try{ nbLocks=Object.keys(HR_LOCKS_BY_RESTO[rUp]||{}).length; }catch(e){}
+    var diag=window.__dashDiag||{};
+    var diagTxt='';
+    try{ diagTxt='locks:'+(diag.locks_n!=null?diag.locks_n:'?')+' (http '+(diag.locks_status||'?')+')'+(diag.locks_err?(' err='+diag.locks_err):'')+(diag.locks_raw?(' raw='+diag.locks_raw):''); }catch(e){}
+    cal.innerHTML='<div style="color:#aaa;padding:12px;font-size:.86rem;">'
+      +'Aucun horaire transféré pour le moment. Reviens quand le planning aura été partagé.'
+      +'<div style="color:#666;font-size:.72rem;margin-top:8px;">('+rUp+' — '+nbLocks+' semaine(s) verrouillée(s))</div>'
+      +'<div style="color:#555;font-size:.66rem;margin-top:4px;word-break:break-all;">'+diagTxt+'</div>'
+      +'</div>';
+    return;
+  }
+  // Semaines récentes/à venir d'abord (ordre décroissant), on garde les 8 dernières
+  sems.sort(); var aff=sems.slice(-8).reverse();
+  var h='<div style="text-align:left;">';
+  aff.forEach(function(lundiIso, idx){
+    var jours=_dashHorSemaineEmp(resto, lundiIso, emp.id);
+    // total semaine
+    var totMin=0; jours.forEach(function(j){ j.creneaux.forEach(function(c){ totMin+=(c.e-c.s); }); });
+    // libellé semaine
+    var lib=''; try{ lib=_hrLibelleSemaine(lundiIso); }catch(e){ lib='du '+lundiIso; }
+    var ouvert = idx===0; // la plus récente ouverte par défaut
+    h+='<div style="border:1px solid #333;border-radius:12px;margin-bottom:10px;overflow:hidden;">';
+    h+='<div onclick="var b=this.nextElementSibling;b.style.display=b.style.display===\'none\'?\'block\':\'none\';" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:11px 14px;background:#16223a;">';
+    h+='<div style="font-weight:800;color:#dbe7ff;font-size:.9rem;">📅 Semaine '+lib+'</div>';
+    h+='<div style="font-size:.8rem;color:#9fc0ff;font-weight:700;white-space:nowrap;">'+_dashDureeStr(totMin)+'</div>';
+    h+='</div>';
+    h+='<div style="display:'+(ouvert?'block':'none')+';padding:6px 8px 10px;">';
+    jours.forEach(function(j){
+      var estDim=(j.jourN==='Dimanche');
+      var aTravail=j.creneaux.length>0;
+      var bg=aTravail?'#13241a':'#161616';
+      var bord=aTravail?'#1f6b3f':'#2a2a2a';
+      h+='<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 10px;margin:5px 0;background:'+bg+';border:1px solid '+bord+';border-radius:9px;">';
+      h+='<div style="min-width:74px;"><div style="font-weight:800;color:#eee;font-size:.82rem;">'+j.jourN+'</div><div style="color:#888;font-size:.72rem;">'+j.jj+'/'+j.mm+'</div></div>';
+      h+='<div style="flex:1;">';
+      if(aTravail){
+        j.creneaux.forEach(function(c){
+          var dur=_dashDureeStr(c.e-c.s);
+          h+='<div style="display:inline-flex;align-items:center;gap:6px;background:#1f6b3f;color:#d6ffe6;border-radius:7px;padding:4px 10px;margin:2px 5px 2px 0;font-weight:700;font-size:.84rem;">🕒 '+_dashHhmm(c.s)+' → '+_dashHhmm(c.e)+' <span style="opacity:.7;font-weight:600;">('+dur+')</span></div>';
+        });
+      } else if(j.etat){
+        var info=j.etat.info||{};
+        h+='<div style="color:'+(info.col||'#f5a623')+';font-weight:700;font-size:.84rem;padding-top:2px;">'+(info.icon||'')+' '+(info.court||j.etat.motif)+'</div>';
+      } else {
+        h+='<div style="color:'+(estDim?'#888':'#9a9a9a')+';font-size:.84rem;padding-top:3px;">'+(estDim?'Repos (dimanche)':'Repos')+'</div>';
+      }
+      h+='</div></div>';
+    });
+    h+='</div></div>';
+  });
+  h+='</div>';
+  cal.innerHTML=h;
+}
+window.dashRenderCalendrierPerso=dashRenderCalendrierPerso;
+
 function dashOpenPointer(){
   // Ouvre le pointage DANS le panneau d'accueil (avec bouton Retour), sous forme de
   // tuiles de salariés — même présentation que « Mes congés » / « Indisponibilités ».
@@ -9931,6 +10103,13 @@ function hrRoleInfo(e){
   return {key:'equipier',label:'Équipier',ico:'👤'};
 }
 window.hrRoleInfo = hrRoleInfo;
+// Badge RQTH bleu (à afficher à côté du rôle, partout). Vide si non RQTH.
+function hrRqthBadge(e){
+  var rq=(e&&e.infos&&e.infos.rqth)||(e&&e.rqth)||'';
+  if(String(rq).toLowerCase()!=='oui') return '';
+  return '<span style="font-size:.68rem;font-weight:700;color:#9fd3ff;background:#10304d;border:1px solid #2f7fc4;border-radius:10px;padding:1px 7px;white-space:nowrap;margin-left:5px;">\u267f RQTH</span>';
+}
+window.hrRqthBadge = hrRqthBadge;
 // Nombre de lundis (semaines) dans le mois de la semaine actuellement affichée
 function hrSemainesDuMois(){
   try{
@@ -11890,6 +12069,7 @@ function hrRenderEtatEquipe(){
   if(HR_EE_VUE==='etat'){ _hrEtatRenderAbsences(); return; }
   if(HR_EE_VUE==='dispos'){ hrEERenderDispos(); return; }
   if(HR_EE_VUE==='competences'){ hrEERenderCompetences(); return; }
+  if(HR_EE_VUE==='fixes'){ hrEERenderFixes(); return; }
   // par défaut : les tuiles
   hrEERenderTuiles();
 }
@@ -11912,7 +12092,8 @@ function hrEERenderTuiles(){
   var tuiles=[
     {vue:'etat',        ico:'🗓️', titre:'État / Absences', sub:'Congés · maladie · absence · indispo', col:'#d98324', badge:nbAttente},
     {vue:'dispos',      ico:'📅', titre:'Disponibilités',  sub:'Créneaux par jour de semaine',          col:'#1565c0', badge:0},
-    {vue:'competences', ico:'🎯', titre:'Compétences',     sub:'Qui sait faire quoi',                   col:'#2e7d32', badge:0}
+    {vue:'competences', ico:'🎯', titre:'Compétences',     sub:'Qui sait faire quoi',                   col:'#2e7d32', badge:0},
+    {vue:'fixes',       ico:'📌', titre:'Salariés fixés',   sub:'Horaires fixes + poste (le moteur les respecte)', col:'#8e44ad', badge:0}
   ];
   var html='';
   // Pour le franchisé EN MODE "Tous" : bouton pour revenir au choix du restaurant.
@@ -12085,7 +12266,7 @@ function hrEERenderDispos(){
     if(_clab&&_ch&&(''+_clab).indexOf(''+_ch)<0) _ctxt=_clab+' · '+_ch+'h';
     var _ri=(window.hrRoleInfo?window.hrRoleInfo(e):{label:'',ico:''});
     var _rbadge='<span style="font-size:.68rem;font-weight:700;color:#ffd98a;background:#3a2e12;border:1px solid #b8860b;border-radius:10px;padding:1px 7px;white-space:nowrap;margin-left:5px;">'+_ri.ico+' '+_ri.label+'</span>';
-    var _cbadge='<div style="margin-top:3px;"><span style="font-size:.68rem;font-weight:700;color:#7fffc4;background:#163a2a;border:1px solid #2ec27e;border-radius:10px;padding:1px 7px;white-space:nowrap;">📄 '+(_ctxt||'contrat ?')+'</span>'+_rbadge+'</div>';
+    var _cbadge='<div style="margin-top:3px;"><span style="font-size:.68rem;font-weight:700;color:#7fffc4;background:#163a2a;border:1px solid #2ec27e;border-radius:10px;padding:1px 7px;white-space:nowrap;">📄 '+(_ctxt||'contrat ?')+'</span>'+_rbadge+hrRqthBadge(e)+'</div>';
     var r='<tr style="border-bottom:1px solid #2a2a2a;"><td style="padding:6px 8px;font-weight:600;color:#eee;white-space:nowrap;position:sticky;left:0;background:#161616;">'+e.name+_cbadge+'</td>';
     JOURS.forEach(function(j){
       var jk=j[0]; var x=d[jk]||{}; var on=!!x.on;
@@ -12182,6 +12363,138 @@ function _hrEEQualifBuf(id){
   if(!e.infos.qualifs) e.infos.qualifs=[];
   return e;
 }
+// ══ VUE « SALARIÉS FIXÉS » (État équipe) ═══════════════════════════════════════
+// Permet de poser, pour un salarié, des horaires FIXES jour par jour (repos, ou
+// créneau avec poste). Le placement intelligent respectera ces créneaux : il les
+// pose en premier sur leur poste et ne déplace jamais le salarié fixé.
+// Stockage : e.infos.fixes = { lun:{on,from,to,poste,prod}, ... } (sauvé via _hrEESaveInfos).
+function _hrEEFixBuf(id){
+  var e=(DB.employees||[]).find(function(x){return x.id===id;});
+  if(!e) return null;
+  if(!e.infos) e.infos={};
+  if(!e.infos.fixes) e.infos.fixes={};
+  return e;
+}
+// Badge RQTH bleu (si le salarié est RQTH)
+function _hrRqthBadge(e){
+  var rq=(e&&e.infos&&e.infos.rqth)||e.rqth||'';
+  if(String(rq).toLowerCase()!=='oui') return '';
+  return '<span style="font-size:.68rem;font-weight:700;color:#9fd3ff;background:#10304d;border:1px solid #2f7fc4;border-radius:10px;padding:1px 7px;white-space:nowrap;margin-left:5px;">\u267f RQTH</span>';
+}
+function hrEERenderFixes(){
+  var box=document.getElementById('etat-equipe-list'); if(!box) return;
+  var eq=_etatEquipiers();
+  var h=_hrEEHeader('Salariés fixés','horaires fixes + poste — le placement intelligent les respecte');
+  h+='<div style="font-size:.82rem;color:#aaa;margin-bottom:10px;">Pour chaque salarié et chaque jour : laisse en <b>Repos</b>, ou active le jour et indique l\u2019horaire + le poste. <b style="color:#c9a0ff;">Productif</b> = pendant l\u2019ouverture client (le moteur retire ce besoin et place les autres autour). <b style="color:#ffc97a;">Improductif</b> = hors ouverture (ex. mise en place, ménage).</div>';
+  if(!eq.length){ box.innerHTML=h+'<div style="padding:14px;color:#777;">Aucun équipier sur ce restaurant.</div>'; return; }
+  // Liste des postes proposés
+  var postes=[]; try{ postes=(window.POSTES&&window.POSTES.length)?window.POSTES.slice():[]; }catch(e){}
+  if(!postes.length) postes=['CUISINE','FRITES','SNACK','BROILER','BOARD VOLANT','BORNE','DRIVE','SAT SALLE','EMPORTER','UBER'];
+  // on ajoute quelques postes d'encadrement / improductifs courants
+  var postesEncadr=['MANAGER','LEADER','OUVERTURE','FERMETURE','MISE EN PLACE','MÉNAGE','LIVRAISON','MARCHANDISES'];
+  function optionsPostes(sel){
+    var s='<option value="">— poste —</option>';
+    s+='<optgroup label="Productifs">';
+    postes.forEach(function(p){ s+='<option value="'+p+'"'+(sel===p?' selected':'')+'>'+p+'</option>'; });
+    s+='</optgroup><optgroup label="Encadrement / autres">';
+    postesEncadr.forEach(function(p){ s+='<option value="'+p+'"'+(sel===p?' selected':'')+'>'+p+'</option>'; });
+    s+='</optgroup>';
+    return s;
+  }
+  h+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.8rem;"><thead><tr style="border-bottom:2px solid #444;">';
+  h+='<th style="text-align:left;padding:6px 8px;color:#fff;position:sticky;left:0;background:#1a1a1a;">Salarié</th>';
+  JOURS.forEach(function(j){ h+='<th style="padding:6px 8px;color:#fff;min-width:150px;">'+j[1]+'</th>'; });
+  h+='</tr></thead><tbody>';
+  var NB_COLS_FIX=1+JOURS.length;
+  function ligne(e){
+    var fx=(e.infos&&e.infos.fixes)||{};
+    var _ch=(window.hrContratHebdo?window.hrContratHebdo(e):null);
+    var _ctxt=_ch?_ch+'h':'';
+    var _ri=(window.hrRoleInfo?window.hrRoleInfo(e):{label:'',ico:''});
+    var _rbadge='<span style="font-size:.68rem;font-weight:700;color:#ffd98a;background:#3a2e12;border:1px solid #b8860b;border-radius:10px;padding:1px 7px;white-space:nowrap;margin-left:5px;">'+_ri.ico+' '+_ri.label+'</span>';
+    var _cbadge='<div style="margin-top:3px;"><span style="font-size:.68rem;font-weight:700;color:#7fffc4;background:#163a2a;border:1px solid #2ec27e;border-radius:10px;padding:1px 7px;white-space:nowrap;">\ud83d\udcc4 '+(_ctxt||'contrat ?')+'</span>'+_rbadge+hrRqthBadge(e)+'</div>';
+    var _rq=((e.infos&&e.infos.rqth)||e.rqth||'');
+    var _rqOui=(String(_rq).toLowerCase()==='oui');
+    var _rqCapsule='<span onclick="hrEEToggleRqth(\''+e.id+'\')" title="Cliquer pour indiquer si ce salarié est RQTH" style="cursor:pointer;font-size:.66rem;font-weight:800;border-radius:10px;padding:2px 8px;white-space:nowrap;margin-left:8px;'+(_rqOui?'color:#9fd3ff;background:#10304d;border:1px solid #2f7fc4;':'color:#666;background:#1d1d1d;border:1px solid #3a3a3a;')+'">♿ RQTH'+(_rqOui?' ✓':'')+'</span>';
+    var r='<tr style="border-bottom:1px solid #2a2a2a;"><td style="padding:6px 8px;font-weight:600;color:#eee;white-space:nowrap;position:sticky;left:0;background:#161616;vertical-align:top;"><span style="display:inline-flex;align-items:center;">'+e.name+_rqCapsule+'</span>'+_cbadge
+      +'<div style="margin-top:5px;"><span id="ee-fix-st-'+e.id+'" style="font-size:.72rem;color:#3ecf8e;"></span></div></td>';
+    JOURS.forEach(function(j){
+      var jk=j[0]; var x=fx[jk]||{}; var on=!!x.on;
+      r+='<td style="padding:5px 6px;text-align:center;vertical-align:top;">'
+        +'<div onclick="hrEEFixToggle(\''+e.id+'\',\''+jk+'\')" style="cursor:pointer;width:26px;height:26px;margin:0 auto 4px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;'+(on?'background:#8e44ad;color:#fff;':'background:#2a2a2a;color:#555;border:1px solid #444;')+'" title="'+(on?'Fixé ce jour':'Repos')+'">'+(on?'📌':'')+'</div>';
+      if(on){
+        var from=x.from||'09:00', to=x.to||'17:00', poste=x.poste||'', prod=(x.prod!==false);
+        r+='<div style="display:flex;flex-direction:column;gap:3px;align-items:center;">'
+          +'<input type="time" value="'+from+'" onchange="hrEEFixSet(\''+e.id+'\',\''+jk+'\',\'from\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#e8d6ff;border-radius:5px;padding:2px 4px;font-size:.72rem;width:90px;">'
+          +'<input type="time" value="'+to+'" onchange="hrEEFixSet(\''+e.id+'\',\''+jk+'\',\'to\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#e8d6ff;border-radius:5px;padding:2px 4px;font-size:.72rem;width:90px;">'
+          +'<select onchange="hrEEFixSet(\''+e.id+'\',\''+jk+'\',\'poste\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#cfe;border-radius:5px;padding:2px 4px;font-size:.7rem;width:96px;">'+optionsPostes(poste)+'</select>'
+          +'<div onclick="hrEEFixToggleProd(\''+e.id+'\',\''+jk+'\')" style="cursor:pointer;font-size:.68rem;font-weight:700;border-radius:9px;padding:2px 7px;'+(prod?'background:#3a1d4d;color:#d9a8ff;border:1px solid #8e44ad;':'background:#3a2e12;color:#ffc97a;border:1px solid #b8860b;')+'" title="Cliquer pour basculer">'+(prod?'Productif':'Improductif')+'</div>'
+          +'</div>';
+      }
+      r+='</td>';
+    });
+    r+='</tr>';
+    return r;
+  }
+  // Accordéon par catégories (mêmes règles que l'onglet Équipe)
+  var CATS=[
+    {key:'directeur',label:'Directeurs',ico:'👑'},
+    {key:'manager',  label:'Managers',  ico:'⭐'},
+    {key:'leader',   label:'Leaders',   ico:'🎖️'},
+    {key:'apprenti', label:'Apprentis', ico:'🎓'},
+    {key:'equipier', label:'Équipiers', ico:'👤'}
+  ];
+  CATS.forEach(function(cat){
+    var membres=eq.filter(function(e){ return (window.hrRoleInfo?window.hrRoleInfo(e).key:'equipier')===cat.key; });
+    if(!membres.length) return;
+    var open=!!hrEEFixOpenCats[cat.key];
+    h+='<tr><td colspan="'+NB_COLS_FIX+'" onclick="hrEEFixToggleCat(\''+cat.key+'\')" style="cursor:pointer;background:#2a1d3a;border-top:2px solid #8e44ad;padding:8px 10px;position:sticky;left:0;">'
+      +'<span style="display:inline-block;width:14px;color:#d9a8ff;font-weight:800;transform:rotate('+(open?'90':'0')+'deg);transition:transform .12s;">▸</span>'
+      +'<span style="font-weight:800;color:#e8d6ff;font-size:.9rem;">'+cat.ico+' '+cat.label+'</span>'
+      +'<span style="color:#b08fd0;font-size:.78rem;margin-left:8px;">('+membres.length+')</span></td></tr>';
+    if(open){ membres.forEach(function(e){ h+=ligne(e); }); }
+  });
+  h+='</tbody></table></div>';
+  box.innerHTML=h;
+}
+window.hrEERenderFixes=hrEERenderFixes;
+var hrEEFixOpenCats={directeur:true,manager:true,leader:true,apprenti:true,equipier:true};
+function hrEEFixToggleCat(key){ hrEEFixOpenCats[key]=!hrEEFixOpenCats[key]; hrEERenderFixes(); }
+window.hrEEFixToggleCat=hrEEFixToggleCat;
+// Basculer le statut RQTH d'un salarié (oui / non) — visible partout via le badge bleu.
+function hrEEToggleRqth(id){
+  var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return;
+  if(!e.infos) e.infos={};
+  var cur=String(e.infos.rqth||'').toLowerCase();
+  e.infos.rqth=(cur==='oui')?'non':'oui';
+  hrEERenderFixes();
+  _hrEESaveInfos(id,'ee-fix-st-');
+}
+window.hrEEToggleRqth=hrEEToggleRqth;
+function hrEEFixToggle(id, jk){
+  var e=_hrEEFixBuf(id); if(!e) return;
+  if(!e.infos.fixes[jk]) e.infos.fixes[jk]={from:'09:00',to:'17:00',poste:'',prod:true};
+  e.infos.fixes[jk].on=!e.infos.fixes[jk].on;
+  hrEERenderFixes();
+  _hrEESaveInfos(id,'ee-fix-st-');
+}
+window.hrEEFixToggle=hrEEFixToggle;
+function hrEEFixSet(id, jk, champ, val){
+  var e=_hrEEFixBuf(id); if(!e) return;
+  if(!e.infos.fixes[jk]) e.infos.fixes[jk]={on:true};
+  e.infos.fixes[jk][champ]=val;
+  _hrEESaveInfos(id,'ee-fix-st-');
+}
+window.hrEEFixSet=hrEEFixSet;
+function hrEEFixToggleProd(id, jk){
+  var e=_hrEEFixBuf(id); if(!e) return;
+  if(!e.infos.fixes[jk]) e.infos.fixes[jk]={on:true};
+  e.infos.fixes[jk].prod=(e.infos.fixes[jk].prod===false)?true:false;
+  hrEERenderFixes();
+  _hrEESaveInfos(id,'ee-fix-st-');
+}
+window.hrEEFixToggleProd=hrEEFixToggleProd;
+
 function hrEERenderCompetences(){
   var box=document.getElementById('etat-equipe-list'); if(!box) return;
   var eq=_etatEquipiers();
@@ -12197,7 +12510,7 @@ function hrEERenderCompetences(){
   h+='</tr></thead><tbody>';
   eq.forEach(function(e){
     var q=(e.infos&&e.infos.qualifs)||[];
-    h+='<tr style="border-bottom:1px solid #2a2a2a;"><td style="padding:6px 8px;font-weight:600;color:#eee;white-space:nowrap;position:sticky;left:0;background:#161616;">'+e.name+' <span id="ee-comp-st-'+e.id+'" style="font-size:.7rem;color:#3ecf8e;"></span></td>';
+    h+='<tr style="border-bottom:1px solid #2a2a2a;"><td style="padding:6px 8px;font-weight:600;color:#eee;white-space:nowrap;position:sticky;left:0;background:#161616;">'+e.name+hrRqthBadge(e)+' <span id="ee-comp-st-'+e.id+'" style="font-size:.7rem;color:#3ecf8e;"></span></td>';
     cols.forEach(function(p){
       var on=q.indexOf(p)>=0;
       var pEsc=p.replace(/'/g,"\\'");
@@ -13919,7 +14232,7 @@ function hrToggleVerrouSemaine(){
 }
 window.hrToggleVerrouSemaine=hrToggleVerrouSemaine;
 // Code de déverrouillage d'une semaine transférée
-var HR_CODE_DEVERROU='1234';
+var HR_CODE_DEVERROU='0000';
 function hrDemanderCodeDeverrou(){
   var c=prompt('Cette semaine a été transférée aux employés.\nEntre le code pour la déverrouiller :');
   if(c===null) return false;
@@ -13938,6 +14251,149 @@ function hrTransfererSemaine(){
   toast&&toast('Semaine transférée aux employés ✅','success');
 }
 window.hrTransfererSemaine=hrTransfererSemaine;
+// ══ ANNULER LE TRANSFERT (Admin/RH) : rouvre une semaine transférée pour correction ══
+// Retire le verrou ET la marque "transfere" pour que la semaine redevienne pleinement
+// modifiable. Réservé au patron RH / directeur / franchise. Protégé par le code.
+function hrAnnulerTransfertSemaine(){
+  // 1) Contrôle du rôle : seul l'Admin/RH (franchise) peut annuler un transfert.
+  var role=(typeof curUser!=='undefined'&&curUser)?curUser.role:null;
+  if(role!=='franchise'){
+    toast&&toast('Réservé à l\u2019administrateur / RH','error'); return;
+  }
+  // 2) Semaine affichée
+  var lundi=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?hrLundiDe(DAY_DATES[0]):null);
+  if(!lundi){ toast&&toast('Choisis une semaine','error'); return; }
+  var L=hrLocks();
+  var verrouillee=!!L[lundi];
+  var transferee=hrSemaineTransferee(lundi);
+  if(!verrouillee && !transferee){
+    toast&&toast('Cette semaine n\u2019est ni verrouillée ni transférée','success'); return;
+  }
+  // 3) Si transférée aux employés : demander le code (même protection que le déverrou)
+  if(transferee){
+    if(!hrDemanderCodeDeverrou()) return;
+  }
+  // 4) Confirmation claire
+  if(!confirm('Rouvrir la semaine du '+lundi+' pour correction ?\n\nLes horaires redeviennent modifiables. Ils ne seront plus marqués comme « transférés » tant que vous ne les aurez pas re-transférés.\n\nLes salariés ne verront plus cette semaine dans « Mes horaires » jusqu\u2019au prochain transfert.')) return;
+  // 5) Suppression complète du verrou (verrou + marque transfere)
+  delete L[lundi];
+  hrSauverLocks();
+  try{ hrMajBoutonsVerrou(); }catch(e){}
+  try{ if(typeof hrRenderPlanningHebdo==='function') hrRenderPlanningHebdo(); }catch(e){}
+  toast&&toast('Semaine rouverte pour correction ↩️ — pensez à la re-transférer après','success');
+}
+window.hrAnnulerTransfertSemaine=hrAnnulerTransfertSemaine;
+
+// ══ FENÊTRE UNIQUE DE TRANSFERT : voir l'état, transférer, ou annuler ══════════
+// Regroupe tout au même endroit pour que ce soit simple : on voit la semaine
+// affichée, si elle est transférée ou non, et un seul bouton adapté.
+function _hrLundiAffiche(){
+  return (typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?hrLundiDe(DAY_DATES[0]):null);
+}
+function _hrLibelleSemaine(lundi){
+  try{
+    var d1=hrParse(lundi); var d2=new Date(d1); d2.setDate(d1.getDate()+6);
+    var opt={day:'2-digit',month:'long'};
+    return 'du '+d1.toLocaleDateString('fr-FR',opt)+' au '+d2.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
+  }catch(e){ return 'du '+lundi; }
+}
+function hrOuvrirTransfert(){
+  var box=document.getElementById('transfert-content'); if(!box) return;
+  var lundi=_hrLundiAffiche();
+  var estAdmin=(typeof curUser!=='undefined'&&curUser&&curUser.role==='franchise');
+  var h='';
+
+  // ── BLOC 1 : la semaine actuellement affichée ──
+  if(lundi){
+    var transferee=hrSemaineTransferee(lundi);
+    h+='<div style="background:#141414;border:1px solid #2A2A2A;border-radius:10px;padding:14px;margin-bottom:14px;">';
+    h+='<div style="font-size:.78rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Semaine affichée</div>';
+    h+='<div style="font-size:1.05rem;color:#eee;font-weight:700;margin-bottom:10px;">'+_hrLibelleSemaine(lundi)+'</div>';
+    if(transferee){
+      h+='<div style="font-size:.9rem;color:#3ecf8e;font-weight:700;margin-bottom:8px;">✅ Transférée aux employés</div>';
+      if(estAdmin){
+        h+='<button class="btn" style="width:100%;background:#3a2a16;border:1px solid #f5a623;color:#f5c97a;font-weight:700;" onclick="hrAnnulerTransfertSemaineCible(\''+lundi+'\')">↩️ Annuler le transfert (corriger)</button>';
+      } else {
+        h+='<p style="font-size:.82rem;color:#888;margin:0;">Pour la corriger, contacte l\u2019administrateur / RH.</p>';
+      }
+    } else {
+      h+='<div style="font-size:.9rem;color:#f5a623;font-weight:700;margin-bottom:8px;">⏳ Pas encore transférée</div>';
+      h+='<button class="btn" style="width:100%;background:#16321f;border:1px solid #3ecf8e;color:#3ecf8e;font-weight:700;" onclick="hrTransfererSemaine();hrOuvrirTransfert();">✅ Transférer aux employés</button>';
+    }
+    h+='</div>';
+  }
+
+  // ── BLOC 2 : TOUTES les semaines transférées du restaurant ──
+  var resto=(typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:((typeof HR_RESTO!=='undefined'&&HR_RESTO)?HR_RESTO:'BK526');
+  var sems=[];
+  try{ sems=_hrSemainesTransferees((resto||'').toUpperCase())||[]; }catch(e){ sems=[]; }
+  var futures=[], passees=[];
+  sems.forEach(function(l){ var p=false; try{p=hrSemainePassee(l);}catch(e){} (p?passees:futures).push(l); });
+
+  function ligneSemaine(l, estPassee){
+    var s='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#141414;border:1px solid #2A2A2A;border-radius:8px;padding:9px 12px;margin-bottom:7px;">';
+    s+='<div style="font-size:.86rem;color:#ddd;">'+_hrLibelleSemaine(l)+'</div>';
+    if(estAdmin){
+      var couleur=estPassee?'#b8860b':'#f5a623';
+      var label=estPassee?'🔒 Annuler (code)':'↩️ Annuler';
+      s+='<button class="btn" style="background:#2a2416;border:1px solid '+couleur+';color:#f5c97a;font-weight:700;padding:6px 12px;font-size:.8rem;white-space:nowrap;" onclick="hrAnnulerTransfertSemaineCible(\''+l+'\')">'+label+'</button>';
+    }
+    s+='</div>';
+    return s;
+  }
+
+  // Semaines en cours / futures (annulation directe, sans code)
+  h+='<div style="font-size:.8rem;color:#3ecf8e;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin:18px 0 8px;">📅 Semaines en cours / à venir ('+futures.length+')</div>';
+  if(futures.length){
+    h+='<p style="font-size:.76rem;color:#888;margin:0 0 8px;">Tu peux annuler le transfert de celles à corriger (sans code).</p>';
+    futures.forEach(function(l){ h+=ligneSemaine(l,false); });
+  } else {
+    h+='<p style="font-size:.8rem;color:#777;margin:0 0 8px;">Aucune semaine transférée à venir.</p>';
+  }
+
+  // Semaines passées (annulation protégée par code 0000)
+  h+='<div style="font-size:.8rem;color:#b8860b;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin:18px 0 8px;border-top:1px solid #333;padding-top:14px;">🔒 Semaines passées — historique ('+passees.length+')</div>';
+  if(passees.length){
+    h+='<p style="font-size:.76rem;color:#888;margin:0 0 8px;">Protégées : annuler demande le code administrateur.</p>';
+    passees.slice().reverse().forEach(function(l){ h+=ligneSemaine(l,true); });
+  } else {
+    h+='<p style="font-size:.8rem;color:#777;margin:0;">Aucune semaine passée transférée.</p>';
+  }
+
+  box.innerHTML=h;
+  document.getElementById('modal-transfert').classList.add('open');
+}
+window.hrOuvrirTransfert=hrOuvrirTransfert;
+// Annule le transfert d'une semaine PRÉCISE (par son lundi ISO).
+// - Semaine PASSÉE  → demande le code administrateur 0000 (protection historique)
+// - Semaine en cours/future → simple confirmation, pas de code
+// Réservé Admin/RH (franchise).
+function hrAnnulerTransfertSemaineCible(lundi){
+  var role=(typeof curUser!=='undefined'&&curUser)?curUser.role:null;
+  if(role!=='franchise'){ toast&&toast('Réservé à l\u2019administrateur / RH','error'); return; }
+  if(!lundi){ return; }
+  var L=hrLocks();
+  if(!L[lundi]){ toast&&toast('Cette semaine n\u2019est pas transférée','success'); hrOuvrirTransfert(); return; }
+  var passee=false; try{ passee=hrSemainePassee(lundi); }catch(e){}
+  if(passee){
+    // Semaine passée → protégée par le code administrateur
+    if(!hrDemanderCodeDeverrou()) return;
+    if(!confirm('Rouvrir la semaine PASSÉE '+_hrLibelleSemaine(lundi)+' ?\n\nC\u2019est une semaine d\u2019historique. Elle redeviendra modifiable et ne sera plus marquée « transférée ».')) return;
+  } else {
+    // Semaine en cours / future → simple confirmation
+    if(!confirm('Annuler le transfert de la semaine '+_hrLibelleSemaine(lundi)+' ?\n\nLes horaires redeviennent modifiables. Les salariés ne la verront plus dans « Mes horaires » jusqu\u2019au prochain transfert.')) return;
+  }
+  delete L[lundi];
+  hrSauverLocks();
+  try{ hrMajBoutonsVerrou(); }catch(e){}
+  try{ if(typeof hrRenderPlanningHebdo==='function') hrRenderPlanningHebdo(); }catch(e){}
+  toast&&toast('Transfert annulé ↩️ — semaine rouverte','success');
+  hrOuvrirTransfert(); // rafraîchit la liste
+}
+window.hrAnnulerTransfertSemaineCible=hrAnnulerTransfertSemaineCible;
+
+
+
 
 // ══ PLANNING PARTAGÉ (Accueil « Mes horaires » + Rapports) ════════════════════
 // Affiche, pour un restaurant donné, les semaines TRANSFÉRÉES aux employés sous
@@ -14511,13 +14967,12 @@ function hrMajBoutonsVerrou(){
     bm.innerHTML=(vm?'🔒':'🔓')+' Mois';
     bm.style.background=vm?'#3a1f1f':'#2a2416'; bm.style.borderColor=vm?'#cc5555':'#b8860b'; bm.style.color=vm?'#ffb3b3':'#eee';
   }
-  var bt=document.getElementById('hrx-transfert');
+  var bt=document.getElementById('hrx-transfert-gestion');
   if(bt){
     var lundi2=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?hrLundiDe(DAY_DATES[0]):null);
     var t=lundi2&&hrSemaineTransferee(lundi2);
-    bt.innerHTML=t?'✅ Transférée aux employés':'✅ Horaires finis — transférer';
+    bt.innerHTML=t?'📤 Transférée ✓':'📤 Transfert aux employés';
     bt.style.background=t?'#15321f':'#16321f'; bt.style.borderColor='#3ecf8e'; bt.style.color='#3ecf8e';
-    bt.style.opacity=t?'0.7':'1';
   }
 }
 window.hrMajBoutonsVerrou=hrMajBoutonsVerrou;
