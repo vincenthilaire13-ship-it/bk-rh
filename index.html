@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-23 13:55 · v288';
+  var EMBEDDED_VERSION = '2026-06-23 18:03 · v292';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -262,7 +262,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 .pl-total{text-align:center;background:#161616;min-width:64px;font-size:.82rem;}
 
 /* MODULE HORAIRE */
-#sec-horaires{--bg:#3a3a44;--s1:#44444f;--s2:#4e4e59;--bd:#5e5e6a;--bd2:#6e6e7a;--tx:#f7f7f9;--mu:#c2c2cf;--ac:#e8e020;}#sec-horaires *{box-sizing:border-box;margin:0;padding:0;}#sec-horaires{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;}#sec-horaires .hr-hdr{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:1px solid var(--bd);background:var(--s1);position:sticky;top:0;z-index:100;}#sec-horaires .hr-hdr-title{font-size:26px;font-weight:800;letter-spacing:.3px;line-height:1.15;}#sec-horaires .hr-hdr-sub{font-size:13px;color:var(--mu);font-family:'DM Mono',monospace;margin-top:3px;}#sec-horaires .hr-nav{display:flex;gap:4px;}#sec-horaires .hr-nt{padding:6px 13px;border-radius:8px;font-size:13px;cursor:pointer;color:var(--mu);border:1px solid transparent;transition:all .15s;}#sec-horaires .hr-nt:hover{color:var(--tx);background:var(--s2);}#sec-horaires .hr-nt.hr-on{color:var(--ac);border-color:var(--bd2);background:var(--s2);}#sec-horaires .hr-hdr-r{display:flex;gap:8px;}#sec-horaires .hr-btn{padding:6px 13px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid var(--bd2);background:var(--s2);color:var(--tx);transition:all .15s;}#sec-horaires .hr-btn:hover{background:var(--bd);}#sec-horaires .hr-btn-ac{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}#sec-horaires .hr-btn-ac:hover{background:#f5e820;}#sec-horaires .hr-sec{display:none;padding:1.2rem 1.5rem;}#sec-horaires .hr-sec.hr-on{display:block;}#sec-horaires .hr-mrow{display:flex;gap:10px;margin-bottom:1.2rem;flex-wrap:wrap;}#sec-horaires .hr-mc{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:.7rem 1rem;flex:1;min-width:110px;}#sec-horaires .hr-mc-l{font-size:10px;color:var(--mu);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}#sec-horaires .hr-mc-v{font-size:22px;font-weight:500;}#sec-horaires .hr-mc-s{font-size:11px;color:var(--mu);margin-top:1px;}#sec-horaires .hr-plan-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:10px;}#sec-horaires .hr-days{display:flex;gap:5px;flex-wrap:wrap;}#sec-horaires .hr-db{padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid var(--bd);background:var(--s2);color:var(--mu);cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:135px;}#sec-horaires .hr-db:hover{color:var(--tx);border-color:var(--bd2);}#sec-horaires .hr-db.hr-on{color:var(--ac);border-color:var(--ac);background:rgba(232,224,32,.07);}#sec-horaires .hr-db-day{font-size:13px;font-weight:600;}#sec-horaires .hr-db-ca{font-size:10px;font-family:'DM Mono',monospace;opacity:.7;}#sec-horaires .hr-scx{overflow:visible;}#sec-horaires .hr-tl-wrap{background:var(--s1);border:1px solid var(--bd);border-radius:14px;overflow:auto;max-height:calc(100vh - 230px);}#sec-horaires .hr-tl-top{display:flex;border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:50;background:var(--s1);}#sec-horaires .hr-tl-lh{display:block;width:185px;min-width:185px;max-width:185px;border-right:1px solid var(--bd);background:var(--s1);position:sticky;left:0;z-index:55;}#sec-horaires .hr-tl-hh{flex:1;display:flex;min-width:920px;}#sec-horaires .hr-tl-h{flex:1;text-align:center;font-size:10px;color:var(--mu);font-family:'DM Mono',monospace;padding:12px 0;border-right:1px solid var(--bd);}#sec-horaires .hr-tl-h:last-child{border-right:none;}#sec-horaires .hr-tl-row{display:flex;border-bottom:1px solid var(--bd);min-height:28px;}#sec-horaires .hr-tl-row:last-child{border-bottom:none;}#sec-horaires .hr-tl-row:hover{background:rgba(255,255,255,.015);}#sec-horaires .hr-tl-i{display:flex;flex-direction:column;justify-content:center;gap:2px;width:185px;min-width:185px;max-width:185px;padding:5px 10px;border-right:1px solid var(--bd);background:var(--s1);position:sticky;left:0;z-index:30;}#sec-horaires .hr-tl-i.hr-emp-clic{cursor:pointer;}#sec-horaires .hr-tl-i.hr-emp-clic:hover{background:var(--s2);}#sec-horaires .hr-tl-nm{font-size:12px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px;}#sec-horaires .hr-tl-chev{font-size:9px;color:var(--mu);transition:transform .15s;}#sec-horaires .hr-tl-chev.hr-open{transform:rotate(90deg);}#sec-horaires .hr-tl-hbadge{display:inline-flex;align-items:center;gap:5px;font-size:9.5px;font-family:'DM Mono',monospace;}#sec-horaires .hr-tl-hpill{padding:1px 5px;border-radius:4px;font-weight:700;}#sec-horaires .hr-tl-week{background:rgba(0,0,0,.12);border-bottom:1px solid var(--bd);}#sec-horaires .hr-tl-wkrow{display:flex;border-bottom:1px solid rgba(255,255,255,.05);min-height:24px;}#sec-horaires .hr-tl-wkrow:last-child{border-bottom:none;}#sec-horaires .hr-tl-wkd{width:185px;min-width:185px;max-width:185px;padding:3px 10px 3px 24px;font-size:11px;color:var(--mu);display:flex;align-items:center;gap:6px;border-right:1px solid var(--bd);position:sticky;left:0;background:var(--s1);z-index:20;}#sec-horaires .hr-tl-wkb{flex:1;position:relative;display:flex;align-items:center;min-width:920px;}#sec-horaires .hr-tl-b{flex:1;position:relative;display:flex;align-items:center;min-width:920px;}#sec-horaires .hr-tl-gl{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;pointer-events:none;}#sec-horaires .hr-tl-gl div{flex:1;border-right:1px solid rgba(255,255,255,.025);}#sec-horaires .hr-tl-gl div:last-child{border-right:none;}#sec-horaires .hr-bar{position:absolute;height:19px;border-radius:4px;display:flex;align-items:center;padding:0 5px;font-size:9px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;top:50%;transform:translateY(-50%);letter-spacing:.3px;transition:filter .12s;}#sec-horaires .hr-bar:hover{filter:brightness(1.2);z-index:20;}#sec-horaires .hr-leg{display:flex;flex-wrap:wrap;gap:8px;padding:.7rem 1.2rem;border-top:1px solid var(--bd);}#sec-horaires .hr-li{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--mu);}#sec-horaires .hr-ld{width:9px;height:9px;border-radius:2px;}#sec-horaires .hr-ca-ctrl{display:flex;gap:12px;margin-bottom:1.2rem;flex-wrap:wrap;align-items:flex-end;}#sec-horaires .hr-cc{display:flex;flex-direction:column;gap:4px;}#sec-horaires .hr-cc label{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);text-transform:uppercase;}#sec-horaires .hr-cc select{background:var(--s1);border:1px solid var(--bd2);border-radius:8px;padding:6px 11px;font-size:13px;color:var(--tx);font-family:'DM Sans',sans-serif;outline:none;}#sec-horaires .hr-ca-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;margin-bottom:1.2rem;}#sec-horaires .hr-ca-cell{background:var(--s1);border:1px solid var(--bd);border-radius:9px;padding:.5rem .8rem;}#sec-horaires .hr-ca-cell label{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);display:flex;justify-content:space-between;margin-bottom:4px;}#sec-horaires .hr-ca-cell label span{color:var(--ac);font-size:9px;}#sec-horaires .hr-ca-cell input{width:100%;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:4px 7px;font-size:12px;color:var(--tx);font-family:'DM Mono',monospace;outline:none;}#sec-horaires .hr-ca-cell input:focus{border-color:var(--ac);}#sec-horaires .hr-ca-bar{height:3px;border-radius:2px;margin-top:4px;background:var(--ac);min-width:1px;}#sec-horaires .hr-ca-cell.hr-hi{border-color:rgba(232,224,32,.4);}#sec-horaires .hr-gt-wrap{overflow-x:auto;border:1px solid var(--bd);border-radius:12px;}#sec-horaires .hr-gt{width:100%;border-collapse:collapse;font-size:11px;font-family:'DM Mono',monospace;}#sec-horaires .hr-gt th{background:var(--s2);color:var(--mu);padding:6px 9px;border-bottom:1px solid var(--bd);border-right:1px solid var(--bd);text-align:center;font-weight:500;white-space:nowrap;}#sec-horaires .hr-gt td{padding:4px 7px;border-bottom:1px solid var(--bd);border-right:1px solid var(--bd);text-align:center;color:var(--tx);}#sec-horaires .hr-gt tr:last-child td{border-bottom:none;}#sec-horaires .hr-gt td:first-child, #sec-horaires .hr-gt th:first-child{text-align:left;padding-left:12px;}#sec-horaires .hr-cv{display:inline-block;padding:2px 6px;border-radius:4px;font-weight:600;}#sec-horaires .hr-np-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;}#sec-horaires .hr-np-card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:.9rem 1.1rem;display:flex;flex-direction:column;gap:6px;}#sec-horaires .hr-np-top{display:flex;align-items:center;justify-content:space-between;}#sec-horaires .hr-np-nm{font-size:14px;font-weight:500;}#sec-horaires .hr-np-bg{font-size:9px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px;background:rgba(120,144,156,.15);color:#78909c;border:1px solid rgba(120,144,156,.3);}#sec-horaires .hr-np-ds{font-size:12px;color:var(--mu);line-height:1.5;}#sec-horaires .hr-np-ft{display:flex;gap:6px;align-items:center;}#sec-horaires .hr-np-dt{width:8px;height:8px;border-radius:2px;flex-shrink:0;}#sec-horaires .hr-np-tm{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);}#sec-horaires .hr-stitle{font-size:16px;font-weight:500;margin-bottom:.4rem;}#sec-horaires .hr-ssub{font-size:12px;color:var(--mu);margin-bottom:1.2rem;}#sec-horaires .hr-db.hr-ok{border-color:#3ecf8e!important;background:rgba(62,207,142,.14)!important;color:#3ecf8e!important;transition:all .25s;}#sec-horaires .hr-db.hr-ok .hr-db-day{color:#3ecf8e!important;}#sec-horaires .hr-db.hr-ok::after{content:'✓';position:absolute;top:6px;right:8px;color:#3ecf8e;font-weight:700;font-size:12px;}#sec-horaires .hr-db.hr-warn{border-color:#f5a623!important;background:rgba(245,166,35,.12)!important;color:#f5a623!important;transition:all .25s;}#sec-horaires .hr-db.hr-warn .hr-db-day{color:#f5a623!important;}#sec-horaires .hr-db.hr-warn::after{content:'⚠';position:absolute;top:6px;right:8px;color:#f5a623;font-weight:700;font-size:12px;}#sec-horaires .hr-db{position:relative;}@keyframes hrSpin{to{transform:rotate(360deg)}}#sec-horaires .hr-btn.hr-spinning{opacity:.7;pointer-events:none;}#sec-horaires .hr-btn .hr-spin-ico{display:inline-block;}#sec-horaires .hr-btn.hr-spinning .hr-spin-ico{animation:hrSpin .7s linear infinite;}#sec-horaires #hrx-rows .hr-tl-row:first-child{min-height:34px;}#sec-horaires .hr-np-jour{padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--bd2);background:var(--s2);color:var(--mu);font-family:'DM Sans',sans-serif;transition:all .12s;}#sec-horaires .hr-np-jour:hover{color:var(--tx);border-color:var(--mu);}#sec-horaires .hr-np-jour.hr-j-on{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}#sec-horaires .hr-np-freq{padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--bd2);background:var(--s2);color:var(--mu);font-family:'DM Sans',sans-serif;transition:all .12s;}#sec-horaires .hr-np-freq:hover{color:var(--tx);border-color:var(--mu);}#sec-horaires .hr-np-freq.hr-f-on{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}
+#sec-horaires{--bg:#3a3a44;--s1:#44444f;--s2:#4e4e59;--bd:#5e5e6a;--bd2:#6e6e7a;--tx:#f7f7f9;--mu:#c2c2cf;--ac:#e8e020;}#sec-horaires *{box-sizing:border-box;margin:0;padding:0;}#sec-horaires{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;}#sec-horaires .hr-hdr{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:1px solid var(--bd);background:var(--s1);position:sticky;top:0;z-index:100;}#sec-horaires .hr-hdr-title{font-size:26px;font-weight:800;letter-spacing:.3px;line-height:1.15;}#sec-horaires .hr-hdr-sub{font-size:13px;color:var(--mu);font-family:'DM Mono',monospace;margin-top:3px;}#sec-horaires .hr-nav{display:flex;gap:4px;}#sec-horaires .hr-nt{padding:6px 13px;border-radius:8px;font-size:13px;cursor:pointer;color:var(--mu);border:1px solid transparent;transition:all .15s;}#sec-horaires .hr-nt:hover{color:var(--tx);background:var(--s2);}#sec-horaires .hr-nt.hr-on{color:var(--ac);border-color:var(--bd2);background:var(--s2);}#sec-horaires .hr-hdr-r{display:flex;gap:8px;}#sec-horaires .hr-btn{padding:6px 13px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid var(--bd2);background:var(--s2);color:var(--tx);transition:all .15s;}#sec-horaires .hr-btn:hover{background:var(--bd);}#sec-horaires .hr-btn-ac{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}#sec-horaires .hr-btn-ac:hover{background:#f5e820;}#sec-horaires .hr-sec{display:none;padding:1.2rem 1.5rem;}#sec-horaires .hr-sec.hr-on{display:block;}#sec-horaires .hr-mrow{display:flex;gap:10px;margin-bottom:1.2rem;flex-wrap:wrap;}#sec-horaires .hr-mc{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:.7rem 1rem;flex:1;min-width:110px;}#sec-horaires .hr-mc-l{font-size:10px;color:var(--mu);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}#sec-horaires .hr-mc-v{font-size:22px;font-weight:500;}#sec-horaires .hr-mc-s{font-size:11px;color:var(--mu);margin-top:1px;}#sec-horaires .hr-plan-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:10px;}#sec-horaires .hr-days{display:flex;gap:5px;flex-wrap:wrap;}#sec-horaires .hr-db{padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid var(--bd);background:var(--s2);color:var(--mu);cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:135px;}#sec-horaires .hr-db:hover{color:var(--tx);border-color:var(--bd2);}#sec-horaires .hr-db.hr-on{color:var(--ac);border-color:var(--ac);background:rgba(232,224,32,.07);}#sec-horaires .hr-db-day{font-size:13px;font-weight:600;}#sec-horaires .hr-db-ca{font-size:10px;font-family:'DM Mono',monospace;opacity:.7;}#sec-horaires .hr-scx{overflow:visible;}#sec-horaires .hr-tl-wrap{background:var(--s1);border:1px solid var(--bd);border-radius:14px;overflow:auto;max-height:calc(100vh - 230px);}#sec-horaires .hr-tl-top{display:flex;border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:50;background:var(--s1);}#sec-horaires .hr-tl-lh{display:block;width:185px;min-width:185px;max-width:185px;border-right:1px solid var(--bd);background:var(--s1);position:sticky;left:0;z-index:55;}#sec-horaires .hr-tl-hh{flex:1;display:flex;min-width:920px;}#sec-horaires .hr-tl-h{flex:1;text-align:center;font-size:10px;color:var(--mu);font-family:'DM Mono',monospace;padding:12px 0;border-right:1px solid var(--bd);}#sec-horaires .hr-tl-h:last-child{border-right:none;}#sec-horaires .hr-tl-row{display:flex;border-bottom:1px solid var(--bd);min-height:28px;}#sec-horaires .hr-tl-row:last-child{border-bottom:none;}#sec-horaires .hr-tl-row:hover{background:rgba(255,255,255,.015);}#sec-horaires .hr-tl-i{display:flex;flex-direction:column;justify-content:center;gap:2px;width:185px;min-width:185px;max-width:185px;padding:5px 10px;border-right:1px solid var(--bd);background:var(--s1);position:sticky;left:0;z-index:30;}#sec-horaires .hr-tl-i.hr-emp-clic{cursor:pointer;}#sec-horaires .hr-tl-i.hr-emp-clic:hover{background:var(--s2);}#sec-horaires .hr-tl-nm{font-size:12px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px;}#sec-horaires .hr-tl-chev{font-size:9px;color:var(--mu);transition:transform .15s;}#sec-horaires .hr-tl-chev.hr-open{transform:rotate(90deg);}#sec-horaires .hr-tl-hbadge{display:inline-flex;align-items:center;gap:5px;font-size:9.5px;font-family:'DM Mono',monospace;}#sec-horaires .hr-tl-hpill{padding:1px 5px;border-radius:4px;font-weight:700;}#sec-horaires .hr-tl-week{background:rgba(0,0,0,.12);border-bottom:1px solid var(--bd);}#sec-horaires .hr-tl-wkrow{display:flex;border-bottom:1px solid rgba(255,255,255,.05);min-height:24px;}#sec-horaires .hr-tl-wkrow:last-child{border-bottom:none;}#sec-horaires .hr-tl-wkd{width:185px;min-width:185px;max-width:185px;padding:3px 10px 3px 24px;font-size:11px;color:var(--mu);display:flex;align-items:center;gap:6px;border-right:1px solid var(--bd);position:sticky;left:0;background:var(--s1);z-index:20;}#sec-horaires .hr-tl-wkb{flex:1;position:relative;display:flex;align-items:center;min-width:920px;}#sec-horaires .hr-tl-b{flex:1;position:relative;display:flex;align-items:center;min-width:920px;}#sec-horaires .hr-tl-gl{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;pointer-events:none;}#sec-horaires .hr-tl-gl div{flex:1;border-right:1px solid rgba(255,255,255,.025);}#sec-horaires .hr-tl-gl div:last-child{border-right:none;}#sec-horaires .hr-bar{position:absolute;height:19px;border-radius:4px;display:flex;align-items:center;padding:0 5px;font-size:9px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;top:50%;transform:translateY(-50%);letter-spacing:.3px;transition:filter .12s;}#sec-horaires .hr-bar:hover{filter:brightness(1.2);z-index:20;}#sec-horaires .hr-bar.hr-bar-edit{cursor:grab;}#sec-horaires .hr-rz{position:absolute;top:0;bottom:0;width:14px;cursor:ew-resize;z-index:25;display:flex;align-items:center;justify-content:center;touch-action:none;}#sec-horaires .hr-rz.hr-rz-l{left:-2px;}#sec-horaires .hr-rz.hr-rz-r{right:-2px;}#sec-horaires .hr-rz::after{content:'';width:3px;height:60%;border-radius:2px;background:rgba(255,255,255,.85);box-shadow:0 0 2px rgba(0,0,0,.6);opacity:0;transition:opacity .12s;}#sec-horaires .hr-bar:hover .hr-rz::after,#sec-horaires .hr-rz:active::after{opacity:1;}#sec-horaires .hr-bar.hr-dragging{filter:brightness(1.3);z-index:40;box-shadow:0 0 0 2px var(--ac);}#sec-horaires .hr-leg{display:flex;flex-wrap:wrap;gap:8px;padding:.7rem 1.2rem;border-top:1px solid var(--bd);}#sec-horaires .hr-li{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--mu);}#sec-horaires .hr-ld{width:9px;height:9px;border-radius:2px;}#sec-horaires .hr-ca-ctrl{display:flex;gap:12px;margin-bottom:1.2rem;flex-wrap:wrap;align-items:flex-end;}#sec-horaires .hr-cc{display:flex;flex-direction:column;gap:4px;}#sec-horaires .hr-cc label{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);text-transform:uppercase;}#sec-horaires .hr-cc select{background:var(--s1);border:1px solid var(--bd2);border-radius:8px;padding:6px 11px;font-size:13px;color:var(--tx);font-family:'DM Sans',sans-serif;outline:none;}#sec-horaires .hr-ca-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;margin-bottom:1.2rem;}#sec-horaires .hr-ca-cell{background:var(--s1);border:1px solid var(--bd);border-radius:9px;padding:.5rem .8rem;}#sec-horaires .hr-ca-cell label{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);display:flex;justify-content:space-between;margin-bottom:4px;}#sec-horaires .hr-ca-cell label span{color:var(--ac);font-size:9px;}#sec-horaires .hr-ca-cell input{width:100%;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:4px 7px;font-size:12px;color:var(--tx);font-family:'DM Mono',monospace;outline:none;}#sec-horaires .hr-ca-cell input:focus{border-color:var(--ac);}#sec-horaires .hr-ca-bar{height:3px;border-radius:2px;margin-top:4px;background:var(--ac);min-width:1px;}#sec-horaires .hr-ca-cell.hr-hi{border-color:rgba(232,224,32,.4);}#sec-horaires .hr-gt-wrap{overflow-x:auto;border:1px solid var(--bd);border-radius:12px;}#sec-horaires .hr-gt{width:100%;border-collapse:collapse;font-size:11px;font-family:'DM Mono',monospace;}#sec-horaires .hr-gt th{background:var(--s2);color:var(--mu);padding:6px 9px;border-bottom:1px solid var(--bd);border-right:1px solid var(--bd);text-align:center;font-weight:500;white-space:nowrap;}#sec-horaires .hr-gt td{padding:4px 7px;border-bottom:1px solid var(--bd);border-right:1px solid var(--bd);text-align:center;color:var(--tx);}#sec-horaires .hr-gt tr:last-child td{border-bottom:none;}#sec-horaires .hr-gt td:first-child, #sec-horaires .hr-gt th:first-child{text-align:left;padding-left:12px;}#sec-horaires .hr-cv{display:inline-block;padding:2px 6px;border-radius:4px;font-weight:600;}#sec-horaires .hr-np-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;}#sec-horaires .hr-np-card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:.9rem 1.1rem;display:flex;flex-direction:column;gap:6px;}#sec-horaires .hr-np-top{display:flex;align-items:center;justify-content:space-between;}#sec-horaires .hr-np-nm{font-size:14px;font-weight:500;}#sec-horaires .hr-np-bg{font-size:9px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px;background:rgba(120,144,156,.15);color:#78909c;border:1px solid rgba(120,144,156,.3);}#sec-horaires .hr-np-ds{font-size:12px;color:var(--mu);line-height:1.5;}#sec-horaires .hr-np-ft{display:flex;gap:6px;align-items:center;}#sec-horaires .hr-np-dt{width:8px;height:8px;border-radius:2px;flex-shrink:0;}#sec-horaires .hr-np-tm{font-size:10px;font-family:'DM Mono',monospace;color:var(--mu);}#sec-horaires .hr-stitle{font-size:16px;font-weight:500;margin-bottom:.4rem;}#sec-horaires .hr-ssub{font-size:12px;color:var(--mu);margin-bottom:1.2rem;}#sec-horaires .hr-db.hr-ok{border-color:#3ecf8e!important;background:rgba(62,207,142,.14)!important;color:#3ecf8e!important;transition:all .25s;}#sec-horaires .hr-db.hr-ok .hr-db-day{color:#3ecf8e!important;}#sec-horaires .hr-db.hr-ok::after{content:'✓';position:absolute;top:6px;right:8px;color:#3ecf8e;font-weight:700;font-size:12px;}#sec-horaires .hr-db.hr-warn{border-color:#f5a623!important;background:rgba(245,166,35,.12)!important;color:#f5a623!important;transition:all .25s;}#sec-horaires .hr-db.hr-warn .hr-db-day{color:#f5a623!important;}#sec-horaires .hr-db.hr-warn::after{content:'⚠';position:absolute;top:6px;right:8px;color:#f5a623;font-weight:700;font-size:12px;}#sec-horaires .hr-db{position:relative;}@keyframes hrSpin{to{transform:rotate(360deg)}}#sec-horaires .hr-btn.hr-spinning{opacity:.7;pointer-events:none;}#sec-horaires .hr-btn .hr-spin-ico{display:inline-block;}#sec-horaires .hr-btn.hr-spinning .hr-spin-ico{animation:hrSpin .7s linear infinite;}#sec-horaires #hrx-rows .hr-tl-row:first-child{min-height:34px;}#sec-horaires .hr-np-jour{padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--bd2);background:var(--s2);color:var(--mu);font-family:'DM Sans',sans-serif;transition:all .12s;}#sec-horaires .hr-np-jour:hover{color:var(--tx);border-color:var(--mu);}#sec-horaires .hr-np-jour.hr-j-on{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}#sec-horaires .hr-np-freq{padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--bd2);background:var(--s2);color:var(--mu);font-family:'DM Sans',sans-serif;transition:all .12s;}#sec-horaires .hr-np-freq:hover{color:var(--tx);border-color:var(--mu);}#sec-horaires .hr-np-freq.hr-f-on{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600;}
 #sec-horaires #hrx-taux-input::-webkit-outer-spin-button,#sec-horaires #hrx-taux-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
 #sec-horaires .hr-np-card.hr-np-editing{border-color:var(--ac);box-shadow:0 0 0 1px rgba(232,224,32,.25);}
 #sec-horaires .hr-qh{position:absolute;top:6px;left:8px;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;cursor:help;line-height:1}
@@ -645,7 +645,9 @@ body.tv-mode #eye-viewas{display:none!important;}
       </div>
       <button class="hr-btn hr-btn-ac" id="hrx-refresh-btn" onclick="hrRefreshWeek()" title="Recalcule les TRAITS (besoin) des 7 jours de la semaine selon le CA et la grille">🔄 Actualiser les traits de la semaine</button>
       <!-- Bouton "Placement des salariés sur la semaine" retiré à la demande : on utilise désormais le Placement intelligent. La fonction hrPlacerSemaineCourante reste disponible si besoin. -->
-      <button class="hr-btn" id="hrx-placer-intel-btn" onclick="hrPlacerIntelligentSemaine()" title="Place les salariés sur les traits de la grille CA (jamais touchée), en BOUCLE automatique : place → contrôle les créneaux restants → retravaille → recontrôle, jusqu'à couvrir le maximum du besoin et viser les contrats. Coupures 30 min autorisées." style="background:#2a1a3a;border-color:#a855f7;color:#d8b4fe;font-weight:700;">🧠 Placement intelligent</button>
+      <button class="hr-btn" id="hrx-placer-intel-btn" onclick="hrPlacerIntelligentSemaine()" title="Place les salariés sur les traits VIDES de la grille CA. NON DESTRUCTIF : conserve ce qui est déjà placé (placements précédents enregistrés ou modifications manuelles) et complète seulement le reste. Pour tout remettre à zéro, utilise « 🧹 Vider la semaine » d'abord." style="background:#2a1a3a;border-color:#a855f7;color:#d8b4fe;font-weight:700;">🧠 Placement intelligent</button>
+      <button class="hr-btn" id="hrx-enregistrer-btn" onclick="hrEnregistrerSemaineManuel()" title="Enregistre le planning travaillé de la semaine affichée (placements + modifications de créneaux) dans la base. Au retour sur l'application, la semaine est rechargée telle quelle, sans repartir de zéro." style="background:#16321f;border-color:#3ecf8e;color:#3ecf8e;font-weight:700;">💾 Enregistrer</button>
+      <span id="hrx-enregistre-info" style="font-size:11px;color:#3ecf8e;align-self:center;margin-left:2px"></span>
       <button class="hr-btn" id="hrx-mois-btn" onclick="hrAnalyseRecrutementMois()" title="Analyse le MOIS entier (toutes ses semaines) en simulation, sans toucher au planning : combien de créneaux restent, quels profils recruter, quels salariés sont bloquants par leurs dispos." style="background:#1a2a3a;border-color:#3b82f6;color:#93c5fd;font-weight:700;">📅 Analyse recrutement du mois</button>
       <span id="hrx-contrat-touches" style="display:inline-flex;gap:8px;flex-wrap:wrap;align-items:flex-end"></span>
       <button class="hr-btn" id="hrx-vider-btn" onclick="hrViderSemaine()" title="Retire TOUS les salariés des traits de la semaine affichée : les traits redeviennent vides pour repartir à zéro." style="background:#3a1a1a;border-color:#cc5555;color:#ff9090;">🧹 Vider la semaine</button>
@@ -2057,6 +2059,8 @@ function hrRefreshPageActive(){
           if(typeof _grilleDirty==='undefined' || !_grilleDirty){
             if(typeof hrChargerAffect==='function') hrChargerAffect();
             if(typeof hrChargerLocks==='function') hrChargerLocks();
+            if(typeof hrChargerEnregHorodate==='function') hrChargerEnregHorodate();
+            if(typeof hrChargerTraitOver==='function') hrChargerTraitOver();
           }
         }catch(e){}
         // Redessine les jours (vert/orange) + métriques si le planning est l'onglet ouvert.
@@ -9646,6 +9650,7 @@ function hrSwitchRestoGrille(resto){
   // Charger les placements sauvegardés de CE resto (chaque resto a les siens)
   try{ if(typeof hrChargerAffect==='function') hrChargerAffect(resto); }catch(e){}
   try{ if(typeof hrChargerLocks==='function') hrChargerLocks(resto); }catch(e){}
+  try{ if(typeof hrChargerTraitOver==='function') hrChargerTraitOver(resto); }catch(e){}
   // Changer de resto recharge une grille : ce n'est pas une modification → cacher « Enregistrer »
   try{ if(typeof _grilleClearDirty==='function') _grilleClearDirty(); }catch(e){}
   // Régénérer les touches de placement (une par valeur de contrat de CE resto)
@@ -11774,6 +11779,64 @@ window.hrAutoAssignWeek=hrAutoAssignWeek;
 // Mémoire des affectations par date ISO : { 'AAAA-MM-JJ': [ {l,s,e,emp,empId}, ... ] }
 var HR_AFFECT={};
 var HR_RESTE={}; // créneaux non pourvus (restant à prendre) par date ISO
+// ── AJUSTEMENTS MANUELS D'HORAIRES DE TRAITS (agrandir / diminuer) ────────────
+// La grille (ROWS_BY_DAY) est régénérée depuis le CA à chaque rechargement, donc
+// un trait agrandi/réduit reviendrait à ses heures d'origine. On mémorise donc les
+// ajustements par date : { iso : [ {lo,so,eo, s,e} ] } où (lo,so,eo) = poste+heures
+// D'ORIGINE (clé stable du trait CA) et (s,e) = nouvelles heures voulues. Réappliqué
+// sur les bars au début de hrReappliquerAffectations. Persisté dans Supabase.
+var HR_TRAIT_OVER={};
+function _hrTraitOverResto(){ return _hrAffectResto(); }
+function hrSauverTraitOver(){
+  var resto=_hrTraitOverResto(); var cle='hr_trait_over_'+resto;
+  var clean={};
+  Object.keys(HR_TRAIT_OVER||{}).forEach(function(iso){
+    var arr=HR_TRAIT_OVER[iso]; if(!arr||!arr.length) return;
+    clean[iso]=arr.map(function(o){return {lo:o.lo,so:o.so,eo:o.eo,s:o.s,e:o.e};});
+  });
+  try{ localStorage.setItem(cle, JSON.stringify(clean)); }catch(e){}
+  try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:cle, valeur:clean},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
+}
+window.hrSauverTraitOver=hrSauverTraitOver;
+function hrChargerTraitOver(resto){
+  resto=(resto||_hrTraitOverResto()).toUpperCase(); var cle='hr_trait_over_'+resto;
+  try{ var ls=localStorage.getItem(cle); if(ls){ var o=JSON.parse(ls); if(o&&typeof o==='object') HR_TRAIT_OVER=o; } }catch(e){}
+  try{
+    if(typeof SB!=='undefined' && SB){
+      SB.from('app_config').select('valeur').eq('cle',cle).maybeSingle().then(function(r){
+        var data=r&&r.data;
+        if(data && data.valeur && typeof data.valeur==='object'){
+          HR_TRAIT_OVER=data.valeur;
+          try{ localStorage.setItem(cle, JSON.stringify(data.valeur)); }catch(e){}
+          try{ if(typeof renderTimeline==='function') renderTimeline(); }catch(e){}
+        }
+      }).catch(function(){});
+    }
+  }catch(e){}
+}
+window.hrChargerTraitOver=hrChargerTraitOver;
+// Applique les ajustements d'horaires mémorisés sur les bars de ROWS_BY_DAY.
+// À appeler AVANT la ré-association des noms (les heures doivent être à jour pour
+// que le matching HR_AFFECT par (l,s,e) retombe juste).
+function hrAppliquerTraitOver(){
+  for(var d=0; d<7; d++){
+    var iso=(typeof DAY_DATES!=='undefined'&&DAY_DATES[d])?DAY_DATES[d]:null; if(!iso) continue;
+    var ovs=HR_TRAIT_OVER[iso]; if(!ovs||!ovs.length) continue;
+    var used={};
+    (ROWS_BY_DAY[d]||[]).forEach(function(row){
+      row.bars.forEach(function(b){
+        for(var i=0;i<ovs.length;i++){
+          if(used[i]) continue;
+          var o=ovs[i];
+          if(b.l===o.lo && b.s===o.so && (b.e||b.s+60)===o.eo){
+            b.s=o.s; b.e=o.e; used[i]=true; break;
+          }
+        }
+      });
+    });
+  }
+}
+window.hrAppliquerTraitOver=hrAppliquerTraitOver;
 
 // ══ PERSISTANCE DES PLACEMENTS (multi-appareils, permanent) ════════════════════
 // Les placements (HR_AFFECT) sont sauvegardés par restaurant dans Supabase
@@ -12664,6 +12727,7 @@ function hrEtatSupprimer(empId, idx){
 window.hrEtatSupprimer=hrEtatSupprimer;
 // Réapplique les noms mémorisés sur les traits de la semaine actuellement affichée
 function hrReappliquerAffectations(){
+  try{ if(typeof hrAppliquerTraitOver==='function') hrAppliquerTraitOver(); }catch(e){}
   for(var d=0;d<7;d++){
     var iso=(DAY_DATES&&DAY_DATES[d])?DAY_DATES[d]:null;
     var aff=iso?HR_AFFECT[iso]:null;
@@ -13627,7 +13691,7 @@ window.hrPlacerSemaineCourante=hrPlacerSemaineCourante;
 // coupure max, amplitude 12h, repos, jours de repos. Coupures autorisées.
 // L'humain ne reclique pas : le moteur fait tout le travail d'optimisation.
 // ══════════════════════════════════════════════════════════════════════════════
-function hrPlacerIntelligentSemaine(){
+function hrPlacerIntelligentSemaine(repartirZero){
   var __st0=document.getElementById('hrx-assign-status'); if(__st0) __st0.innerHTML='🧠 Placement intelligent en cours…';
   try{
   var lundi=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?hrLundiDe(DAY_DATES[0]):null);
@@ -13677,6 +13741,21 @@ function hrPlacerIntelligentSemaine(){
   // fil de l'eau (ce qui peut tout figer), on RÉSERVE à chaque salarié une paire de
   // jours de repos collés AVANT de placer. Les paires sont réparties équitablement
   // sur la semaine pour ne vider aucun jour. Un 3e repos éventuel se pose librement.
+  // En mode NON DESTRUCTIF, repère les jours déjà travaillés (placements conservés)
+  // par salarié, pour que la réservation des repos ne tombe pas sur un jour occupé.
+  var dejaTravaille={}; // { empId : {dayIdx:true} }
+  if(!repartirZero){
+    var _eqIds={}; eq.forEach(function(e){ _eqIds[e.id]=true; });
+    for(var _dd=0; _dd<7; _dd++){
+      ((typeof ROWS_BY_DAY!=='undefined'&&ROWS_BY_DAY[_dd])||[]).forEach(function(row){
+        (row.bars||[]).forEach(function(b){
+          if(b.empId && _eqIds[b.empId] && !estTraitEncadrement(b.l)){
+            dejaTravaille[b.empId]=dejaTravaille[b.empId]||{}; dejaTravaille[b.empId][_dd]=true;
+          }
+        });
+      });
+    }
+  }
   var reposReserve={};
   (function construireRepos(){
     var PAIRES=[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6]];
@@ -13693,7 +13772,9 @@ function hrPlacerIntelligentSemaine(){
         // petit contrat (ven/sam/dim only) : repos forcément en semaine (lun..jeu)
         if(petit && (p.indexOf(4)>=0||p.indexOf(5)>=0||p.indexOf(6)>=0)) return;
         var indispo=0; p.forEach(function(d){ if(!jourDispoSimple(e,d)) indispo++; });
-        var sc = indispo*5 - usage[p.join('-')]*2 - ((p.indexOf(5)>=0||p.indexOf(6)>=0)?1:0);
+        // éviter de poser un repos sur un jour DÉJÀ travaillé (placement conservé)
+        var occ=0; var dtv=dejaTravaille[e.id]||{}; p.forEach(function(d){ if(dtv[d]) occ++; });
+        var sc = indispo*5 - usage[p.join('-')]*2 - ((p.indexOf(5)>=0||p.indexOf(6)>=0)?1:0) - occ*50;
         if(sc>bs){ bs=sc; best=p; }
       });
       if(!best) best=[1,2];
@@ -13798,22 +13879,32 @@ function hrPlacerIntelligentSemaine(){
   }
 
   // ── Récupère les bars PRODUCTIFS existants (générés par la grille CA) ────────
-  // On NE TOUCHE JAMAIS aux traits : on lit ceux de ROWS_BY_DAY, on vide juste
-  // leur affectation, et on (re)place les gens dessus.
-  var traitsJour=[]; // [d] = [bars productifs]
+  // On NE TOUCHE JAMAIS aux traits : on lit ceux de ROWS_BY_DAY.
+  // NON DESTRUCTIF (par défaut) : si un trait porte déjà un salarié (placement
+  // précédent OU modification manuelle enregistrée), on le CONSERVE et on l'injecte
+  // dans l'état du moteur (busy/minSem/jt) pour que le contrat soit décompté ; ce
+  // trait n'est PAS remis dans la liste à pourvoir. Seuls les traits VIDES sont à
+  // remplir. Ainsi, recliquer sur « Placement intelligent » repart de l'existant
+  // et complète, sans tout remettre à zéro. Pour repartir de zéro : « Vider la
+  // semaine » d'abord (ou repartirZero=true).
+  var empById={}; eq.forEach(function(e){ empById[e.id]=e; });
+  var traitsJour=[]; // [d] = [bars productifs à pourvoir (vides)]
   for(var d=0; d<7; d++){
     traitsJour[d]=[];
     var rows=ROWS_BY_DAY[d]||[];
     rows.forEach(function(row){
       row.bars.forEach(function(b){
         if(estTraitEncadrement(b.l)) return;
-        var cat=(typeof hrCategorieTrait==='function')?hrCategorieTrait(b.l):'prod';
-        if(cat==='np'){
-          // IMPRODUCTIF (fermetures, ouvertures…) : trait fixe, on place aussi dessus
-          b.empId=null; b.emp=null; b._seg=null; traitsJour[d].push(b);
-        } else {
-          b.empId=null; b.emp=null; b._seg=null; traitsJour[d].push(b);
+        if(!repartirZero && b.empId && empById[b.empId]){
+          // CONSERVER ce placement existant : on le réinjecte dans l'état du moteur.
+          var emp=empById[b.empId];
+          var seg={s:b.s,e:b.e,bar:b}; b._seg=seg;
+          busy[emp.id]=busy[emp.id]||{}; busy[emp.id][d]=busy[emp.id][d]||[]; busy[emp.id][d].push(seg);
+          minSem[emp.id]=(minSem[emp.id]||0)+(b.e-b.s); jt[emp.id]=jt[emp.id]||{}; jt[emp.id][d]=true;
+          return; // pas dans traitsJour : intouchable
         }
+        // trait vide (ou repartirZero) → à pourvoir
+        b.empId=null; b.emp=null; b._seg=null; traitsJour[d].push(b);
       });
     });
   }
@@ -15616,6 +15707,106 @@ window.hrRenderEmploiSemaine=hrRenderEmploiSemaine;
 const SPAN=RULER_H.length*60;
 function pct(m){return((m-DS)/SPAN*100).toFixed(4)+'%';}
 function pctW(s,e){return((e-s)/SPAN*100).toFixed(4)+'%';}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// REDIMENSIONNEMENT DU TRAIT AU DOIGT / À LA SOURIS (poignées aux deux bords)
+// On attache deux poignées (gauche = début, droite = fin) à chaque trait de
+// salarié. Glisser une poignée modifie l'heure correspondante par pas de 15 min,
+// EN DIRECT. Au relâchement, on enregistre (override d'horaire + HR_AFFECT +
+// Supabase) exactement comme les boutons +/−. Utilise les Pointer Events :
+// fonctionne au doigt (tactile) ET à la souris, sans dépendance.
+// ══════════════════════════════════════════════════════════════════════════════
+function hrBarAjouterPoignees(bar, container, b, dayIdx, rowIdx, barIdx){
+  if(!bar || !container || !b) return;
+  // Semaine verrouillée / transférée → pas de redimensionnement
+  try{
+    var iso=(typeof DAY_DATES!=='undefined'&&DAY_DATES[dayIdx])?DAY_DATES[dayIdx]:null;
+    if(iso && typeof hrDateVerrouillee==='function' && hrDateVerrouillee(iso)) return;
+  }catch(_e){}
+  bar.classList.add('hr-bar-edit');
+  function mkH(cote){
+    var h=document.createElement('div');
+    h.className='hr-rz '+(cote==='s'?'hr-rz-l':'hr-rz-r');
+    h.addEventListener('pointerdown', function(ev){ demarrer(ev, cote, h); });
+    // empêcher que le clic sur la poignée ouvre la fenêtre d'affectation
+    h.addEventListener('click', function(ev){ ev.stopPropagation(); });
+    return h;
+  }
+  function demarrer(ev, cote, h){
+    ev.preventDefault(); ev.stopPropagation();
+    var rect=container.getBoundingClientRect();
+    var largeur=rect.width; if(largeur<=0) return;
+    var origS=b.s, origE=(b.e||b.s+60);
+    var debutS=b.s, debutE=(b.e||b.s+60);
+    bar.classList.add('hr-dragging');
+    try{ h.setPointerCapture(ev.pointerId); }catch(_e){}
+    function minutesDe(clientX){
+      var x=clientX-rect.left; if(x<0)x=0; if(x>largeur)x=largeur;
+      var m=DS+(x/largeur)*SPAN;
+      return Math.round(m/15)*15;           // pas de 15 min
+    }
+    function bouger(e2){
+      var m=minutesDe(e2.clientX);
+      if(cote==='s'){
+        if(m<DS) m=DS;
+        if(m>debutE-15) m=debutE-15;
+        b.s=m;
+      } else {
+        if(m>DE) m=DE;
+        if(m<debutS+15) m=debutS+15;
+        b.e=m;
+      }
+      // mise à jour visuelle immédiate (sans tout redessiner = fluide)
+      var cs=Math.max(b.s,DS), ce=Math.min(b.e||b.s+60,DE);
+      bar.style.left=pct(cs); bar.style.width=pctW(cs,ce);
+      bar.textContent=b.l+' '+fmt(b.s)+'–'+fmt(b.e||b.s+60);
+    }
+    function fin(){
+      document.removeEventListener('pointermove', bouger);
+      document.removeEventListener('pointerup', fin);
+      document.removeEventListener('pointercancel', fin);
+      bar.classList.remove('hr-dragging');
+      try{ h.releasePointerCapture(ev.pointerId); }catch(_e){}
+      // rien n'a bougé → ne rien enregistrer
+      if(b.s===debutS && (b.e||b.s+60)===debutE) return;
+      _hrTraitCommitHoraire(dayIdx, rowIdx, barIdx, origS, origE);
+    }
+    document.addEventListener('pointermove', bouger);
+    document.addEventListener('pointerup', fin);
+    document.addEventListener('pointercancel', fin);
+  }
+  bar.appendChild(mkH('s'));
+  bar.appendChild(mkH('e'));
+}
+window.hrBarAjouterPoignees=hrBarAjouterPoignees;
+
+// Enregistre le nouvel horaire du trait (override stable + HR_AFFECT + Supabase),
+// puis redessine. origS/origE = heures du trait AVANT ce geste (pour la clé override).
+function _hrTraitCommitHoraire(dayIdx, rowIdx, barIdx, origS, origE){
+  var row=ROWS_BY_DAY[dayIdx] && ROWS_BY_DAY[dayIdx][rowIdx];
+  var b=row && row.bars && row.bars[barIdx]; if(!b) return;
+  var iso=(typeof DAY_DATES!=='undefined'&&DAY_DATES[dayIdx])?DAY_DATES[dayIdx]:null;
+  if(iso){
+    HR_TRAIT_OVER[iso]=HR_TRAIT_OVER[iso]||[];
+    var ovs=HR_TRAIT_OVER[iso];
+    // override existant pour ce trait ? (clé = heures AVANT ce geste)
+    var found=null;
+    for(var i=0;i<ovs.length;i++){ if(ovs[i].lo===b.l && ovs[i].s===origS && ovs[i].e===origE){ found=ovs[i]; break; } }
+    if(found){
+      found.s=b.s; found.e=b.e;
+      if(found.s===found.so && found.e===found.eo){ ovs.splice(ovs.indexOf(found),1); }
+    } else {
+      if(!(b.s===origS && b.e===origE)){ ovs.push({lo:b.l, so:origS, eo:origE, s:b.s, e:b.e}); }
+    }
+  }
+  try{ if(typeof _grilleSetDirty==='function') _grilleSetDirty(); }catch(_e){}
+  hrPersistAffectations();
+  try{ if(typeof hrSauverTraitOver==='function') hrSauverTraitOver(); }catch(_e){}
+  try{ renderTimeline(); }catch(_e){}
+  try{ if(typeof hrRenderPlanningHebdo==='function') hrRenderPlanningHebdo(); }catch(_e){}
+  try{ if(typeof hrRenderEmploiSemaine==='function') hrRenderEmploiSemaine(); }catch(_e){}
+}
+window._hrTraitCommitHoraire=_hrTraitCommitHoraire;
 // ══════════════════════════════════════════════════════════════════════════════
 // AFFECTATION MANUELLE D'UN TRAIT (clic sur un trait du planning)
 // Permet de choisir / remplacer / retirer la personne sur un trait, en ne
@@ -15717,7 +15908,28 @@ function hrTraitAffecterOuvrir(rowIdx, barIdx){
   var jourNom=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'][curDay]||'';
   var _durMin=(e-s); var _dh=Math.floor(_durMin/60), _dm=_durMin%60;
   var _durTxt=_dh+'h'+(_dm?String(_dm).padStart(2,'0'):'');
-  var h='<div style="margin-bottom:6px;font-size:1.05rem;font-weight:700;color:#fff;">'+poste+' · '+fmt(s)+'–'+fmt(e)+' <span style="color:#3ecf8e;font-family:\'DM Mono\',monospace;font-size:.95rem;">= '+_durTxt+'</span></div>';
+  var h='<div style="margin-bottom:6px;font-size:1.05rem;font-weight:700;color:#fff;">'+poste+' · <span id="hr-trait-plage">'+fmt(s)+'–'+fmt(e)+'</span> <span id="hr-trait-duree" style="color:#3ecf8e;font-family:\'DM Mono\',monospace;font-size:.95rem;">= '+_durTxt+'</span></div>';
+  // ── ⏱️ Ajuster les horaires du trait (agrandir / diminuer) ──────────────────
+  // Modifie début/fin par pas de 15 min. Recalcule la durée → impacte directement
+  // les heures du salarié placé. Sauvegarde immédiate (HR_AFFECT + Supabase).
+  h+='<div style="background:#202833;border:1px solid #3b556e;border-radius:10px;padding:10px 12px;margin-bottom:14px;">'
+    +'<div style="font-size:.74rem;color:#9fd3ff;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;font-weight:700;">⏱️ Ajuster les horaires de ce trait</div>'
+    +'<div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;">'
+    +'<div style="display:flex;flex-direction:column;gap:4px;"><span style="font-size:.7rem;color:#888;">Début</span>'
+      +'<div style="display:flex;align-items:center;gap:6px;">'
+        +'<button onclick="hrTraitModifierHoraire(\'s\',-15)" style="width:30px;height:30px;border-radius:7px;background:#2a3a4a;border:1px solid #4a6a8a;color:#bcd;font-size:1.1rem;cursor:pointer;line-height:1;">−</button>'
+        +'<span id="hr-trait-s" style="min-width:54px;text-align:center;font-family:\'DM Mono\',monospace;font-size:1rem;color:#fff;font-weight:700;">'+fmt(s)+'</span>'
+        +'<button onclick="hrTraitModifierHoraire(\'s\',15)" style="width:30px;height:30px;border-radius:7px;background:#2a3a4a;border:1px solid #4a6a8a;color:#bcd;font-size:1.1rem;cursor:pointer;line-height:1;">+</button>'
+      +'</div></div>'
+    +'<div style="display:flex;flex-direction:column;gap:4px;"><span style="font-size:.7rem;color:#888;">Fin</span>'
+      +'<div style="display:flex;align-items:center;gap:6px;">'
+        +'<button onclick="hrTraitModifierHoraire(\'e\',-15)" style="width:30px;height:30px;border-radius:7px;background:#2a3a4a;border:1px solid #4a6a8a;color:#bcd;font-size:1.1rem;cursor:pointer;line-height:1;">−</button>'
+        +'<span id="hr-trait-e" style="min-width:54px;text-align:center;font-family:\'DM Mono\',monospace;font-size:1rem;color:#fff;font-weight:700;">'+fmt(e)+'</span>'
+        +'<button onclick="hrTraitModifierHoraire(\'e\',15)" style="width:30px;height:30px;border-radius:7px;background:#2a3a4a;border:1px solid #4a6a8a;color:#bcd;font-size:1.1rem;cursor:pointer;line-height:1;">+</button>'
+      +'</div></div>'
+    +'</div>'
+    +'<div style="font-size:.72rem;color:#777;margin-top:8px;">Pas de 15 min. La durée est recalculée et appliquée tout de suite au salarié placé.</div>'
+    +'</div>';
   h+='<div style="font-size:.82rem;color:#aaa;margin-bottom:14px;">'+jourNom+' · clique un nom pour l\'affecter à ce trait. Seuls les <b style="color:#3ecf8e;">disponibles et compétents</b> sont proposés en premier.</div>';
   // qui est dessus actuellement
   if(b.emp){
@@ -15839,6 +16051,65 @@ function hrTraitVider(){
 }
 window.hrTraitVider=hrTraitVider;
 
+// ⏱️ Agrandit / diminue le trait cible (début ou fin) par pas de 15 min.
+// Met à jour b.s/b.e, recalcule la durée (donc les heures du salarié), sauvegarde
+// (HR_AFFECT + Supabase) et redessine. Garde-fous : fin>début, durée mini 15 min,
+// bornes de la timeline (DS..DE).
+function hrTraitModifierHoraire(quoi, delta){
+  var c=window.__hrTraitCible; if(!c) return;
+  var row=ROWS_BY_DAY[c.day] && ROWS_BY_DAY[c.day][c.rowIdx];
+  var b=row && row.bars && row.bars[c.barIdx]; if(!b) return;
+  var iso=(typeof DAY_DATES!=='undefined'&&DAY_DATES[c.day])?DAY_DATES[c.day]:null;
+  var s=b.s, e=(b.e||b.s+60);
+  // Heures AVANT modification (= clé pour retrouver un éventuel override existant)
+  var avS=s, avE=e;
+  if(quoi==='s'){
+    var ns=s+delta;
+    if(ns<DS) ns=DS;
+    if(ns>e-15) ns=e-15;        // au moins 15 min de durée
+    b.s=ns;
+  } else {
+    var ne=e+delta;
+    if(ne>DE) ne=DE;
+    if(ne<s+15) ne=s+15;        // au moins 15 min de durée
+    b.e=ne;
+  }
+  // ── Mémoriser l'ajustement (clé = heures D'ORIGINE du trait CA) ────────────
+  if(iso){
+    HR_TRAIT_OVER[iso]=HR_TRAIT_OVER[iso]||[];
+    var ovs=HR_TRAIT_OVER[iso];
+    // override déjà existant pour ce trait ? (ses s/e courants == heures avant modif)
+    var found=null;
+    for(var i=0;i<ovs.length;i++){ if(ovs[i].lo===b.l && ovs[i].s===avS && ovs[i].e===avE){ found=ovs[i]; break; } }
+    if(found){
+      // mettre à jour les nouvelles heures (on garde lo/so/eo = origine)
+      found.s=b.s; found.e=b.e;
+      // si revenu exactement à l'origine → supprimer l'override (trait redevient natif)
+      if(found.s===found.so && found.e===found.eo){ ovs.splice(ovs.indexOf(found),1); }
+    } else {
+      // nouveau : l'origine est l'état AVANT cette première modif
+      if(!(b.s===avS && b.e===avE)){
+        ovs.push({lo:b.l, so:avS, eo:avE, s:b.s, e:b.e});
+      }
+    }
+  }
+  try{ if(typeof _grilleSetDirty==='function') _grilleSetDirty(); }catch(_e){}
+  hrPersistAffectations();
+  try{ if(typeof hrSauverTraitOver==='function') hrSauverTraitOver(); }catch(_e){}
+  // Mise à jour en direct de l'affichage dans la modale
+  var ns2=b.s, ne2=b.e||b.s+60, dm=ne2-ns2;
+  var dh=Math.floor(dm/60), dmin=dm%60, dtxt=dh+'h'+(dmin?String(dmin).padStart(2,'0'):'');
+  var elS=document.getElementById('hr-trait-s'); if(elS) elS.textContent=fmt(ns2);
+  var elE=document.getElementById('hr-trait-e'); if(elE) elE.textContent=fmt(ne2);
+  var elP=document.getElementById('hr-trait-plage'); if(elP) elP.textContent=fmt(ns2)+'–'+fmt(ne2);
+  var elD=document.getElementById('hr-trait-duree'); if(elD) elD.textContent='= '+dtxt;
+  // Redessiner la timeline + tableaux dépendants
+  try{ renderTimeline(); }catch(_e){}
+  try{ if(typeof hrRenderPlanningHebdo==='function') hrRenderPlanningHebdo(); }catch(_e){}
+  try{ if(typeof hrRenderEmploiSemaine==='function') hrRenderEmploiSemaine(); }catch(_e){}
+}
+window.hrTraitModifierHoraire=hrTraitModifierHoraire;
+
 // Persiste les affectations modifiées du jour courant dans HR_AFFECT (mémoire par date
 // ISO réappliquée à chaque rendu) puis sauvegarde durable (Supabase + localStorage).
 function hrPersistAffectations(){
@@ -15884,6 +16155,7 @@ window.hrTraitFermerModal=hrTraitFermerModal;
 
 function renderTimeline(){
   if(typeof hrReappliquerAffectations==='function') hrReappliquerAffectations();
+  try{ if(typeof hrAfficherDernierEnreg==='function') hrAfficherDernierEnreg(); }catch(e){}
   const ruler=document.getElementById('hrx-ruler');ruler.innerHTML='';
   // CA prévu par heure = somme des 4 tranches de 15 min de cette heure (du jour affiché)
   const caJour = CA_DAYS[curDay] || {};
@@ -16109,6 +16381,7 @@ function renderTimeline(){
       bar.title=b.l+'\n'+fmt(s)+' – '+fmt(e)+'\n👤 '+(emp.nom||empId);
       bar.style.cursor='pointer';
       (function(ri,bi){ bar.onclick=function(ev){ ev.stopPropagation(); hrTraitAffecterOuvrir(ri,bi); }; })(b.rowIdx,b.barIdx);
+      (function(ri,bi){ try{ var realRow=ROWS_BY_DAY[curDay]&&ROWS_BY_DAY[curDay][ri]; var realBar=realRow&&realRow.bars&&realRow.bars[bi]; if(realBar) hrBarAjouterPoignees(bar, bd, realBar, curDay, ri, bi); }catch(_e){} })(b.rowIdx,b.barIdx);
       bd.appendChild(bar);
     });
     tr.appendChild(bd);body.appendChild(tr);
@@ -16138,6 +16411,13 @@ function renderTimeline(){
           bar.textContent=b.l+' '+fmt(s)+'–'+fmt(e);
           bar.title=b.l+'\n'+fmt(s)+' – '+fmt(e);
           (function(di,ri,bi){ bar.style.cursor='pointer'; bar.onclick=function(ev){ ev.stopPropagation(); if(di!==curDay){ curDay=di; renderTimeline(); setTimeout(function(){hrTraitAffecterOuvrir(ri,bi);},60);} else { hrTraitAffecterOuvrir(ri,bi);} }; })(dd,b.rowIdx,b.barIdx);
+          (function(di,ri,bi){
+            try{
+              var realRow=ROWS_BY_DAY[di] && ROWS_BY_DAY[di][ri];
+              var realBar=realRow && realRow.bars && realRow.bars[bi];
+              if(realBar) hrBarAjouterPoignees(bar, wkb, realBar, di, ri, bi);
+            }catch(_e){}
+          })(dd,b.rowIdx,b.barIdx);
           wkb.appendChild(bar);
         });
         wkr.appendChild(wkb);
@@ -16183,6 +16463,9 @@ function renderTimeline(){
     });
     trR.appendChild(bdR); body.appendChild(trR);
   }
+  // ── BANDEAU COUVERTURE PRODUCTIVE (placé vs besoin grille CA), par heure + total ──
+  try{ hrRenderEffectifBandeau(body); }catch(_e){ console.warn('bandeau effectif', _e); }
+
   const seen=new Set();const leg=document.getElementById('hrx-leg');leg.innerHTML='';
   (ROWS_BY_DAY[curDay]||[]).forEach(r=>r.bars.forEach(b=>{
     if(!b.empId) return;
@@ -16190,6 +16473,132 @@ function renderTimeline(){
     if(!seen.has(b.l)){seen.add(b.l);const c=colFor(b.l);const it=document.createElement('div');it.className='hr-li';it.innerHTML=`<div class="hr-ld" style="background:${c.bg}"></div>${b.l}`;leg.appendChild(it);}
   }));
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// BANDEAU « COUVERTURE PRODUCTIVE » — sous la timeline du jour affiché.
+// Pour chaque quart d'heure : on compare le nombre de personnes PRODUCTIVES
+// réellement placées (traits productifs avec salarié couvrant la tranche) au
+// BESOIN de la grille CA (getEff(ca15min)._eff). On agrège ensuite par heure :
+//   placé < besoin  → SOUS-EFFECTIF (rouge)  = il manque du monde
+//   placé > besoin  → SUR-EFFECTIF  (bleu)   = trop de monde
+//   placé = besoin  → OK (vert)
+// Ligne de total : heures-personnes manquantes / en trop sur la journée.
+// Réagit en direct quand on raccourcit/rallonge un trait (renderTimeline rappelé).
+// ══════════════════════════════════════════════════════════════════════════════
+function hrRenderEffectifBandeau(body){
+  if(!body) return;
+  try{ var _old=document.getElementById('hrx-effectif-bandeau'); if(_old) _old.remove(); }catch(_e){}
+  var caJour = CA_DAYS[curDay] || {};
+  // Besoin grille par quart d'heure (clé = minutes depuis minuit, base DS..DE)
+  function caTranche(min){
+    // min est sur l'échelle DS..DE (5h→27h). La clé CA est en HH:MM réel (00..23).
+    var realH=Math.floor((min%1440)/60), m=min%60;
+    var key=String(realH).padStart(2,'0')+':'+String(m).padStart(2,'0');
+    return caJour[key]||0;
+  }
+  function besoinProd(min){
+    try{ var r=getEff(caTranche(min)); return r._eff||0; }catch(_e){ return 0; }
+  }
+  // Personnes productives placées couvrant une tranche [min, min+15)
+  function placeProd(min){
+    var n=0;
+    (ROWS_BY_DAY[curDay]||[]).forEach(function(row){
+      row.bars.forEach(function(b){
+        if(!b.empId) return;
+        if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return;
+        var s=b.s, e=(b.e||b.s+60);
+        if(min>=s && min<e) n++;
+      });
+    });
+    return n;
+  }
+  // Agrégat par heure (RULER_H) : on prend le besoin MAX et le placé MIN de l'heure
+  // (vue prudente : on signale le pire moment de l'heure).
+  var totManque=0, totTrop=0; // en personnes·quart d'heure
+  var cells=[];
+  RULER_H.forEach(function(hLabel){
+    var base=(hLabel<5?hLabel+24:hLabel)*60; // min de début de l'heure (échelle DS..DE)
+    var bMax=0, pMin=null, sumBesoin=0, sumPlace=0, anyCA=false;
+    for(var q=0;q<4;q++){
+      var min=base+q*15;
+      if(min<DS||min>=DE) continue;
+      var bes=besoinProd(min), pla=placeProd(min);
+      if(caTranche(min)>0) anyCA=true;
+      if(bes>bMax) bMax=bes;
+      if(pMin===null||pla<pMin) pMin=pla;
+      sumBesoin+=bes; sumPlace+=pla;
+      var d=pla-bes;
+      if(d<0) totManque+=(-d); else if(d>0) totTrop+=d;
+    }
+    if(pMin===null) pMin=0;
+    cells.push({h:hLabel, besoin:bMax, place:pMin, anyCA:anyCA});
+  });
+  // Construire le bandeau
+  var wrap=document.createElement('div');
+  wrap.id='hrx-effectif-bandeau';
+  wrap.style.cssText='margin-top:14px;border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:var(--s1);';
+  // En-tête
+  var hd=document.createElement('div');
+  hd.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--bd);';
+  // Total journée converti en heures-personnes (1 personne·quart = 0,25 h)
+  var hManque=(totManque*15/60), hTrop=(totTrop*15/60);
+  var totTxt='';
+  if(totManque===0 && totTrop===0){
+    totTxt='<span style="color:#3ecf8e;font-weight:700">✓ Couverture conforme à la grille</span>';
+  } else {
+    var parts=[];
+    if(totManque>0) parts.push('<span style="color:#f87171;font-weight:700">−'+hManque.toFixed(2).replace('.',',')+' h sous-effectif</span>');
+    if(totTrop>0)   parts.push('<span style="color:#5b9bd5;font-weight:700">+'+hTrop.toFixed(2).replace('.',',')+' h sur-effectif</span>');
+    totTxt=parts.join(' &nbsp;·&nbsp; ');
+  }
+  hd.innerHTML='<div style="font-size:13px;font-weight:700;color:var(--tx)">📊 Couverture productive vs grille CA</div><div style="font-size:12px;font-family:\'DM Mono\',monospace">'+totTxt+'</div>';
+  wrap.appendChild(hd);
+  // Grille des heures
+  var grid=document.createElement('div');
+  grid.style.cssText='display:flex;min-width:920px;';
+  cells.forEach(function(c){
+    var d=c.place-c.besoin;
+    var bg='rgba(255,255,255,.02)', bar='var(--mu)', txt='var(--mu)';
+    if(c.besoin>0 || c.place>0){
+      if(d<0){ bg='rgba(231,76,60,.13)'; bar='#e74c3c'; txt='#f87171'; }
+      else if(d>0){ bg='rgba(91,155,213,.13)'; bar='#5b9bd5'; txt='#5b9bd5'; }
+      else { bg='rgba(62,207,142,.10)'; bar='#3ecf8e'; txt='#3ecf8e'; }
+    }
+    var cell=document.createElement('div');
+    cell.style.cssText='flex:1;border-right:1px solid rgba(255,255,255,.04);padding:6px 2px;text-align:center;background:'+bg+';';
+    var diffTxt = d===0 ? '0' : (d>0?('+'+d):String(d));
+    var hLbl=(c.h<10?'0':'')+c.h+'h';
+    cell.innerHTML=
+      '<div style="font-size:9px;color:var(--mu);font-family:\'DM Mono\',monospace">'+hLbl+'</div>'+
+      '<div style="font-size:13px;font-weight:700;color:'+txt+';margin-top:2px">'+c.place+'/'+c.besoin+'</div>'+
+      '<div style="font-size:9px;font-weight:700;color:'+txt+';font-family:\'DM Mono\',monospace">'+diffTxt+'</div>';
+    cell.title='À '+hLbl+' : '+c.place+' placé(s) pour '+c.besoin+' requis par la grille'+(d<0?(' → il manque '+(-d)):(d>0?(' → '+d+' en trop'):' → ok'));
+    grid.appendChild(cell);
+  });
+  // Le bandeau doit s'aligner sous la zone des barres (décalage de la colonne noms = 185px)
+  var row=document.createElement('div');
+  row.style.cssText='display:flex;';
+  var spacer=document.createElement('div');
+  spacer.style.cssText='width:185px;min-width:185px;max-width:185px;border-right:1px solid var(--bd);padding:6px 10px;display:flex;align-items:center;font-size:10px;color:var(--mu);font-family:\'DM Mono\',monospace;background:var(--s1);';
+  spacer.innerHTML='placé / requis<br>par heure';
+  row.appendChild(spacer);
+  var scroll=document.createElement('div');
+  scroll.style.cssText='flex:1;overflow-x:auto;';
+  scroll.appendChild(grid);
+  row.appendChild(scroll);
+  wrap.appendChild(row);
+  // Légende du bandeau
+  var lg=document.createElement('div');
+  lg.style.cssText='display:flex;gap:14px;padding:6px 12px;border-top:1px solid var(--bd);font-size:10px;color:var(--mu);flex-wrap:wrap;';
+  lg.innerHTML=
+    '<span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#e74c3c;margin-right:4px"></span>sous-effectif (manque)</span>'+
+    '<span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#5b9bd5;margin-right:4px"></span>sur-effectif (trop)</span>'+
+    '<span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#3ecf8e;margin-right:4px"></span>conforme</span>'+
+    '<span style="margin-left:auto">Chiffres = personnes placées / requises (pire quart d\'heure de l\'heure)</span>';
+  wrap.appendChild(lg);
+  body.parentNode ? body.parentNode.appendChild(wrap) : body.appendChild(wrap);
+}
+window.hrRenderEffectifBandeau=hrRenderEffectifBandeau;
 
 function calcHeures(dayIdx){
   let totMin=0;
@@ -18488,6 +18897,80 @@ function hrEnregistrerPlacement(lundi){
   }catch(e){}
 }
 window.hrEnregistrerPlacement = hrEnregistrerPlacement;
+
+// ── Horodatage des enregistrements manuels (bouton 💾 Enregistrer) ─────────────
+// { 'RESTO|lundi' : 'JJ/MM/AAAA à HH:MM' } — partagé via app_config, miroir local.
+var HR_ENREG_HORODATE = {};
+function hrChargerEnregHorodate(){
+  try{
+    if(typeof SB!=='undefined' && SB){
+      SB.from('app_config').select('valeur').eq('cle','hr_enreg_horodate').maybeSingle().then(function(r){
+        if(r && r.data && r.data.valeur && typeof r.data.valeur==='object'){
+          HR_ENREG_HORODATE = r.data.valeur;
+          try{ hrAfficherDernierEnreg(); }catch(e){}
+        }
+      }).catch(function(){});
+    }
+  }catch(e){}
+  try{ var loc=localStorage.getItem('hr_enreg_horodate'); if(loc){ var o=JSON.parse(loc)||{}; Object.keys(o).forEach(function(k){ if(HR_ENREG_HORODATE[k]===undefined) HR_ENREG_HORODATE[k]=o[k]; }); } }catch(e){}
+}
+window.hrChargerEnregHorodate = hrChargerEnregHorodate;
+
+// Affiche, à côté du bouton 💾, la date/heure du dernier enregistrement de la semaine affichée.
+function hrAfficherDernierEnreg(){
+  var info=document.getElementById('hrx-enregistre-info'); if(!info) return;
+  try{
+    var lundi=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?hrLundiDe(DAY_DATES[0]):null);
+    if(!lundi){ info.textContent=''; return; }
+    var resto=_hrAffectResto();
+    var ts=HR_ENREG_HORODATE[resto+'|'+lundi];
+    info.textContent = ts ? ('✅ Enregistré le '+ts) : '';
+  }catch(e){ info.textContent=''; }
+}
+window.hrAfficherDernierEnreg = hrAfficherDernierEnreg;
+
+// 💾 ENREGISTRER (manuel) : fige le planning travaillé de la semaine affichée
+// (placements automatiques + modifications manuelles de créneaux) dans HR_AFFECT,
+// sauvegarde en base (Supabase), puis horodate. Au retour sur l'application, la
+// semaine est rechargée telle quelle — on ne repart jamais de zéro.
+function hrEnregistrerSemaineManuel(){
+  try{
+    var lundi=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?hrLundiDe(DAY_DATES[0]):null);
+    if(!lundi){ toast&&toast('Choisis d\'abord une semaine','error'); return; }
+    // 1) Snapshot de la grille affichée → HR_AFFECT (bars portant un empId)
+    for(var dj=0; dj<7; dj++){
+      var isoJ=(typeof DAY_DATES!=='undefined'&&DAY_DATES[dj])?DAY_DATES[dj]:null; if(!isoJ) continue;
+      var affJ=[];
+      ((typeof ROWS_BY_DAY!=='undefined'&&ROWS_BY_DAY[dj])||[]).forEach(function(row){
+        (row.bars||[]).forEach(function(b){ if(b.empId){ affJ.push({l:b.l,s:b.s,e:b.e,emp:b.emp,empId:b.empId}); } });
+      });
+      HR_AFFECT[isoJ]=affJ;
+    }
+    // 2) Sauvegarde permanente (Supabase + miroir local) — comme le placement
+    if(typeof hrSauverAffect==='function') hrSauverAffect();
+    if(typeof _grilleClearDirty==='function') _grilleClearDirty();
+    // 3) Horodatage Paris (UTC+2)
+    var now=new Date();
+    var jj=String(now.getDate()).padStart(2,'0');
+    var mm=String(now.getMonth()+1).padStart(2,'0');
+    var aaaa=now.getFullYear();
+    var hh=String(now.getHours()).padStart(2,'0');
+    var mn=String(now.getMinutes()).padStart(2,'0');
+    var stamp=jj+'/'+mm+'/'+aaaa+' à '+hh+'h'+mn;
+    var resto=_hrAffectResto();
+    HR_ENREG_HORODATE[resto+'|'+lundi]=stamp;
+    try{ localStorage.setItem('hr_enreg_horodate', JSON.stringify(HR_ENREG_HORODATE)); }catch(e){}
+    try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:'hr_enreg_horodate', valeur:HR_ENREG_HORODATE},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
+    // 4) Affichage
+    hrAfficherDernierEnreg();
+    toast&&toast('Planning enregistré · '+stamp,'success');
+    var info=document.getElementById('hrx-enregistre-info'); if(info){ info.style.color='#3ecf8e'; }
+  }catch(__e){
+    console.error('Enregistrement manuel — erreur:', __e);
+    toast&&toast('Enregistrement : erreur ('+(__e&&__e.message||__e)+')','error');
+  }
+}
+window.hrEnregistrerSemaineManuel = hrEnregistrerSemaineManuel;
 
 // Invalide le placement d'une semaine (→ « Placer la semaine » repasse ORANGE).
 // Appelé quand on ACTUALISE les traits : les noms posés ne sont plus garantis bons.
