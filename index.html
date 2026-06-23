@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-23 18:34 · v296';
+  var EMBEDDED_VERSION = '2026-06-23 18:48 · v297';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -9182,34 +9182,35 @@ window.dashHorairesCheckPin=dashHorairesCheckPin;
 function _dashChargerHorairesPuisAfficher(emp){
   var resto=(DASH_RESTO||'').toUpperCase();
   var cleA='hr_affect_'+resto, cleL='hr_locks_'+resto;
-  window.__dashDiag={};
-  // On affiche dès qu'on a une réponse, ET on ré-affiche si des données arrivent
-  // plus tard (réseau lent) — au lieu de bloquer définitivement après un timeout.
+  window.__dashDiag={resto:resto};
   var dejaAffiche=false;
   function afficher(){
     try{ dashRenderCalendrierPerso(emp); dejaAffiche=true; }
     catch(err){ console.warn('calperso',err); var c=document.getElementById('dash-hor-cal'); if(c) c.innerHTML='<div style="color:#aaa;">Impossible d\'afficher tes horaires.</div>'; }
   }
-  // Filet de secours : si rien n'est revenu au bout de 12 s, on affiche quand même
-  // (message réseau + bouton Réessayer), sans empêcher un futur rafraîchissement.
   setTimeout(function(){ if(!dejaAffiche) afficher(); }, 12000);
-  var URL='https://qggkbtzhkomhldhacohd.supabase.co/rest/v1/app_config?select=valeur&cle=eq.';
+  var URL='https://qggkbtzhkomhldhacohd.supabase.co/rest/v1/app_config?select=cle,valeur&cle=eq.';
   var KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZ2tidHpoa29taGxkaGFjb2hkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNzc0MzIsImV4cCI6MjA5NDc1MzQzMn0.l4W4rH4CFREugjImoRqN8hocmEXFcVqnN1-H78x3S-c';
   function charger(cle, cible, tag){
+    var d=window.__dashDiag;
     return fetch(URL+encodeURIComponent(cle), {headers:{apikey:KEY, Authorization:'Bearer '+KEY}})
-      .then(function(r){ window.__dashDiag[tag+'_status']=r.status; return r.json(); })
-      .then(function(rows){
-        var row=Array.isArray(rows)?rows[0]:rows;
-        if(row && row.valeur && typeof row.valeur==='object'){
-          cible[resto]=row.valeur;
-          window.__dashDiag[tag+'_n']=Object.keys(row.valeur).length;
-          try{ localStorage.setItem(cle, JSON.stringify(row.valeur)); }catch(e){}
-        } else {
-          window.__dashDiag[tag+'_n']=0;
-          window.__dashDiag[tag+'_raw']=JSON.stringify(rows).slice(0,60);
-        }
+      .then(function(r){
+        d[tag+'_status']=r.status;
+        return r.text().then(function(txt){
+          var rows=null; try{ rows=JSON.parse(txt); }catch(e){ d[tag+'_parseerr']=txt.slice(0,80); rows=null; }
+          if(!r.ok){ d[tag+'_httperr']=txt.slice(0,120); return; }
+          var row=Array.isArray(rows)?rows[0]:rows;
+          if(row && row.valeur && typeof row.valeur==='object'){
+            cible[resto]=row.valeur;
+            d[tag+'_n']=Object.keys(row.valeur).length;
+            try{ localStorage.setItem(cle, JSON.stringify(row.valeur)); }catch(e){}
+          } else {
+            d[tag+'_n']=0;
+            d[tag+'_raw']=(txt||'').slice(0,80);
+          }
+        });
       })
-      .catch(function(e){ window.__dashDiag[tag+'_err']=String((e&&e.message)||e); });
+      .catch(function(e){ d[tag+'_err']=String((e&&e.message)||e); d[tag+'_status']=d[tag+'_status']||'réseau'; });
   }
   Promise.all([ charger(cleA, HR_AFFECT_BY_RESTO, 'affect'), charger(cleL, HR_LOCKS_BY_RESTO, 'locks') ])
     .then(afficher).catch(afficher);
@@ -9248,23 +9249,24 @@ function dashRenderCalendrierPerso(emp){
     var rUp=(resto||'').toUpperCase();
     var locksObj={}; try{ locksObj=HR_LOCKS_BY_RESTO[rUp]||{}; }catch(e){}
     var nbLocks=Object.keys(locksObj).length;
-    var nbTransf=0; try{ Object.keys(locksObj).forEach(function(k){ var v=locksObj[k]; if(v&&typeof v==='object'&&v.transfere) nbTransf++; }); }catch(e){}
     var diag=window.__dashDiag||{};
+    var reseauKO = !!diag.locks_err || (diag.locks_status && String(diag.locks_status).charAt(0)!=='2' && diag.locks_status!==200);
     var diagTxt='';
     try{
-      diagTxt='locks reçus: '+(diag.locks_n!=null?diag.locks_n:'?')+' · transférées: '+nbTransf
-        +' · http '+(diag.locks_status||'?')
-        +(diag.locks_err?(' · erreur réseau: '+diag.locks_err):'')
-        +(diag.affect_status?(' · placements http '+diag.affect_status):'');
+      diagTxt='locks: '+(diag.locks_n!=null?diag.locks_n:'?')+' · http '+(diag.locks_status!=null?diag.locks_status:'?')
+        +(diag.locks_err?(' · err '+diag.locks_err):'')
+        +(diag.locks_httperr?(' · '+diag.locks_httperr):'')
+        +(diag.locks_raw?(' · raw '+diag.locks_raw):'')
+        +' | placements http '+(diag.affect_status!=null?diag.affect_status:'?');
     }catch(e){}
-    // Message adapté : différencier "rien transféré" vs "verrous présents mais pas transférés" vs "réseau"
     var titre, sousTitre;
-    if(diag.locks_err || diag.locks_status && String(diag.locks_status).charAt(0)!=='2'){
-      titre='Connexion au serveur impossible pour le moment.';
-      sousTitre='Vérifie ta connexion internet et réessaie.';
-    } else if(nbLocks>0 && nbTransf===0){
-      titre='Le planning n’a pas encore été transféré.';
-      sousTitre='Il a été enregistré mais pas partagé. Demande au responsable de cliquer « 📤 Transférer les emplois du temps ».';
+    if(reseauKO){
+      titre='Connexion au serveur impossible.';
+      sousTitre='Vérifie ta connexion internet puis réessaie.';
+    } else if(nbLocks>0){
+      // des semaines existent en base mais aucune n'est ressortie comme transférée
+      titre='Aucune semaine partagée pour toi pour l’instant.';
+      sousTitre='Le planning existe mais n’a peut-être pas encore été transféré. Demande au responsable de cliquer « 📤 Transférer les emplois du temps ».';
     } else {
       titre='Aucun horaire transféré pour le moment.';
       sousTitre='Reviens quand le planning aura été partagé par le responsable.';
@@ -14642,10 +14644,20 @@ function _hrLocksSauve(resto){
   try{ var ls=localStorage.getItem('hr_locks_'+resto); if(ls){ var o=JSON.parse(ls); if(o&&typeof o==='object'){ HR_LOCKS_BY_RESTO[resto]=o; return o; } } }catch(e){}
   return {};
 }
-// Liste des lundis TRANSFÉRÉS d'un resto, triés chronologiquement
+// Liste des lundis TRANSFÉRÉS d'un resto, triés chronologiquement.
+// Tolère les DEUX formats de verrou :
+//   • nouveau : { '2026-06-15': {transfere:true, date:...} }
+//   • ancien  : { '2026-06-15': 1 }  (verrou simple, sans marque transfere)
+// Toute semaine présente dans les locks est considérée comme partagée au salarié.
 function _hrSemainesTransferees(resto){
   var L=_hrLocksSauve(resto); var out=[];
-  Object.keys(L).forEach(function(lundi){ var v=L[lundi]; if(v && typeof v==='object' && v.transfere) out.push(lundi); });
+  Object.keys(L).forEach(function(lundi){
+    var v=L[lundi];
+    if(v===undefined || v===null || v===false) return;
+    // objet avec transfere explicitement à false → pas transférée
+    if(v && typeof v==='object' && v.transfere===false) return;
+    out.push(lundi);
+  });
   out.sort();
   return out;
 }
