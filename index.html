@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-23 12:18 · v285';
+  var EMBEDDED_VERSION = '2026-06-23 13:46 · v286';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -7328,7 +7328,13 @@ async function candContratSigne(){
       var eid='u'+Date.now();
       var _infosEmb={};
       if(String(c.rqth||'').toLowerCase()==='oui') _infosEmb.rqth='oui';
-      await sb.insert('bks_employees',{id:eid,name:nom,role:'equipier',resto_id:c.restoId,archived:false,email:c.email||'',phone:c.phone||'',from_cand_id:c.id,infos:_infosEmb});
+      // Rôle déduit du poste choisi au recrutement (Leader/Manager/Directeur/Apprenti/Équipier)
+      var _posteC=String(c.poste||'').toLowerCase();
+      var _roleEmb='equipier';
+      if(_posteC.indexOf('directeur')>=0) _roleEmb='directeur';
+      else if(_posteC.indexOf('manager')>=0) _roleEmb='manager';
+      else if(_posteC.indexOf('leader')>=0) _roleEmb='leader';
+      await sb.insert('bks_employees',{id:eid,name:nom,role:_roleEmb,resto_id:c.restoId,archived:false,email:c.email||'',phone:c.phone||'',from_cand_id:c.id,infos:_infosEmb});
     }
   }catch(e){console.error('Création employé échec',e);}
   _candUpdate({statut:'essai',contrat_signe:true},'Contrat signé — salarié ajouté à l\'équipe 🚀',function(){loadAll();});
@@ -7708,6 +7714,9 @@ function showPostulerPage(presetResto){
     +'<option value="appr_cap">Apprenti 35h — CAP</option>'
     +'<option value="appr_bac">Apprenti 35h — niveau Bac</option>'
     +'<option value="appr_bac2">Apprenti 35h — Bac+2</option>'
+    +'<option value="leader35">Leader 35h</option>'
+    +'<option value="manager35">Manager 35h</option>'
+    +'<option value="directeur">Directeur</option>'
     +'</select></div>'
     +'<div style="background:#0E1A22;border:1px solid #1E3A4A;border-radius:8px;padding:10px 12px;margin-top:10px;">'
     +'<label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;display:flex;align-items:center;gap:6px;">♿ Bénéficiez-vous d\'une RQTH ? <span style="font-size:.72rem;color:#888;">(facultatif)</span></label>'
@@ -7937,7 +7946,10 @@ async function submitPostuler(){
     temps24:{label:'24h — disponible tout le temps',poste:'Équipier',etudiant:false,heures:24,niveau:'',type:'cdi'},
     appr_cap:{label:'Apprenti 35h — CAP',poste:'Apprenti',etudiant:false,heures:35,niveau:'Niveau CAP',type:'apprentissage'},
     appr_bac:{label:'Apprenti 35h — niveau Bac',poste:'Apprenti',etudiant:false,heures:35,niveau:'Niveau Bac',type:'apprentissage'},
-    appr_bac2:{label:'Apprenti 35h — Bac+2',poste:'Apprenti',etudiant:false,heures:35,niveau:'Niveau Bac+2',type:'apprentissage'}
+    appr_bac2:{label:'Apprenti 35h — Bac+2',poste:'Apprenti',etudiant:false,heures:35,niveau:'Niveau Bac+2',type:'apprentissage'},
+    leader35:{label:'Leader 35h',poste:'Leader',etudiant:false,heures:35,niveau:'',type:'cdi'},
+    manager35:{label:'Manager 35h',poste:'Manager',etudiant:false,heures:35,niveau:'',type:'cdi'},
+    directeur:{label:'Directeur',poste:'Directeur',etudiant:false,heures:35,niveau:'',type:'cdi'}
   };
   var ct=CONTRATS[contratVal]||null;
   var poste=ct?ct.poste:'';
