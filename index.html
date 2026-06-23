@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-23 18:20 · v295';
+  var EMBEDDED_VERSION = '2026-06-23 18:34 · v296';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -9182,11 +9182,17 @@ window.dashHorairesCheckPin=dashHorairesCheckPin;
 function _dashChargerHorairesPuisAfficher(emp){
   var resto=(DASH_RESTO||'').toUpperCase();
   var cleA='hr_affect_'+resto, cleL='hr_locks_'+resto;
-  var fini=false;
   window.__dashDiag={};
-  function afficher(){ if(fini) return; fini=true; try{ dashRenderCalendrierPerso(emp); }catch(err){ console.warn('calperso',err); var c=document.getElementById('dash-hor-cal'); if(c) c.innerHTML='<div style="color:#aaa;">Impossible d\'afficher tes horaires.</div>'; } }
-  setTimeout(afficher, 8000);
-  // Fetch DIRECT vers l'API REST Supabase (le plus fiable, et on voit le vrai statut HTTP).
+  // On affiche dès qu'on a une réponse, ET on ré-affiche si des données arrivent
+  // plus tard (réseau lent) — au lieu de bloquer définitivement après un timeout.
+  var dejaAffiche=false;
+  function afficher(){
+    try{ dashRenderCalendrierPerso(emp); dejaAffiche=true; }
+    catch(err){ console.warn('calperso',err); var c=document.getElementById('dash-hor-cal'); if(c) c.innerHTML='<div style="color:#aaa;">Impossible d\'afficher tes horaires.</div>'; }
+  }
+  // Filet de secours : si rien n'est revenu au bout de 12 s, on affiche quand même
+  // (message réseau + bouton Réessayer), sans empêcher un futur rafraîchissement.
+  setTimeout(function(){ if(!dejaAffiche) afficher(); }, 12000);
   var URL='https://qggkbtzhkomhldhacohd.supabase.co/rest/v1/app_config?select=valeur&cle=eq.';
   var KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZ2tidHpoa29taGxkaGFjb2hkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNzc0MzIsImV4cCI6MjA5NDc1MzQzMn0.l4W4rH4CFREugjImoRqN8hocmEXFcVqnN1-H78x3S-c';
   function charger(cle, cible, tag){
@@ -9240,14 +9246,35 @@ function dashRenderCalendrierPerso(emp){
   var sems=[]; try{ sems=_hrSemainesTransferees((resto||'').toUpperCase())||[]; }catch(e){ sems=[]; }
   if(!sems.length){
     var rUp=(resto||'').toUpperCase();
-    var nbLocks=0; try{ nbLocks=Object.keys(HR_LOCKS_BY_RESTO[rUp]||{}).length; }catch(e){}
+    var locksObj={}; try{ locksObj=HR_LOCKS_BY_RESTO[rUp]||{}; }catch(e){}
+    var nbLocks=Object.keys(locksObj).length;
+    var nbTransf=0; try{ Object.keys(locksObj).forEach(function(k){ var v=locksObj[k]; if(v&&typeof v==='object'&&v.transfere) nbTransf++; }); }catch(e){}
     var diag=window.__dashDiag||{};
     var diagTxt='';
-    try{ diagTxt='locks:'+(diag.locks_n!=null?diag.locks_n:'?')+' (http '+(diag.locks_status||'?')+')'+(diag.locks_err?(' err='+diag.locks_err):'')+(diag.locks_raw?(' raw='+diag.locks_raw):''); }catch(e){}
-    cal.innerHTML='<div style="color:#aaa;padding:12px;font-size:.86rem;">'
-      +'Aucun horaire transféré pour le moment. Reviens quand le planning aura été partagé.'
-      +'<div style="color:#666;font-size:.72rem;margin-top:8px;">('+rUp+' — '+nbLocks+' semaine(s) verrouillée(s))</div>'
-      +'<div style="color:#555;font-size:.66rem;margin-top:4px;word-break:break-all;">'+diagTxt+'</div>'
+    try{
+      diagTxt='locks reçus: '+(diag.locks_n!=null?diag.locks_n:'?')+' · transférées: '+nbTransf
+        +' · http '+(diag.locks_status||'?')
+        +(diag.locks_err?(' · erreur réseau: '+diag.locks_err):'')
+        +(diag.affect_status?(' · placements http '+diag.affect_status):'');
+    }catch(e){}
+    // Message adapté : différencier "rien transféré" vs "verrous présents mais pas transférés" vs "réseau"
+    var titre, sousTitre;
+    if(diag.locks_err || diag.locks_status && String(diag.locks_status).charAt(0)!=='2'){
+      titre='Connexion au serveur impossible pour le moment.';
+      sousTitre='Vérifie ta connexion internet et réessaie.';
+    } else if(nbLocks>0 && nbTransf===0){
+      titre='Le planning n’a pas encore été transféré.';
+      sousTitre='Il a été enregistré mais pas partagé. Demande au responsable de cliquer « 📤 Transférer les emplois du temps ».';
+    } else {
+      titre='Aucun horaire transféré pour le moment.';
+      sousTitre='Reviens quand le planning aura été partagé par le responsable.';
+    }
+    cal.innerHTML='<div style="color:#ddd;padding:14px;font-size:.9rem;">'
+      +'<div style="font-weight:700;margin-bottom:4px;">'+titre+'</div>'
+      +'<div style="color:#aaa;font-size:.82rem;">'+sousTitre+'</div>'
+      +'<button onclick="dashHorairesReessayer(\''+emp.id+'\')" style="margin-top:14px;background:#1565c0;border:none;color:#fff;border-radius:9px;padding:9px 18px;font-weight:700;cursor:pointer;font-size:.85rem;">↻ Réessayer</button>'
+      +'<div style="color:#666;font-size:.7rem;margin-top:10px;">('+rUp+' — '+nbLocks+' semaine(s) en base)</div>'
+      +'<div style="color:#555;font-size:.64rem;margin-top:3px;word-break:break-all;">'+diagTxt+'</div>'
       +'</div>';
     return;
   }
@@ -9294,6 +9321,21 @@ function dashRenderCalendrierPerso(emp){
   cal.innerHTML=h;
 }
 window.dashRenderCalendrierPerso=dashRenderCalendrierPerso;
+
+// Bouton « Réessayer » : on vide le cache RAM du resto pour forcer une vraie
+// relecture depuis Supabase, puis on relance le chargement + affichage.
+function dashHorairesReessayer(empId){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
+  if(!e) return;
+  var resto=(DASH_RESTO||'').toUpperCase();
+  try{ delete HR_LOCKS_BY_RESTO[resto]; }catch(_e){}
+  try{ delete HR_AFFECT_BY_RESTO[resto]; }catch(_e){}
+  try{ localStorage.removeItem('hr_locks_'+resto); localStorage.removeItem('hr_affect_'+resto); }catch(_e){}
+  var cal=document.getElementById('dash-hor-cal');
+  if(cal){ cal.style.display='block'; cal.innerHTML='<div style="color:#aaa;padding:14px;font-size:.86rem;">Nouvelle tentative… <span style="color:#666;font-size:.75rem;">('+resto+')</span></div>'; }
+  _dashChargerHorairesPuisAfficher(e);
+}
+window.dashHorairesReessayer=dashHorairesReessayer;
 
 function dashOpenPointer(){
   // Ouvre le pointage DANS le panneau d'accueil (avec bouton Retour), sous forme de
