@@ -6,11 +6,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <!-- ══ AUTO-MAJ : vérifie s'il existe une version plus récente sur le serveur et recharge sans cache (une seule fois) ══ -->
 <script>
+window.HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO || {};
+var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
 (function(){
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-23 18:48 · v297';
+  var EMBEDDED_VERSION = '2026-06-23 21:14 · v304';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -9180,56 +9182,59 @@ window.dashHorairesCheckPin=dashHorairesCheckPin;
 // Charge depuis Supabase les placements (hr_affect_) et les semaines transférées
 // (hr_locks_) du restaurant, PUIS affiche le calendrier perso du salarié.
 function _dashChargerHorairesPuisAfficher(emp){
-  var resto=(DASH_RESTO||'').toUpperCase();
-  var cleA='hr_affect_'+resto, cleL='hr_locks_'+resto;
+  var resto=(DASH_RESTO || (typeof ACTIVE_RESTO!=='undefined'&&ACTIVE_RESTO) || '').toString().toUpperCase();
+  try{ if(!resto){ var ls=localStorage.getItem('dash_resto'); if(ls) resto=ls.toUpperCase(); } }catch(e){}
   window.__dashDiag={resto:resto};
   var dejaAffiche=false;
   function afficher(){
     try{ dashRenderCalendrierPerso(emp); dejaAffiche=true; }
-    catch(err){ console.warn('calperso',err); var c=document.getElementById('dash-hor-cal'); if(c) c.innerHTML='<div style="color:#aaa;">Impossible d\'afficher tes horaires.</div>'; }
+    catch(err){
+      console.warn('calperso',err);
+      var c=document.getElementById('dash-hor-cal');
+      if(c) c.innerHTML='<div style="color:#ddd;padding:14px;font-size:.85rem;">'
+        +'<div style="font-weight:700;">Affichage impossible.</div>'
+        +'<div style="color:#888;font-size:.7rem;margin-top:6px;word-break:break-all;">'+String((err&&err.message)||err)+'</div>'
+        +'<button onclick="dashHorairesReessayer(\''+emp.id+'\')" style="margin-top:12px;background:#1565c0;border:none;color:#fff;border-radius:9px;padding:8px 16px;font-weight:700;cursor:pointer;">↻ Réessayer</button>'
+        +'</div>';
+    }
   }
-  setTimeout(function(){ if(!dejaAffiche) afficher(); }, 12000);
-  var URL='https://qggkbtzhkomhldhacohd.supabase.co/rest/v1/app_config?select=cle,valeur&cle=eq.';
-  var KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZ2tidHpoa29taGxkaGFjb2hkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNzc0MzIsImV4cCI6MjA5NDc1MzQzMn0.l4W4rH4CFREugjImoRqN8hocmEXFcVqnN1-H78x3S-c';
-  function charger(cle, cible, tag){
-    var d=window.__dashDiag;
-    return fetch(URL+encodeURIComponent(cle), {headers:{apikey:KEY, Authorization:'Bearer '+KEY}})
-      .then(function(r){
-        d[tag+'_status']=r.status;
-        return r.text().then(function(txt){
-          var rows=null; try{ rows=JSON.parse(txt); }catch(e){ d[tag+'_parseerr']=txt.slice(0,80); rows=null; }
-          if(!r.ok){ d[tag+'_httperr']=txt.slice(0,120); return; }
-          var row=Array.isArray(rows)?rows[0]:rows;
-          if(row && row.valeur && typeof row.valeur==='object'){
-            cible[resto]=row.valeur;
-            d[tag+'_n']=Object.keys(row.valeur).length;
-            try{ localStorage.setItem(cle, JSON.stringify(row.valeur)); }catch(e){}
-          } else {
-            d[tag+'_n']=0;
-            d[tag+'_raw']=(txt||'').slice(0,80);
-          }
-        });
-      })
-      .catch(function(e){ d[tag+'_err']=String((e&&e.message)||e); d[tag+'_status']=d[tag+'_status']||'réseau'; });
-  }
-  Promise.all([ charger(cleA, HR_AFFECT_BY_RESTO, 'affect'), charger(cleL, HR_LOCKS_BY_RESTO, 'locks') ])
-    .then(afficher).catch(afficher);
+  // « Mes horaires » lit UNE SEULE clé propre : hr_planning_<RESTO>, l'instantané
+  // figé au moment du transfert. Simple et déterministe.
+  afficher(); // affiche d'abord depuis le cache local s'il existe
+  try{
+    hrChargerSnapshot(resto, function(snap){
+      try{ window.__dashDiag.snap_n = snap ? Object.keys(snap).length : 0; }catch(e){}
+      afficher();
+    });
+  }catch(e){ window.__dashDiag.snap_err=String((e&&e.message)||e).slice(0,90); afficher(); }
+  setTimeout(afficher, 6000);
 }
 window._dashChargerHorairesPuisAfficher=_dashChargerHorairesPuisAfficher;
 
+// Helpers date au niveau du bloc dashboard (le module horaire complet est
+// encapsulé dans une IIFE plus bas → ses hrParse/hrISO n'y sont pas visibles).
+// Versions autonomes, logique identique : parse 'YYYY-MM-DD' en Date locale midi.
+if (typeof hrParse !== 'function') {
+  var hrParse = function(iso){ var p=String(iso).split('-'); return new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]), 12, 0, 0); };
+}
+if (typeof hrISO !== 'function') {
+  var hrISO = function(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+}
+
 // Récupère les créneaux d'UN salarié sur une semaine (lundi ISO) → [{date,jourN,jjmm,creneaux:[{s,e}],etat}]
 function _dashHorSemaineEmp(resto, lundiIso, empId){
-  var aff=_hrAffectSauve(resto);
+  resto=(resto||'').toUpperCase();
+  var snap=(HR_PLANNING_BY_RESTO[resto]||{})[lundiIso];
+  var jours_data=(snap&&snap.jours)?snap.jours:{};
   var lundi=hrParse(lundiIso);
   var joursN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
-  function iso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
   var out=[];
   for(var i=0;i<7;i++){
     var d=new Date(lundi); d.setDate(lundi.getDate()+i);
-    var di=iso(d);
-    var arr=aff[di]||[];
+    var di=hrISO(d);
+    var arr=jours_data[di]||[];
     var creneaux=[];
-    arr.forEach(function(b){ if(String(b.empId)===String(empId)){ creneaux.push({s:b.s,e:b.e}); } });
+    arr.forEach(function(b){ if(b && String(b.empId)===String(empId) && isFinite(Number(b.s)) && isFinite(Number(b.e))){ creneaux.push({s:Number(b.s),e:Number(b.e)}); } });
     creneaux.sort(function(a,b){return a.s-b.s;});
     var etat=null; try{ etat=_hrEtatJour(empId, di); }catch(e){}
     out.push({date:di, jourN:joursN[i], jj:String(d.getDate()).padStart(2,'0'), mm:String(d.getMonth()+1).padStart(2,'0'), creneaux:creneaux, etat:etat});
@@ -9237,46 +9242,24 @@ function _dashHorSemaineEmp(resto, lundiIso, empId){
   return out;
 }
 
-function _dashHhmm(min){ var h=Math.floor(min/60)%24, m=min%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
-function _dashDureeStr(min){ var h=Math.floor(min/60), m=min%60; return m?(h+'h'+String(m).padStart(2,'0')):(h+'h'); }
+function _dashHhmm(min){ min=Number(min); if(!isFinite(min)) return '--:--'; var h=Math.floor(min/60)%24, m=min%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
+function _dashDureeStr(min){ min=Number(min); if(!isFinite(min)||min<0) min=0; var h=Math.floor(min/60), m=min%60; return m?(h+'h'+String(m).padStart(2,'0')):(h+'h'); }
 
 // Le calendrier perso : liste des semaines transférées, chacune façon agenda
 function dashRenderCalendrierPerso(emp){
   var cal=document.getElementById('dash-hor-cal'); if(!cal) return;
-  var resto=DASH_RESTO;
-  var sems=[]; try{ sems=_hrSemainesTransferees((resto||'').toUpperCase())||[]; }catch(e){ sems=[]; }
+  var resto=(DASH_RESTO||'').toUpperCase();
+  var snap=HR_PLANNING_BY_RESTO[resto]||{};
+  var sems=Object.keys(snap).sort();
   if(!sems.length){
-    var rUp=(resto||'').toUpperCase();
-    var locksObj={}; try{ locksObj=HR_LOCKS_BY_RESTO[rUp]||{}; }catch(e){}
-    var nbLocks=Object.keys(locksObj).length;
     var diag=window.__dashDiag||{};
-    var reseauKO = !!diag.locks_err || (diag.locks_status && String(diag.locks_status).charAt(0)!=='2' && diag.locks_status!==200);
     var diagTxt='';
-    try{
-      diagTxt='locks: '+(diag.locks_n!=null?diag.locks_n:'?')+' · http '+(diag.locks_status!=null?diag.locks_status:'?')
-        +(diag.locks_err?(' · err '+diag.locks_err):'')
-        +(diag.locks_httperr?(' · '+diag.locks_httperr):'')
-        +(diag.locks_raw?(' · raw '+diag.locks_raw):'')
-        +' | placements http '+(diag.affect_status!=null?diag.affect_status:'?');
-    }catch(e){}
-    var titre, sousTitre;
-    if(reseauKO){
-      titre='Connexion au serveur impossible.';
-      sousTitre='Vérifie ta connexion internet puis réessaie.';
-    } else if(nbLocks>0){
-      // des semaines existent en base mais aucune n'est ressortie comme transférée
-      titre='Aucune semaine partagée pour toi pour l’instant.';
-      sousTitre='Le planning existe mais n’a peut-être pas encore été transféré. Demande au responsable de cliquer « 📤 Transférer les emplois du temps ».';
-    } else {
-      titre='Aucun horaire transféré pour le moment.';
-      sousTitre='Reviens quand le planning aura été partagé par le responsable.';
-    }
+    try{ diagTxt='planning n='+(diag.snap_n!=null?diag.snap_n:'?')+(diag.snap_err?(' · err '+diag.snap_err):''); }catch(e){}
     cal.innerHTML='<div style="color:#ddd;padding:14px;font-size:.9rem;">'
-      +'<div style="font-weight:700;margin-bottom:4px;">'+titre+'</div>'
-      +'<div style="color:#aaa;font-size:.82rem;">'+sousTitre+'</div>'
+      +'<div style="font-weight:700;margin-bottom:4px;">Aucun horaire transféré pour le moment.</div>'
+      +'<div style="color:#aaa;font-size:.82rem;">Reviens quand le responsable aura transféré le planning.</div>'
       +'<button onclick="dashHorairesReessayer(\''+emp.id+'\')" style="margin-top:14px;background:#1565c0;border:none;color:#fff;border-radius:9px;padding:9px 18px;font-weight:700;cursor:pointer;font-size:.85rem;">↻ Réessayer</button>'
-      +'<div style="color:#666;font-size:.7rem;margin-top:10px;">('+rUp+' — '+nbLocks+' semaine(s) en base)</div>'
-      +'<div style="color:#555;font-size:.64rem;margin-top:3px;word-break:break-all;">'+diagTxt+'</div>'
+      +'<div style="color:#555;font-size:.64rem;margin-top:10px;word-break:break-all;">('+resto+') '+diagTxt+'</div>'
       +'</div>';
     return;
   }
@@ -9330,9 +9313,8 @@ function dashHorairesReessayer(empId){
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
   if(!e) return;
   var resto=(DASH_RESTO||'').toUpperCase();
-  try{ delete HR_LOCKS_BY_RESTO[resto]; }catch(_e){}
-  try{ delete HR_AFFECT_BY_RESTO[resto]; }catch(_e){}
-  try{ localStorage.removeItem('hr_locks_'+resto); localStorage.removeItem('hr_affect_'+resto); }catch(_e){}
+  try{ delete HR_PLANNING_BY_RESTO[resto]; }catch(_e){}
+  try{ localStorage.removeItem('hr_planning_'+resto); }catch(_e){}
   var cal=document.getElementById('dash-hor-cal');
   if(cal){ cal.style.display='block'; cal.innerHTML='<div style="color:#aaa;padding:14px;font-size:.86rem;">Nouvelle tentative… <span style="color:#666;font-size:.75rem;">('+resto+')</span></div>'; }
   _dashChargerHorairesPuisAfficher(e);
@@ -9558,10 +9540,10 @@ window.dashDemOpen=dashDemOpen;window.dashDemCheckPin=dashDemCheckPin;window.das
 window.initDashboard=initDashboard;window.dashSelectResto=dashSelectResto;window.dashChangeResto=dashChangeResto;
 window.dashOpenHoraires=dashOpenHoraires;window.dashOpenPointer=dashOpenPointer;window.dashClosePanel=dashClosePanel;
 window.dashStartAutoRefresh=dashStartAutoRefresh;window.dashStopAutoRefresh=dashStopAutoRefresh;
-</script>
 
-<!-- ===== MODULE HORAIRE COMPLET (porté depuis BK administratif) ===== -->
-<script>
+/* ===== MODULE HORAIRE COMPLET (porté depuis BK administratif) =====
+   Bloc fusionné avec le précédent : une seule portée <script> pour que les
+   fonctions dash... (calendrier perso) voient hrParse/hrISO/_hrEtatJour, etc. */
 // ADAPTATEUR SUPABASE (SDK-like) routé vers l'API REST de BK RH — autonome.
 (function(){
   var SUPA_URL = 'https://qggkbtzhkomhldhacohd.supabase.co';
@@ -9576,6 +9558,10 @@ window.dashStartAutoRefresh=dashStartAutoRefresh;window.dashStopAutoRefresh=dash
       eq:function(c,v){st.filters.push(c+'=eq.'+enc(v));return b;},
       gte:function(c,v){st.filters.push(c+'=gte.'+enc(v));return b;},
       lte:function(c,v){st.filters.push(c+'=lte.'+enc(v));return b;},
+      like:function(c,v){st.filters.push(c+'=like.'+enc(String(v).replace(/%/g,'*')));return b;},
+      ilike:function(c,v){st.filters.push(c+'=ilike.'+enc(String(v).replace(/%/g,'*')));return b;},
+      neq:function(c,v){st.filters.push(c+'=neq.'+enc(v));return b;},
+      in:function(c,arr){st.filters.push(c+'=in.('+(arr||[]).map(enc).join(',')+')');return b;},
       order:function(c,o){var a=!o||o.ascending!==false;st.order=c+'.'+(a?'asc':'desc');return b;},
       range:function(f,t){st.offset=f;st.limit=(t-f+1);return b;},
       limit:function(n){st.limit=n;return b;},
@@ -14481,9 +14467,107 @@ function hrTransfererSemaine(){
   if(!confirm('Transférer les horaires de la semaine du '+lundi+' aux employés ?\n\nLa semaine sera verrouillée 🔒 et visible dans « Mes horaires » (Accueil) et dans Rapports. Pour la rouvrir ensuite, il faudra un code.')) return;
   var L=hrLocks(); L[lundi]={transfere:true, date:(new Date()).toISOString()};
   hrSauverLocks(); hrMajBoutonsVerrou();
+  // ── NOUVEAU : on fige un instantané PROPRE et LÉGER de la semaine transférée ──
+  // (indépendant du gros hr_affect). C'est CE que « Mes horaires » lira.
+  try{ hrEnregistrerSnapshotSemaine(lundi); }catch(e){ console.warn('snapshot transfert', e); }
   toast&&toast('Semaine transférée aux employés ✅','success');
 }
 window.hrTransfererSemaine=hrTransfererSemaine;
+
+// ══ INSTANTANÉ PROPRE DES SEMAINES TRANSFÉRÉES ════════════════════════════════
+// Au transfert, on construit la liste des créneaux de la semaine, par jour, à
+// partir des placements en mémoire (HR_AFFECT) — exactement ce qui est affiché
+// dans la timeline. On stocke ça dans une clé dédiée 'hr_planning_<RESTO>' :
+//   { "2026-06-29": { lundi:"2026-06-29", date:"<ISO transfert>",
+//                     jours: { "2026-06-29":[{empId,emp,s,e,l}], ... } }, ... }
+// Léger, propre, et lu directement par « Mes horaires » côté salarié.
+window.HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO || {};
+var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
+function _hrPlanningResto(){ return _hrAffectResto(); }
+function hrChargerSnapshot(resto, cb){
+  resto=(resto||_hrPlanningResto()).toUpperCase(); var cle='hr_planning_'+resto;
+  try{ var ls=localStorage.getItem(cle); if(ls){ var o=JSON.parse(ls); if(o&&typeof o==='object') HR_PLANNING_BY_RESTO[resto]=o; } }catch(e){}
+  if(!HR_PLANNING_BY_RESTO[resto]) HR_PLANNING_BY_RESTO[resto]={};
+  try{ if(typeof SB!=='undefined' && SB){
+    SB.from('app_config').select('valeur').eq('cle',cle).maybeSingle().then(function(r){
+      var data=r&&r.data;
+      if(data && data.valeur && typeof data.valeur==='object'){
+        HR_PLANNING_BY_RESTO[resto]=data.valeur;
+        try{ localStorage.setItem(cle, JSON.stringify(data.valeur)); }catch(e){}
+      }
+      if(typeof cb==='function') cb(HR_PLANNING_BY_RESTO[resto]);
+    }).catch(function(){ if(typeof cb==='function') cb(HR_PLANNING_BY_RESTO[resto]); });
+  } else { if(typeof cb==='function') cb(HR_PLANNING_BY_RESTO[resto]); }
+  }catch(e){ if(typeof cb==='function') cb(HR_PLANNING_BY_RESTO[resto]); }
+}
+window.hrChargerSnapshot=hrChargerSnapshot;
+
+function hrEnregistrerSnapshotSemaine(lundi){
+  var resto=_hrPlanningResto();
+  var cle='hr_planning_'+resto;
+  // S'assurer d'avoir l'objet en mémoire (fusion avec l'existant)
+  if(!HR_PLANNING_BY_RESTO[resto] || typeof HR_PLANNING_BY_RESTO[resto]!=='object'){
+    HR_PLANNING_BY_RESTO[resto]={};
+    try{ var ls=localStorage.getItem(cle); if(ls){ var o=JSON.parse(ls); if(o&&typeof o==='object') HR_PLANNING_BY_RESTO[resto]=o; } }catch(e){}
+  }
+  // Construire les 7 jours de la semaine à partir de HR_AFFECT (placements en mémoire)
+  var aff=_hrAffectSauve(resto);
+  var d0=hrParse(lundi);
+  var jours={};
+  for(var i=0;i<7;i++){
+    var d=new Date(d0); d.setDate(d0.getDate()+i);
+    var di=hrISO(d);
+    var arr=aff[di]||[];
+    var liste=[];
+    arr.forEach(function(b){
+      if(!b || !b.empId) return;
+      // on ne garde QUE les traits productifs avec un salarié (on exclut l'encadrement)
+      if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return;
+      liste.push({ empId:b.empId, emp:b.emp||'', s:b.s, e:b.e, l:b.l||'' });
+    });
+    jours[di]=liste;
+  }
+  HR_PLANNING_BY_RESTO[resto][lundi]={ lundi:lundi, date:(new Date()).toISOString(), jours:jours };
+  // Sauvegarde locale + Supabase (clé dédiée, légère)
+  var val=HR_PLANNING_BY_RESTO[resto];
+  try{ localStorage.setItem(cle, JSON.stringify(val)); }catch(e){}
+  try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:cle, valeur:val},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
+}
+window.hrEnregistrerSnapshotSemaine=hrEnregistrerSnapshotSemaine;
+
+// Retire une semaine de l'instantané (utilisé quand on annule un transfert)
+function hrRetirerSnapshotSemaine(lundi){
+  var resto=_hrPlanningResto(); var cle='hr_planning_'+resto;
+  if(!HR_PLANNING_BY_RESTO[resto]) return;
+  delete HR_PLANNING_BY_RESTO[resto][lundi];
+  var val=HR_PLANNING_BY_RESTO[resto];
+  try{ localStorage.setItem(cle, JSON.stringify(val)); }catch(e){}
+  try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:cle, valeur:val},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
+}
+window.hrRetirerSnapshotSemaine=hrRetirerSnapshotSemaine;
+
+// RATTRAPAGE : régénère l'instantané pour TOUTES les semaines déjà marquées
+// « transférées » dans hr_locks mais absentes de hr_planning (ex. semaines
+// transférées avant la mise en place de l'instantané). À appeler côté admin,
+// quand les placements (HR_AFFECT) sont en mémoire.
+function hrRegenererSnapshotsTransferes(){
+  try{
+    var resto=_hrPlanningResto();
+    var locks=HR_LOCKS_BY_RESTO[resto]||{};
+    if(!HR_PLANNING_BY_RESTO[resto]) HR_PLANNING_BY_RESTO[resto]={};
+    var nb=0;
+    Object.keys(locks).forEach(function(lundi){
+      var v=locks[lundi];
+      var transfere=(v && typeof v==='object') ? v.transfere : !!v;
+      if(!transfere) return;
+      if(HR_PLANNING_BY_RESTO[resto][lundi]) return; // déjà présent
+      hrEnregistrerSnapshotSemaine(lundi);
+      nb++;
+    });
+    return nb;
+  }catch(e){ console.warn('regen snapshots', e); return 0; }
+}
+window.hrRegenererSnapshotsTransferes=hrRegenererSnapshotsTransferes;
 // ══ ANNULER LE TRANSFERT (Admin/RH) : rouvre une semaine transférée pour correction ══
 // Retire le verrou ET la marque "transfere" pour que la semaine redevienne pleinement
 // modifiable. Réservé au patron RH / directeur / franchise. Protégé par le code.
@@ -14511,6 +14595,7 @@ function hrAnnulerTransfertSemaine(){
   // 5) Suppression complète du verrou (verrou + marque transfere)
   delete L[lundi];
   hrSauverLocks();
+  try{ hrRetirerSnapshotSemaine(lundi); }catch(e){}
   try{ hrMajBoutonsVerrou(); }catch(e){}
   try{ if(typeof hrRenderPlanningHebdo==='function') hrRenderPlanningHebdo(); }catch(e){}
   toast&&toast('Semaine rouverte pour correction ↩️ — pensez à la re-transférer après','success');
@@ -14534,6 +14619,9 @@ function hrOuvrirTransfert(){
   var box=document.getElementById('transfert-content'); if(!box) return;
   var lundi=_hrLundiAffiche();
   var estAdmin=(typeof curUser!=='undefined'&&curUser&&curUser.role==='franchise');
+  // Rattrapage : régénère l'instantané des semaines déjà transférées qui n'en ont
+  // pas encore (ex. transférées avant la mise en place du système d'instantané).
+  try{ hrRegenererSnapshotsTransferes(); }catch(e){}
   var h='';
 
   // ── BLOC 1 : la semaine actuellement affichée ──
@@ -14618,6 +14706,7 @@ function hrAnnulerTransfertSemaineCible(lundi){
   }
   delete L[lundi];
   hrSauverLocks();
+  try{ hrRetirerSnapshotSemaine(lundi); }catch(e){}
   try{ hrMajBoutonsVerrou(); }catch(e){}
   try{ if(typeof hrRenderPlanningHebdo==='function') hrRenderPlanningHebdo(); }catch(e){}
   toast&&toast('Transfert annulé ↩️ — semaine rouverte','success');
