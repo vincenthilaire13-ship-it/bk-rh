@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-23 13:48 · v287';
+  var EMBEDDED_VERSION = '2026-06-23 13:55 · v288';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -12831,6 +12831,22 @@ function hrConsoliderContrat(ctx, equipiers, cible){
     var maxHJ=(R.maxHeuresJour!=null)?parseFloat(R.maxHeuresJour)*60:600;
     var tot=0; seqs.forEach(function(s){tot+=(s.e-s.s);});
     if(tot>maxHJ) return false;                                  // garde-fou légal (10h/jour)
+    // R1 — REPOS QUOTIDIEN entre deux journées (ex. 12h). Conservé même dans la
+    // passe allégée 35h : une fin de journée tardive (ex. 01:30, codée 1530) doit
+    // laisser ≥ repos avant la reprise du lendemain. (todayFirst+1440)-finVeille.
+    if(R.reposQuotidienH){
+      var reposMin35=parseFloat(R.reposQuotidienH)*60;
+      var todayFirst35=seqs[0].s, todayLast35=seqs[seqs.length-1].e;
+      var bjr=(ctx.busyJour||{})[emp.id]||{};
+      if(d-1>=0 && bjr[d-1] && bjr[d-1].length){
+        var finV=-1; bjr[d-1].forEach(function(p){ if(p.e>finV) finV=p.e; });
+        if(finV>=0 && ((todayFirst35+1440)-finV)<reposMin35) return false;
+      }
+      if(d+1<=6 && bjr[d+1] && bjr[d+1].length){
+        var debL=Infinity; bjr[d+1].forEach(function(p){ if(p.s<debL) debL=p.s; });
+        if(debL<Infinity && ((debL+1440)-todayLast35)<reposMin35) return false;
+      }
+    }
     return true;
   }
   function poser(e,d,b){
