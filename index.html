@@ -10,7 +10,7 @@
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-23 10:28 · v279';
+  var EMBEDDED_VERSION = '2026-06-23 10:51 · v281';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1405,6 +1405,7 @@ body.tv-mode #eye-viewas{display:none!important;}
     <div style="margin-bottom:11px;"><label class="flabel">E-mail</label><input type="email" id="edit-email" class="fi" placeholder="email@exemple.com"></div>
     <div style="margin-bottom:11px;"><label class="flabel">Téléphone</label><input type="tel" id="edit-phone" class="fi" placeholder="06 12 34 56 78"></div>
     <div style="margin-bottom:11px;"><label class="flabel">Transport / véhicule</label><input type="text" id="edit-transport" class="fi" placeholder="Ex : Voiture, scooter, transports en commun…"></div>
+    <div style="margin-bottom:11px;"><label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.9rem;color:#ddd;"><input type="checkbox" id="edit-rqth" style="width:18px;height:18px;accent-color:#2f7fc4;cursor:pointer;"><span>♿ Ce salarié est <b style="color:#9fd3ff;">RQTH</b> (travailleur handicapé)</span></label></div>
     <div style="margin-bottom:11px;"><label class="flabel">Restaurant</label><select id="edit-resto" class="fi"><option value="bk500">BK 500</option><option value="bk509">BK 509</option><option value="bk526">BK 526</option></select></div>
     <div id="edit-pin-row" style="display:none;margin-bottom:11px;">
       <label class="flabel">🔑 Code PIN (4 chiffres)</label>
@@ -3920,6 +3921,7 @@ function openEdit(id){
   document.getElementById('edit-email').value=e.email||'';
   var ph=document.getElementById('edit-phone');if(ph)ph.value=e.phone||'';
   var tr=document.getElementById('edit-transport');if(tr)tr.value=e.transport||'';
+  var rq=document.getElementById('edit-rqth');if(rq)rq.checked=(String((e.infos&&e.infos.rqth)||e.rqth||'').toLowerCase()==='oui');
   var rs=document.getElementById('edit-resto');if(rs)rs.value=e.restoId||'bk500';
   var row=document.getElementById('edit-exit-date-row');
   if(e.archived){row.style.display='block';document.getElementById('edit-exit-def').value=e.exitDateDefinitive||e.exitDate||'';}
@@ -3947,6 +3949,8 @@ async function saveEdit(){
   var data={name:document.getElementById('edit-name').value.trim()||e.name,role:document.getElementById('edit-role').value,email:document.getElementById('edit-email').value.trim()};
   var ph=document.getElementById('edit-phone');if(ph)data.phone=ph.value.trim();
   var tr=document.getElementById('edit-transport');if(tr)data.transport=tr.value.trim();
+  var rq=document.getElementById('edit-rqth');
+  if(rq){ if(!e.infos) e.infos={}; e.infos.rqth=rq.checked?'oui':'non'; data.infos=e.infos; }
   var rs=document.getElementById('edit-resto');if(rs)data.resto_id=rs.value;
   try {
     await sb.patch('bks_employees','id=eq.'+id,data);
@@ -12385,25 +12389,34 @@ function hrEERenderFixes(){
   var box=document.getElementById('etat-equipe-list'); if(!box) return;
   var eq=_etatEquipiers();
   var h=_hrEEHeader('Salariés fixés','horaires fixes + poste — le placement intelligent les respecte');
-  h+='<div style="font-size:.82rem;color:#aaa;margin-bottom:10px;">Pour chaque salarié et chaque jour : laisse en <b>Repos</b>, ou active le jour et indique l\u2019horaire + le poste. <b style="color:#c9a0ff;">Productif</b> = pendant l\u2019ouverture client (le moteur retire ce besoin et place les autres autour). <b style="color:#ffc97a;">Improductif</b> = hors ouverture (ex. mise en place, ménage).</div>';
+  h+='<div style="font-size:.82rem;color:#aaa;margin-bottom:10px;">Choisis un salarié dans le menu de sa catégorie pour le fixer. Une fois fixé, il reste affiché. Pour chaque jour : <b>Repos</b>, ou clique 📌 puis ajoute 1 ou 2 créneaux (horaire + poste). <b style="color:#c9a0ff;">Productif</b> = pendant l\u2019ouverture client. <b style="color:#ffc97a;">Improductif</b> = hors ouverture.</div>';
   if(!eq.length){ box.innerHTML=h+'<div style="padding:14px;color:#777;">Aucun équipier sur ce restaurant.</div>'; return; }
-  // Liste des postes proposés
   var postes=[]; try{ postes=(window.POSTES&&window.POSTES.length)?window.POSTES.slice():[]; }catch(e){}
   if(!postes.length) postes=['CUISINE','FRITES','SNACK','BROILER','BOARD VOLANT','BORNE','DRIVE','SAT SALLE','EMPORTER','UBER'];
-  // on ajoute quelques postes d'encadrement / improductifs courants
   var postesEncadr=['MANAGER','LEADER','OUVERTURE','FERMETURE','MISE EN PLACE','MÉNAGE','LIVRAISON','MARCHANDISES'];
   function optionsPostes(sel){
-    var s='<option value="">— poste —</option>';
-    s+='<optgroup label="Productifs">';
+    var s='<option value="">— poste —</option><optgroup label="Productifs">';
     postes.forEach(function(p){ s+='<option value="'+p+'"'+(sel===p?' selected':'')+'>'+p+'</option>'; });
     s+='</optgroup><optgroup label="Encadrement / autres">';
     postesEncadr.forEach(function(p){ s+='<option value="'+p+'"'+(sel===p?' selected':'')+'>'+p+'</option>'; });
     s+='</optgroup>';
     return s;
   }
+  // Un salarié est "fixé" s'il a au moins un jour avec on:true
+  function estFixe(e){
+    var fx=(e.infos&&e.infos.fixes)||{};
+    return JOURS.some(function(j){ return fx[j[0]]&&fx[j[0]].on; });
+  }
+  // Récupère les créneaux d'un jour (gère l'ancien format mono-créneau)
+  function creneauxDe(x){
+    if(!x) return [];
+    if(Array.isArray(x.creneaux)) return x.creneaux;
+    if(x.from||x.to||x.poste) return [{from:x.from||'09:00',to:x.to||'17:00',poste:x.poste||'',prod:(x.prod!==false)}];
+    return [];
+  }
   h+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.8rem;"><thead><tr style="border-bottom:2px solid #444;">';
   h+='<th style="text-align:left;padding:6px 8px;color:#fff;position:sticky;left:0;background:#1a1a1a;">Salarié</th>';
-  JOURS.forEach(function(j){ h+='<th style="padding:6px 8px;color:#fff;min-width:150px;">'+j[1]+'</th>'; });
+  JOURS.forEach(function(j){ h+='<th style="padding:6px 8px;color:#fff;min-width:170px;">'+j[1]+'</th>'; });
   h+='</tr></thead><tbody>';
   var NB_COLS_FIX=1+JOURS.length;
   function ligne(e){
@@ -12413,30 +12426,35 @@ function hrEERenderFixes(){
     var _ri=(window.hrRoleInfo?window.hrRoleInfo(e):{label:'',ico:''});
     var _rbadge='<span style="font-size:.68rem;font-weight:700;color:#ffd98a;background:#3a2e12;border:1px solid #b8860b;border-radius:10px;padding:1px 7px;white-space:nowrap;margin-left:5px;">'+_ri.ico+' '+_ri.label+'</span>';
     var _cbadge='<div style="margin-top:3px;"><span style="font-size:.68rem;font-weight:700;color:#7fffc4;background:#163a2a;border:1px solid #2ec27e;border-radius:10px;padding:1px 7px;white-space:nowrap;">\ud83d\udcc4 '+(_ctxt||'contrat ?')+'</span>'+_rbadge+hrRqthBadge(e)+'</div>';
-    var _rq=((e.infos&&e.infos.rqth)||e.rqth||'');
-    var _rqOui=(String(_rq).toLowerCase()==='oui');
-    var _rqCapsule='<span onclick="hrEEToggleRqth(\''+e.id+'\')" title="Cliquer pour indiquer si ce salarié est RQTH" style="cursor:pointer;font-size:.66rem;font-weight:800;border-radius:10px;padding:2px 8px;white-space:nowrap;margin-left:8px;'+(_rqOui?'color:#9fd3ff;background:#10304d;border:1px solid #2f7fc4;':'color:#666;background:#1d1d1d;border:1px solid #3a3a3a;')+'">♿ RQTH'+(_rqOui?' ✓':'')+'</span>';
-    var r='<tr style="border-bottom:1px solid #2a2a2a;"><td style="padding:6px 8px;font-weight:600;color:#eee;white-space:nowrap;position:sticky;left:0;background:#161616;vertical-align:top;"><span style="display:inline-flex;align-items:center;">'+e.name+_rqCapsule+'</span>'+_cbadge
-      +'<div style="margin-top:5px;"><span id="ee-fix-st-'+e.id+'" style="font-size:.72rem;color:#3ecf8e;"></span></div></td>';
+    var r='<tr style="border-bottom:1px solid #2a2a2a;"><td style="padding:6px 8px;font-weight:600;color:#eee;white-space:nowrap;position:sticky;left:0;background:#161616;vertical-align:top;"><span style="display:inline-flex;align-items:center;">'+e.name+'</span>'+_cbadge
+      +'<div style="margin-top:5px;display:flex;align-items:center;gap:8px;"><button onclick="hrEEFixRetirer(\''+e.id+'\')" title="Retirer ce salarié des fixés" style="background:#3a1a1a;border:1px solid #a04040;color:#ff9b9b;border-radius:6px;padding:2px 8px;cursor:pointer;font-size:.7rem;">✕ Retirer</button><span id="ee-fix-st-'+e.id+'" style="font-size:.72rem;color:#3ecf8e;"></span></div></td>';
     JOURS.forEach(function(j){
       var jk=j[0]; var x=fx[jk]||{}; var on=!!x.on;
+      var crns=creneauxDe(x);
       r+='<td style="padding:5px 6px;text-align:center;vertical-align:top;">'
         +'<div onclick="hrEEFixToggle(\''+e.id+'\',\''+jk+'\')" style="cursor:pointer;width:26px;height:26px;margin:0 auto 4px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;'+(on?'background:#8e44ad;color:#fff;':'background:#2a2a2a;color:#555;border:1px solid #444;')+'" title="'+(on?'Fixé ce jour':'Repos')+'">'+(on?'📌':'')+'</div>';
       if(on){
-        var from=x.from||'09:00', to=x.to||'17:00', poste=x.poste||'', prod=(x.prod!==false);
-        r+='<div style="display:flex;flex-direction:column;gap:3px;align-items:center;">'
-          +'<input type="time" value="'+from+'" onchange="hrEEFixSet(\''+e.id+'\',\''+jk+'\',\'from\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#e8d6ff;border-radius:5px;padding:2px 4px;font-size:.72rem;width:90px;">'
-          +'<input type="time" value="'+to+'" onchange="hrEEFixSet(\''+e.id+'\',\''+jk+'\',\'to\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#e8d6ff;border-radius:5px;padding:2px 4px;font-size:.72rem;width:90px;">'
-          +'<select onchange="hrEEFixSet(\''+e.id+'\',\''+jk+'\',\'poste\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#cfe;border-radius:5px;padding:2px 4px;font-size:.7rem;width:96px;">'+optionsPostes(poste)+'</select>'
-          +'<div onclick="hrEEFixToggleProd(\''+e.id+'\',\''+jk+'\')" style="cursor:pointer;font-size:.68rem;font-weight:700;border-radius:9px;padding:2px 7px;'+(prod?'background:#3a1d4d;color:#d9a8ff;border:1px solid #8e44ad;':'background:#3a2e12;color:#ffc97a;border:1px solid #b8860b;')+'" title="Cliquer pour basculer">'+(prod?'Productif':'Improductif')+'</div>'
-          +'</div>';
+        if(!crns.length) crns=[{from:'09:00',to:'17:00',poste:'',prod:true}];
+        crns.forEach(function(c,ci){
+          var prod=(c.prod!==false);
+          r+='<div style="display:flex;flex-direction:column;gap:2px;align-items:center;border:1px solid #333;border-radius:7px;padding:4px;margin-bottom:4px;background:#141019;">'
+            +'<input type="time" value="'+(c.from||'09:00')+'" onchange="hrEEFixSetCrn(\''+e.id+'\',\''+jk+'\','+ci+',\'from\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#e8d6ff;border-radius:5px;padding:2px 4px;font-size:.72rem;width:92px;">'
+            +'<input type="time" value="'+(c.to||'17:00')+'" onchange="hrEEFixSetCrn(\''+e.id+'\',\''+jk+'\','+ci+',\'to\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#e8d6ff;border-radius:5px;padding:2px 4px;font-size:.72rem;width:92px;">'
+            +'<select onchange="hrEEFixSetCrn(\''+e.id+'\',\''+jk+'\','+ci+',\'poste\',this.value)" style="background:#1a1a1a;border:1px solid #3a3a3a;color:#cfe;border-radius:5px;padding:2px 4px;font-size:.7rem;width:98px;">'+optionsPostes(c.poste||'')+'</select>'
+            +'<div style="display:flex;gap:3px;align-items:center;">'
+            +'<div onclick="hrEEFixToggleProdCrn(\''+e.id+'\',\''+jk+'\','+ci+')" style="cursor:pointer;font-size:.66rem;font-weight:700;border-radius:9px;padding:2px 7px;'+(prod?'background:#3a1d4d;color:#d9a8ff;border:1px solid #8e44ad;':'background:#3a2e12;color:#ffc97a;border:1px solid #b8860b;')+'" title="Cliquer pour basculer">'+(prod?'Productif':'Improductif')+'</div>'
+            +(crns.length>1?'<div onclick="hrEEFixDelCrn(\''+e.id+'\',\''+jk+'\','+ci+')" title="Supprimer ce créneau" style="cursor:pointer;color:#ff9b9b;font-size:.8rem;padding:0 3px;">✕</div>':'')
+            +'</div></div>';
+        });
+        if(crns.length<2){
+          r+='<div onclick="hrEEFixAddCrn(\''+e.id+'\',\''+jk+'\')" style="cursor:pointer;font-size:.68rem;color:#9fd3ff;border:1px dashed #2f7fc4;border-radius:6px;padding:3px;margin-top:2px;">+ 2e créneau</div>';
+        }
       }
       r+='</td>';
     });
     r+='</tr>';
     return r;
   }
-  // Accordéon par catégories (mêmes règles que l'onglet Équipe)
   var CATS=[
     {key:'directeur',label:'Directeurs',ico:'👑'},
     {key:'manager',  label:'Managers',  ico:'⭐'},
@@ -12447,12 +12465,27 @@ function hrEERenderFixes(){
   CATS.forEach(function(cat){
     var membres=eq.filter(function(e){ return (window.hrRoleInfo?window.hrRoleInfo(e).key:'equipier')===cat.key; });
     if(!membres.length) return;
+    var fixes=membres.filter(estFixe);
+    var libres=membres.filter(function(e){ return !estFixe(e); });
     var open=!!hrEEFixOpenCats[cat.key];
+    // En-tête catégorie
     h+='<tr><td colspan="'+NB_COLS_FIX+'" onclick="hrEEFixToggleCat(\''+cat.key+'\')" style="cursor:pointer;background:#2a1d3a;border-top:2px solid #8e44ad;padding:8px 10px;position:sticky;left:0;">'
       +'<span style="display:inline-block;width:14px;color:#d9a8ff;font-weight:800;transform:rotate('+(open?'90':'0')+'deg);transition:transform .12s;">▸</span>'
       +'<span style="font-weight:800;color:#e8d6ff;font-size:.9rem;">'+cat.ico+' '+cat.label+'</span>'
-      +'<span style="color:#b08fd0;font-size:.78rem;margin-left:8px;">('+membres.length+')</span></td></tr>';
-    if(open){ membres.forEach(function(e){ h+=ligne(e); }); }
+      +'<span style="color:#b08fd0;font-size:.78rem;margin-left:8px;">('+fixes.length+' fixé'+(fixes.length>1?'s':'')+')</span></td></tr>';
+    if(open){
+      // Menu déroulant pour ajouter un salarié de cette catégorie
+      var optLibres='<option value="">+ Fixer un salarié…</option>';
+      libres.sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+      libres.forEach(function(e){ optLibres+='<option value="'+e.id+'">'+e.name+'</option>'; });
+      h+='<tr><td colspan="'+NB_COLS_FIX+'" style="padding:7px 10px;background:#161320;position:sticky;left:0;">'
+        +'<select onchange="if(this.value){hrEEFixAjouter(this.value);}" style="background:#1a1a1a;border:1px solid #2f7fc4;color:#cfe;border-radius:7px;padding:5px 10px;font-size:.8rem;min-width:230px;">'+optLibres+'</select>'
+        +(libres.length?'':'<span style="color:#666;font-size:.76rem;margin-left:8px;">tous fixés</span>')
+        +'</td></tr>';
+      // Lignes des salariés fixés uniquement
+      fixes.sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+      fixes.forEach(function(e){ h+=ligne(e); });
+    }
   });
   h+='</tbody></table></div>';
   box.innerHTML=h;
@@ -12461,7 +12494,81 @@ window.hrEERenderFixes=hrEERenderFixes;
 var hrEEFixOpenCats={directeur:true,manager:true,leader:true,apprenti:true,equipier:true};
 function hrEEFixToggleCat(key){ hrEEFixOpenCats[key]=!hrEEFixOpenCats[key]; hrEERenderFixes(); }
 window.hrEEFixToggleCat=hrEEFixToggleCat;
-// Basculer le statut RQTH d'un salarié (oui / non) — visible partout via le badge bleu.
+// Convertit un jour vers le format créneaux[] (rétrocompat)
+function _hrFixNorm(e, jk){
+  if(!e.infos) e.infos={};
+  if(!e.infos.fixes) e.infos.fixes={};
+  var x=e.infos.fixes[jk]||{};
+  if(!Array.isArray(x.creneaux)){
+    var c=[];
+    if(x.from||x.to||x.poste) c=[{from:x.from||'09:00',to:x.to||'17:00',poste:x.poste||'',prod:(x.prod!==false)}];
+    x={on:!!x.on, creneaux:c};
+    e.infos.fixes[jk]=x;
+  }
+  return x;
+}
+// Ajouter un salarié aux fixés (active lundi par défaut pour qu'il apparaisse)
+function hrEEFixAjouter(id){
+  var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return;
+  var j=_hrFixNorm(e,'lun'); j.on=true;
+  if(!j.creneaux.length) j.creneaux=[{from:'09:00',to:'17:00',poste:'',prod:true}];
+  hrEERenderFixes();
+  _hrEESaveInfos(id,'ee-fix-st-');
+}
+window.hrEEFixAjouter=hrEEFixAjouter;
+// Retirer complètement un salarié des fixés
+function hrEEFixRetirer(id){
+  var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return;
+  if(!confirm('Retirer '+e.name+' des salariés fixés ? Ses horaires fixes seront effacés.')) return;
+  if(e.infos) e.infos.fixes={};
+  hrEERenderFixes();
+  _hrEESaveInfos(id,'ee-fix-st-');
+}
+window.hrEEFixRetirer=hrEEFixRetirer;
+function hrEEFixToggle(id, jk){
+  var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return;
+  var j=_hrFixNorm(e,jk);
+  j.on=!j.on;
+  if(j.on && !j.creneaux.length) j.creneaux=[{from:'09:00',to:'17:00',poste:'',prod:true}];
+  hrEERenderFixes();
+  _hrEESaveInfos(id,'ee-fix-st-');
+}
+window.hrEEFixToggle=hrEEFixToggle;
+function hrEEFixAddCrn(id, jk){
+  var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return;
+  var j=_hrFixNorm(e,jk);
+  if(j.creneaux.length<2) j.creneaux.push({from:'18:00',to:'22:00',poste:'',prod:true});
+  hrEERenderFixes();
+  _hrEESaveInfos(id,'ee-fix-st-');
+}
+window.hrEEFixAddCrn=hrEEFixAddCrn;
+function hrEEFixDelCrn(id, jk, ci){
+  var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return;
+  var j=_hrFixNorm(e,jk);
+  j.creneaux.splice(ci,1);
+  if(!j.creneaux.length) j.on=false;
+  hrEERenderFixes();
+  _hrEESaveInfos(id,'ee-fix-st-');
+}
+window.hrEEFixDelCrn=hrEEFixDelCrn;
+function hrEEFixSetCrn(id, jk, ci, champ, val){
+  var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return;
+  var j=_hrFixNorm(e,jk);
+  if(!j.creneaux[ci]) j.creneaux[ci]={from:'09:00',to:'17:00',poste:'',prod:true};
+  j.creneaux[ci][champ]=val;
+  _hrEESaveInfos(id,'ee-fix-st-');
+}
+window.hrEEFixSetCrn=hrEEFixSetCrn;
+function hrEEFixToggleProdCrn(id, jk, ci){
+  var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return;
+  var j=_hrFixNorm(e,jk);
+  if(!j.creneaux[ci]) return;
+  j.creneaux[ci].prod=(j.creneaux[ci].prod===false)?true:false;
+  hrEERenderFixes();
+  _hrEESaveInfos(id,'ee-fix-st-');
+}
+window.hrEEFixToggleProdCrn=hrEEFixToggleProdCrn;
+// Basculer le statut RQTH (conservé pour compat, plus utilisé dans la vue)
 function hrEEToggleRqth(id){
   var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e) return;
   if(!e.infos) e.infos={};
@@ -12471,29 +12578,6 @@ function hrEEToggleRqth(id){
   _hrEESaveInfos(id,'ee-fix-st-');
 }
 window.hrEEToggleRqth=hrEEToggleRqth;
-function hrEEFixToggle(id, jk){
-  var e=_hrEEFixBuf(id); if(!e) return;
-  if(!e.infos.fixes[jk]) e.infos.fixes[jk]={from:'09:00',to:'17:00',poste:'',prod:true};
-  e.infos.fixes[jk].on=!e.infos.fixes[jk].on;
-  hrEERenderFixes();
-  _hrEESaveInfos(id,'ee-fix-st-');
-}
-window.hrEEFixToggle=hrEEFixToggle;
-function hrEEFixSet(id, jk, champ, val){
-  var e=_hrEEFixBuf(id); if(!e) return;
-  if(!e.infos.fixes[jk]) e.infos.fixes[jk]={on:true};
-  e.infos.fixes[jk][champ]=val;
-  _hrEESaveInfos(id,'ee-fix-st-');
-}
-window.hrEEFixSet=hrEEFixSet;
-function hrEEFixToggleProd(id, jk){
-  var e=_hrEEFixBuf(id); if(!e) return;
-  if(!e.infos.fixes[jk]) e.infos.fixes[jk]={on:true};
-  e.infos.fixes[jk].prod=(e.infos.fixes[jk].prod===false)?true:false;
-  hrEERenderFixes();
-  _hrEESaveInfos(id,'ee-fix-st-');
-}
-window.hrEEFixToggleProd=hrEEFixToggleProd;
 
 function hrEERenderCompetences(){
   var box=document.getElementById('etat-equipe-list'); if(!box) return;
@@ -15023,7 +15107,7 @@ function hrFicheSalarie(empId){
     var box=document.getElementById('fiche-sal-content');
     if(!box) return;
     var ch=(typeof hrContratHebdo==='function')?hrContratHebdo(e):(inf.contrat_hebdo||'');
-    if(titEl) titEl.innerHTML='👤 '+(e.name||'')+(ch?' <span style="font-size:12px;color:#888;font-weight:500;">— '+ch+'h/sem</span>':'');
+    if(titEl) titEl.innerHTML='👤 '+(e.name||'')+(ch?' <span style="font-size:12px;color:#888;font-weight:500;">— '+ch+'h/sem</span>':'')+(typeof hrRqthBadge==='function'?hrRqthBadge(e):'');
     var h='';
     // ── COMPÉTENCES ──
     var qualifs=Array.isArray(inf.qualifs)?inf.qualifs:[];
