@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-24 11:37 · v310';
+  var EMBEDDED_VERSION = '2026-06-24 12:24 · v316';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -45,6 +45,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <title>BKRH</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap');
@@ -372,8 +373,7 @@ body.tv-mode #eye-viewas{display:none!important;}
       <div id="login-maj" style="display:inline-block;margin-top:12px;background:rgba(76,175,80,.12);border:1px solid #4CAF50;color:#4CAF50;padding:5px 16px;border-radius:20px;font-size:.8rem;font-weight:600;"></div>
     </div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:14px;">
-      <div class="tile tile-admin" onclick="pickGlobal('admin')"><div class="tile-icon">🛡️</div><div class="tile-label">Admin</div><div class="tile-sub">Accès total</div></div>
-      <div class="tile tile-rh" onclick="pickGlobal('rh')"><div class="tile-icon">👩‍💼</div><div class="tile-label">Superviseure</div><div class="tile-sub">RH / Supervision</div></div>
+      <div class="tile tile-admin" onclick="pickGlobal('admin')"><div class="tile-icon">🛡️</div><div class="tile-label">Direction</div><div class="tile-sub">Accès complet</div></div>
     </div>
     <p style="color:#555;font-size:.76rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;">Restaurants</p>
     <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;">
@@ -525,7 +525,6 @@ body.tv-mode #eye-viewas{display:none!important;}
     <button class="desktop-only" onclick="goPage('equipe',this)">👥 Équipe</button>
     <button onclick="goPage('recrutement',this)">🎯 Recrutement <span id="rbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
     <button onclick="goPage('incidents',this)">📋 Incidents</button>
-    <button onclick="goPage('docsdemandes',this)">📨 Documents &amp; demandes <span id="ddbadge" style="background:var(--red);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
     <button class="desktop-only" onclick="goPage('rapports',this)">📊 Rapports</button>
     <button onclick="goPage('planning',this)">🗓️ Planning encadrement</button>
     <button class="desktop-only" onclick="goPage('parametres',this)">⚙️ Paramètres</button>
@@ -635,95 +634,6 @@ body.tv-mode #eye-viewas{display:none!important;}
     <div id="inc-list"></div>
   </div>
 
-  <!-- DOCUMENTS & DEMANDES -->
-  <div class="page" id="page-docsdemandes">
-    <div class="rtabs" style="margin-bottom:14px;">
-      <button class="rtab on" id="dd-tab-doc" onclick="ddSetTab('doc')">📎 Envoyer un document</button>
-      <button class="rtab" id="dd-tab-dem" onclick="ddSetTab('dem')">📋 Demandes &amp; suivi RH</button>
-    </div>
-
-    <!-- Onglet ENVOI DE DOCUMENT -->
-    <div id="dd-pane-doc">
-      <div class="card">
-        <div class="sec-title">📎 Envoyer un document</div>
-        <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Sélectionnez le salarié, le type de document, puis joignez le fichier (PDF ou photo). Le document est rangé dans Dropbox et apparaît sur la fiche du salarié.</p>
-        <div class="form-row">
-          <div>
-            <label class="flabel">Salarié</label>
-            <select id="dd-doc-emp" class="fi"></select>
-          </div>
-          <div>
-            <label class="flabel">Type de document</label>
-            <select id="dd-doc-type" class="fi" onchange="ddDocTypeChange()">
-              <option value="arret_maladie">🏥 Arrêt maladie</option>
-              <option value="justif_absence">📄 Justificatif d'absence</option>
-              <option value="autre">❗ Autre</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row" id="dd-doc-dates" style="display:none;">
-          <div><label class="flabel">Du</label><input type="date" id="dd-doc-from" class="fi"></div>
-          <div><label class="flabel">Au</label><input type="date" id="dd-doc-to" class="fi"></div>
-        </div>
-        <label class="flabel" style="margin-top:4px;">Précision (optionnel)</label>
-        <input type="text" id="dd-doc-note" class="fi" placeholder="Ex : arrêt initial, prolongation...">
-        <label class="flabel" style="margin-top:12px;">📎 Document (glissez le fichier ici)</label>
-        <div id="dd-doc-drop" ondragover="bkDragOver(event,this)" ondragleave="bkDragLeave(this)" ondrop="ddDocDrop(event,this)" onclick="document.getElementById('dd-doc-file').click()" style="border:2px dashed #555;border-radius:14px;padding:30px 18px;text-align:center;cursor:pointer;transition:all .15s;background:#141414;">
-          <div style="font-size:2.2rem;">📄</div>
-          <div style="font-size:.95rem;color:#ddd;margin-top:8px;font-weight:600;">Glissez le document ici</div>
-          <div style="font-size:.8rem;color:#888;margin-top:4px;">PDF ou photo — ou cliquez pour choisir · <span id="dd-doc-name">aucun fichier</span></div>
-        </div>
-        <input type="file" id="dd-doc-file" accept="application/pdf,image/*" style="display:none;" onchange="ddDocPick(this)">
-        <div style="margin-top:14px;display:flex;gap:9px;">
-          <button class="btn btn-red" id="dd-doc-save" onclick="ddDocSave()">✔ Enregistrer le document</button>
-          <button class="btn btn-gray" onclick="ddDocReset()">✕ Réinitialiser</button>
-        </div>
-        <div id="dd-doc-status" style="font-size:.8rem;color:#888;margin-top:8px;"></div>
-      </div>
-      <div class="sec-title">🗂️ Documents envoyés</div>
-      <div class="filters">
-        <select id="dd-doc-fresto" onchange="ddRenderDocs()"><option value="">Tous restaurants</option><option value="bk500">BK 500</option><option value="bk509">BK 509</option><option value="bk526">BK 526</option></select>
-        <select id="dd-doc-ftype" onchange="ddRenderDocs()"><option value="">Tous types</option><option value="arret_maladie">🏥 Arrêt maladie</option><option value="justif_absence">📄 Justificatif d'absence</option><option value="autre">❗ Autre</option></select>
-      </div>
-      <div id="dd-doc-list"></div>
-    </div>
-
-    <!-- Onglet DEMANDES RH -->
-    <div id="dd-pane-dem" style="display:none;">
-      <div class="card">
-        <div class="sec-title">📋 Nouvelle demande RH</div>
-        <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Transmettez une demande ou une note de suivi concernant un salarié (ex : fin de période d'essai, demande de sanction...). Visible par la direction et la supervision.</p>
-        <div class="form-row">
-          <div>
-            <label class="flabel">Salarié</label>
-            <select id="dd-dem-emp" class="fi"></select>
-          </div>
-          <div>
-            <label class="flabel">Type de demande</label>
-            <select id="dd-dem-type" class="fi">
-              <option value="fin_essai">🛑 Fin de période d'essai</option>
-              <option value="sanction">⚠️ Demande de sanction</option>
-              <option value="entretien">💬 Demande d'entretien</option>
-              <option value="autre">❗ Autre</option>
-            </select>
-          </div>
-        </div>
-        <label class="flabel" style="margin-top:4px;">Message</label>
-        <textarea id="dd-dem-msg" class="fi" style="min-height:110px;" placeholder="Décrivez votre demande..."></textarea>
-        <div style="margin-top:14px;display:flex;gap:9px;">
-          <button class="btn btn-red" id="dd-dem-save" onclick="ddDemSave()">✔ Envoyer la demande</button>
-          <button class="btn btn-gray" onclick="ddDemReset()">✕ Réinitialiser</button>
-        </div>
-        <div id="dd-dem-status" style="font-size:.8rem;color:#888;margin-top:8px;"></div>
-      </div>
-      <div class="sec-title">📨 Demandes en cours</div>
-      <div class="filters">
-        <select id="dd-dem-fresto" onchange="ddRenderDemandes()"><option value="">Tous restaurants</option><option value="bk500">BK 500</option><option value="bk509">BK 509</option><option value="bk526">BK 526</option></select>
-        <select id="dd-dem-fstatut" onchange="ddRenderDemandes()"><option value="">Tous statuts</option><option value="nouvelle">🔴 Nouvelles</option><option value="traitee">✅ Traitées</option></select>
-      </div>
-      <div id="dd-dem-list"></div>
-    </div>
-  </div>
 
   <!-- RAPPORTS -->
   <div class="page" id="page-rapports">
@@ -897,6 +807,13 @@ body.tv-mode #eye-viewas{display:none!important;}
   <!-- PARAMÈTRES -->
   <div class="page" id="page-parametres">
     <div id="param-tiles"></div>
+    <div class="card param-card" id="pc-dropbox" style="display:none;">
+      <div class="sec-title">📁 Dossiers Dropbox</div>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:12px;">Consultez les dossiers et documents rangés dans Dropbox (par restaurant et par salarié). Cliquez sur un dossier pour l'ouvrir, sur un fichier pour le consulter.</p>
+      <div id="dbx-breadcrumb" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.85rem;margin-bottom:12px;"></div>
+      <div id="dbx-browser-status" style="font-size:.82rem;color:#888;margin-bottom:8px;"></div>
+      <div id="dbx-browser-list"></div>
+    </div>
     <div class="card param-card" id="pc-competences" style="display:none;">
       <div class="sec-title">🎯 Importer les compétences</div>
       <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">Glissez ici le fichier Excel des <b style="color:#fff;">compétences</b> exporté depuis les Rapports. Le restaurant est lu automatiquement dans le fichier (colonne « Restaurant ») — vous n'avez rien à sélectionner.</p>
@@ -1452,6 +1369,53 @@ async function dbxMove(fromPath,toPath){
     return r.ok;
   }catch(e){console.error('Dropbox move',e);return false;}
 }
+// lister le contenu d'un dossier Dropbox (consultation). path='' = racine.
+async function dbxListFolder(path){
+  var tok=await dbxToken();
+  var r=await fetch('https://api.dropboxapi.com/2/files/list_folder',{
+    method:'POST',headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+    body:JSON.stringify({path:path||'',recursive:false,include_deleted:false})
+  });
+  if(!r.ok)throw new Error('Dropbox list '+r.status+' '+(await r.text()));
+  var d=await r.json();
+  var entries=(d.entries||[]).slice();
+  // pagination éventuelle
+  var cursor=d.cursor, hasMore=d.has_more;
+  var guard=0;
+  while(hasMore && guard<20){
+    guard++;
+    var rc=await fetch('https://api.dropboxapi.com/2/files/list_folder/continue',{
+      method:'POST',headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+      body:JSON.stringify({cursor:cursor})
+    });
+    if(!rc.ok)break;
+    var dc=await rc.json();
+    entries=entries.concat(dc.entries||[]);
+    cursor=dc.cursor; hasMore=dc.has_more;
+  }
+  return entries;
+}
+// lien temporaire pour ouvrir/télécharger un fichier
+async function dbxTempLink(path){
+  var tok=await dbxToken();
+  var r=await fetch('https://api.dropboxapi.com/2/files/get_temporary_link',{
+    method:'POST',headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+    body:JSON.stringify({path:path})
+  });
+  if(!r.ok)throw new Error('Dropbox templink '+r.status);
+  var d=await r.json();
+  return d.link||'';
+}
+// télécharger le contenu binaire d'un fichier Dropbox (pour le zip)
+async function dbxDownloadFile(path){
+  var tok=await dbxToken();
+  var r=await fetch('https://content.dropboxapi.com/2/files/download',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+tok,'Dropbox-API-Arg':JSON.stringify({path:path})}
+  });
+  if(!r.ok)throw new Error('Dropbox download '+r.status);
+  return await r.blob();
+}
 // chemins dossier actif vs archivé pour un salarié
 function dbxEmpFolderArchive(e){
   var resto=RESTOS[e.restoId]?RESTOS[e.restoId].label:(e.restoId||'Autre');
@@ -1996,8 +1960,8 @@ function applyRolePermissions(r){
     var canSeeAll = isGlobal || isDir;
     var rptTabsEl=document.getElementById('rpt-tabs'); if(rptTabsEl) rptTabsEl.style.display = (isGlobal && !( typeof _restoVerrouille==='function' && _restoVerrouille()))?'flex':'none';
 
-    // Indicateur global de lecture seule (directeur = lecture seule partout sauf incidents)
-    window.__readOnly = isDir;
+    // Directeur : accès complet en écriture (plus de lecture seule). Seul l'Admin garde Paramètres.
+    window.__readOnly = false;
 
     var navBtns = document.querySelectorAll('#main-nav button');
     navBtns.forEach(function(b){
@@ -2006,9 +1970,9 @@ function applyRolePermissions(r){
       if (isGlobal) {
         show = true;                                   // Admin/RH : tout
       } else if (isDir) {
-        show = (txt.indexOf('Paramètres')<0 && txt.indexOf('Parametres')<0 && txt.indexOf('Salaires')<0 && txt.indexOf('Contrats')<0 && txt.indexOf('Réglementation')<0); // tout sauf Paramètres, Salaires, Contrats, Réglementation
+        show = (txt.indexOf('Paramètres')<0 && txt.indexOf('Parametres')<0 && txt.indexOf('Salaires')<0 && txt.indexOf('Contrats')<0 && txt.indexOf('Réglementation')<0); // tout sauf Paramètres
       } else if (isMgr) {
-        show = (txt.indexOf('Incidents')>=0);          // Manager : Incidents uniquement
+        show = (txt.indexOf('Incidents')>=0 || txt.indexOf('Rapports')>=0); // Manager : Incidents + Rapports
       } else {
         show = false;                                  // Leader / Équipier : rien
       }
@@ -2224,8 +2188,8 @@ function _entrerDansApp(r){
         else if(startPage==='equipe'&&(t.indexOf('Équipe')>=0||t.indexOf('Equipe')>=0))b.classList.add('active');
       });
     }catch(e){}
-    // Barre "Voir comme" réservée à Admin/RH (franchise)
-    try{ var eye=document.getElementById('eye-viewas'); if(eye) eye.style.display=(r==='franchise')?'inline-block':'none'; var vb=document.getElementById('preview-bar'); if(vb) vb.style.display='none'; }catch(e){}
+    // Barre "Voir comme" retirée
+    try{ var eye=document.getElementById('eye-viewas'); if(eye) eye.style.display='none'; var vb=document.getElementById('preview-bar'); if(vb) vb.style.display='none'; }catch(e){}
     initForm();
     // Si franchise a choisi un resto précis, on entre directement sur la page de départ
     // verrouillée sur ce resto (au lieu des tuiles). goPage gère le reste.
@@ -2234,7 +2198,6 @@ function _entrerDansApp(r){
     updateVBadge();
     updateRBadge();
     if(typeof updateAlBadge==="function")updateAlBadge();
-    if(typeof ddUpdateBadge==="function")ddUpdateBadge();
     loadMailSettings();
     renderPinSettings();
     renderNamesSettings();
@@ -2318,7 +2281,6 @@ function goPage(id, btn) {
   if (id==='dashboard'){ try{ initDashboard(); dashStartAutoRefresh(); }catch(e){console.warn('dash',e);} }
   else { try{ dashStopAutoRefresh(); }catch(e){} }
   if (id==='incidents'){ if(curUser.role==='franchise'){ bkEntrerPage('incidents'); } else { window.__incResto=curUser.restoId; try{ initForm(); }catch(e){} } }
-  if (id==='docsdemandes'){ try{ ddInit(); }catch(e){console.warn('docsdemandes',e);} }
   if (id==='horaires'){ try{
     if(!window.__hrDone && window.__hrInit){ window.__hrInit(); }
     var ra=window.ACTIVE_RESTO;
@@ -2465,6 +2427,7 @@ function setRestoFilterDirect(r){
 // Liste des tuiles de la page Paramètres. type 'card' = affiche une carte interne ;
 // type 'page' = va vers une page existante (salaires/contrats/réglementation).
 var PARAM_TILES=[
+  {ico:'📁', titre:'Dropbox',       sub:'Dossiers des salariés',        type:'card', card:'pc-dropbox',     accent:'#0061ff'},
   {ico:'📲', titre:'QR code',       sub:'QR de candidature',            type:'card', card:'pc-qr',          accent:'#16a085'},
   {ico:'🔑', titre:'Codes PIN',     sub:'Accès par profil',             type:'card', card:'pc-pin',         accent:'#c0392b'},
   {ico:'⚠️', titre:'Observations',  sub:'Seuil rappel oral',            type:'card', card:'pc-seuil',       accent:'#d35400'},
@@ -2510,6 +2473,7 @@ function paramOuvrir(type, ref){
       card.parentElement.insertBefore(back, card);
     } else { card.parentElement.insertBefore(back, card); back.style.display='inline-block'; }
   }
+  if(ref==='pc-dropbox'){ try{ dbxBrowseInit(); }catch(e){ console.warn('dbxBrowseInit',e); } }
 }
 window.renderParamTiles=renderParamTiles; window.paramOuvrir=paramOuvrir;
 
@@ -19769,7 +19733,6 @@ function ddFillEmpSelect(selId){
 function ddInit(){
   ddFillEmpSelect('dd-doc-emp');
   ddFillEmpSelect('dd-dem-emp');
-  ddDocTypeChange();
   ddRenderDocs();
   ddRenderDemandes();
   ddUpdateBadge();
@@ -19783,11 +19746,6 @@ function ddSetTab(t){
 window.ddSetTab=ddSetTab; window.ddInit=ddInit;
 
 // ── ENVOI DE DOCUMENT ──
-function ddDocTypeChange(){
-  var t=document.getElementById('dd-doc-type').value;
-  var dates=document.getElementById('dd-doc-dates');
-  if(dates) dates.style.display=(t==='arret_maladie'||t==='justif_absence')?'grid':'none';
-}
 function ddDocSetFile(f){
   if(!f){_ddDocFile=null;return;}
   var reader=new FileReader();
@@ -19808,42 +19766,29 @@ function ddDocDrop(ev,el){
 function ddDocReset(){
   _ddDocFile=null;
   document.getElementById('dd-doc-emp').value='';
-  document.getElementById('dd-doc-type').value='arret_maladie';
-  document.getElementById('dd-doc-note').value='';
-  document.getElementById('dd-doc-from').value='';
-  document.getElementById('dd-doc-to').value='';
   var n=document.getElementById('dd-doc-name'); n.textContent='aucun fichier'; n.style.color='#888';
   document.getElementById('dd-doc-status').textContent='';
-  ddDocTypeChange();
 }
 async function ddDocSave(){
   var empId=document.getElementById('dd-doc-emp').value;
-  var type=document.getElementById('dd-doc-type').value;
-  var note=(document.getElementById('dd-doc-note').value||'').trim();
-  var from=document.getElementById('dd-doc-from').value;
-  var to=document.getElementById('dd-doc-to').value;
   var st=document.getElementById('dd-doc-status');
   if(!empId){ st.style.color='#D62300'; st.textContent='Veuillez choisir un salarié.'; return; }
-  if(!_ddDocFile||!_ddDocFile.data){ st.style.color='#D62300'; st.textContent='Veuillez joindre un fichier.'; return; }
+  if(!_ddDocFile||!_ddDocFile.data){ st.style.color='#D62300'; st.textContent='Veuillez joindre un document.'; return; }
   var emp=(DB.employees||[]).find(function(e){return e.id===empId;});
   if(!emp){ st.style.color='#D62300'; st.textContent='Salarié introuvable.'; return; }
   var btn=document.getElementById('dd-doc-save'); btn.disabled=true;
   st.style.color='#888'; st.textContent='Envoi en cours...';
   try{
-    var cat=DD_DOC_CATS[type]?DD_DOC_CATS[type].label:'Document';
-    var lbl=cat;
-    if(from||to){ lbl+=' ('+(from?new Date(from).toLocaleDateString('fr-FR'):'?')+(to?(' → '+new Date(to).toLocaleDateString('fr-FR')):'')+')'; }
-    else { lbl+=' du '+new Date().toLocaleDateString('fr-FR'); }
-    if(note) lbl+=' — '+note;
+    var lbl=(_ddDocFile.name||'Document')+' · '+new Date().toLocaleDateString('fr-FR');
     var ext=(_ddDocFile.name&&_ddDocFile.name.indexOf('.')>=0)?_ddDocFile.name.split('.').pop():'pdf';
-    var path=dbxEmpFolderArchive(emp)+'/'+dbxClean(cat)+'_'+Date.now()+'.'+ext;
+    var path=dbxEmpFolderArchive(emp)+'/Document_'+Date.now()+'.'+ext;
     var blob=_dataUrlToBlob(_ddDocFile.data);
     var link=await dbxUpload(path,blob);
-    var rec=await sb.insert('bks_emp_docs',{id:'d'+Date.now(),emp_id:emp.id,categorie:type,label:lbl,link:link,name:_ddDocFile.name,dbx_path:path});
+    var rec=await sb.insert('bks_emp_docs',{id:'d'+Date.now(),emp_id:emp.id,categorie:'document',label:lbl,link:link,name:_ddDocFile.name,dbx_path:path});
     if(rec){
-      DB.empDocs.unshift({id:rec.id,empId:emp.id,categorie:type,label:lbl,link:link,name:_ddDocFile.name,dbxPath:path,createdAt:rec.created_at||new Date().toISOString()});
+      DB.empDocs.unshift({id:rec.id,empId:emp.id,categorie:'document',label:lbl,link:link,name:_ddDocFile.name,dbxPath:path,createdAt:rec.created_at||new Date().toISOString()});
     }
-    st.style.color='#4CAF50'; st.textContent='✓ Document enregistré.';
+    st.style.color='#4CAF50'; st.textContent='✓ Document envoyé.';
     ddDocReset();
     ddRenderDocs();
   }catch(e){
@@ -19855,11 +19800,8 @@ async function ddDocSave(){
 function ddRenderDocs(){
   var box=document.getElementById('dd-doc-list'); if(!box) return;
   var fr=document.getElementById('dd-doc-fresto').value;
-  var ft=document.getElementById('dd-doc-ftype').value;
-  // on ne montre que les documents de type "envoi" (arret_maladie / justif_absence / autre)
   var rows=(DB.empDocs||[]).filter(function(d){
-    if(['arret_maladie','justif_absence','autre'].indexOf(d.categorie)<0) return false;
-    if(ft && d.categorie!==ft) return false;
+    if(d.categorie!=='document') return false;
     var emp=(DB.employees||[]).find(function(e){return e.id===d.empId;});
     if(fr){ if(!emp||emp.restoId!==fr) return false; }
     return true;
@@ -19868,18 +19810,17 @@ function ddRenderDocs(){
   box.innerHTML=rows.map(function(d){
     var emp=(DB.employees||[]).find(function(e){return e.id===d.empId;});
     var r=emp&&RESTOS[emp.restoId]?RESTOS[emp.restoId].label:'';
-    var c=DD_DOC_CATS[d.categorie]||{ico:'📄',label:d.categorie};
     var dt=d.createdAt?new Date(d.createdAt).toLocaleDateString('fr-FR'):'';
     return '<div class="card" style="padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">'
-      +'<span style="font-size:1.6rem;">'+c.ico+'</span>'
+      +'<span style="font-size:1.6rem;">📄</span>'
       +'<div style="flex:1;min-width:160px;"><div style="font-weight:600;color:#fff;">'+(emp?emp.name:'?')+(r?(' <span style="color:#888;font-size:.78rem;">· '+r+'</span>'):'')+'</div>'
-      +'<div style="font-size:.8rem;color:#aaa;">'+c.label+(d.label&&d.label!==c.label?(' — '+d.label.replace(c.label,'').replace(/^[\s—-]+/,'')):'')+'</div>'
+      +'<div style="font-size:.8rem;color:#aaa;">'+(d.name||'Document')+'</div>'
       +'<div style="font-size:.72rem;color:#666;">'+dt+'</div></div>'
       +(d.link?('<a href="'+d.link+'" target="_blank" class="btn btn-gray btn-sm">📄 Ouvrir</a>'):'')
       +'</div>';
   }).join('');
 }
-window.ddDocTypeChange=ddDocTypeChange; window.ddDocPick=ddDocPick; window.ddDocDrop=ddDocDrop; window.ddDocReset=ddDocReset; window.ddDocSave=ddDocSave; window.ddRenderDocs=ddRenderDocs;
+window.ddDocPick=ddDocPick; window.ddDocDrop=ddDocDrop; window.ddDocReset=ddDocReset; window.ddDocSave=ddDocSave; window.ddRenderDocs=ddRenderDocs;
 
 // ── DEMANDES RH ──
 function ddDemReset(){
@@ -19963,6 +19904,162 @@ function ddUpdateBadge(){
   if(n>0){ b.textContent=n; b.style.display='inline-flex'; } else { b.style.display='none'; }
 }
 window.ddDemReset=ddDemReset; window.ddDemSave=ddDemSave; window.ddRenderDemandes=ddRenderDemandes; window.ddDemStatut=ddDemStatut; window.ddDemDelete=ddDemDelete; window.ddUpdateBadge=ddUpdateBadge;
+
+
+
+// ════════════════════════════════════════════════════════════════════
+// 📁 EXPLORATEUR DROPBOX en tuiles (resto → salarié → fichiers)
+// ════════════════════════════════════════════════════════════════════
+// _dbxLevel: 'restos' | 'emps' | 'files'
+var _dbxLevel='restos';
+var _dbxResto='';      // id resto courant (bk500...)
+var _dbxFolder='';     // chemin Dropbox du dossier salarié courant
+var _dbxEmpName='';    // nom du salarié courant
+
+function dbxBrowseInit(){ _dbxLevel='restos'; _dbxResto=''; _dbxFolder=''; _dbxEmpName=''; dbxRenderRestos(); }
+window.dbxBrowseInit=dbxBrowseInit;
+
+function dbxFmtSize(n){
+  if(n==null) return '';
+  if(n<1024) return n+' o';
+  if(n<1024*1024) return Math.round(n/1024)+' Ko';
+  return (n/1024/1024).toFixed(1)+' Mo';
+}
+function dbxSetStatus(txt,color){
+  var st=document.getElementById('dbx-browser-status'); if(!st) return;
+  st.style.color=color||'#888'; st.textContent=txt||'';
+}
+function dbxRenderBreadcrumb(){
+  var bc=document.getElementById('dbx-breadcrumb'); if(!bc) return;
+  var h='<a href="javascript:void(0)" onclick="dbxBrowseInit()" style="color:#0061ff;font-weight:700;">📁 Dropbox</a>';
+  if(_dbxLevel==='emps' || _dbxLevel==='files'){
+    var rl=RESTOS[_dbxResto]?RESTOS[_dbxResto].label:_dbxResto;
+    h+='<span style="color:#555;">/</span>';
+    if(_dbxLevel==='files'){ h+='<a href="javascript:void(0)" onclick="dbxOpenResto(\''+_dbxResto+'\')" style="color:#0061ff;">'+rl+'</a>'; }
+    else { h+='<span style="color:#ddd;font-weight:600;">'+rl+'</span>'; }
+  }
+  if(_dbxLevel==='files'){
+    h+='<span style="color:#555;">/</span><span style="color:#ddd;font-weight:600;">'+_dbxEmpName+'</span>';
+  }
+  bc.innerHTML=h;
+}
+
+// NIVEAU 1 : tuiles restaurant
+function dbxRenderRestos(){
+  _dbxLevel='restos';
+  dbxRenderBreadcrumb();
+  dbxSetStatus('');
+  var box=document.getElementById('dbx-browser-list'); if(!box) return;
+  var restos=[{id:'bk500',label:'BK 500'},{id:'bk509',label:'BK 509'},{id:'bk526',label:'BK 526'}];
+  box.innerHTML='<div style="display:flex;gap:14px;flex-wrap:wrap;">'+restos.map(function(r){
+    var n=(DB.employees||[]).filter(function(e){return e.restoId===r.id && !e.archived;}).length;
+    return '<div onclick="dbxOpenResto(\''+r.id+'\')" style="cursor:pointer;flex:1;min-width:150px;background:linear-gradient(135deg,#0061ff,#0047b3);border-radius:16px;padding:22px;text-align:center;box-shadow:0 6px 18px rgba(0,97,255,.25);">'
+      +'<div style="font-size:2.6rem;">🍔</div>'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.5rem;color:#fff;letter-spacing:1px;margin-top:6px;">'+r.label+'</div>'
+      +'<div style="font-size:.8rem;color:rgba(255,255,255,.85);margin-top:2px;">'+n+' salarié'+(n>1?'s':'')+'</div></div>';
+  }).join('')+'</div>';
+}
+window.dbxRenderRestos=dbxRenderRestos;
+
+// NIVEAU 2 : tuiles salarié du resto choisi
+async function dbxOpenResto(restoId){
+  _dbxLevel='emps'; _dbxResto=restoId;
+  dbxRenderBreadcrumb();
+  var box=document.getElementById('dbx-browser-list'); if(!box) return;
+  var emps=(DB.employees||[]).filter(function(e){return e.restoId===restoId && !e.archived;})
+    .sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+  if(!emps.length){ box.innerHTML='<div class="empty"><div class="ei">👥</div><p>Aucun salarié dans ce restaurant</p></div>'; dbxSetStatus(''); return; }
+  dbxSetStatus(emps.length+' salarié(s)');
+  box.innerHTML='<div style="display:flex;gap:12px;flex-wrap:wrap;">'+emps.map(function(e){
+    var initiales=(e.name||'?').split(' ').map(function(x){return x.charAt(0);}).join('').slice(0,2).toUpperCase();
+    var folder=dbxEmpFolderArchive(e); // /Archives/<Resto>/<Nom>  (chemin canonique salarié)
+    var folderActif=dbxEmpFolder(e);   // /<Resto>/<Nom>           (dossier recrutement)
+    return '<div onclick="dbxOpenEmp(\''+folderActif.replace(/'/g,"\\'")+'\',\''+(e.name||'').replace(/'/g,"\\'")+'\')" '
+      +'style="cursor:pointer;width:130px;background:#1A1A1A;border:1px solid #2a2a2a;border-radius:14px;padding:16px 10px;text-align:center;">'
+      +'<div style="width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#0061ff,#0047b3);color:#fff;font-weight:800;font-size:1.1rem;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">'+initiales+'</div>'
+      +'<div style="font-size:.82rem;color:#fff;font-weight:600;line-height:1.2;">'+(e.name||'?')+'</div></div>';
+  }).join('')+'</div>';
+}
+window.dbxOpenResto=dbxOpenResto;
+
+// NIVEAU 3 : fichiers du salarié
+async function dbxOpenEmp(folder,empName){
+  _dbxLevel='files'; _dbxFolder=folder; _dbxEmpName=empName;
+  dbxRenderBreadcrumb();
+  var box=document.getElementById('dbx-browser-list'); if(!box) return;
+  box.innerHTML=''; dbxSetStatus('Chargement...');
+  try{
+    var entries=[];
+    try{ entries=await dbxListFolder(folder); }
+    catch(e1){ entries=[]; } // dossier peut ne pas exister encore
+    var files=entries.filter(function(e){return e['.tag']==='file';}).sort(function(a,b){return a.name.localeCompare(b.name);});
+    if(!files.length){ box.innerHTML='<div class="empty"><div class="ei">📂</div><p>Aucun document pour ce salarié</p></div>'; dbxSetStatus('0 fichier'); return; }
+    dbxSetStatus(files.length+' fichier(s)');
+    var h='<div style="margin-bottom:12px;">'
+      +'<button class="btn btn-red btn-sm" id="dbx-dl-all" onclick="dbxBrowseDownloadAll()">📥 Tout télécharger ('+files.length+' fichier'+(files.length>1?'s':'')+')</button>'
+      +'<span style="font-size:.76rem;color:#666;margin-left:10px;">Copie ZIP — n\'efface rien dans Dropbox</span></div>';
+    files.forEach(function(f){
+      var p=(f.path_display||(folder+'/'+f.name));
+      var ext=(f.name.indexOf('.')>=0?f.name.split('.').pop():'').toLowerCase();
+      var ico=(ext==='pdf')?'📄':((['jpg','jpeg','png','gif','webp','heic'].indexOf(ext)>=0)?'🖼️':'📎');
+      h+='<div style="display:flex;align-items:center;gap:10px;padding:11px 13px;margin-bottom:6px;background:#141414;border:1px solid #2a2a2a;border-radius:10px;">'
+        +'<span style="font-size:1.4rem;">'+ico+'</span>'
+        +'<div style="flex:1;min-width:0;"><div style="color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+f.name+'</div>'
+        +'<div style="font-size:.72rem;color:#666;">'+dbxFmtSize(f.size)+'</div></div>'
+        +'<button class="btn btn-gray btn-sm" onclick="dbxBrowseOpen(\''+p.replace(/'/g,"\\'")+'\')">👁️ Ouvrir</button></div>';
+    });
+    box.innerHTML=h;
+  }catch(e){
+    console.error('dbxOpenEmp',e);
+    dbxSetStatus('Erreur : '+(e.message||e),'#D62300');
+  }
+}
+window.dbxOpenEmp=dbxOpenEmp;
+
+async function dbxBrowseOpen(path){
+  dbxSetStatus('Ouverture...');
+  try{
+    var link=await dbxTempLink(path);
+    if(link){ window.open(link,'_blank'); dbxSetStatus(''); }
+    else { dbxSetStatus('Lien indisponible.','#D62300'); }
+  }catch(e){ dbxSetStatus('Erreur : '+(e.message||e),'#D62300'); }
+}
+window.dbxBrowseOpen=dbxBrowseOpen;
+
+// Télécharger TOUT le dossier salarié courant en ZIP (copie, sans rien modifier dans Dropbox)
+async function dbxBrowseDownloadAll(){
+  var btn=document.getElementById('dbx-dl-all');
+  if(typeof JSZip==='undefined'){ dbxSetStatus('Module ZIP indisponible (vérifiez la connexion).','#D62300'); return; }
+  if(!_dbxFolder){ dbxSetStatus('Aucun dossier sélectionné.','#D62300'); return; }
+  if(btn) btn.disabled=true;
+  dbxSetStatus('Préparation du téléchargement...');
+  try{
+    var entries=await dbxListFolder(_dbxFolder);
+    var files=entries.filter(function(e){return e['.tag']==='file';});
+    if(!files.length){ dbxSetStatus('Aucun fichier à télécharger.','#D62300'); if(btn) btn.disabled=false; return; }
+    var zip=new JSZip();
+    for(var i=0;i<files.length;i++){
+      var f=files[i];
+      dbxSetStatus('Téléchargement '+(i+1)+'/'+files.length+' : '+f.name);
+      var p=(f.path_display||(_dbxFolder+'/'+f.name));
+      try{ var blob=await dbxDownloadFile(p); zip.file(f.name, blob); }
+      catch(eFile){ console.warn('fichier ignoré',f.name,eFile); }
+    }
+    dbxSetStatus('Compression...');
+    var content=await zip.generateAsync({type:'blob'});
+    var url=URL.createObjectURL(content);
+    var a=document.createElement('a');
+    a.href=url; a.download=(_dbxEmpName||'dossier').replace(/[^a-zA-Z0-9_-]/g,'_')+'.zip';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); },2000);
+    dbxSetStatus('✓ Dossier téléchargé ('+files.length+' fichier'+(files.length>1?'s':'')+').','#4CAF50');
+  }catch(e){
+    console.error('dbxBrowseDownloadAll',e);
+    dbxSetStatus('Erreur : '+(e.message||e),'#D62300');
+  }
+  if(btn) btn.disabled=false;
+}
+window.dbxBrowseDownloadAll=dbxBrowseDownloadAll;
 
 
 })();
