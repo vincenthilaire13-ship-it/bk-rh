@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-23 21:14 · v304';
+  var EMBEDDED_VERSION = '2026-06-24 11:37 · v310';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -375,21 +375,11 @@ body.tv-mode #eye-viewas{display:none!important;}
       <div class="tile tile-admin" onclick="pickGlobal('admin')"><div class="tile-icon">🛡️</div><div class="tile-label">Admin</div><div class="tile-sub">Accès total</div></div>
       <div class="tile tile-rh" onclick="pickGlobal('rh')"><div class="tile-icon">👩‍💼</div><div class="tile-label">Superviseure</div><div class="tile-sub">RH / Supervision</div></div>
     </div>
-    <p style="color:#555;font-size:.76rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;">📺 Écrans TV restaurant</p>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:20px;">
-      <div class="tile tile-tv" onclick="pickTV('bk500')" style="border-color:#42a5f5;"><div class="tile-icon">📺</div><div class="tile-label">Écran TV 500</div><div class="tile-sub">Dashboard BK 500</div></div>
-      <div class="tile tile-tv" onclick="pickTV('bk509')" style="border-color:#42a5f5;"><div class="tile-icon">📺</div><div class="tile-label">Écran TV 509</div><div class="tile-sub">Dashboard BK 509</div></div>
-      <div class="tile tile-tv" onclick="pickTV('bk526')" style="border-color:#42a5f5;"><div class="tile-icon">📺</div><div class="tile-label">Écran TV 526</div><div class="tile-sub">Dashboard BK 526</div></div>
-    </div>
-    <div style="width:100%;max-width:620px;height:1px;background:#333;margin-bottom:18px;"></div>
-    <p style="color:#555;font-size:.76rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;">Restaurants</p>
+    <p style="color:#555;font-size:.76rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;">Restaurants</p>
     <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;">
       <div class="tile tile-bk" onclick="pickResto('bk500')" style="border-color:#FF8732;"><div class="tile-icon">🍔</div><div class="tile-label">BK 500</div><div class="tile-sub">Sélectionner</div></div>
       <div class="tile tile-bk" onclick="pickResto('bk509')" style="border-color:#FF6B35;"><div class="tile-icon">🍔</div><div class="tile-label">BK 509</div><div class="tile-sub">Sélectionner</div></div>
       <div class="tile tile-bk" onclick="pickResto('bk526')" style="border-color:#FFB347;"><div class="tile-icon">🍔</div><div class="tile-label">BK 526</div><div class="tile-sub">Sélectionner</div></div>
-    </div>
-    <div style="margin-top:24px;">
-      <button onclick="openFeedback()" style="background:rgba(245,166,35,.10);color:#F5A623;border:1px solid rgba(245,166,35,.4);padding:11px 22px;border-radius:24px;cursor:pointer;font-size:.85rem;font-weight:700;font-family:inherit;">💡 Correctifs &amp; demandes</button>
     </div>
   </div>
 
@@ -532,288 +522,18 @@ body.tv-mode #eye-viewas{display:none!important;}
     </div>
   </div>
   <nav id="main-nav">
-    <button onclick="goPage('dashboard',this)">🏠 Accueil</button>
     <button class="desktop-only" onclick="goPage('equipe',this)">👥 Équipe</button>
-    <button onclick="goPage('etatequipe',this)">🧑‍🤝‍🧑 État équipe <span id="eebadge" style="background:var(--orange);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
-    <button onclick="goPage('horaires',this)">🕐 Horaires</button>
-    <button onclick="goPage('docsplanning',this)">📄 Documents planning</button>
     <button onclick="goPage('recrutement',this)">🎯 Recrutement <span id="rbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
-    <button class="desktop-only" onclick="goPage('visite',this)">🩺 Visite médicale <span id="vbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
     <button onclick="goPage('incidents',this)">📋 Incidents</button>
+    <button onclick="goPage('docsdemandes',this)">📨 Documents &amp; demandes <span id="ddbadge" style="background:var(--red);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
     <button class="desktop-only" onclick="goPage('rapports',this)">📊 Rapports</button>
     <button onclick="goPage('planning',this)">🗓️ Planning encadrement</button>
     <button class="desktop-only" onclick="goPage('parametres',this)">⚙️ Paramètres</button>
-    <button class="desktop-only" onclick="goPage('alertes',this)">🔔 Alertes <span id="albadge" style="background:var(--red);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
   </nav>
 
   <!-- ════════ DASHBOARD / ACCUEIL ÉQUIPE ════════ -->
-  <div class="page" id="page-dashboard">
-    <div id="dash-root">
-      <div id="dash-resto-pick" class="dash-pick">
-        <div class="dash-pick-logo">BURGER KING</div>
-        <div class="dash-pick-sub">Choisissez votre restaurant</div>
-        <div class="dash-pick-grid" id="dash-pick-grid"></div>
-        <p class="dash-pick-note">L'écran restera sur ce restaurant. Vous pourrez en changer à tout moment.</p>
-      </div>
-      <div id="dash-board" style="display:none;">
-        <div class="dash-top">
-          <div class="dash-top-l">
-            <div class="dash-resto-badge" id="dash-resto-badge">BK</div>
-            <div>
-              <div class="dash-hello" id="dash-hello">Bienvenue 👋</div>
-              <div class="dash-resto-name" id="dash-resto-name">—</div>
-            </div>
-          </div>
-          <div class="dash-top-r">
-            <div class="dash-clock" id="dash-clock">--:--</div>
-            <div class="dash-date" id="dash-date">—</div>
-            <button class="dash-change" onclick="dashChangeResto()">⟲ Changer de resto</button>
-          </div>
-        </div>
-        <div class="dash-banner" id="dash-banner" style="display:none;">
-          <span class="dash-banner-ico">📢</span>
-          <span class="dash-banner-txt" id="dash-banner-txt"></span>
-        </div>
-        <div class="dash-grid" id="dash-grid"></div>
-      </div>
-      <div id="dash-panel" class="dash-panel" style="display:none;">
-        <div class="dash-panel-hdr">
-          <button class="dash-back" onclick="dashClosePanel()">← Retour</button>
-          <div class="dash-panel-title" id="dash-panel-title">—</div>
-          <div style="width:90px;"></div>
-        </div>
-        <div class="dash-panel-body" id="dash-panel-body"></div>
-      </div>
-    </div>
-  </div>
 
   <!-- HORAIRES (module porté depuis BK administratif) -->
-  <div class="page" id="page-horaires">
-
-    <!-- ÉCRAN DES TUILES (choix du restaurant) — HORS de #sec-horaires pour ne pas
-         hériter du CSS du planning (police/marges) qui déformait les tuiles. -->
-    <div id="hr-tiles" style="display:block;">
-      <div class="bk-page-tiles">
-        <div class="sec-title" style="margin-bottom:14px;">🗓️ Choisissez un restaurant</div>
-        <div class="bk-tiles-grid">
-          <div class="dash-tile" onclick="hrOuvrirResto('BK500')">
-            <div class="dt-accent" style="background:#e53935;"></div>
-            <div class="dt-em">🍔</div>
-            <div><div class="dt-tt">BK 500</div><div class="dt-ds">Horaires</div></div>
-          </div>
-          <div class="dash-tile" onclick="hrOuvrirResto('BK509')">
-            <div class="dt-accent" style="background:#1565c0;"></div>
-            <div class="dt-em">🍔</div>
-            <div><div class="dt-tt">BK 509</div><div class="dt-ds">Horaires</div></div>
-          </div>
-          <div class="dash-tile" onclick="hrOuvrirResto('BK526')">
-            <div class="dt-accent" style="background:#2e7d32;"></div>
-            <div class="dt-em">🍔</div>
-            <div><div class="dt-tt">BK 526</div><div class="dt-ds">Horaires</div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <section class="section" id="sec-horaires">
-
-    <!-- CONTENU DU PLANNING (masqué tant qu'aucun resto n'est choisi) -->
-    <div id="hr-content" style="display:none;">
-<div class="hr-hdr">
-  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-    <button id="hr-btn-restos" onclick="hrRetourTuiles()" class="hr-btn" style="white-space:nowrap;">← Restaurants</button>
-    <select id="hrx-resto-sel" onchange="hrSelectResto(this.value)" style="background:#1a1a1e;color:#f0f0f2;border:1px solid #3a3a44;border-radius:8px;padding:7px 12px;font-size:14px;font-weight:700;cursor:pointer">
-      <option value="BK500">BK 500 — Près des Arènes</option>
-      <option value="BK509">BK 509 — Saint-Jean-de-Védas</option>
-      <option value="BK526" selected>BK 526 — Saint-Clément</option>
-    </select>
-    <div><div class="hr-hdr-title">BK St Clément de Rivière</div><div class="hr-hdr-sub">Planning · Base min + CA 15min · Sem. 13–19 avr. 2026</div></div>
-  </div>
-  <div class="hr-nav">
-    <div class="hr-nt hr-on" onclick="hrShow('planning')">Planning</div>
-    <div class="hr-nt" onclick="hrShow('ca')">CA prévisionnel</div>
-    <div class="hr-nt" onclick="hrShow('np')">Non productifs</div>
-    <div class="hr-nt" onclick="hrShow('grille')">Grille CA</div>
-    <div class="hr-nt" onclick="hrShow('import')">📥 Importer ¼h</div>
-    <div class="hr-nt" onclick="hrReloadVentes(this)" title="Recharge les courbes ¼h déposées via Ma journée (toutes dates, tous restos)">🔧 Recharger ventes ¼h</div>
-  </div>
-</div>
-
-<div id="hrx-sec-planning" class="hr-sec hr-on">
-  <div class="hr-plan-hdr">
-    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
-      <div class="hr-cc"><label>Semaine</label>
-        <select id="hrx-sem-sel2" onchange="hrGenFromWeek(this.value);document.getElementById('hrx-sem-sel')&&(document.getElementById('hrx-sem-sel').value=this.value)"></select>
-      </div>
-      <button class="hr-btn hr-btn-ac" id="hrx-refresh-btn" onclick="hrRefreshWeek()" title="Recalcule les TRAITS (besoin) des 7 jours de la semaine selon le CA et la grille">🔄 Actualiser les traits de la semaine</button>
-      <!-- Bouton "Placement des salariés sur la semaine" retiré à la demande : on utilise désormais le Placement intelligent. La fonction hrPlacerSemaineCourante reste disponible si besoin. -->
-      <button class="hr-btn" id="hrx-placer-intel-btn" onclick="hrPlacerIntelligentSemaine()" title="Place les salariés sur les traits VIDES de la grille CA. NON DESTRUCTIF : conserve ce qui est déjà placé (placements précédents enregistrés ou modifications manuelles) et complète seulement le reste. Pour tout remettre à zéro, utilise « 🧹 Vider la semaine » d'abord." style="background:#2a1a3a;border-color:#a855f7;color:#d8b4fe;font-weight:700;">🧠 Placement intelligent</button>
-      <button class="hr-btn" id="hrx-enregistrer-btn" onclick="hrEnregistrerSemaineManuel()" title="Enregistre le planning travaillé de la semaine affichée (placements + modifications de créneaux) dans la base. Au retour sur l'application, la semaine est rechargée telle quelle, sans repartir de zéro." style="background:#16321f;border-color:#3ecf8e;color:#3ecf8e;font-weight:700;">💾 Enregistrer</button>
-      <span id="hrx-enregistre-info" style="font-size:11px;color:#3ecf8e;align-self:center;margin-left:2px"></span>
-      <button class="hr-btn" id="hrx-transfert-gestion" onclick="hrOuvrirTransfert()" title="Voir si la semaine affichée est transférée aux employés, la transférer, ou annuler le transfert pour corriger." style="background:#16321f;border-color:#3ecf8e;color:#3ecf8e;font-weight:700;">📤 Transférer les emplois du temps</button>
-      <span id="hrx-contrat-touches" style="display:inline-flex;gap:8px;flex-wrap:wrap;align-items:flex-end"></span>
-      <!-- Boutons "Analyser" et "Contrôle dispos/comp." retirés à la demande (outils de diagnostic, aucun impact sur le placement). Les fonctions hrAnalyseOuvrir / hrControleDispos restent disponibles si besoin. -->
-      <span id="hrx-assign-status" style="font-size:11px;color:#60a5fa;align-self:center;margin-left:4px"></span>
-      <span id="hrx-valid-status" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--mu);align-self:center;margin-left:4px"></span>
-      <!-- Touches ancrées tout à droite : Analyse recrutement du mois + Vider la semaine -->
-      <span style="flex:1 1 auto"></span>
-      <span style="display:inline-flex;gap:10px;margin-left:auto;align-items:flex-end">
-        <button class="hr-btn" id="hrx-mois-btn" onclick="hrAnalyseRecrutementMois()" title="Analyse le MOIS entier (toutes ses semaines) en simulation, sans toucher au planning : combien de créneaux restent, quels profils recruter, quels salariés sont bloquants par leurs dispos." style="background:#1a2a3a;border-color:#3b82f6;color:#93c5fd;font-weight:700;">📅 Analyse recrutement du mois</button>
-        <button class="hr-btn" id="hrx-vider-btn" onclick="hrViderSemaine()" title="Retire TOUS les salariés des traits de la semaine affichée : les traits redeviennent vides pour repartir à zéro." style="background:#3a1a1a;border-color:#cc5555;color:#ff9090;">🧹 Vider la semaine</button>
-      </span>
-    </div>
-  </div>
-  <div id="hrx-mois-analyse" style="margin:0 0 1rem 0;padding:0;"></div>
-  <div class="hr-mrow" id="hrx-mrow"></div>
-  <div class="hr-days" id="hrx-days" style="margin-bottom:1.2rem"></div>
-  <div class="hr-scx"><div class="hr-tl-wrap">
-    <div class="hr-tl-top"><div class="hr-tl-lh"></div><div class="hr-tl-hh" id="hrx-ruler"></div></div>
-    <div id="hrx-rows"></div>
-    <div class="hr-leg" id="hrx-leg"></div>
-  </div></div>
-  <div style="margin-top:1.4rem;" id="hrx-emploi-wrap">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 .3rem;flex-wrap:wrap;">
-      <div class="hr-stitle" style="margin:0;">📋 Emploi du temps de la semaine — équipiers</div>
-      <button class="hr-btn" id="hrx-emploi-pdf" onclick="hrImprimerEmploiSemaine()" title="Imprimer / exporter en PDF le planning de la semaine affichée" style="background:#00897b;border-color:#00897b;color:#fff;font-weight:700;">🖨️ PDF</button>
-    </div>
-    <div class="hr-ssub" style="margin:0 0 .8rem;">Heures par semaine et suivi du mois de chaque équipier. Visible dès que la semaine est placée.</div>
-    <div id="hrx-emploi-semaine"></div>
-    <div id="hrx-ff-semaine" style="margin-top:1.4rem;"></div>
-  </div>
-</div>
-
-<div id="hrx-sec-ca" class="hr-sec">
-  <!-- Anciens contrôles cachés : Vue/Source/Jour/Semaine + grille géante
-       (la logique de génération du planning passe désormais par les boutons jour) -->
-  <div class="hr-ca-ctrl" style="display:none">
-    <div class="hr-cc"><label>Vue</label>
-      <select id="hrx-vue-sel" onchange="hrSetVue(this.value)">
-        <option value="jour">Jour</option>
-        <option value="semaine">Semaine</option>
-      </select>
-    </div>
-    <div class="hr-cc"><label>Source du CA</label>
-      <select id="hrx-src-sel" onchange="hrSetSource(this.value)">
-        <option value="auto">Auto (réel sinon N-1)</option>
-        <option value="reel">Réel uniquement</option>
-        <option value="n1">Prévision N-1</option>
-      </select>
-    </div>
-    <div class="hr-cc" id="hrx-jour-wrap"><label>Jour</label>
-      <select id="hrx-ca-day-sel" onchange="if(/^\d{4}-/.test(this.value)){hrGenFromDate(this.value)}else{loadCADay()}">
-        <option value="0">— chargement… —</option>
-      </select>
-    </div>
-    <div class="hr-cc" id="hrx-ref-wrap" style="display:none"><label>📅 Jour de référence (2025) — manuel</label>
-      <input type="date" id="hrx-ref-date" min="2025-01-01" max="2025-12-31" onchange="hrSetRefManuelle(this.value)" style="background:var(--s1);border:1px solid var(--bd2);border-radius:8px;padding:6px 11px;font-size:13px;color:var(--tx);font-family:'DM Sans',sans-serif;">
-    </div>
-    <div class="hr-cc" id="hrx-sem-wrap" style="display:none"><label>Semaine</label>
-      <select id="hrx-sem-sel" onchange="hrGenFromWeek(this.value)"></select>
-    </div>
-  </div>
-  <div class="hr-ca-grid" id="hrx-ca-grid" style="display:none"></div>
-
-  <!-- ─── CONSULTATION D'UN JOUR PRÉCIS ─── -->
-  <div>
-    <div class="hr-stitle">🔎 Consulter un jour précis</div>
-    <div class="hr-ssub" style="margin-bottom:.8rem">Sélectionnez n'importe quel jour de l'année pour visualiser les ventes ¼h en timeline horaire. ✓ = PDF déposé · ⚠ = partiel · ✗ = manquant · — = à venir.</div>
-    <div class="hr-ca-ctrl">
-      <div class="hr-cc" style="min-width:380px">
-        <label>Jour</label>
-        <select id="hrx-consult-day-sel" onchange="hrShowConsultDay(this.value)">
-          <option value="">— chargement… —</option>
-        </select>
-      </div>
-      <button class="hr-btn" style="font-size:11px;padding:6px 12px;align-self:flex-end" onclick="hrDiagJour()">🔬 Diagnostic ce jour</button>
-    </div>
-    <div id="hrx-consult-diag" style="margin-top:.6rem"></div>
-    <div id="hrx-consult-content" style="margin-top:.8rem"></div>
-  </div>
-</div>
-
-<div id="hrx-sec-grille" class="hr-sec">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:10px;">
-    <div>
-      <div class="hr-stitle" style="margin:0">Grille de positionnement</div>
-      <div class="hr-ssub" id="hrx-grille-sub" style="margin:0">Cliquez sur n'importe quelle cellule pour modifier. L'effectif total est calculé automatiquement.</div>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;">
-      <div class="hr-cc">
-        <label>Mode CA</label>
-        <select id="hrx-grille-mode" onchange="switchGrilleMode()">
-          <option value="15" selected>Ventes 15 min</option>
-          <option value="30">Ventes 30 min</option>
-          <option value="60">Ventes 1 heure</option>
-        </select>
-      </div>
-      <button id="hrx-grille-save" class="hr-btn" onclick="enregistrerGrille()" style="margin-top:18px;display:none;background:#3ecf8e;color:#08130d;font-weight:700;border:none;">💾 Enregistrer les modifications</button>
-      <button class="hr-btn hr-btn-ac" onclick="applyGrille()" style="margin-top:18px;">✓ Appliquer au planning</button>
-      <button class="hr-btn" onclick="protegerGrille()" style="margin-top:18px;" title="Verrouiller la grille validée de ce restaurant">🔒 Protéger</button>
-      <button class="hr-btn" onclick="restaurerGrilleProtegee()" style="margin-top:18px;" title="Recharger la grille protégée de ce restaurant">♻️ Restaurer protégée</button>
-      <button class="hr-btn" onclick="resetGrille()" style="margin-top:18px;">↺ Réinitialiser</button>
-    </div>
-  </div>
-  <div class="hr-gt-wrap"><table class="hr-gt" id="hrx-gt"></table></div>
-</div>
-
-<div id="hrx-sec-np" class="hr-sec">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:10px">
-    <div><div class="hr-stitle" style="margin:0">Postes non productifs</div><div class="hr-ssub" style="margin:0">Tâches fixes indépendantes du CA (ouverture, fermeture, prép, plonge…). Propres à chaque restaurant.</div></div>
-    <button class="hr-btn hr-btn-ac" onclick="hrNpToggleForm()" style="padding:8px 18px">+ Ajouter un non productif</button>
-  </div>
-  <div id="hrx-np-form" style="display:none;background:var(--s1);border:1px solid var(--bd2);border-radius:12px;padding:1rem;margin-bottom:1.2rem">
-    <div id="hrx-np-form-title" class="hr-stitle" style="font-size:14px;margin-bottom:.8rem">Nouveau poste non productif</div>
-    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:.9rem">
-      <div class="hr-cc"><label>Nom du poste</label><input id="hrx-np-nom" type="text" placeholder="ex : LIVRAISON" style="background:var(--s2);border:1px solid var(--bd2);border-radius:8px;padding:7px 11px;font-size:13px;color:var(--tx);font-family:'DM Sans',sans-serif;min-width:180px;text-transform:uppercase"></div>
-    </div>
-    <div class="hr-ssub" style="margin:0 0 .6rem;font-size:11px">Chaque <strong>règle</strong> a ses propres horaires, jours, fréquence et nombre de personnes. Ex : une règle Mar+Jeu 8h-10h (3 pers.) et une règle Sam 14h-16h (2 pers.) sous le même poste « LIVRAISON ».</div>
-    <!-- Liste des règles (générée en JS) -->
-    <div id="hrx-np-regles" style="display:flex;flex-direction:column;gap:12px"></div>
-    <button type="button" class="hr-btn" onclick="hrNpAddRegle()" style="padding:7px 16px;font-size:12px;margin-top:12px">+ Ajouter une règle</button>
-
-    <div style="display:flex;gap:10px;margin-top:1rem">
-      <button class="hr-btn hr-btn-ac" onclick="hrNpSave()" style="padding:8px 18px">Enregistrer</button>
-      <button class="hr-btn" onclick="hrNpCancel()" style="padding:8px 14px">Annuler</button>
-    </div>
-  </div>
-  <div class="hr-np-grid" id="hrx-np-grid"></div>
-</div>
-    <div id="hrx-sec-import" class="hr-sec">
-<div style="max-width:760px">
-        <div class="table-card" style="margin-bottom:16px">
-          <div class="table-header"><span class="table-title">📥 Importer les ventes par quart d'heure</span></div>
-          <div style="padding:16px">
-            <p style="font-size:13px;color:var(--muted2);margin-bottom:16px;line-height:1.6">
-              Glisse ici tes fichiers de <strong>ventes par quart d'heure</strong> (CSV de période, ou PDF d'un jour).
-              Le restaurant est reconnu automatiquement à partir du fichier. Pour Près des Arènes (2 fichiers),
-              dépose-les l'un après l'autre, ils se cumulent.
-            </p>
-            <div id="hr-drop" 
-              style="border:2px dashed var(--border);border-radius:14px;padding:42px 20px;text-align:center;cursor:pointer;transition:all .15s;background:var(--bg3)"
-              onclick="document.getElementById('hr-drop-input').click()">
-              <div style="font-size:42px;margin-bottom:10px">📂</div>
-              <div style="font-size:15px;font-weight:600;margin-bottom:4px">Glisse tes fichiers ici</div>
-              <div style="font-size:12px;color:var(--muted)">ou clique pour choisir — CSV ou PDF, plusieurs fichiers possibles</div>
-              <input type="file" id="hr-drop-input" accept=".csv,.txt,.pdf" multiple style="display:none" onchange="hrDropFiles(this.files)">
-            </div>
-            <div id="hr-drop-log" style="margin-top:16px"></div>
-          </div>
-        </div>
-
-        <div class="table-card">
-          <div class="table-header"><span class="table-title">Données chargées</span></div>
-          <div id="hr-loaded-state" style="padding:16px;font-size:13px;color:var(--muted2)">Aucun fichier importé pour le moment.</div>
-        </div>
-
-        <div style="margin-top:16px;text-align:center">
-          <button class="btn btn-accent" onclick="nav('horaires')" style="padding:10px 24px">→ Aller au planning</button>
-        </div>
-      </div>
-    
-</div>
-    </div><!-- /hr-content -->
-</section>
-  </div>
 
   <!-- RECRUTEMENT -->
   <div class="page" id="page-recrutement">
@@ -856,25 +576,6 @@ body.tv-mode #eye-viewas{display:none!important;}
   <div class="page" id="page-outils-qr"></div>
 
   <!-- VISITE MÉDICALE -->
-  <div class="page" id="page-visite">
-    <div class="card">
-      <div class="sec-title">🩺 Visites médicales</div>
-      <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Suivi des visites médicales. <strong>Visite d'embauche</strong> : à passer dans les 6 mois suivant l'entrée. <strong>Visites périodiques</strong> : validez-les depuis la fiche du salarié (Équipe → Historique) en insérant l'avis médical et en indiquant la date de la prochaine visite. 🟢 OK · 🟠 à planifier · 🔴 dépassé.</p>
-      <div id="visite-resto-filter" style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
-        <button class="rtab rf on" onclick="setVisiteResto(this,'all')">Tous</button>
-        <button class="rtab rf" onclick="setVisiteResto(this,'bk500')">BK 500</button>
-        <button class="rtab rf" onclick="setVisiteResto(this,'bk509')">BK 509</button>
-        <button class="rtab rf" onclick="setVisiteResto(this,'bk526')">BK 526</button>
-      </div>
-      <div id="visite-statut-filter" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
-        <button class="rtab sf on" onclick="setVisiteStatut(this,'all')">Tous les statuts</button>
-        <button class="rtab sf" onclick="setVisiteStatut(this,'depasse')">🔴 Dépassé</button>
-        <button class="rtab sf" onclick="setVisiteStatut(this,'bientot')">🟠 Bientôt (&lt; 1 mois)</button>
-        <button class="rtab sf" onclick="setVisiteStatut(this,'ok')">🟢 Planifié</button>
-      </div>
-      <div id="visite-list"></div>
-    </div>
-  </div>
 
   <!-- INCIDENTS -->
   <div class="page" id="page-incidents">
@@ -932,6 +633,96 @@ body.tv-mode #eye-viewas{display:none!important;}
       <input type="date" id="f-date" onchange="renderHistory()">
     </div>
     <div id="inc-list"></div>
+  </div>
+
+  <!-- DOCUMENTS & DEMANDES -->
+  <div class="page" id="page-docsdemandes">
+    <div class="rtabs" style="margin-bottom:14px;">
+      <button class="rtab on" id="dd-tab-doc" onclick="ddSetTab('doc')">📎 Envoyer un document</button>
+      <button class="rtab" id="dd-tab-dem" onclick="ddSetTab('dem')">📋 Demandes &amp; suivi RH</button>
+    </div>
+
+    <!-- Onglet ENVOI DE DOCUMENT -->
+    <div id="dd-pane-doc">
+      <div class="card">
+        <div class="sec-title">📎 Envoyer un document</div>
+        <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Sélectionnez le salarié, le type de document, puis joignez le fichier (PDF ou photo). Le document est rangé dans Dropbox et apparaît sur la fiche du salarié.</p>
+        <div class="form-row">
+          <div>
+            <label class="flabel">Salarié</label>
+            <select id="dd-doc-emp" class="fi"></select>
+          </div>
+          <div>
+            <label class="flabel">Type de document</label>
+            <select id="dd-doc-type" class="fi" onchange="ddDocTypeChange()">
+              <option value="arret_maladie">🏥 Arrêt maladie</option>
+              <option value="justif_absence">📄 Justificatif d'absence</option>
+              <option value="autre">❗ Autre</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row" id="dd-doc-dates" style="display:none;">
+          <div><label class="flabel">Du</label><input type="date" id="dd-doc-from" class="fi"></div>
+          <div><label class="flabel">Au</label><input type="date" id="dd-doc-to" class="fi"></div>
+        </div>
+        <label class="flabel" style="margin-top:4px;">Précision (optionnel)</label>
+        <input type="text" id="dd-doc-note" class="fi" placeholder="Ex : arrêt initial, prolongation...">
+        <label class="flabel" style="margin-top:12px;">📎 Document (glissez le fichier ici)</label>
+        <div id="dd-doc-drop" ondragover="bkDragOver(event,this)" ondragleave="bkDragLeave(this)" ondrop="ddDocDrop(event,this)" onclick="document.getElementById('dd-doc-file').click()" style="border:2px dashed #555;border-radius:14px;padding:30px 18px;text-align:center;cursor:pointer;transition:all .15s;background:#141414;">
+          <div style="font-size:2.2rem;">📄</div>
+          <div style="font-size:.95rem;color:#ddd;margin-top:8px;font-weight:600;">Glissez le document ici</div>
+          <div style="font-size:.8rem;color:#888;margin-top:4px;">PDF ou photo — ou cliquez pour choisir · <span id="dd-doc-name">aucun fichier</span></div>
+        </div>
+        <input type="file" id="dd-doc-file" accept="application/pdf,image/*" style="display:none;" onchange="ddDocPick(this)">
+        <div style="margin-top:14px;display:flex;gap:9px;">
+          <button class="btn btn-red" id="dd-doc-save" onclick="ddDocSave()">✔ Enregistrer le document</button>
+          <button class="btn btn-gray" onclick="ddDocReset()">✕ Réinitialiser</button>
+        </div>
+        <div id="dd-doc-status" style="font-size:.8rem;color:#888;margin-top:8px;"></div>
+      </div>
+      <div class="sec-title">🗂️ Documents envoyés</div>
+      <div class="filters">
+        <select id="dd-doc-fresto" onchange="ddRenderDocs()"><option value="">Tous restaurants</option><option value="bk500">BK 500</option><option value="bk509">BK 509</option><option value="bk526">BK 526</option></select>
+        <select id="dd-doc-ftype" onchange="ddRenderDocs()"><option value="">Tous types</option><option value="arret_maladie">🏥 Arrêt maladie</option><option value="justif_absence">📄 Justificatif d'absence</option><option value="autre">❗ Autre</option></select>
+      </div>
+      <div id="dd-doc-list"></div>
+    </div>
+
+    <!-- Onglet DEMANDES RH -->
+    <div id="dd-pane-dem" style="display:none;">
+      <div class="card">
+        <div class="sec-title">📋 Nouvelle demande RH</div>
+        <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Transmettez une demande ou une note de suivi concernant un salarié (ex : fin de période d'essai, demande de sanction...). Visible par la direction et la supervision.</p>
+        <div class="form-row">
+          <div>
+            <label class="flabel">Salarié</label>
+            <select id="dd-dem-emp" class="fi"></select>
+          </div>
+          <div>
+            <label class="flabel">Type de demande</label>
+            <select id="dd-dem-type" class="fi">
+              <option value="fin_essai">🛑 Fin de période d'essai</option>
+              <option value="sanction">⚠️ Demande de sanction</option>
+              <option value="entretien">💬 Demande d'entretien</option>
+              <option value="autre">❗ Autre</option>
+            </select>
+          </div>
+        </div>
+        <label class="flabel" style="margin-top:4px;">Message</label>
+        <textarea id="dd-dem-msg" class="fi" style="min-height:110px;" placeholder="Décrivez votre demande..."></textarea>
+        <div style="margin-top:14px;display:flex;gap:9px;">
+          <button class="btn btn-red" id="dd-dem-save" onclick="ddDemSave()">✔ Envoyer la demande</button>
+          <button class="btn btn-gray" onclick="ddDemReset()">✕ Réinitialiser</button>
+        </div>
+        <div id="dd-dem-status" style="font-size:.8rem;color:#888;margin-top:8px;"></div>
+      </div>
+      <div class="sec-title">📨 Demandes en cours</div>
+      <div class="filters">
+        <select id="dd-dem-fresto" onchange="ddRenderDemandes()"><option value="">Tous restaurants</option><option value="bk500">BK 500</option><option value="bk509">BK 509</option><option value="bk526">BK 526</option></select>
+        <select id="dd-dem-fstatut" onchange="ddRenderDemandes()"><option value="">Tous statuts</option><option value="nouvelle">🔴 Nouvelles</option><option value="traitee">✅ Traitées</option></select>
+      </div>
+      <div id="dd-dem-list"></div>
+    </div>
   </div>
 
   <!-- RAPPORTS -->
@@ -1238,41 +1029,8 @@ body.tv-mode #eye-viewas{display:none!important;}
 </div>
 
 <!-- DOCUMENTS PLANNING -->
-<div class="page" id="page-docsplanning">
-  <div class="card">
-    <div class="sec-title">📄 Documents planning</div>
-    <p style="font-size:.82rem;color:#aaa;margin-bottom:16px;">Les deux documents de la <strong>semaine actuellement affichée dans Horaires</strong>, prêts à imprimer ou exporter en PDF. Si rien n'apparaît, va d'abord dans <strong>Horaires</strong>, choisis la semaine et lance « Placer le mois / l'année ».</p>
-    <div id="docs-planning-status" style="font-size:.8rem;color:#888;margin-bottom:14px;"></div>
-    <div style="display:flex;gap:18px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:260px;background:#1A1A1A;border:1px solid #2A2A2A;border-radius:14px;padding:20px;display:flex;flex-direction:column;">
-        <div style="font-size:2.2rem;margin-bottom:8px;">📋</div>
-        <div style="font-weight:800;font-size:1.05rem;color:#fff;margin-bottom:4px;">Planning détaillé (traits)</div>
-        <div style="font-size:.82rem;color:#aaa;flex:1;margin-bottom:16px;">Le détail par poste et par créneau, jour par jour (CUISINE, FRITES, DRIVE, OPEN/CLOSE…), tel qu'affiché dans Horaires.</div>
-        <button onclick="docsPlanningPdf('traits')" style="background:#8e24aa;border:none;color:#fff;font-weight:700;border-radius:8px;padding:11px 16px;cursor:pointer;font-size:.9rem;">🖨️ Imprimer / PDF</button>
-      </div>
-      <div style="flex:1;min-width:260px;background:#1A1A1A;border:1px solid #2A2A2A;border-radius:14px;padding:20px;display:flex;flex-direction:column;">
-        <div style="font-size:2.2rem;margin-bottom:8px;">🗓️</div>
-        <div style="font-weight:800;font-size:1.05rem;color:#fff;margin-bottom:4px;">Emploi du temps (par salarié)</div>
-        <div style="font-size:.82rem;color:#aaa;flex:1;margin-bottom:16px;">Les horaires de chaque salarié sur la semaine, avec PLAN/CONTRAT et le suivi du mois — la vue condensée à afficher / distribuer.</div>
-        <button onclick="docsPlanningPdf('planhebdo')" style="background:#00897b;border:none;color:#fff;font-weight:700;border-radius:8px;padding:11px 16px;cursor:pointer;font-size:.9rem;">🖨️ Imprimer / PDF</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- ÉTAT ÉQUIPE -->
-<div class="page" id="page-etatequipe">
-  <div class="card">
-    <div class="sec-title">🧑‍🤝‍🧑 État de l'équipe — avant placement</div>
-    <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Renseignez ici qui est en congés, en arrêt, absent ou indisponible, <strong>avant de lancer les horaires</strong>. Le placement automatique tiendra compte de ces états (les personnes concernées ne seront pas placées sur les dates indiquées). Chaque restaurant est indépendant.</p>
-    <div id="etat-equipe-resto" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
-      <button class="rtab rf on" id="etat-rf-bk500" onclick="hrEtatSetResto('bk500')">BK 500</button>
-      <button class="rtab rf" id="etat-rf-bk509" onclick="hrEtatSetResto('bk509')">BK 509</button>
-      <button class="rtab rf" id="etat-rf-bk526" onclick="hrEtatSetResto('bk526')">BK 526</button>
-    </div>
-    <div id="etat-equipe-list"></div>
-  </div>
-</div>
 
 <!-- ALERTES -->
 <div class="page" id="page-alertes">
@@ -1300,34 +1058,6 @@ body.tv-mode #eye-viewas{display:none!important;}
 </div>
 
 <!-- CONTRATS (bibliothèque de modèles) -->
-<div class="page" id="page-contrats">
-  <button class="btn btn-gray btn-sm" style="margin-bottom:12px;" onclick="goPage('parametres')">← Réglages</button>
-  <div class="card">
-    <div class="sec-title">📄 Modèles de contrats</div>
-    <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Bibliothèque des modèles de contrats et avenants. Vous pouvez consulter, ajouter ou remplacer un modèle. Les champs entre accolades (ex. {nom}, {taux_horaire}) sont remplis automatiquement lors de la génération depuis la fiche d'un salarié.</p>
-    <div id="contrats-list"></div>
-    <div style="background:#141414;border-radius:8px;padding:12px;margin-top:14px;">
-      <div style="font-size:.8rem;color:#ddd;margin-bottom:9px;">➕ Ajouter un modèle (Word .docx)</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:9px;">
-        <div style="flex:2;min-width:160px;"><div style="font-size:.7rem;color:#888;margin-bottom:3px;">Nom du modèle *</div>
-          <input type="text" id="ct-nom" class="fi" placeholder="Ex : CDI Équipier 30h, Avenant horaires…"></div>
-        <div style="flex:1;min-width:130px;"><div style="font-size:.7rem;color:#888;margin-bottom:3px;">Catégorie</div>
-          <select id="ct-cat" class="fi">
-            <option value="contrat">Contrat</option>
-            <option value="avenant">Avenant</option>
-            <option value="autre">Autre</option>
-          </select></div>
-      </div>
-      <div id="ct-drop" onclick="document.getElementById('ct-file').click()" style="border:2px dashed #444;border-radius:10px;padding:18px 12px;text-align:center;cursor:pointer;color:#999;">
-        <div style="font-size:1.4rem;">📄</div>
-        <div style="font-size:.84rem;margin-top:4px;color:#ccc;">Cliquez pour choisir le fichier Word (.docx)</div>
-        <div style="font-size:.72rem;color:#666;margin-top:3px;">Le modèle sera rangé dans Dropbox (dossier Modèles)</div>
-      </div>
-      <input type="file" id="ct-file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none;" onchange="handleContratUpload(this)">
-      <div id="ct-status" style="font-size:.74rem;color:#888;margin-top:8px;"></div>
-    </div>
-  </div>
-</div>
 
 <!-- RÉGLEMENTATION (règles d'horaires appliquées par le moteur de planning) -->
 <div class="page" id="page-reglementation">
@@ -1345,28 +1075,6 @@ body.tv-mode #eye-viewas{display:none!important;}
 </div>
 
 <!-- POINTAGE (les salariés pointent arrivée / départ / pause) -->
-<div class="page" id="page-pointage">
-  <div class="ptg-hero">
-    <div class="ptg-hero-top">
-      <div>
-        <div class="ptg-hero-hello">👋 Bonjour</div>
-        <div class="ptg-hero-title">Pointage</div>
-        <div class="ptg-hero-resto" id="ptg-hero-resto">—</div>
-      </div>
-      <div class="ptg-hero-clock">
-        <div class="ptg-clock-time" id="ptg-clock-time">--:--</div>
-        <div class="ptg-clock-date" id="ptg-clock-date">—</div>
-      </div>
-    </div>
-    <div class="ptg-resto-tabs" id="ptg-resto-tabs"></div>
-  </div>
-
-  <div class="ptg-search-wrap">
-    <input type="text" id="ptg-search" class="ptg-search" placeholder="🔎 Tapez les premières lettres de votre nom…" oninput="ptgRenderList()">
-  </div>
-
-  <div id="ptg-list" class="ptg-grid"></div>
-</div>
 
 <!-- Modale pointage salarié -->
 <div class="modal-ov" id="modal-ptg">
@@ -1377,19 +1085,6 @@ body.tv-mode #eye-viewas{display:none!important;}
 </div>
 
 <!-- SUIVI POINTAGE (réservé RH / direction) -->
-<div class="page" id="page-suivipointage">
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
-      <div class="sec-title" style="margin:0;">📋 Suivi des pointages</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        <div style="display:flex;gap:6px;flex-wrap:wrap;" id="ptgs-resto-tabs"></div>
-        <input type="date" id="ptgs-date" class="fi" style="max-width:170px;" onchange="ptgRenderSuivi()">
-      </div>
-    </div>
-    <p style="font-size:.8rem;color:#aaa;margin:0 0 14px;">Pointages réels des salariés (arrivée, pauses, départ et total d'heures travaillées). Cet écran est réservé à la direction et au RH.</p>
-    <div id="ptg-suivi"></div>
-  </div>
-</div>
 
 <!-- MODALS -->
 <div class="modal-ov" id="modal-ctviewer">
@@ -1818,6 +1513,7 @@ var DB = {
   letters: [],
   candidatures: [],
   empDocs: [],
+  demandesRH: [],
   globalPins: { admin: '0000', rh: '0000' },
   restoPins: {
     bk500:{directeur:'0000',manager1:'0000',manager2:'0000',manager3:'0000',manager4:'0000'},
@@ -1908,14 +1604,18 @@ async function loadAll(light) {
   var candCols = light
     ? 'id,prenom,nom,email,phone,resto_id,restos,poste,niveau_apprentissage,dispos,questionnaire,motivation,statut,entretien_date,note_interne,created_at,date_naissance,etudiant,rqth,dernier_emploi,transport,trajet,adresse,code_postal,ville,nationalite,sexe,contrat_type,contrat_label,contrat_heures,cv_name,onboarding,date_debut,essai_rappels,avis_managers,refus_motif,documents,contact_urgence,tailles_tenue,bku_identifiant,bku_motdepasse,docs_soumis,videos_faites,essai_alerte,contrat_signe,visite_faite,visite_date,contrat_signe_doc'
     : 'id,prenom,nom,email,phone,resto_id,restos,poste,niveau_apprentissage,dispos,questionnaire,motivation,statut,entretien_date,note_interne,created_at,date_naissance,etudiant,rqth,dernier_emploi,transport,trajet,adresse,code_postal,ville,nationalite,sexe,photo,contrat_type,contrat_label,contrat_heures,cv_name,onboarding,date_debut,essai_rappels,avis_managers,refus_motif,documents,contact_urgence,tailles_tenue,bku_identifiant,bku_motdepasse,docs_soumis,videos_faites,essai_alerte,contrat_signe,visite_faite,visite_date,contrat_signe_doc';
-  const [emps, incs, lets, settArr, cands, empDocs] = await Promise.all([
+  const [emps, incs, lets, settArr, cands, empDocs, demRH] = await Promise.all([
     sb.get('bks_employees','select=*&order=name.asc'),
     sb.get('bks_incidents','select=*&order=created_at.desc'),
     sb.get('bks_letters','select=*&order=created_at.desc'),
     sb.get('bks_settings','select=*&id=eq.main'),
     sb.get('bks_candidatures','select='+candCols+'&order=created_at.desc').catch(function(){return [];}),
     sb.get('bks_emp_docs','select=*&order=created_at.desc').catch(function(){return [];}),
+    sb.get('bks_demandes_rh','select=*&order=created_at.desc').catch(function(){return [];}),
   ]);
+  DB.demandesRH = (demRH||[]).map(function(d){
+    return {id:d.id,empId:d.emp_id,empName:d.emp_name||'',restoId:d.resto_id||'',type:d.type||'autre',message:d.message||'',statut:d.statut||'nouvelle',auteur:d.auteur||'',createdAt:d.created_at};
+  });
   DB.empDocs = (empDocs||[]).map(function(d){
     return {id:d.id,empId:d.emp_id,categorie:d.categorie||'autre',label:d.label||'',link:d.link||'',name:d.name||'',dbxPath:d.dbx_path||'',createdAt:d.created_at};
   });
@@ -2045,42 +1745,11 @@ function hrRefreshPageActive(){
 
   try{
     switch(id){
-      case 'dashboard':
-        if(typeof dashRefreshOpenPanel==='function') dashRefreshOpenPanel();
-        break;
       case 'equipe':
         if(typeof renderEquipe==='function') renderEquipe();
         break;
-      case 'etatequipe':
-        if(typeof hrRenderEtatEquipe==='function' && window.HR_EE_VUE!=='tuiles') hrRenderEtatEquipe();
-        break;
-      case 'horaires': {
-        // Recharge les traits réellement posés (HR_AFFECT) depuis Supabase pour
-        // refléter en quasi temps réel le travail fait sur un autre appareil
-        // (ex. la superviseuse). On NE recharge PAS si des modifications locales
-        // ne sont pas encore enregistrées (_grilleDirty) afin de ne pas écraser
-        // un travail en cours. hrChargerAffect() redessine la timeline une fois
-        // les données Supabase reçues.
-        try{
-          if(typeof _grilleDirty==='undefined' || !_grilleDirty){
-            if(typeof hrChargerAffect==='function') hrChargerAffect();
-            if(typeof hrChargerLocks==='function') hrChargerLocks();
-            if(typeof hrChargerEnregHorodate==='function') hrChargerEnregHorodate();
-            if(typeof hrChargerTraitOver==='function') hrChargerTraitOver();
-          }
-        }catch(e){}
-        // Redessine les jours (vert/orange) + métriques si le planning est l'onglet ouvert.
-        if(typeof renderDays==='function') renderDays();
-        var planOuvert = document.getElementById('hrx-sec-planning') &&
-                         document.getElementById('hrx-sec-planning').classList.contains('hr-on');
-        if(planOuvert && typeof renderMetrics==='function') renderMetrics();
-        break;
-      }
       case 'recrutement':
         if(typeof renderCandidatures==='function'){ renderCandidatures(); if(candFilter==='entretien' && typeof renderAgenda==='function') renderAgenda(); }
-        break;
-      case 'visite':
-        if(typeof renderVisiteList==='function') renderVisiteList();
         break;
       case 'incidents':
         if(typeof renderHistory==='function') renderHistory();
@@ -2094,21 +1763,9 @@ function hrRefreshPageActive(){
       case 'salaires':
         if(typeof renderSalaires==='function') renderSalaires();
         break;
-      case 'contrats':
-        if(typeof renderContrats==='function') renderContrats();
-        break;
-      case 'pointage':
-        if(typeof ptgInit==='function') ptgInit();
-        break;
-      case 'suivipointage':
-        if(typeof ptgSuiviInit==='function') ptgSuiviInit();
-        break;
       case 'planning':
         if(typeof hrRenderPlanningHebdo==='function') hrRenderPlanningHebdo();
         if(typeof hrRenderEmploiSemaine==='function') hrRenderEmploiSemaine();
-        break;
-      case 'docsplanning':
-        if(typeof docsPlanningStatus==='function') docsPlanningStatus();
         break;
       // 'parametres', 'reglementation', 'emp-fiche', 'noaccess' : pages de
       // configuration/consultation, pas de redessin auto nécessaire.
@@ -2428,16 +2085,9 @@ function checkPin() {
     var r = pinProf.role;
     curUser = {id:pinProf.key,name:pinProf.title,role:r,restoId:pinProf.restoId||null};
 
-    // ── MODE ÉCRAN TV : dashboard d'un resto, sans menu ──
+    // ── MODE ÉCRAN TV supprimé (le dashboard n'existe plus) ──
     if (r==='tv') {
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('app').style.display = 'block';
-      document.getElementById('uname').textContent = pinProf.title;
-      var tvResto = pinProf.tvResto || pinProf.restoId;
-      try{ localStorage.setItem('dash_resto', tvResto); }catch(e){}
-      document.body.classList.add('tv-mode');
-      try{ var eye=document.getElementById('eye-viewas'); if(eye) eye.style.display='none'; }catch(e){}
-      try{ goPage('dashboard'); }catch(e){console.warn('tv dash',e);}
+      alert("L'écran TV n'est plus disponible.");
       return;
     }
 
@@ -2562,7 +2212,7 @@ function _entrerDansApp(r){
     var startPage;
     if (r==='manager') startPage='incidents';
     else if (r==='leader'||r==='equipier') startPage='noaccess';
-    else startPage='dashboard';   // franchise + directeur → Accueil
+    else startPage='equipe';   // franchise + directeur → Équipe
     try{
       document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
       var sp=document.getElementById('page-'+startPage); if(sp) sp.classList.add('active');
@@ -2584,6 +2234,7 @@ function _entrerDansApp(r){
     updateVBadge();
     updateRBadge();
     if(typeof updateAlBadge==="function")updateAlBadge();
+    if(typeof ddUpdateBadge==="function")ddUpdateBadge();
     loadMailSettings();
     renderPinSettings();
     renderNamesSettings();
@@ -2667,6 +2318,7 @@ function goPage(id, btn) {
   if (id==='dashboard'){ try{ initDashboard(); dashStartAutoRefresh(); }catch(e){console.warn('dash',e);} }
   else { try{ dashStopAutoRefresh(); }catch(e){} }
   if (id==='incidents'){ if(curUser.role==='franchise'){ bkEntrerPage('incidents'); } else { window.__incResto=curUser.restoId; try{ initForm(); }catch(e){} } }
+  if (id==='docsdemandes'){ try{ ddInit(); }catch(e){console.warn('docsdemandes',e);} }
   if (id==='horaires'){ try{
     if(!window.__hrDone && window.__hrInit){ window.__hrInit(); }
     var ra=window.ACTIVE_RESTO;
@@ -2813,14 +2465,8 @@ function setRestoFilterDirect(r){
 // Liste des tuiles de la page Paramètres. type 'card' = affiche une carte interne ;
 // type 'page' = va vers une page existante (salaires/contrats/réglementation).
 var PARAM_TILES=[
-  {ico:'🎯', titre:'Compétences',   sub:'Importer la grille BK',        type:'card', card:'pc-competences', accent:'#e53935'},
-  {ico:'📅', titre:'Disponibilités',sub:'Importer depuis Excel',        type:'card', card:'pc-dispos',      accent:'#1565c0'},
-  {ico:'💶', titre:'Salaires',      sub:'Grille des salaires',          type:'page', page:'salaires',       accent:'#2e7d32'},
-  {ico:'📄', titre:'Contrats',      sub:'Modèles de contrats',          type:'page', page:'contrats',       accent:'#e87722'},
-  {ico:'⚖️', titre:'Réglementation',sub:'Règles du planning',           type:'page', page:'reglementation', accent:'#8e44ad'},
   {ico:'📲', titre:'QR code',       sub:'QR de candidature',            type:'card', card:'pc-qr',          accent:'#16a085'},
   {ico:'🔑', titre:'Codes PIN',     sub:'Accès par profil',             type:'card', card:'pc-pin',         accent:'#c0392b'},
-  {ico:'🕐', titre:'Amplitude',     sub:'Plage horaire dispos',         type:'card', card:'pc-amplitude',   accent:'#2980b9'},
   {ico:'⚠️', titre:'Observations',  sub:'Seuil rappel oral',            type:'card', card:'pc-seuil',       accent:'#d35400'},
   {ico:'👁️', titre:'Aperçu fiche',  sub:'Vue candidat',                 type:'card', card:'rec-apercu-card',accent:'#7f8c8d'},
   {ico:'📧', titre:'Adresses mail', sub:'Expédition RH',                type:'card', card:'pc-adresses',    accent:'#2c3e50'},
@@ -3209,12 +2855,6 @@ function buildRestoBlock(restoId,incs,targets){
 /* ════════ RAPPORTS — TUILES (style dashboard) ════════ */
 var RPT_TILES=[
   {id:'incidents', em:'⚠️', tt:'Incidents',       ds:'Suivi disciplinaire', color:'#D62300'},
-  {id:'dispos',    em:'📅', tt:'Disponibilités',  ds:'Créneaux par équipier', color:'#1565c0'},
-  {id:'competences',em:'🎯',tt:'Compétences',     ds:'Qui sait faire quoi', color:'#2e7d32'},
-  {id:'traits',    em:'📋', tt:'Traits de la semaine', ds:'Tous les créneaux à couvrir, jour par jour', color:'#8e24aa'},
-  {id:'planhebdo', em:'🗓️', tt:'Planning de la semaine', ds:'Qui travaille quand (planning fait)', color:'#00897b'},
-  {id:'suivipointage', em:'⏱️', tt:'Suivi pointage', ds:'Heures pointées par les équipiers', color:'#6d4aad'},
-  {id:'planpartage', em:'📅', tt:'Plannings transférés', ds:'Semaines transférées aux employés (imprimables)', color:'#0277bd'},
 ];
 var _rptCurrent=null;
 function renderRptTiles(){
@@ -20094,6 +19734,236 @@ async function hrParsePDF(arrayBuffer){
 }
 
 window.hrParsePDF=hrParsePDF;
+
+
+// ════════════════════════════════════════════════════════════════════
+// 📨 DOCUMENTS & DEMANDES (envoi de documents + demandes RH)
+// ════════════════════════════════════════════════════════════════════
+var DD_DOC_CATS={arret_maladie:{ico:'🏥',label:'Arrêt maladie'},justif_absence:{ico:'📄',label:"Justificatif d'absence"},autre:{ico:'❗',label:'Autre'}};
+var DD_DEM_TYPES={fin_essai:{ico:'🛑',label:"Fin de période d'essai"},sanction:{ico:'⚠️',label:'Demande de sanction'},entretien:{ico:'💬',label:"Demande d'entretien"},autre:{ico:'❗',label:'Autre'}};
+var _ddDocFile=null;
+
+function ddRestoActif(){
+  // resto verrouillé pour directeur/manager, sinon resto actif choisi
+  if(curUser && curUser.role!=='franchise' && curUser.restoId) return curUser.restoId;
+  return (window.ACTIVE_RESTO && window.ACTIVE_RESTO!=='ALL') ? window.ACTIVE_RESTO : '';
+}
+function ddEmpsForResto(){
+  var rid=ddRestoActif();
+  return (DB.employees||[]).filter(function(e){
+    if(e.archived) return false;
+    if(rid && e.restoId!==rid) return false;
+    return true;
+  }).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+}
+function ddFillEmpSelect(selId){
+  var sel=document.getElementById(selId); if(!sel) return;
+  var emps=ddEmpsForResto();
+  var h='<option value="">— Choisir un salarié —</option>';
+  emps.forEach(function(e){
+    var r=RESTOS[e.restoId]?RESTOS[e.restoId].label:(e.restoId||'');
+    h+='<option value="'+e.id+'">'+(e.name||'?')+(r?(' · '+r):'')+'</option>';
+  });
+  sel.innerHTML=h;
+}
+function ddInit(){
+  ddFillEmpSelect('dd-doc-emp');
+  ddFillEmpSelect('dd-dem-emp');
+  ddDocTypeChange();
+  ddRenderDocs();
+  ddRenderDemandes();
+  ddUpdateBadge();
+}
+function ddSetTab(t){
+  document.getElementById('dd-tab-doc').classList.toggle('on',t==='doc');
+  document.getElementById('dd-tab-dem').classList.toggle('on',t==='dem');
+  document.getElementById('dd-pane-doc').style.display=(t==='doc')?'block':'none';
+  document.getElementById('dd-pane-dem').style.display=(t==='dem')?'block':'none';
+}
+window.ddSetTab=ddSetTab; window.ddInit=ddInit;
+
+// ── ENVOI DE DOCUMENT ──
+function ddDocTypeChange(){
+  var t=document.getElementById('dd-doc-type').value;
+  var dates=document.getElementById('dd-doc-dates');
+  if(dates) dates.style.display=(t==='arret_maladie'||t==='justif_absence')?'grid':'none';
+}
+function ddDocSetFile(f){
+  if(!f){_ddDocFile=null;return;}
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    _ddDocFile={data:ev.target.result,name:f.name};
+    var n=document.getElementById('dd-doc-name'); n.textContent=f.name; n.style.color='#4CAF50';
+  };
+  reader.readAsDataURL(f);
+}
+function ddDocPick(input){
+  ddDocSetFile(input.files&&input.files[0]);
+}
+function ddDocDrop(ev,el){
+  ev.preventDefault(); bkDragLeave(el);
+  var f=ev.dataTransfer&&ev.dataTransfer.files&&ev.dataTransfer.files[0];
+  if(f) ddDocSetFile(f);
+}
+function ddDocReset(){
+  _ddDocFile=null;
+  document.getElementById('dd-doc-emp').value='';
+  document.getElementById('dd-doc-type').value='arret_maladie';
+  document.getElementById('dd-doc-note').value='';
+  document.getElementById('dd-doc-from').value='';
+  document.getElementById('dd-doc-to').value='';
+  var n=document.getElementById('dd-doc-name'); n.textContent='aucun fichier'; n.style.color='#888';
+  document.getElementById('dd-doc-status').textContent='';
+  ddDocTypeChange();
+}
+async function ddDocSave(){
+  var empId=document.getElementById('dd-doc-emp').value;
+  var type=document.getElementById('dd-doc-type').value;
+  var note=(document.getElementById('dd-doc-note').value||'').trim();
+  var from=document.getElementById('dd-doc-from').value;
+  var to=document.getElementById('dd-doc-to').value;
+  var st=document.getElementById('dd-doc-status');
+  if(!empId){ st.style.color='#D62300'; st.textContent='Veuillez choisir un salarié.'; return; }
+  if(!_ddDocFile||!_ddDocFile.data){ st.style.color='#D62300'; st.textContent='Veuillez joindre un fichier.'; return; }
+  var emp=(DB.employees||[]).find(function(e){return e.id===empId;});
+  if(!emp){ st.style.color='#D62300'; st.textContent='Salarié introuvable.'; return; }
+  var btn=document.getElementById('dd-doc-save'); btn.disabled=true;
+  st.style.color='#888'; st.textContent='Envoi en cours...';
+  try{
+    var cat=DD_DOC_CATS[type]?DD_DOC_CATS[type].label:'Document';
+    var lbl=cat;
+    if(from||to){ lbl+=' ('+(from?new Date(from).toLocaleDateString('fr-FR'):'?')+(to?(' → '+new Date(to).toLocaleDateString('fr-FR')):'')+')'; }
+    else { lbl+=' du '+new Date().toLocaleDateString('fr-FR'); }
+    if(note) lbl+=' — '+note;
+    var ext=(_ddDocFile.name&&_ddDocFile.name.indexOf('.')>=0)?_ddDocFile.name.split('.').pop():'pdf';
+    var path=dbxEmpFolderArchive(emp)+'/'+dbxClean(cat)+'_'+Date.now()+'.'+ext;
+    var blob=_dataUrlToBlob(_ddDocFile.data);
+    var link=await dbxUpload(path,blob);
+    var rec=await sb.insert('bks_emp_docs',{id:'d'+Date.now(),emp_id:emp.id,categorie:type,label:lbl,link:link,name:_ddDocFile.name,dbx_path:path});
+    if(rec){
+      DB.empDocs.unshift({id:rec.id,empId:emp.id,categorie:type,label:lbl,link:link,name:_ddDocFile.name,dbxPath:path,createdAt:rec.created_at||new Date().toISOString()});
+    }
+    st.style.color='#4CAF50'; st.textContent='✓ Document enregistré.';
+    ddDocReset();
+    ddRenderDocs();
+  }catch(e){
+    console.error('ddDocSave',e);
+    st.style.color='#D62300'; st.textContent='Erreur : '+(e.message||e);
+  }
+  btn.disabled=false;
+}
+function ddRenderDocs(){
+  var box=document.getElementById('dd-doc-list'); if(!box) return;
+  var fr=document.getElementById('dd-doc-fresto').value;
+  var ft=document.getElementById('dd-doc-ftype').value;
+  // on ne montre que les documents de type "envoi" (arret_maladie / justif_absence / autre)
+  var rows=(DB.empDocs||[]).filter(function(d){
+    if(['arret_maladie','justif_absence','autre'].indexOf(d.categorie)<0) return false;
+    if(ft && d.categorie!==ft) return false;
+    var emp=(DB.employees||[]).find(function(e){return e.id===d.empId;});
+    if(fr){ if(!emp||emp.restoId!==fr) return false; }
+    return true;
+  }).sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);});
+  if(!rows.length){ box.innerHTML='<div class="empty"><div class="ei">🗂️</div><p>Aucun document</p></div>'; return; }
+  box.innerHTML=rows.map(function(d){
+    var emp=(DB.employees||[]).find(function(e){return e.id===d.empId;});
+    var r=emp&&RESTOS[emp.restoId]?RESTOS[emp.restoId].label:'';
+    var c=DD_DOC_CATS[d.categorie]||{ico:'📄',label:d.categorie};
+    var dt=d.createdAt?new Date(d.createdAt).toLocaleDateString('fr-FR'):'';
+    return '<div class="card" style="padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">'
+      +'<span style="font-size:1.6rem;">'+c.ico+'</span>'
+      +'<div style="flex:1;min-width:160px;"><div style="font-weight:600;color:#fff;">'+(emp?emp.name:'?')+(r?(' <span style="color:#888;font-size:.78rem;">· '+r+'</span>'):'')+'</div>'
+      +'<div style="font-size:.8rem;color:#aaa;">'+c.label+(d.label&&d.label!==c.label?(' — '+d.label.replace(c.label,'').replace(/^[\s—-]+/,'')):'')+'</div>'
+      +'<div style="font-size:.72rem;color:#666;">'+dt+'</div></div>'
+      +(d.link?('<a href="'+d.link+'" target="_blank" class="btn btn-gray btn-sm">📄 Ouvrir</a>'):'')
+      +'</div>';
+  }).join('');
+}
+window.ddDocTypeChange=ddDocTypeChange; window.ddDocPick=ddDocPick; window.ddDocDrop=ddDocDrop; window.ddDocReset=ddDocReset; window.ddDocSave=ddDocSave; window.ddRenderDocs=ddRenderDocs;
+
+// ── DEMANDES RH ──
+function ddDemReset(){
+  document.getElementById('dd-dem-emp').value='';
+  document.getElementById('dd-dem-type').value='fin_essai';
+  document.getElementById('dd-dem-msg').value='';
+  document.getElementById('dd-dem-status').textContent='';
+}
+async function ddDemSave(){
+  var empId=document.getElementById('dd-dem-emp').value;
+  var type=document.getElementById('dd-dem-type').value;
+  var msg=(document.getElementById('dd-dem-msg').value||'').trim();
+  var st=document.getElementById('dd-dem-status');
+  if(!empId){ st.style.color='#D62300'; st.textContent='Veuillez choisir un salarié.'; return; }
+  if(!msg){ st.style.color='#D62300'; st.textContent='Veuillez écrire un message.'; return; }
+  var emp=(DB.employees||[]).find(function(e){return e.id===empId;});
+  if(!emp){ st.style.color='#D62300'; st.textContent='Salarié introuvable.'; return; }
+  var btn=document.getElementById('dd-dem-save'); btn.disabled=true;
+  st.style.color='#888'; st.textContent='Envoi...';
+  try{
+    var rec=await sb.insert('bks_demandes_rh',{id:'dem'+Date.now(),emp_id:emp.id,emp_name:emp.name,resto_id:emp.restoId||'',type:type,message:msg,statut:'nouvelle',auteur:(curUser&&curUser.name)||''});
+    if(rec){
+      DB.demandesRH.unshift({id:rec.id,empId:emp.id,empName:emp.name,restoId:emp.restoId||'',type:type,message:msg,statut:'nouvelle',auteur:(curUser&&curUser.name)||'',createdAt:rec.created_at||new Date().toISOString()});
+      st.style.color='#4CAF50'; st.textContent='✓ Demande envoyée.';
+      ddDemReset();
+      ddRenderDemandes(); ddUpdateBadge();
+    } else {
+      st.style.color='#D62300'; st.textContent='Erreur d\'enregistrement (table bks_demandes_rh absente ?).';
+    }
+  }catch(e){
+    console.error('ddDemSave',e);
+    st.style.color='#D62300'; st.textContent='Erreur : '+(e.message||e);
+  }
+  btn.disabled=false;
+}
+function ddRenderDemandes(){
+  var box=document.getElementById('dd-dem-list'); if(!box) return;
+  var fr=document.getElementById('dd-dem-fresto').value;
+  var fs=document.getElementById('dd-dem-fstatut').value;
+  var rows=(DB.demandesRH||[]).filter(function(d){
+    if(fr && d.restoId!==fr) return false;
+    if(fs && d.statut!==fs) return false;
+    return true;
+  }).sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);});
+  if(!rows.length){ box.innerHTML='<div class="empty"><div class="ei">📨</div><p>Aucune demande</p></div>'; return; }
+  box.innerHTML=rows.map(function(d){
+    var r=RESTOS[d.restoId]?RESTOS[d.restoId].label:'';
+    var t=DD_DEM_TYPES[d.type]||{ico:'❗',label:d.type};
+    var dt=d.createdAt?new Date(d.createdAt).toLocaleString('fr-FR'):'';
+    var traitee=d.statut==='traitee';
+    return '<div class="card" style="padding:12px 14px;margin-bottom:8px;border-left:3px solid '+(traitee?'#4CAF50':'#D62300')+';">'
+      +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">'
+      +'<span style="font-size:1.3rem;">'+t.ico+'</span>'
+      +'<strong style="color:#fff;">'+(d.empName||'?')+'</strong>'
+      +(r?('<span style="color:#888;font-size:.78rem;">· '+r+'</span>'):'')
+      +'<span style="margin-left:auto;font-size:.72rem;color:'+(traitee?'#4CAF50':'#D62300')+';font-weight:700;">'+(traitee?'✅ Traitée':'🔴 Nouvelle')+'</span>'
+      +'</div>'
+      +'<div style="font-size:.82rem;color:#F5A623;margin-bottom:4px;">'+t.label+'</div>'
+      +'<div style="font-size:.85rem;color:#ddd;white-space:pre-wrap;margin-bottom:6px;">'+(d.message||'').replace(/</g,'&lt;')+'</div>'
+      +'<div style="font-size:.72rem;color:#666;margin-bottom:8px;">'+(d.auteur?('Par '+d.auteur+' · '):'')+dt+'</div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+      +(traitee
+        ?'<button class="btn btn-gray btn-sm" onclick="ddDemStatut(\''+d.id+'\',\'nouvelle\')">↩ Rouvrir</button>'
+        :'<button class="btn btn-red btn-sm" onclick="ddDemStatut(\''+d.id+'\',\'traitee\')">✓ Marquer traitée</button>')
+      +'<button class="btn btn-gray btn-sm" onclick="ddDemDelete(\''+d.id+'\')">🗑 Supprimer</button>'
+      +'</div></div>';
+  }).join('');
+}
+async function ddDemStatut(id,statut){
+  var ok=await sb.patch('bks_demandes_rh','id=eq.'+id,{statut:statut});
+  if(ok){ var d=(DB.demandesRH||[]).find(function(x){return x.id===id;}); if(d) d.statut=statut; ddRenderDemandes(); ddUpdateBadge(); }
+}
+async function ddDemDelete(id){
+  if(!confirm('Supprimer cette demande ?')) return;
+  var ok=await sb.del('bks_demandes_rh','id=eq.'+id);
+  if(ok){ DB.demandesRH=(DB.demandesRH||[]).filter(function(x){return x.id!==id;}); ddRenderDemandes(); ddUpdateBadge(); }
+}
+function ddUpdateBadge(){
+  var b=document.getElementById('ddbadge'); if(!b) return;
+  var n=(DB.demandesRH||[]).filter(function(d){return d.statut!=='traitee';}).length;
+  if(n>0){ b.textContent=n; b.style.display='inline-flex'; } else { b.style.display='none'; }
+}
+window.ddDemReset=ddDemReset; window.ddDemSave=ddDemSave; window.ddRenderDemandes=ddRenderDemandes; window.ddDemStatut=ddDemStatut; window.ddDemDelete=ddDemDelete; window.ddUpdateBadge=ddUpdateBadge;
+
 
 })();
 </script>
