@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-24 12:24 · v316';
+  var EMBEDDED_VERSION = '2026-06-24 13:09 · v322';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -495,11 +495,9 @@ body.tv-mode #eye-viewas{display:none!important;}
       <span onclick="toggleViewasBar()" style="cursor:pointer;color:#888;font-size:1rem;line-height:1;">✕</span>
     </div>
     <select id="preview-role" onchange="onPreviewChange()" style="background:#1A1A1A;color:#fff;border:1px solid #555;border-radius:6px;padding:7px 10px;font-size:.82rem;">
-      <option value="">— Ma vue (Admin/RH) —</option>
+      <option value="">— Ma vue (Direction) —</option>
       <option value="directeur">👔 Directeur</option>
       <option value="manager">⭐ Manager</option>
-      <option value="leader">🔶 Leader</option>
-      <option value="equipier">🧑‍🍳 Équipier</option>
     </select>
     <select id="preview-resto" onchange="onPreviewChange()" style="background:#1A1A1A;color:#fff;border:1px solid #555;border-radius:6px;padding:7px 10px;font-size:.82rem;">
       <option value="bk500">BK 500</option>
@@ -787,20 +785,6 @@ body.tv-mode #eye-viewas{display:none!important;}
       </div>
       <div id="plan-codes-legend-dir" style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px;"></div>
       <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><div id="plan-grid-dir"></div></div>
-    </div>
-
-    <!-- BLOC 2 : MANAGERS / LEADERS / AUTRES -->
-    <div class="card" style="border-top:3px solid #e8a020;">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
-        <div class="sec-title" style="margin:0;color:#f0b450;">⭐ Managers · Leaders · autres</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button class="btn btn-gray btn-sm" onclick="managePeople('encadrement')">👥 Gérer les personnes</button>
-          <button class="btn btn-gray btn-sm" onclick="manageCodes('encadrement')">🎨 Gérer les codes</button>
-        </div>
-      </div>
-      <div id="plan-codes-legend-enc" style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px;"></div>
-      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><div id="plan-grid-enc"></div></div>
-      <p style="font-size:.74rem;color:#666;margin-top:10px;">Touchez une case pour attribuer une journée (les horaires se posent automatiquement).</p>
     </div>
   </div>
 
@@ -2188,8 +2172,8 @@ function _entrerDansApp(r){
         else if(startPage==='equipe'&&(t.indexOf('Équipe')>=0||t.indexOf('Equipe')>=0))b.classList.add('active');
       });
     }catch(e){}
-    // Barre "Voir comme" retirée
-    try{ var eye=document.getElementById('eye-viewas'); if(eye) eye.style.display='none'; var vb=document.getElementById('preview-bar'); if(vb) vb.style.display='none'; }catch(e){}
+    // Barre "Voir comme" : réservée à la Direction (franchise)
+    try{ var eye=document.getElementById('eye-viewas'); if(eye) eye.style.display=(r==='franchise')?'inline-block':'none'; var vb=document.getElementById('preview-bar'); if(vb) vb.style.display='none'; }catch(e){}
     initForm();
     // Si franchise a choisi un resto précis, on entre directement sur la page de départ
     // verrouillée sur ce resto (au lieu des tuiles). goPage gère le reste.
@@ -2257,7 +2241,7 @@ function goPage(id, btn) {
   if (btn) { btn.classList.add('active'); }
   else {
     // Pas de bouton passé (navigation programmée) : on retrouve celui de la page pour le surligner.
-    var _labels={dashboard:'Accueil',equipe:'👥 Équipe',etatequipe:'État équipe',horaires:'Horaires',docsplanning:'Documents planning',recrutement:'Recrutement',visite:'Visite',incidents:'Incidents',rapports:'Rapports',planning:'Planning',parametres:'Paramètres',alertes:'Alertes'};
+    var _labels={equipe:'👥 Équipe',recrutement:'Recrutement',incidents:'Incidents',rapports:'Rapports',planning:'Planning',parametres:'Paramètres'};
     var _lbl=_labels[id];
     if(_lbl){ document.querySelectorAll('#main-nav button').forEach(function(b){ if(b.textContent.indexOf(_lbl)>=0) b.classList.add('active'); }); }
   }
@@ -2278,8 +2262,6 @@ function goPage(id, btn) {
     }
     renderEquipe();
   }
-  if (id==='dashboard'){ try{ initDashboard(); dashStartAutoRefresh(); }catch(e){console.warn('dash',e);} }
-  else { try{ dashStopAutoRefresh(); }catch(e){} }
   if (id==='incidents'){ if(curUser.role==='franchise'){ bkEntrerPage('incidents'); } else { window.__incResto=curUser.restoId; try{ initForm(); }catch(e){} } }
   if (id==='horaires'){ try{
     if(!window.__hrDone && window.__hrInit){ window.__hrInit(); }
@@ -2301,7 +2283,6 @@ function goPage(id, btn) {
       if(hrT&&hrC){ hrT.style.display='block'; hrC.style.display='none'; }
     }
   }catch(e){console.warn('init horaires',e);} }
-  if (id==='docsplanning'){ try{ if(!window.__hrDone && window.__hrInit){ window.__hrInit(); } }catch(e){} try{ docsPlanningStatus&&docsPlanningStatus(); }catch(e){} }
   if (id==='recrutement'){ if(curUser.role==='franchise'){ bkEntrerPage('recrutement'); } else { setCandFilter(candFilter||'nouveau'); } }
   if (id==='visite'){ if(curUser.role==='franchise'){ bkEntrerPage('visite'); } else { renderVisiteList(); } }
   if (id==='alertes'){ if(curUser.role==='franchise'){ bkEntrerPage('alertes'); } else { window.__alertResto=curUser.restoId; renderAlertes(); } }
@@ -2318,8 +2299,6 @@ function goPage(id, btn) {
   if (id==='salaires'){renderSalaires();}
   if (id==='contrats'){renderContrats();}
   if (id==='reglementation'){renderReglement();}
-  if (id==='pointage'){ if(curUser.role==='franchise'){ bkEntrerPage('pointage'); } else { window.__ptgRestoActif=null; ptgInit(); } }
-  if (id==='suivipointage'){ if(curUser.role==='franchise'){ bkEntrerPage('suivipointage'); } else { window.__ptgRestoActif=null; ptgSuiviInit(); } }
   if (id==='planning'){openPlanning();}
   if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();loadSeuilOral();loadMailTpl();renderQr();renderApercuForm();var av=document.getElementById('app-version-badge');if(av){var _now=new Date();var _hd=_now.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})+' à '+String(_now.getHours()).padStart(2,'0')+'h'+String(_now.getMinutes()).padStart(2,'0');av.innerHTML='✓ À jour — '+formatMajDate(APP_VERSION)+' <span style="color:#888;font-weight:400;">· consulté le '+_hd+'</span>';av.style.color='#4CAF50';av.style.borderColor='#2E5E33';} renderParamTiles(); }
   // Rafraîchir le bandeau "restaurant actif" sur chaque page
@@ -2342,8 +2321,6 @@ var BK_TILE_PAGES = {
   incidents:   { pick:function(r){ window.__incResto=r; try{initForm();}catch(e){} try{renderHistory&&renderHistory();}catch(e){} } },
   rapports:    { pick:function(r){ rptTab=r; var rt=document.getElementById('rpt-tabs'); if(rt) rt.style.display='none'; if(typeof fillRptPersons==='function') fillRptPersons(); if(typeof rptClosePanel==='function') rptClosePanel(); if(typeof renderRptTiles==='function') renderRptTiles(); } },
   alertes:     { pick:function(r){ window.__alertResto=r; renderAlertes(); } },
-  pointage:    { pick:function(r){ window.__ptgRestoActif=r; try{ptgInit();}catch(e){} } },
-  suivipointage:{ pick:function(r){ window.__ptgRestoActif=r; try{ptgSuiviInit();}catch(e){} } },
   etatequipe:  { pick:function(r){ HR_ETAT_RESTO_FILTRE=(r||'').toLowerCase(); try{ window.HR_EE_VUE='tuiles'; }catch(e){} var et=document.getElementById('etat-equipe-resto'); if(et) et.style.display='none'; try{ hrRenderEtatEquipe(); }catch(e){} } }
 };
 // Construit (une fois) l'écran de tuiles + le wrapper de contenu pour une page.
@@ -2830,17 +2807,6 @@ function renderRptTiles(){
   }).join('');
 }
 function rptOpen(type){
-  if(type==='suivipointage'){
-    // ouvrir le véritable écran « Suivi pointage », filtré sur le resto du rapport
-    var resto=(curUser.role==='franchise')?(rptTab==='all'?null:rptTab):curUser.restoId;
-    window.__ptgRestoActif=resto||null;
-    document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
-    document.querySelectorAll('nav button').forEach(function(b){b.classList.remove('active');});
-    var pg=document.getElementById('page-suivipointage'); if(pg) pg.classList.add('active');
-    try{ var nb=document.querySelector('nav button[onclick*="suivipointage"]'); if(nb) nb.classList.add('active'); }catch(e){}
-    try{ ptgSuiviInit(); }catch(e){ console.warn('ptgSuiviInit',e); }
-    return;
-  }
   _rptCurrent=type;
   document.getElementById('rpt-pick').style.display='none';
   document.getElementById('rpt-panel').style.display='block';
@@ -3246,38 +3212,6 @@ window.genTraitsReport=genTraitsReport;
 window.genPlanHebdoReport=genPlanHebdoReport;
 window.rptPdf=rptPdf;
 
-// — Onglet « Documents planning » : réutilise les générateurs PDF existants —
-function docsPlanningStatus(){
-  var st=document.getElementById('docs-planning-status'); if(!st) return;
-  var dts=(typeof _rptSemaineDates==='function')?_rptSemaineDates():[];
-  var pret=(typeof window.ROWS_BY_DAY!=='undefined' && window.ROWS_BY_DAY && window.ROWS_BY_DAY.length);
-  if(pret && dts && dts[0]){
-    st.innerHTML='Semaine affichée : <b style="color:#ccc;">du '+dts[0]+' au '+(dts[6]||'?')+'</b>.';
-  } else {
-    st.innerHTML='<span style="color:#E08600;">Aucun planning chargé pour l\'instant — ouvre Horaires et lance le placement, puis reviens ici.</span>';
-  }
-}
-window.docsPlanningStatus=docsPlanningStatus;
-function docsPlanningPdf(type){
-  // s'assurer que le moteur Horaires est initialisé (au cas où on n'y est pas allé)
-  try{ if(!window.__hrDone && window.__hrInit){ window.__hrInit(); } }catch(e){}
-  if(typeof window.ROWS_BY_DAY==='undefined' || !window.ROWS_BY_DAY || !window.ROWS_BY_DAY.length){
-    if(typeof toast==='function') toast('Ouvre d\'abord Horaires et lance le placement','error');
-    return;
-  }
-  if(type==='traits'){
-    if(typeof rptPdfTraits==='function') rptPdfTraits();
-    else if(typeof toast==='function') toast('Générateur indisponible','error');
-  } else if(type==='planhebdo'){
-    if(typeof HR_MONTH_RESULT==='undefined' || !HR_MONTH_RESULT || !HR_MONTH_RESULT.semaines || !HR_MONTH_RESULT.semaines.length){
-      if(typeof toast==='function') toast('Lance d\'abord « Placer le mois » dans Horaires','error');
-      return;
-    }
-    if(typeof rptPdfPlanHebdo==='function') rptPdfPlanHebdo();
-    else if(typeof toast==='function') toast('Générateur indisponible','error');
-  }
-}
-window.docsPlanningPdf=docsPlanningPdf;
 
 /* — EXPORT EXCEL du rapport ouvert — */
 function rptExportExcel(){
@@ -5128,14 +5062,7 @@ function updateRBadge(){
   // candidats dont les vidéos sont validées (prêts) mais pas encore intégrés
   var nVideos=cands.filter(function(c){return c.statut==='retenu'&&c.docsSoumis&&docsComplets(c)&&c.videosFaites;}).length;
   var b=document.getElementById('rbadge');
-  if(b){
-    var col=null,n=0;
-    if(nNouveau>0){col='var(--red)';n=nNouveau;}        // 🔴 nouveau recrutement
-    else if(nPapiers>0){col='#F5A623';n=nPapiers;}        // 🟠 papiers déposés
-    else if(nVideos>0){col='#3ecf8e';n=nVideos;}          // 🟢 vidéos validées
-    if(col){b.textContent=n;b.style.background=col;b.style.display='inline-flex';}
-    else{b.style.display='none';}
-  }
+  if(b){ b.style.display='none'; }
   // badge visites médicales : embauches urgentes/dépassées + périodiques bientôt/dépassées
   var vn=0;
   (DB.candidatures||[]).filter(function(c){return (c.statut||'')==='essai';}).forEach(function(c){
@@ -5798,281 +5725,8 @@ function delReglCustom(i){
   var R=getReglement(); if(!R._custom) return;
   R._custom.splice(i,1); renderReglement();
 }
-// ══════════════════ POINTAGE (arrivée / départ / pause) ══════════════════
-// Stockage local (sera branché à Supabase plus tard). Clé par jour+resto.
-var PTG_RESTO = null;            // resto sélectionné (écran salarié)
-var PTGS_RESTO = null;           // resto sélectionné (écran suivi RH)
-var _ptgSel = null;              // employé en cours de pointage
-var _ptgClockTimer = null;       // horloge live
-function ptgStoreKey(){ return 'bkrh_pointages'; }
-function ptgGetAll(){ try{ return JSON.parse(localStorage.getItem(ptgStoreKey())||'{}'); }catch(e){ return {}; } }
-function ptgSaveAll(o){ try{ localStorage.setItem(ptgStoreKey(), JSON.stringify(o)); }catch(e){} }
-function ptgTodayISO(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-function ptgNowHM(){ var d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
-function ptgRec(empId, dateISO){
-  var all=ptgGetAll(); var k=empId+'_'+dateISO;
-  if(!all[k]) all[k]={empId:empId, date:dateISO, arrivee:'', depart:'', pauses:[]};
-  return {all:all, k:k, rec:all[k]};
-}
-
-// Restos visibles selon le rôle
-function ptgRestosVisibles(){
-  var rolesTous=['admin','rh','franchise'];
-  var r=(curUser&&curUser.role)||'';
-  var base;
-  if(rolesTous.indexOf(r)>=0){ base=['bk500','bk509','bk526']; }
-  else { var rid=(curUser&&curUser.restoId)||''; base=rid?[rid]:['bk500','bk509','bk526']; }
-  // si un restaurant a été choisi via les tuiles, n'afficher que celui-là
-  var sel=window.__ptgRestoActif;
-  if(sel && base.indexOf(sel)>=0) return [sel];
-  return base;
-}
-
-// Initiales + couleur d'avatar
-function ptgInitials(name){
-  var p=(name||'').trim().split(/\s+/);
-  var a=(p[0]||'')[0]||''; var b=(p.length>1?(p[p.length-1][0]||''):'');
-  return (a+b).toUpperCase()||'?';
-}
-function ptgAvColor(name){
-  var pal=['#D62300','#FF8732','#3ecf8e','#5b9bd5','#9b59b6','#e8a020','#16a085','#e84393'];
-  var s=0; for(var i=0;i<(name||'').length;i++) s+=name.charCodeAt(i);
-  return pal[s%pal.length];
-}
-function ptgRoleLabel(r){
-  return ({directeur:'Directeur',manager:'Manager',leader:'Leader',equipier:'Équipier',rh:'RH',superviseur:'Superviseur'})[r]||r||'';
-}
 
 // ─── Écran salarié ───
-function ptgInit(){
-  var vis=ptgRestosVisibles();
-  if(!PTG_RESTO || vis.indexOf(PTG_RESTO)<0) PTG_RESTO=vis[0];
-  var hr=document.getElementById('ptg-hero-resto');
-  if(hr) hr.textContent=RESTOS[PTG_RESTO]?RESTOS[PTG_RESTO].label:PTG_RESTO;
-  // onglets resto
-  var tabs=document.getElementById('ptg-resto-tabs');
-  if(tabs){
-    if(vis.length>1){
-      tabs.className='ptg-resto-tabs';
-      tabs.innerHTML=vis.map(function(r){
-        return '<button class="rtab'+(r===PTG_RESTO?' on':'')+'" onclick="ptgSetResto(\''+r+'\')">'+(RESTOS[r]?RESTOS[r].label:r)+'</button>';
-      }).join('');
-    } else { tabs.innerHTML=''; }
-  }
-  // horloge live
-  ptgTickClock();
-  if(_ptgClockTimer) clearInterval(_ptgClockTimer);
-  _ptgClockTimer=setInterval(ptgTickClock,1000*20);
-  ptgRenderList();
-}
-function ptgTickClock(){
-  var t=document.getElementById('ptg-clock-time'); var d=document.getElementById('ptg-clock-date');
-  if(t) t.textContent=ptgNowHM();
-  if(d){
-    try{ d.textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}); }
-    catch(e){ d.textContent=ptgTodayISO(); }
-  }
-}
-function ptgSetResto(r){ PTG_RESTO=r; ptgInit(); }
-
-function ptgEmployesResto(resto){
-  var rid=resto||PTG_RESTO;
-  var list=(DB&&DB.employees)?DB.employees:[];
-  return list.filter(function(e){ return !e.archived && (e.restoId===rid); })
-             .sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
-}
-
-function ptgRenderList(){
-  var box=document.getElementById('ptg-list'); if(!box) return;
-  var q=((document.getElementById('ptg-search')||{}).value||'').toLowerCase().trim();
-  var emps=ptgEmployesResto().filter(function(e){ return !q || (e.name||'').toLowerCase().indexOf(q)>=0; });
-  if(!emps.length){ box.innerHTML='<div class="ptg-empty">Aucun salarié trouvé.</div>'; return; }
-  var dateISO=ptgTodayISO();
-  box.innerHTML=emps.map(function(e){
-    var rec=ptgRec(e.id,dateISO).rec;
-    var dot,txt;
-    if(rec.arrivee && !rec.depart){ dot='#3ecf8e'; txt='Présent depuis '+rec.arrivee; }
-    else if(rec.arrivee && rec.depart){ dot='#888'; txt='Parti à '+rec.depart; }
-    else { dot='#555'; txt='Pas encore pointé'; }
-    return '<div class="ptg-tile" onclick="ptgOpen(\''+e.id+'\')">'
-      +'<div class="ptg-tile-av" style="background:'+ptgAvColor(e.name)+'">'+ptgInitials(e.name)+'</div>'
-      +'<div class="ptg-tile-nm">'+e.name+'</div>'
-      +'<div class="ptg-tile-role">'+ptgRoleLabel(e.role)+'</div>'
-      +'<div class="ptg-tile-state" style="color:'+dot+'"><span class="ptg-dot" style="background:'+dot+'"></span>'+txt+'</div>'
-      +'</div>';
-  }).join('');
-}
-
-// Modale : saisie du code puis actions
-function ptgOpen(empId){
-  var e=(DB.employees||[]).find(function(x){return x.id===empId;});
-  if(!e) return;
-  _ptgSel=e;
-  var body=document.getElementById('ptg-modal-body');
-  body.innerHTML='<div class="ptg-tile-av" style="background:'+ptgAvColor(e.name)+';margin:0 auto 12px;width:56px;height:56px;font-size:1.3rem;">'+ptgInitials(e.name)+'</div>'
-    +'<div class="ptg-modal-name">'+e.name+'</div>'
-    +'<div class="ptg-modal-hint">Saisissez votre code : jour + mois de naissance<br>(4 chiffres — ex. 0309 pour le 3 septembre)</div>'
-    +'<input type="tel" id="ptg-pin" maxlength="4" inputmode="numeric" class="ptg-pin-in" placeholder="••••" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');if(this.value.length===4)ptgCheckPin();">'
-    +'<div id="ptg-pin-msg" class="ptg-pin-msg"></div>'
-    +'<button class="ptg-bigbtn val" onclick="ptgCheckPin()">Valider mon code</button>';
-  document.getElementById('modal-ptg').classList.add('open');
-  setTimeout(function(){ var p=document.getElementById('ptg-pin'); if(p) p.focus(); },120);
-}
-
-function ptgCodeAttendu(e){
-  var dn=(e.infos&&e.infos.date_naissance)||e.dateNaissance||'';
-  if(!dn) return null;
-  var m1=dn.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  var m2=dn.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
-  if(m1) return m1[3]+m1[2];
-  if(m2) return m2[1]+m2[2];
-  return null;
-}
-function ptgCheckPin(){
-  var e=_ptgSel; if(!e) return;
-  var pin=((document.getElementById('ptg-pin')||{}).value||'').trim();
-  var msg=document.getElementById('ptg-pin-msg');
-  var attendu=ptgCodeAttendu(e);
-  if(!attendu){ msg.style.color='#F5A623'; msg.textContent="Date de naissance non renseignée : prévenez le RH."; return; }
-  if(pin.length<4){ return; }
-  if(pin!==attendu){ msg.style.color='#e8623a'; msg.textContent='Code incorrect, réessayez.'; return; }
-  ptgShowActions();
-}
-
-function ptgShowActions(){
-  var e=_ptgSel; var dateISO=ptgTodayISO();
-  var rec=ptgRec(e.id,dateISO).rec;
-  var estEncadrant=(e.role==='manager'||e.role==='leader'||e.role==='directeur');
-  var body=document.getElementById('ptg-modal-body');
-  var h='<div class="ptg-modal-name" style="font-size:1.2rem;">'+e.name+'</div>';
-  // récap perso (le salarié voit SA journée)
-  h+='<div class="ptg-recap">';
-  h+='<div class="rline"><span>Arrivée</span><b>'+(rec.arrivee||'—')+'</b></div>';
-  if(rec.pauses && rec.pauses.length){
-    rec.pauses.forEach(function(p){ h+='<div class="rline"><span>Pause</span><b>'+(p.debut||'?')+' → '+(p.fin||'…')+'</b></div>'; });
-  }
-  h+='<div class="rline"><span>Départ</span><b>'+(rec.depart||'—')+'</b></div>';
-  var ht=ptgHeuresTravaillees(rec);
-  if(ht!=null) h+='<div class="rline" style="border-top:1px solid #2a2a2a;margin-top:4px;padding-top:6px;"><span>Total</span><b>'+(Math.round(ht*100)/100)+' h</b></div>';
-  h+='</div>';
-  // boutons
-  if(!rec.arrivee){
-    h+='<button class="ptg-bigbtn go" onclick="ptgAction(\'arrivee\')">🟢 Pointer mon ARRIVÉE — '+ptgNowHM()+'</button>';
-  } else if(!rec.depart){
-    if(estEncadrant){
-      var po = rec.pauses && rec.pauses.length && !rec.pauses[rec.pauses.length-1].fin;
-      h+='<button class="ptg-bigbtn pause" style="margin-bottom:10px;" onclick="ptgAction(\''+(po?'pause_fin':'pause_debut')+'\')">'+(po?'⏯️ Fin de ma pause':'⏸️ Début de ma pause')+'</button>';
-    }
-    h+='<button class="ptg-bigbtn stop" onclick="ptgAction(\'depart\')">🔴 Pointer mon DÉPART — '+ptgNowHM()+'</button>';
-  } else {
-    h+='<div class="ptg-done">✅ Vous avez bien pointé votre journée. Bonne soirée !</div>';
-  }
-  // Encadré « Mes demandes » : congés (CP) et indisponibilités (CSS) avec leur statut.
-  try{ h+=_ptgMesDemandes(e.id); }catch(err){ console.warn('_ptgMesDemandes',err); }
-  body.innerHTML=h;
-}
-// Liste des demandes du salarié (congés CP / indispos CSS) avec statut validé/attente/refusé.
-function _ptgMesDemandes(empId){
-  var abs=(window.HR_ABSENCES&&window.HR_ABSENCES[empId])||[];
-  function fr(iso){ if(!iso) return ''; var p=String(iso).split('-'); return p.length===3?(p[2]+'/'+p[1]+'/'+p[0]):iso; }
-  // On affiche CP et CSS (les demandes faites par le salarié). On ignore maladie/absence RH.
-  // On masque les demandes dont la date de FIN est passée (congé terminé).
-  var ajd=new Date(); var ajdISO=ajd.getFullYear()+'-'+String(ajd.getMonth()+1).padStart(2,'0')+'-'+String(ajd.getDate()).padStart(2,'0');
-  var dem=abs.filter(function(a){
-    if(!a || (a.motif!=='cp'&&a.motif!=='css')) return false;
-    var fin=a.to||a.from||''; // date de fin (ou début si pas de fin)
-    return !fin || fin>=ajdISO; // garder si pas encore terminée
-  });
-  if(!dem.length){
-    return '<div style="margin-top:14px;padding:12px;background:#161616;border:1px solid #2a2a2a;border-radius:10px;color:#888;font-size:.86rem;text-align:center;">Aucune demande de congé ou d\'indisponibilité.</div>';
-  }
-  // tri par date de début décroissante
-  dem.sort(function(a,b){ return (b.from||'').localeCompare(a.from||''); });
-  var lignes=dem.map(function(a){
-    var typeTxt = a.motif==='cp' ? '🟦 Congé payé' : '🟪 Congé sans solde';
-    var per=fr(a.from)+(a.to&&a.to!==a.from?(' → '+fr(a.to)):'');
-    var st=a.statut, badge;
-    if(st==='valide'){ badge='<span style="color:#3ecf8e;font-weight:700;">✅ Validé</span>'; }
-    else if(st==='refuse'){ badge='<span style="color:#e8623a;font-weight:700;">❌ Refusé</span>'; }
-    else { badge='<span style="color:#e8c468;font-weight:700;">⏳ En attente</span>'; }
-    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border-bottom:1px solid #232323;font-size:.86rem;">'
-      +'<div style="color:#ddd;"><div style="font-weight:600;">'+typeTxt+'</div><div style="color:#999;font-size:.82rem;">'+per+'</div></div>'
-      +'<div style="white-space:nowrap;">'+badge+'</div>'
-    +'</div>';
-  }).join('');
-  return '<div style="margin-top:16px;background:#161616;border:1px solid #2a2a2a;border-radius:10px;overflow:hidden;">'
-    +'<div style="padding:9px 12px;background:#1d1d1d;color:#fff;font-weight:700;font-size:.9rem;border-bottom:1px solid #2a2a2a;">📅 Mes demandes</div>'
-    +lignes
-    +'</div>';
-}
-window._ptgMesDemandes=_ptgMesDemandes;
-
-function ptgAction(type){
-  var e=_ptgSel; if(!e) return;
-  var dateISO=ptgTodayISO(); var now=ptgNowHM();
-  var ctx=ptgRec(e.id,dateISO); var rec=ctx.rec;
-  if(type==='arrivee'){ rec.arrivee=now; }
-  else if(type==='depart'){
-    if(rec.pauses && rec.pauses.length && !rec.pauses[rec.pauses.length-1].fin) rec.pauses[rec.pauses.length-1].fin=now;
-    rec.depart=now;
-  }
-  else if(type==='pause_debut'){ rec.pauses=rec.pauses||[]; rec.pauses.push({debut:now,fin:''}); }
-  else if(type==='pause_fin'){ if(rec.pauses && rec.pauses.length) rec.pauses[rec.pauses.length-1].fin=now; }
-  ptgSaveAll(ctx.all);
-  ptgShowActions();
-  ptgRenderList();
-}
-
-function ptgHeuresTravaillees(rec){
-  if(!rec.arrivee || !rec.depart) return null;
-  function m(hm){ var p=hm.split(':'); return (+p[0])*60+(+p[1]); }
-  var tot=m(rec.depart)-m(rec.arrivee); if(tot<0) tot+=1440;
-  (rec.pauses||[]).forEach(function(p){ if(p.debut&&p.fin){ var d=m(p.fin)-m(p.debut); if(d<0)d+=1440; tot-=d; } });
-  return tot/60;
-}
-
-// ─── Écran suivi (RH / direction) ───
-function ptgSuiviInit(){
-  var vis=ptgRestosVisibles();
-  if(!PTGS_RESTO || vis.indexOf(PTGS_RESTO)<0) PTGS_RESTO=vis[0];
-  var tabs=document.getElementById('ptgs-resto-tabs');
-  if(tabs){
-    if(vis.length>1){
-      tabs.innerHTML=vis.map(function(r){
-        return '<button class="rtab'+(r===PTGS_RESTO?' on':'')+'" onclick="ptgsSetResto(\''+r+'\')" style="background:'+(r===PTGS_RESTO?'#D62300':'#2C2C2C')+';color:#fff;border:1px solid #444;padding:6px 13px;border-radius:20px;font-size:.8rem;cursor:pointer;">'+(RESTOS[r]?RESTOS[r].label:r)+'</button>';
-      }).join('');
-    } else { tabs.innerHTML=''; }
-  }
-  var sd=document.getElementById('ptgs-date'); if(sd && !sd.value) sd.value=ptgTodayISO();
-  ptgRenderSuivi();
-}
-function ptgsSetResto(r){ PTGS_RESTO=r; ptgSuiviInit(); }
-
-function ptgRenderSuivi(){
-  var box=document.getElementById('ptg-suivi'); if(!box) return;
-  var dateISO=((document.getElementById('ptgs-date')||{}).value)||ptgTodayISO();
-  var emps=ptgEmployesResto(PTGS_RESTO||PTG_RESTO);
-  var all=ptgGetAll();
-  var rows=emps.map(function(e){
-    var rec=all[e.id+'_'+dateISO];
-    var arr=rec&&rec.arrivee?rec.arrivee:'—';
-    var dep=rec&&rec.depart?rec.depart:'—';
-    var h=rec?ptgHeuresTravaillees(rec):null;
-    var pauses=(rec&&rec.pauses&&rec.pauses.length)?rec.pauses.map(function(p){return (p.debut||'?')+'→'+(p.fin||'…');}).join(' '):'—';
-    var col=(rec&&rec.arrivee&&!rec.depart)?'#3ecf8e':(rec&&rec.depart?'#aaa':'#666');
-    return '<tr style="border-bottom:1px solid #2a2a2a;">'
-      +'<td style="padding:7px 10px;color:#eee;">'+e.name+'</td>'
-      +'<td style="padding:7px 10px;color:'+col+';">'+arr+'</td>'
-      +'<td style="padding:7px 10px;color:'+col+';">'+dep+'</td>'
-      +'<td style="padding:7px 10px;color:#bbb;font-size:.8rem;">'+pauses+'</td>'
-      +'<td style="padding:7px 10px;color:#eee;font-weight:700;">'+(h!=null?(Math.round(h*100)/100)+'h':'—')+'</td>'
-      +'</tr>';
-  }).join('');
-  box.innerHTML='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.85rem;">'
-    +'<thead><tr style="color:#888;text-align:left;border-bottom:1px solid #333;">'
-    +'<th style="padding:7px 10px;">Salarié</th><th style="padding:7px 10px;">Arrivée</th><th style="padding:7px 10px;">Départ</th><th style="padding:7px 10px;">Pauses</th><th style="padding:7px 10px;">Total</th>'
-    +'</tr></thead><tbody>'+(rows||'<tr><td style="padding:12px;color:#888;" colspan="5">Aucun salarié.</td></tr>')+'</tbody></table></div>';
-}
 
 
 function setReglement(k,v){ var R=getReglement(); R[k]=v; }
@@ -7766,7 +7420,6 @@ function renderPlanning(){
     leg.innerHTML=lh;
   }
   renderLeg('plan-codes-legend-dir',[['directeur','👔 Directeurs']]);
-  renderLeg('plan-codes-legend-enc',[['encadrement','⭐ Managers/Leaders']]);
 
   var days=planDays();
   var _ajd=fmtDate(new Date());
@@ -7804,7 +7457,6 @@ function renderPlanning(){
     return html+'</tbody></table>';
   }
   var gd=document.getElementById('plan-grid-dir'); if(gd) gd.innerHTML=buildGrid(['directeur','superviseur','rh','marchandise']);
-  var ge=document.getElementById('plan-grid-enc'); if(ge) ge.innerHTML=buildGrid(['manager','leader']);
 }
 
 // Durée (en heures) d'un code à partir de ses horaires (coupure incluse)
@@ -8628,522 +8280,6 @@ function toast(msg,type){
 
 window.onload=function(){schedReports();};
 
-/* ════════ DASHBOARD / ACCUEIL ÉQUIPE ════════ */
-var DASH_RESTO=null,_dashClockTm=null,_dashRefreshTm=null,_dashOpenTile=null;
-var DASH_TILES=[
-  {id:'horaires',  em:'🗓️', tt:'Mes horaires',     ds:'Planning de la semaine', color:'#1565c0', action:'dashOpenHoraires'},
-  {id:'pointer',   em:'⏱️', tt:'Pointer',           ds:'Arrivée / départ',       color:'#2e7d32', action:'dashOpenPointer'},
-  {id:'conges',    em:'🏖️', tt:'Mes congés',        ds:'Demander des vacances',  color:'#F5A623', action:'dashOpenConges'},
-  {id:'indispo',   em:'🚫', tt:'Indisponibilités', ds:'Jours où je ne peux pas',color:'#FF8732', action:'dashOpenIndispo'},
-  {id:'produits',  em:'🍔', tt:'Nouveaux produits', ds:'À connaître en service', color:'#D62300', action:null},
-  {id:'marchandise',em:'📦',tt:'Marchandises',      ds:'Produits & références',  color:'#8e6a00', action:null},
-  {id:'memo',      em:'📌', tt:'Mémos',             ds:'Infos de la direction',  color:'#546e7a', action:null},
-  {id:'contact',   em:'☎️', tt:'Contacts',          ds:'Manager & resto',        color:'#455a64', action:null}
-];
-function dashRestoList(){
-  try{return Object.keys(RESTOS).map(function(k){return {id:k,label:RESTOS[k].label};});}
-  catch(e){return [{id:'bk500',label:'BK 500'},{id:'bk509',label:'BK 509'},{id:'bk526',label:'BK 526'}];}
-}
-function initDashboard(){
-  // En mode ÉCRAN TV : le restaurant est déjà connu (code par resto) → on va
-  // directement sur son accueil, sans passer par « Choisissez votre restaurant ».
-  if(curUser && curUser.role==='tv'){
-    var tvr=curUser.restoId;
-    try{ if(!tvr){ tvr=localStorage.getItem('dash_resto'); } }catch(e){}
-    if(tvr){ DASH_RESTO=tvr; try{localStorage.setItem('dash_resto',tvr);}catch(e){} dashShowBoard(); dashStartClock(); return; }
-  }
-  // Franchise avec un restaurant verrouillé (≠ Tous) : on va direct sur son accueil.
-  if(window.ACTIVE_RESTO && window.ACTIVE_RESTO!=='ALL'){
-    DASH_RESTO=window.ACTIVE_RESTO; try{localStorage.setItem('dash_resto',DASH_RESTO);}catch(e){}
-    dashShowBoard(); dashStartClock(); return;
-  }
-  // Sinon : on repart sur l'écran « Choisissez votre restaurant »
-  dashShowPick();
-  dashStartClock();
-}
-function dashShowPick(){
-  var pick=document.getElementById('dash-resto-pick'),board=document.getElementById('dash-board'),panel=document.getElementById('dash-panel');
-  if(panel)panel.style.display='none';if(board)board.style.display='none';if(pick)pick.style.display='flex';
-  var g=document.getElementById('dash-pick-grid');if(!g)return;
-  g.innerHTML=dashRestoList().map(function(r){
-    return '<div class="dash-pick-card" style="position:relative;" onclick="dashSelectResto(\''+r.id+'\')"><div class="pc-em">🍔</div><div class="pc-lb">'+r.label+'</div><div class="pc-sub">Appuyer pour ouvrir</div></div>';
-  }).join('');
-}
-function dashSelectResto(id){
-  DASH_RESTO=id;try{localStorage.setItem('dash_resto',id);}catch(e){}
-  // si franchise en mode resto verrouillé, on aligne le resto actif global
-  try{ if(curUser && curUser.role==='franchise' && window.ACTIVE_RESTO && window.ACTIVE_RESTO!=='ALL'){ window.ACTIVE_RESTO=id; if(typeof majBadgeRestoActif==='function') majBadgeRestoActif(); } }catch(e){}
-  dashShowBoard();
-}
-function dashChangeResto(){dashShowPick();}
-function dashShowBoard(){
-  var pick=document.getElementById('dash-resto-pick'),board=document.getElementById('dash-board'),panel=document.getElementById('dash-panel');
-  if(pick)pick.style.display='none';if(panel)panel.style.display='none';if(board)board.style.display='block';
-  var r=dashRestoList().find(function(x){return x.id===DASH_RESTO;})||{label:'—'};
-  var badge=document.getElementById('dash-resto-badge');if(badge)badge.textContent=(r.label||'BK').replace(/[^0-9]/g,'')||'BK';
-  var nm=document.getElementById('dash-resto-name');if(nm)nm.textContent=r.label;
-  var hello=document.getElementById('dash-hello');if(hello){var h=new Date().getHours();hello.textContent=(h<12?'Bonjour':(h<18?'Bon après-midi':'Bonsoir'))+' 👋';}
-  dashRenderTiles();
-  var b=document.getElementById('dash-banner');if(b)b.style.display='none';
-  // restaurant verrouillé (TV, directeur, ou franchise avec resto choisi) → on masque « Changer de resto »
-  try{ var cb=document.querySelector('.dash-change'); if(cb) cb.style.display=( (typeof _restoVerrouille==='function' && _restoVerrouille()) )?'none':''; }catch(e){}
-}
-function dashRenderTiles(){
-  var g=document.getElementById('dash-grid');if(!g)return;
-  g.innerHTML=DASH_TILES.map(function(t){
-    var soon=!t.action;
-    return '<div class="dash-tile'+(soon?' dt-soon':'')+'" '+(t.action?('onclick="'+t.action+'()"'):'')+'>'
-      +'<div class="dt-accent" style="background:'+t.color+'"></div><div class="dt-em">'+t.em+'</div>'
-      +'<div><div class="dt-tt">'+t.tt+'</div><div class="dt-ds">'+t.ds+'</div></div></div>';
-  }).join('');
-}
-function dashStartClock(){
-  if(_dashClockTm)clearInterval(_dashClockTm);
-  function tick(){
-    var now=new Date(),c=document.getElementById('dash-clock');
-    if(c)c.textContent=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-    var d=document.getElementById('dash-date');
-    if(d)d.textContent=now.toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long'});
-  }
-  tick();_dashClockTm=setInterval(tick,20000);
-}
-function dashStartAutoRefresh(){
-  if(_dashRefreshTm)clearInterval(_dashRefreshTm);
-  _dashRefreshTm=setInterval(function(){
-    var pg=document.getElementById('page-dashboard');
-    if(!pg||!pg.classList.contains('active')){clearInterval(_dashRefreshTm);_dashRefreshTm=null;return;}
-    if(typeof loadAll==='function'){loadAll(true).then(function(){dashRefreshOpenPanel();}).catch(function(){});}
-  },30000);
-}
-function dashStopAutoRefresh(){if(_dashRefreshTm){clearInterval(_dashRefreshTm);_dashRefreshTm=null;}}
-function dashRefreshOpenPanel(){
-  var p=document.getElementById('dash-panel');
-  if(p&&p.style.display!=='none'&&_dashOpenTile&&typeof window[_dashOpenTile]==='function'){try{window[_dashOpenTile]();}catch(e){}}
-}
-function dashOpenPanel(title){
-  document.getElementById('dash-board').style.display='none';
-  var p=document.getElementById('dash-panel');
-  document.getElementById('dash-panel-title').textContent=title;
-  p.style.display='block';
-  return document.getElementById('dash-panel-body');
-}
-function dashClosePanel(){_dashOpenTile=null;document.getElementById('dash-panel').style.display='none';document.getElementById('dash-board').style.display='block';}
-function dashOpenHoraires(){
-  _dashOpenTile='dashOpenHoraires';
-  var resto=DASH_RESTO;
-  if(!resto){ if(typeof toast==='function') toast('Choisis d\'abord un restaurant','error'); return; }
-  var lbl=(dashRestoList().find(function(x){return x.id===resto;})||{}).label||'';
-  var body=dashOpenPanel('Mes horaires — '+lbl);
-  // Chaque salarié clique sur sa tuile puis saisit son code (jour+mois de naissance)
-  // pour voir SON calendrier personnel (façon Google), uniquement ses horaires.
-  _dashRenderTuiles(body, resto, 'dashHorairesOpen');
-}
-// ══ MES HORAIRES — CALENDRIER PERSONNEL DU SALARIÉ (façon agenda Google) ═══════
-// Le salarié clique sur sa tuile → saisit son code (jour+mois de naissance) →
-// voit UNIQUEMENT ses horaires, semaine par semaine, sur les semaines transférées.
-var _dashHorEmp=null;
-function dashHorairesOpen(empId){
-  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
-  if(!e) return;
-  _dashHorEmp=null;
-  var ov=document.getElementById('dash-hor-ov'); if(ov) ov.remove();
-  ov=document.createElement('div'); ov.id='dash-hor-ov';
-  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.66);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:50px 16px;overflow:auto;';
-  ov.innerHTML='<div style="background:#1c1c1f;border:1px solid #555;border-radius:16px;max-width:420px;width:100%;padding:22px;font-family:Barlow,sans-serif;text-align:center;">'
-    +'<button onclick="document.getElementById(\'dash-hor-ov\').remove()" style="float:right;background:none;border:none;color:#aaa;font-size:1.5rem;cursor:pointer;line-height:1;">×</button>'
-    +'<div class="ptg-tile-av" style="background:'+ptgAvColor(e.name)+';margin:4px auto 12px;width:56px;height:56px;font-size:1.3rem;">'+ptgInitials(e.name)+'</div>'
-    +'<div style="font-size:1.15rem;font-weight:800;color:#fff;margin-bottom:2px;">'+(e.name||'')+'</div>'
-    +'<div style="color:#1565c0;font-size:.9rem;font-weight:700;margin-bottom:14px;">Mes horaires</div>'
-    +'<div style="color:#bbb;font-size:.82rem;margin-bottom:8px;">Saisis ton code : jour + mois de naissance (4 chiffres, ex. 0309 pour le 3 septembre)</div>'
-    +'<input id="dash-hor-pin" type="tel" inputmode="numeric" maxlength="4" placeholder="••••" style="width:140px;background:#111;border:1px solid #444;color:#eee;border-radius:10px;padding:11px;font-size:1.3rem;letter-spacing:.35em;text-align:center;" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');dashHorairesCheckPin(\''+e.id+'\');">'
-    +'<div id="dash-hor-msg" style="font-size:.84rem;min-height:18px;margin:8px 0;"></div>'
-    +'<div id="dash-hor-cal" style="display:none;margin-top:6px;"></div>'
-    +'</div>';
-  document.body.appendChild(ov);
-  setTimeout(function(){ var p=document.getElementById('dash-hor-pin'); if(p) p.focus(); }, 60);
-}
-window.dashHorairesOpen=dashHorairesOpen;
-
-function dashHorairesCheckPin(empId){
-  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
-  var msg=document.getElementById('dash-hor-msg');
-  var cal=document.getElementById('dash-hor-cal');
-  var pin=((document.getElementById('dash-hor-pin')||{}).value||'').trim();
-  var attendu=_dashCodeNaissance(e);
-  if(!attendu){ msg.style.color='#F5A623'; msg.textContent='Date de naissance non renseignée : préviens le RH.'; return; }
-  if(pin.length<4){ msg.textContent=''; cal.style.display='none'; return; }
-  if(pin!==attendu){ msg.style.color='#e8623a'; msg.textContent='Code incorrect, réessaie.'; cal.style.display='none'; _dashHorEmp=null; return; }
-  _dashHorEmp=e;
-  msg.style.color='#3ecf8e'; msg.textContent='✓ Code validé.';
-  cal.style.display='block';
-  cal.innerHTML='<div style="color:#aaa;padding:14px;font-size:.86rem;">Chargement de tes horaires… <span style="color:#666;font-size:.75rem;">('+((DASH_RESTO||'aucun resto').toString().toUpperCase())+')</span></div>';
-  // Important : sur le téléphone du salarié, les placements ne sont pas en mémoire.
-  // On va donc les chercher directement dans Supabase AVANT d'afficher.
-  _dashChargerHorairesPuisAfficher(e);
-}
-window.dashHorairesCheckPin=dashHorairesCheckPin;
-
-// Charge depuis Supabase les placements (hr_affect_) et les semaines transférées
-// (hr_locks_) du restaurant, PUIS affiche le calendrier perso du salarié.
-function _dashChargerHorairesPuisAfficher(emp){
-  var resto=(DASH_RESTO || (typeof ACTIVE_RESTO!=='undefined'&&ACTIVE_RESTO) || '').toString().toUpperCase();
-  try{ if(!resto){ var ls=localStorage.getItem('dash_resto'); if(ls) resto=ls.toUpperCase(); } }catch(e){}
-  window.__dashDiag={resto:resto};
-  var dejaAffiche=false;
-  function afficher(){
-    try{ dashRenderCalendrierPerso(emp); dejaAffiche=true; }
-    catch(err){
-      console.warn('calperso',err);
-      var c=document.getElementById('dash-hor-cal');
-      if(c) c.innerHTML='<div style="color:#ddd;padding:14px;font-size:.85rem;">'
-        +'<div style="font-weight:700;">Affichage impossible.</div>'
-        +'<div style="color:#888;font-size:.7rem;margin-top:6px;word-break:break-all;">'+String((err&&err.message)||err)+'</div>'
-        +'<button onclick="dashHorairesReessayer(\''+emp.id+'\')" style="margin-top:12px;background:#1565c0;border:none;color:#fff;border-radius:9px;padding:8px 16px;font-weight:700;cursor:pointer;">↻ Réessayer</button>'
-        +'</div>';
-    }
-  }
-  // « Mes horaires » lit UNE SEULE clé propre : hr_planning_<RESTO>, l'instantané
-  // figé au moment du transfert. Simple et déterministe.
-  afficher(); // affiche d'abord depuis le cache local s'il existe
-  try{
-    hrChargerSnapshot(resto, function(snap){
-      try{ window.__dashDiag.snap_n = snap ? Object.keys(snap).length : 0; }catch(e){}
-      afficher();
-    });
-  }catch(e){ window.__dashDiag.snap_err=String((e&&e.message)||e).slice(0,90); afficher(); }
-  setTimeout(afficher, 6000);
-}
-window._dashChargerHorairesPuisAfficher=_dashChargerHorairesPuisAfficher;
-
-// Helpers date au niveau du bloc dashboard (le module horaire complet est
-// encapsulé dans une IIFE plus bas → ses hrParse/hrISO n'y sont pas visibles).
-// Versions autonomes, logique identique : parse 'YYYY-MM-DD' en Date locale midi.
-if (typeof hrParse !== 'function') {
-  var hrParse = function(iso){ var p=String(iso).split('-'); return new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]), 12, 0, 0); };
-}
-if (typeof hrISO !== 'function') {
-  var hrISO = function(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
-}
-
-// Récupère les créneaux d'UN salarié sur une semaine (lundi ISO) → [{date,jourN,jjmm,creneaux:[{s,e}],etat}]
-function _dashHorSemaineEmp(resto, lundiIso, empId){
-  resto=(resto||'').toUpperCase();
-  var snap=(HR_PLANNING_BY_RESTO[resto]||{})[lundiIso];
-  var jours_data=(snap&&snap.jours)?snap.jours:{};
-  var lundi=hrParse(lundiIso);
-  var joursN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
-  var out=[];
-  for(var i=0;i<7;i++){
-    var d=new Date(lundi); d.setDate(lundi.getDate()+i);
-    var di=hrISO(d);
-    var arr=jours_data[di]||[];
-    var creneaux=[];
-    arr.forEach(function(b){ if(b && String(b.empId)===String(empId) && isFinite(Number(b.s)) && isFinite(Number(b.e))){ creneaux.push({s:Number(b.s),e:Number(b.e)}); } });
-    creneaux.sort(function(a,b){return a.s-b.s;});
-    var etat=null; try{ etat=_hrEtatJour(empId, di); }catch(e){}
-    out.push({date:di, jourN:joursN[i], jj:String(d.getDate()).padStart(2,'0'), mm:String(d.getMonth()+1).padStart(2,'0'), creneaux:creneaux, etat:etat});
-  }
-  return out;
-}
-
-function _dashHhmm(min){ min=Number(min); if(!isFinite(min)) return '--:--'; var h=Math.floor(min/60)%24, m=min%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
-function _dashDureeStr(min){ min=Number(min); if(!isFinite(min)||min<0) min=0; var h=Math.floor(min/60), m=min%60; return m?(h+'h'+String(m).padStart(2,'0')):(h+'h'); }
-
-// Le calendrier perso : liste des semaines transférées, chacune façon agenda
-function dashRenderCalendrierPerso(emp){
-  var cal=document.getElementById('dash-hor-cal'); if(!cal) return;
-  var resto=(DASH_RESTO||'').toUpperCase();
-  var snap=HR_PLANNING_BY_RESTO[resto]||{};
-  var sems=Object.keys(snap).sort();
-  if(!sems.length){
-    var diag=window.__dashDiag||{};
-    var diagTxt='';
-    try{ diagTxt='planning n='+(diag.snap_n!=null?diag.snap_n:'?')+(diag.snap_err?(' · err '+diag.snap_err):''); }catch(e){}
-    cal.innerHTML='<div style="color:#ddd;padding:14px;font-size:.9rem;">'
-      +'<div style="font-weight:700;margin-bottom:4px;">Aucun horaire transféré pour le moment.</div>'
-      +'<div style="color:#aaa;font-size:.82rem;">Reviens quand le responsable aura transféré le planning.</div>'
-      +'<button onclick="dashHorairesReessayer(\''+emp.id+'\')" style="margin-top:14px;background:#1565c0;border:none;color:#fff;border-radius:9px;padding:9px 18px;font-weight:700;cursor:pointer;font-size:.85rem;">↻ Réessayer</button>'
-      +'<div style="color:#555;font-size:.64rem;margin-top:10px;word-break:break-all;">('+resto+') '+diagTxt+'</div>'
-      +'</div>';
-    return;
-  }
-  // Semaines récentes/à venir d'abord (ordre décroissant), on garde les 8 dernières
-  sems.sort(); var aff=sems.slice(-8).reverse();
-  var h='<div style="text-align:left;">';
-  aff.forEach(function(lundiIso, idx){
-    var jours=_dashHorSemaineEmp(resto, lundiIso, emp.id);
-    // total semaine
-    var totMin=0; jours.forEach(function(j){ j.creneaux.forEach(function(c){ totMin+=(c.e-c.s); }); });
-    // libellé semaine
-    var lib=''; try{ lib=_hrLibelleSemaine(lundiIso); }catch(e){ lib='du '+lundiIso; }
-    var ouvert = idx===0; // la plus récente ouverte par défaut
-    h+='<div style="border:1px solid #333;border-radius:12px;margin-bottom:10px;overflow:hidden;">';
-    h+='<div onclick="var b=this.nextElementSibling;b.style.display=b.style.display===\'none\'?\'block\':\'none\';" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:11px 14px;background:#16223a;">';
-    h+='<div style="font-weight:800;color:#dbe7ff;font-size:.9rem;">📅 Semaine '+lib+'</div>';
-    h+='<div style="font-size:.8rem;color:#9fc0ff;font-weight:700;white-space:nowrap;">'+_dashDureeStr(totMin)+'</div>';
-    h+='</div>';
-    h+='<div style="display:'+(ouvert?'block':'none')+';padding:6px 8px 10px;">';
-    jours.forEach(function(j){
-      var estDim=(j.jourN==='Dimanche');
-      var aTravail=j.creneaux.length>0;
-      var bg=aTravail?'#13241a':'#161616';
-      var bord=aTravail?'#1f6b3f':'#2a2a2a';
-      h+='<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 10px;margin:5px 0;background:'+bg+';border:1px solid '+bord+';border-radius:9px;">';
-      h+='<div style="min-width:74px;"><div style="font-weight:800;color:#eee;font-size:.82rem;">'+j.jourN+'</div><div style="color:#888;font-size:.72rem;">'+j.jj+'/'+j.mm+'</div></div>';
-      h+='<div style="flex:1;">';
-      if(aTravail){
-        j.creneaux.forEach(function(c){
-          var dur=_dashDureeStr(c.e-c.s);
-          h+='<div style="display:inline-flex;align-items:center;gap:6px;background:#1f6b3f;color:#d6ffe6;border-radius:7px;padding:4px 10px;margin:2px 5px 2px 0;font-weight:700;font-size:.84rem;">🕒 '+_dashHhmm(c.s)+' → '+_dashHhmm(c.e)+' <span style="opacity:.7;font-weight:600;">('+dur+')</span></div>';
-        });
-      } else if(j.etat){
-        var info=j.etat.info||{};
-        h+='<div style="color:'+(info.col||'#f5a623')+';font-weight:700;font-size:.84rem;padding-top:2px;">'+(info.icon||'')+' '+(info.court||j.etat.motif)+'</div>';
-      } else {
-        h+='<div style="color:'+(estDim?'#888':'#9a9a9a')+';font-size:.84rem;padding-top:3px;">'+(estDim?'Repos (dimanche)':'Repos')+'</div>';
-      }
-      h+='</div></div>';
-    });
-    h+='</div></div>';
-  });
-  h+='</div>';
-  cal.innerHTML=h;
-}
-window.dashRenderCalendrierPerso=dashRenderCalendrierPerso;
-
-// Bouton « Réessayer » : on vide le cache RAM du resto pour forcer une vraie
-// relecture depuis Supabase, puis on relance le chargement + affichage.
-function dashHorairesReessayer(empId){
-  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
-  if(!e) return;
-  var resto=(DASH_RESTO||'').toUpperCase();
-  try{ delete HR_PLANNING_BY_RESTO[resto]; }catch(_e){}
-  try{ localStorage.removeItem('hr_planning_'+resto); }catch(_e){}
-  var cal=document.getElementById('dash-hor-cal');
-  if(cal){ cal.style.display='block'; cal.innerHTML='<div style="color:#aaa;padding:14px;font-size:.86rem;">Nouvelle tentative… <span style="color:#666;font-size:.75rem;">('+resto+')</span></div>'; }
-  _dashChargerHorairesPuisAfficher(e);
-}
-window.dashHorairesReessayer=dashHorairesReessayer;
-
-function dashOpenPointer(){
-  // Ouvre le pointage DANS le panneau d'accueil (avec bouton Retour), sous forme de
-  // tuiles de salariés — même présentation que « Mes congés » / « Indisponibilités ».
-  // Le clic sur une tuile ouvre la modale code PIN du pointage (ptgOpen), inchangée.
-  var resto=DASH_RESTO;
-  if(!resto){ if(typeof toast==='function') toast('Choisis d\'abord un restaurant','error'); return; }
-  try{ PTG_RESTO=resto; window.__ptgRestoActif=resto; }catch(e){}
-  var lbl=(dashRestoList().find(function(x){return x.id===resto;})||{}).label||'';
-  var body=dashOpenPanel('Pointer — '+lbl);
-  _dashRenderTuiles(body, resto, 'ptgOpen');
-}
-// ── DEMANDES SALARIÉ (congés / indisponibilités) — tuiles + code PIN du pointage ──
-// Affiche les salariés en tuiles (comme Pointage). Clic → modale code PIN (JJ+MM de
-// naissance) → formulaire de dates. Enregistre dans HR_ABSENCES avec statut 'attente'
-// et motif 'congés' ou 'indisponibilité'. Tout va dans Absences/congés d'État équipe.
-var _dashDemEmp=null, _dashDemType='conges';
-function _dashCodeNaissance(e){
-  var dn=(e&&e.infos&&e.infos.date_naissance)||(e&&e.dateNaissance)||'';
-  if(!dn) return null;
-  var m1=String(dn).match(/^(\d{4})-(\d{2})-(\d{2})/);
-  var m2=String(dn).match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
-  if(m1) return m1[3]+m1[2];
-  if(m2) return m2[1]+m2[2];
-  return null;
-}
-function _dashEmployesResto(resto){
-  var r=(resto||'').toLowerCase();
-  return (DB.employees||[]).filter(function(e){
-    return !e.archived && (e.restoId===r || e.resto_id===r) &&
-           (e.role==='equipier'||e.role==='leader'||e.role==='manager');
-  }).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
-}
-// Rendu commun : grille de tuiles de salariés (réutilise le style des tuiles Pointage)
-function _dashRenderTuiles(body, resto, onclickFn){
-  var liste=_dashEmployesResto(resto);
-  if(!liste.length){ body.innerHTML='<div style="color:#aaa;padding:14px;">Aucun salarié pour ce restaurant.</div>'; return; }
-  body.innerHTML='<div class="ptg-grid" id="dash-dem-grid">'+liste.map(function(e){
-    return '<div class="ptg-tile" onclick="'+onclickFn+'(\''+e.id+'\')">'
-      +'<div class="ptg-tile-av" style="background:'+ptgAvColor(e.name)+'">'+ptgInitials(e.name)+'</div>'
-      +'<div class="ptg-tile-nm">'+e.name+'</div>'
-      +'<div class="ptg-tile-role">'+ptgRoleLabel(e.role)+'</div>'
-      +'</div>';
-  }).join('')+'</div>';
-}
-function dashOpenConges(){
-  var resto=DASH_RESTO;
-  if(!resto){ if(typeof toast==='function') toast('Choisis d\'abord un restaurant','error'); return; }
-  _dashDemType='conges';
-  var lbl=(dashRestoList().find(function(x){return x.id===resto;})||{}).label||'';
-  var body=dashOpenPanel('Mes congés — '+lbl);
-  _dashRenderTuiles(body, resto, 'dashDemOpen');
-}
-function dashOpenIndispo(){
-  var resto=DASH_RESTO;
-  if(!resto){ if(typeof toast==='function') toast('Choisis d\'abord un restaurant','error'); return; }
-  _dashDemType='indispo';
-  var lbl=(dashRestoList().find(function(x){return x.id===resto;})||{}).label||'';
-  var body=dashOpenPanel('Indisponibilités — '+lbl);
-  _dashRenderTuiles(body, resto, 'dashDemOpen');
-}
-// Clic sur une tuile → modale code PIN
-function dashDemOpen(empId){
-  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
-  if(!e) return;
-  _dashDemEmp=null;
-  var titre = _dashDemType==='conges' ? 'Demander un congé' : 'Signaler une indisponibilité';
-  var accent = _dashDemType==='conges' ? '#F5A623' : '#FF8732';
-  var ov=document.getElementById('dash-dem-ov'); if(ov) ov.remove();
-  ov=document.createElement('div'); ov.id='dash-dem-ov';
-  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.66);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:50px 16px;overflow:auto;';
-  ov.innerHTML='<div style="background:#1c1c1f;border:1px solid #555;border-radius:16px;max-width:420px;width:100%;padding:22px;font-family:Barlow,sans-serif;text-align:center;">'
-    +'<button onclick="document.getElementById(\'dash-dem-ov\').remove()" style="float:right;background:none;border:none;color:#aaa;font-size:1.5rem;cursor:pointer;line-height:1;">×</button>'
-    +'<div class="ptg-tile-av" style="background:'+ptgAvColor(e.name)+';margin:4px auto 12px;width:56px;height:56px;font-size:1.3rem;">'+ptgInitials(e.name)+'</div>'
-    +'<div style="font-size:1.15rem;font-weight:800;color:#fff;margin-bottom:2px;">'+(e.name||'')+'</div>'
-    +'<div style="color:'+accent+';font-size:.9rem;font-weight:700;margin-bottom:14px;">'+titre+'</div>'
-    +'<div style="color:#bbb;font-size:.82rem;margin-bottom:8px;">Saisis ton code : jour + mois de naissance (4 chiffres, ex. 0309 pour le 3 septembre)</div>'
-    +'<input id="dash-dem-pin" type="tel" inputmode="numeric" maxlength="4" placeholder="••••" style="width:140px;background:#111;border:1px solid #444;color:#eee;border-radius:10px;padding:11px;font-size:1.3rem;letter-spacing:.35em;text-align:center;" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');dashDemCheckPin(\''+e.id+'\');">'
-    +'<div id="dash-dem-msg" style="font-size:.84rem;min-height:18px;margin:8px 0;"></div>'
-    +'<div id="dash-dem-form" style="display:none;text-align:left;">'
-      +'<div style="color:#bbb;font-size:.8rem;margin-bottom:10px;">Clique un jour pour une seule date, ou clique-glisse pour sélectionner une période.</div>'
-      +'<div id="dash-dem-cal"></div>'
-      +'<div id="dash-dem-recap" style="color:#3ecf8e;font-size:.86rem;font-weight:700;min-height:20px;margin:10px 0;"></div>'
-      +'<button onclick="dashDemEnvoyer()" style="width:100%;background:'+accent+';border:none;color:#1a1a1a;font-weight:800;border-radius:10px;padding:12px;font-size:1rem;cursor:pointer;">Envoyer ma demande</button>'
-    +'</div>'
-    +'</div>';
-  document.body.appendChild(ov);
-  setTimeout(function(){ var p=document.getElementById('dash-dem-pin'); if(p) p.focus(); },120);
-}
-function dashDemCheckPin(empId){
-  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
-  var msg=document.getElementById('dash-dem-msg');
-  var form=document.getElementById('dash-dem-form');
-  var pin=((document.getElementById('dash-dem-pin')||{}).value||'').trim();
-  var attendu=_dashCodeNaissance(e);
-  if(!attendu){ msg.style.color='#F5A623'; msg.textContent='Date de naissance non renseignée : préviens le RH.'; return; }
-  if(pin.length<4){ msg.textContent=''; form.style.display='none'; return; }
-  if(pin!==attendu){ msg.style.color='#e8623a'; msg.textContent='Code incorrect, réessaie.'; form.style.display='none'; _dashDemEmp=null; return; }
-  _dashDemEmp=e;
-  msg.style.color='#3ecf8e'; msg.textContent='✓ Code validé.';
-  form.style.display='block';
-  try{ dashCalInit(); }catch(err){ console.warn('dashCalInit',err); }
-}
-// ── Mini-calendrier (clic = 1 jour, clic-glisser = période) ───────────────────
-var _dashCal={ mois:null, an:null, debut:null, fin:null, dragging:false };
-function _dashISO(an,mois,jour){ return an+'-'+String(mois+1).padStart(2,'0')+'-'+String(jour).padStart(2,'0'); }
-function _dashFmtFr(iso){
-  if(!iso) return '';
-  var p=iso.split('-'); return p[2]+'/'+p[1]+'/'+p[0];
-}
-function dashCalInit(){
-  var d=new Date();
-  _dashCal.mois=d.getMonth(); _dashCal.an=d.getFullYear();
-  _dashCal.debut=null; _dashCal.fin=null; _dashCal.dragging=false;
-  dashCalRender();
-}
-function dashCalMois(delta){
-  _dashCal.mois+=delta;
-  if(_dashCal.mois<0){ _dashCal.mois=11; _dashCal.an--; }
-  if(_dashCal.mois>11){ _dashCal.mois=0; _dashCal.an++; }
-  dashCalRender();
-}
-function dashCalRender(){
-  var box=document.getElementById('dash-dem-cal'); if(!box) return;
-  var MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  var JL=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-  var an=_dashCal.an, mois=_dashCal.mois;
-  var premier=new Date(an,mois,1);
-  var decalage=(premier.getDay()+6)%7; // lundi=0
-  var nbJours=new Date(an,mois+1,0).getDate();
-  var h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
-    +'<button type="button" onclick="dashCalMois(-1)" style="background:#333;border:none;color:#eee;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:1.1rem;">‹</button>'
-    +'<div style="color:#fff;font-weight:700;font-size:.95rem;">'+MOIS[mois]+' '+an+'</div>'
-    +'<button type="button" onclick="dashCalMois(1)" style="background:#333;border:none;color:#eee;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:1.1rem;">›</button>'
-    +'</div>';
-  h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">';
-  JL.forEach(function(j){ h+='<div style="text-align:center;color:#888;font-size:.7rem;font-weight:700;padding:2px 0;">'+j+'</div>'; });
-  for(var i=0;i<decalage;i++){ h+='<div></div>'; }
-  for(var jr=1;jr<=nbJours;jr++){
-    var iso=_dashISO(an,mois,jr);
-    h+='<div class="dash-cal-day" data-iso="'+iso+'" style="text-align:center;padding:8px 0;border-radius:8px;cursor:pointer;font-size:.85rem;color:#eee;background:#222;user-select:none;">'+jr+'</div>';
-  }
-  h+='</div>';
-  box.innerHTML=h;
-  // Attacher les événements clic-glisser
-  var days=box.querySelectorAll('.dash-cal-day');
-  days.forEach(function(el){
-    el.addEventListener('mousedown', function(ev){ ev.preventDefault(); _dashCal.dragging=true; _dashCal.debut=this.dataset.iso; _dashCal.fin=this.dataset.iso; dashCalPaint(); });
-    el.addEventListener('mouseenter', function(){ if(_dashCal.dragging){ _dashCal.fin=this.dataset.iso; dashCalPaint(); } });
-    // tactile
-    el.addEventListener('touchstart', function(ev){ _dashCal.dragging=true; _dashCal.debut=this.dataset.iso; _dashCal.fin=this.dataset.iso; dashCalPaint(); }, {passive:true});
-  });
-  box.addEventListener('touchmove', function(ev){
-    if(!_dashCal.dragging) return;
-    var t=ev.touches[0]; var el=document.elementFromPoint(t.clientX,t.clientY);
-    if(el && el.classList.contains('dash-cal-day')){ _dashCal.fin=el.dataset.iso; dashCalPaint(); }
-  }, {passive:true});
-  // fin du glisser
-  document.addEventListener('mouseup', dashCalEndDrag);
-  document.addEventListener('touchend', dashCalEndDrag);
-  dashCalPaint();
-}
-function dashCalEndDrag(){ _dashCal.dragging=false; }
-function dashCalPaint(){
-  var box=document.getElementById('dash-dem-cal'); if(!box) return;
-  var a=_dashCal.debut, b=_dashCal.fin;
-  var lo=a, hi=b;
-  if(a&&b&&a>b){ lo=b; hi=a; }
-  box.querySelectorAll('.dash-cal-day').forEach(function(el){
-    var iso=el.dataset.iso;
-    var sel = lo && hi && iso>=lo && iso<=hi;
-    el.style.background = sel ? '#F5A623' : '#222';
-    el.style.color = sel ? '#1a1a1a' : '#eee';
-    el.style.fontWeight = sel ? '800' : '400';
-  });
-  var recap=document.getElementById('dash-dem-recap');
-  if(recap){
-    if(lo&&hi){
-      recap.textContent = (lo===hi) ? ('Sélectionné : '+_dashFmtFr(lo)) : ('Sélectionné : du '+_dashFmtFr(lo)+' au '+_dashFmtFr(hi));
-    } else { recap.textContent=''; }
-  }
-}
-window.dashCalMois=dashCalMois;
-
-function dashDemEnvoyer(){
-  var e=_dashDemEmp;
-  if(!e){ if(typeof toast==='function') toast('Code non validé','error'); return; }
-  var a=_dashCal.debut, b=_dashCal.fin||_dashCal.debut;
-  if(!a){ if(typeof toast==='function') toast('Choisis au moins une date sur le calendrier','error'); return; }
-  var from=a, to=b;
-  if(to<from){ var tmp=from; from=to; to=tmp; }
-  var motif = _dashDemType==='conges' ? 'cp' : 'css';
-  // Toujours travailler sur l'objet GLOBAL partagé (le même que lit État équipe).
-  if(!window.HR_ABSENCES || typeof window.HR_ABSENCES!=='object'){ window.HR_ABSENCES={}; }
-  // Repartir du contenu le plus à jour présent dans le navigateur, pour ne rien perdre.
-  try{ var _loc=localStorage.getItem('hr_absences'); if(_loc){ var _o=JSON.parse(_loc)||{}; if(typeof _hrFusionAbsences==='function'){ window.HR_ABSENCES=_hrFusionAbsences(window.HR_ABSENCES,_o); } } }catch(_e){}
-  if(!window.HR_ABSENCES[e.id]) window.HR_ABSENCES[e.id]=[];
-  window.HR_ABSENCES[e.id].push({from:from, to:to, motif:motif, statut:'attente', demande_le:new Date().toISOString()});
-  // Miroir localStorage TOUT DE SUITE (au cas où la sauvegarde Supabase serait asynchrone/lente).
-  try{ localStorage.setItem('hr_absences', JSON.stringify(window.HR_ABSENCES)); }catch(_e){}
-  try{ if(typeof hrSauverAbsences==='function') hrSauverAbsences(); }catch(err){ console.warn('hrSauverAbsences',err); }
-  // Rafraîchir État équipe s'il est ouvert, et le badge.
-  try{ if(typeof updateAlBadge==='function') updateAlBadge(); }catch(_e){}
-  try{ var _ep=document.getElementById('page-etatequipe'); if(_ep&&_ep.classList.contains('active')&&typeof hrRenderEtatEquipe==='function') hrRenderEtatEquipe(); }catch(_e){}
-  var ov=document.getElementById('dash-dem-ov');
-  if(ov){
-    ov.querySelector('div').innerHTML='<div style="text-align:center;padding:18px;">'
-      +'<div style="font-size:2.6rem;margin-bottom:8px;">✅</div>'
-      +'<div style="color:#eee;font-size:1.1rem;font-weight:800;margin-bottom:6px;">Demande envoyée</div>'
-      +'<div style="color:#aaa;font-size:.9rem;margin-bottom:14px;">'+(motif==='cp'?'Congé':'Indisponibilité')+' du '+from+' au '+to+'.<br>Elle sera validée par la personne qui fait les horaires.</div>'
-      +'<button onclick="document.getElementById(\'dash-dem-ov\').remove()" style="background:#2e6fc2;border:none;color:#fff;font-weight:700;border-radius:8px;padding:9px 22px;cursor:pointer;">Fermer</button>'
-      +'</div>';
-  }
-  if(typeof toast==='function') toast('Demande envoyée ✔','success');
-}
-window.dashOpenConges=dashOpenConges;window.dashOpenIndispo=dashOpenIndispo;
-window.dashDemOpen=dashDemOpen;window.dashDemCheckPin=dashDemCheckPin;window.dashDemEnvoyer=dashDemEnvoyer;
-window.initDashboard=initDashboard;window.dashSelectResto=dashSelectResto;window.dashChangeResto=dashChangeResto;
-window.dashOpenHoraires=dashOpenHoraires;window.dashOpenPointer=dashOpenPointer;window.dashClosePanel=dashClosePanel;
-window.dashStartAutoRefresh=dashStartAutoRefresh;window.dashStopAutoRefresh=dashStopAutoRefresh;
 
 /* ===== MODULE HORAIRE COMPLET (porté depuis BK administratif) =====
    Bloc fusionné avec le précédent : une seule portée <script> pour que les
@@ -19961,6 +19097,30 @@ function dbxRenderRestos(){
 }
 window.dbxRenderRestos=dbxRenderRestos;
 
+// ── Documents obligatoires attendus dans le dossier Dropbox d'un salarié ──
+// Basé sur la liste du recrutement (DOC_TYPES / docFileName). Chaque entrée a une
+// étiquette lisible et un test de présence par mot-clé dans le nom de fichier.
+function dbxDocsRequis(){
+  return [
+    {key:'identite', label:"Pièce d'identité",        match:function(n){return /piece_identite|carte.?identite|cni|passeport/i.test(n);}},
+    {key:'domicile', label:'Justificatif de domicile', match:function(n){return /justif.*domicile|domicile/i.test(n);}},
+    {key:'vitale',   label:'Carte vitale',             match:function(n){return /carte_vitale|vitale/i.test(n);}},
+    {key:'cpam',     label:'Attestation CPAM',         match:function(n){return /cpam/i.test(n);}},
+    {key:'mutuelle', label:'Carte de tiers payant',    match:function(n){return /tiers_payant|mutuelle|tiers.?payant/i.test(n);}},
+    {key:'rib',      label:'RIB',                       match:function(n){return /(^|[^a-z])rib([^a-z]|$)/i.test(n);}}
+  ];
+}
+// À partir des noms de fichiers présents, renvoie {present:[...], manquants:[{key,label}]}
+function dbxStatutDocs(fileNames){
+  var req=dbxDocsRequis();
+  var manquants=[], present=[];
+  req.forEach(function(d){
+    var trouve=fileNames.some(function(n){return d.match(n);});
+    if(trouve) present.push(d); else manquants.push(d);
+  });
+  return {present:present, manquants:manquants, complet:manquants.length===0};
+}
+
 // NIVEAU 2 : tuiles salarié du resto choisi
 async function dbxOpenResto(restoId){
   _dbxLevel='emps'; _dbxResto=restoId;
@@ -19969,18 +19129,92 @@ async function dbxOpenResto(restoId){
   var emps=(DB.employees||[]).filter(function(e){return e.restoId===restoId && !e.archived;})
     .sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
   if(!emps.length){ box.innerHTML='<div class="empty"><div class="ei">👥</div><p>Aucun salarié dans ce restaurant</p></div>'; dbxSetStatus(''); return; }
-  dbxSetStatus(emps.length+' salarié(s)');
-  box.innerHTML='<div style="display:flex;gap:12px;flex-wrap:wrap;">'+emps.map(function(e){
+  dbxSetStatus(emps.length+' salarié(s) — analyse des dossiers…');
+  // Rendu initial des tuiles (badge "…" en attente), puis on remplit le statut au fil de l'eau.
+  box.innerHTML='<div id="dbx-emp-grid" style="display:flex;gap:12px;flex-wrap:wrap;">'+emps.map(function(e){
     var initiales=(e.name||'?').split(' ').map(function(x){return x.charAt(0);}).join('').slice(0,2).toUpperCase();
-    var folder=dbxEmpFolderArchive(e); // /Archives/<Resto>/<Nom>  (chemin canonique salarié)
-    var folderActif=dbxEmpFolder(e);   // /<Resto>/<Nom>           (dossier recrutement)
-    return '<div onclick="dbxOpenEmp(\''+folderActif.replace(/'/g,"\\'")+'\',\''+(e.name||'').replace(/'/g,"\\'")+'\')" '
-      +'style="cursor:pointer;width:130px;background:#1A1A1A;border:1px solid #2a2a2a;border-radius:14px;padding:16px 10px;text-align:center;">'
+    var folderActif=dbxEmpFolder(e);   // /<Resto>/<Nom>  (dossier recrutement)
+    var nm=(e.name||'').replace(/'/g,"\\'");
+    var fa=folderActif.replace(/'/g,"\\'");
+    return '<div class="dbx-emp-tile" data-empid="'+e.id+'" data-folder="'+folderActif.replace(/"/g,'&quot;')+'" data-name="'+(e.name||'').replace(/"/g,'&quot;')+'" '
+      +'ondragover="dbxTileDragOver(event)" ondragleave="dbxTileDragLeave(event)" ondrop="dbxTileDrop(event)" '
+      +'style="position:relative;width:140px;background:#1A1A1A;border:1px solid #2a2a2a;border-radius:14px;padding:16px 10px 12px;text-align:center;transition:border-color .15s,background .15s;">'
+      +'<div onclick="dbxOpenEmp(\''+fa+'\',\''+nm+'\')" style="cursor:pointer;">'
       +'<div style="width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#0061ff,#0047b3);color:#fff;font-weight:800;font-size:1.1rem;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">'+initiales+'</div>'
-      +'<div style="font-size:.82rem;color:#fff;font-weight:600;line-height:1.2;">'+(e.name||'?')+'</div></div>';
+      +'<div style="font-size:.82rem;color:#fff;font-weight:600;line-height:1.2;min-height:2.4em;display:flex;align-items:center;justify-content:center;">'+(e.name||'?')+'</div></div>'
+      +'<div class="dbx-emp-badge" style="margin-top:8px;font-size:.7rem;color:#888;">⏳ …</div>'
+      +'<div style="margin-top:6px;font-size:.64rem;color:#555;">⬇️ glisser un fichier ici</div>'
+      +'</div>';
   }).join('')+'</div>';
+  // Analyse asynchrone, salarié par salarié (sans bloquer l'affichage)
+  for(var i=0;i<emps.length;i++){ dbxAnalyseEmpTile(emps[i]); }
+  dbxSetStatus(emps.length+' salarié(s)');
 }
 window.dbxOpenResto=dbxOpenResto;
+
+// Analyse le dossier Dropbox d'un salarié et met à jour le badge de sa tuile.
+async function dbxAnalyseEmpTile(e){
+  var tile=document.querySelector('.dbx-emp-tile[data-empid="'+e.id+'"]'); if(!tile) return;
+  var badge=tile.querySelector('.dbx-emp-badge'); if(!badge) return;
+  var folder=dbxEmpFolder(e);
+  var names=[];
+  try{
+    var entries=await dbxListFolder(folder);
+    names=(entries||[]).filter(function(x){return x['.tag']==='file';}).map(function(x){return x.name||'';});
+  }catch(err){ names=[]; }
+  var st=dbxStatutDocs(names);
+  if(st.complet){
+    badge.innerHTML='<span style="display:inline-block;background:#1f6e3f;color:#fff;padding:3px 9px;border-radius:10px;font-weight:700;font-size:.68rem;">✅ COMPLET</span>';
+    tile.style.borderColor='#1f6e3f';
+  } else if(names.length===0){
+    badge.innerHTML='<span style="display:inline-block;background:#5a5a5a;color:#fff;padding:3px 9px;border-radius:10px;font-weight:700;font-size:.68rem;cursor:pointer;">📭 VIDE</span>';
+    tile.style.borderColor='#4a4a4a';
+    badge.title='Aucun document — '+st.manquants.length+' manquant(s)';
+  } else {
+    badge.innerHTML='<span style="display:inline-block;background:#8a5a00;color:#fff;padding:3px 9px;border-radius:10px;font-weight:700;font-size:.68rem;cursor:pointer;">⚠️ INCOMPLET ('+st.manquants.length+')</span>';
+    tile.style.borderColor='#8a5a00';
+  }
+  // Clic sur le badge -> détail des documents manquants
+  if(!st.complet){
+    badge.style.cursor='pointer';
+    badge.onclick=function(ev){ ev.stopPropagation(); dbxMontrerManquants(e.name, st.manquants); };
+  }
+}
+
+function dbxMontrerManquants(nom, manquants){
+  var liste=manquants.map(function(d){return '• '+d.label;}).join('\n');
+  alert('Documents manquants — '+nom+' :\n\n'+liste);
+}
+
+// ── Glisser-déposer un fichier sur une tuile salarié → upload dans son dossier ──
+function dbxTileDragOver(ev){ ev.preventDefault(); var t=ev.currentTarget; t.style.background='#0d2a1a'; t.style.borderColor='#3ecf8e'; }
+function dbxTileDragLeave(ev){ var t=ev.currentTarget; t.style.background=''; }
+async function dbxTileDrop(ev){
+  ev.preventDefault();
+  var tile=ev.currentTarget; tile.style.background='';
+  var files=ev.dataTransfer&&ev.dataTransfer.files;
+  if(!files||!files.length) return;
+  var folder=tile.getAttribute('data-folder');
+  var nom=tile.getAttribute('data-name')||'';
+  var f=files[0];
+  if(!confirm('Ajouter « '+f.name+' » au dossier Dropbox de '+nom+' ?')) return;
+  var badge=tile.querySelector('.dbx-emp-badge');
+  var ancien=badge?badge.innerHTML:'';
+  if(badge) badge.innerHTML='<span style="font-size:.68rem;color:#3ecf8e;">⏳ Envoi…</span>';
+  try{
+    var path=folder+'/'+dbxClean(f.name.replace(/\.[^.]+$/,''))+(f.name.indexOf('.')>=0?('.'+f.name.split('.').pop()):'');
+    await dbxUpload(path, f);
+    // Recharger le statut de la tuile
+    var emp=(DB.employees||[]).find(function(x){return x.id===tile.getAttribute('data-empid');});
+    if(emp){ await dbxAnalyseEmpTile(emp); }
+    if(typeof toast==='function') toast('Fichier ajouté ✔','success');
+  }catch(err){
+    console.error('dbxTileDrop',err);
+    if(badge) badge.innerHTML=ancien;
+    if(typeof toast==='function') toast('Échec de l\'envoi','error'); else alert('Échec : '+(err.message||err));
+  }
+}
+window.dbxTileDragOver=dbxTileDragOver; window.dbxTileDragLeave=dbxTileDragLeave; window.dbxTileDrop=dbxTileDrop;
 
 // NIVEAU 3 : fichiers du salarié
 async function dbxOpenEmp(folder,empName){
