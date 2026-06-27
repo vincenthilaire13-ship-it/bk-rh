@@ -206,6 +206,13 @@ nav button.active{color:var(--orange);border-bottom-color:var(--orange);}
 
   /* Planning d'encadrement & module Horaires : scroll horizontal interne (pas de débordement du cadre) */
   #app #page-planning, #app #page-horaires{overflow-x:hidden;}
+  /* Planning compacté dans le cadre téléphone (desktop) */
+  #app .pl-table .pl-name{width:84px!important;min-width:84px!important;max-width:84px!important;padding:6px 7px!important;font-size:.74rem!important;overflow:hidden;text-overflow:ellipsis;}
+  #app .pl-table .pl-cat-row td{font-size:.66rem!important;padding:4px 7px!important;}
+  #app .pl-dayhead{min-width:30px!important;font-size:.64rem!important;padding:4px 1px!important;}
+  #app .pl-cell{min-width:30px!important;height:30px!important;font-size:.66rem!important;}
+  #app .pl-total{min-width:42px!important;font-size:.7rem!important;}
+  #app .pl-sem .pl-dayhead,#app .pl-sem .pl-cell{min-width:64px!important;}
   #app #page-planning table, #app .cal-grid{max-width:100%;}
   #app .pl-wrap, #app .planning-scroll, #app .hr-tl-wrap, #app .hr-gt-wrap{overflow-x:auto!important;-webkit-overflow-scrolling:touch;}
   #app #sec-horaires{min-height:0;}
@@ -328,6 +335,15 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 .pl-table{border-collapse:collapse;font-size:.88rem;width:100%;}
 .pl-table th,.pl-table td{border:1px solid #2A2A2A;text-align:center;padding:0;}
 .pl-name{position:sticky;left:0;background:#1A1A1A;z-index:2;text-align:left!important;padding:6px 12px!important;font-weight:600;color:#ddd;white-space:nowrap;width:130px;min-width:130px;max-width:130px;font-size:.88rem;}
+/* Planning sur téléphone : colonne de noms étroite + cellules compactes */
+@media(max-width:600px){
+  .pl-table .pl-name{width:84px!important;min-width:84px!important;max-width:84px!important;padding:6px 7px!important;font-size:.74rem!important;overflow:hidden;text-overflow:ellipsis;}
+  .pl-table .pl-cat-row td{font-size:.66rem!important;padding:4px 7px!important;}
+  .pl-dayhead{min-width:30px!important;font-size:.64rem!important;padding:4px 1px!important;}
+  .pl-cell{min-width:30px!important;height:30px!important;font-size:.66rem!important;}
+  .pl-total{min-width:42px!important;font-size:.7rem!important;}
+  .pl-sem .pl-dayhead,.pl-sem .pl-cell{min-width:64px!important;}
+}
 .pl-cat-row td{background:#241400;color:var(--orange);font-weight:700;text-transform:uppercase;letter-spacing:1px;font-size:.76rem;padding:5px 12px!important;text-align:left!important;position:sticky;left:0;}
 .pl-dayhead{font-size:.72rem;color:#888;padding:5px 3px!important;min-width:40px;}
 .pl-dayhead.we{background:#181818;color:#666;}
