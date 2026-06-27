@@ -145,6 +145,7 @@ nav::-webkit-scrollbar{display:none;}
 nav button{background:none;border:none;color:#888;padding:13px 14px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:.9rem;text-transform:uppercase;letter-spacing:1px;border-bottom:3px solid transparent;white-space:nowrap;transition:color .2s;font-family:Barlow,sans-serif;}
 nav button.active{color:var(--orange);border-bottom-color:var(--orange);}
 .page{display:none;padding:16px;max-width:1400px;margin:0 auto;}
+@media(min-width:1100px){.page:not(.bk-tiles-mode){max-width:none;padding-left:clamp(24px,4vw,72px);padding-right:clamp(24px,4vw,72px);}}
 /* Incidents : vue téléphone (étroite) */
 #page-incidents{max-width:480px;}
 /* Planning : pleine largeur (grand écran) */
@@ -234,7 +235,7 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 #toast.success{border-left-color:#4CAF50;}#toast.error{border-left-color:var(--red);}
 .empty{text-align:center;padding:36px;color:#555;}
 .empty .ei{font-size:2.8rem;margin-bottom:10px;}
-@media(max-width:600px){.form-row{grid-template-columns:1fr;}.stats-grid{grid-template-columns:repeat(2,1fr);}.tile-bk{width:145px;height:145px;}.tile-dir{width:145px;height:145px;}#main-nav button.desktop-only{display:none;}}
+@media(max-width:600px){.form-row{grid-template-columns:1fr;}.stats-grid{grid-template-columns:repeat(2,1fr);}.tile-bk{width:145px;height:145px;}.tile-dir{width:145px;height:145px;}#main-nav button{flex:0 0 auto;white-space:nowrap;}}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
 .cal-dow{text-align:center;font-size:.68rem;color:#888;text-transform:uppercase;letter-spacing:1px;padding:4px 0;font-weight:600;}
 .cal-cell{aspect-ratio:1;background:#1A1A1A;border:1px solid #2A2A2A;border-radius:6px;padding:4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;transition:border-color .15s,background .15s;position:relative;}
@@ -2245,6 +2246,8 @@ function goPage(id, btn) {
     var _lbl=_labels[id];
     if(_lbl){ document.querySelectorAll('#main-nav button').forEach(function(b){ if(b.textContent.indexOf(_lbl)>=0) b.classList.add('active'); }); }
   }
+  // Recentrer l'onglet actif dans la barre déroulante (téléphone)
+  try { var _act=document.querySelector('#main-nav button.active'); if(_act) _act.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}); } catch(e){}
   if (id==='rapports'){
     // Directeur : forcer son restaurant, pas de choix → pas de tuiles
     if(curUser.role==='directeur'){
