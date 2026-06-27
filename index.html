@@ -108,6 +108,14 @@ body{font-family:Barlow,sans-serif;background:var(--dark);color:#F5F0E8;min-heig
   #page-incidents .inc-2col > *{min-width:0;max-width:100%;}
 }
 header{background:linear-gradient(135deg,var(--red),#A01800);padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:58px;box-shadow:0 4px 20px rgba(0,0,0,.5);position:sticky;top:0;z-index:100;}
+@media(max-width:600px){
+  header{justify-content:flex-start;gap:10px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 12px;}
+  header::-webkit-scrollbar{display:none;}
+  header h1{flex:0 0 auto;}
+  header #maj-badge{flex:0 0 auto;}
+  header #user-info{flex:0 0 auto;gap:6px;}
+  header #user-info > *{flex:0 0 auto;white-space:nowrap;}
+}
 header h1{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.5rem;letter-spacing:1px;color:var(--yellow);text-transform:uppercase;}
 header h1 span{color:#fff;}
 #user-info{display:flex;align-items:center;gap:8px;font-size:.82rem;}
@@ -156,6 +164,13 @@ nav button.active{color:var(--orange);border-bottom-color:var(--orange);}
 html,body{overflow-x:hidden;}
 #page-parametres, #page-parametres *{max-width:100%;}
 #page-parametres .bk-tiles-grid{max-width:100%;}
+@media(max-width:600px){
+  /* Paramètres : la page et les tuiles ne débordent jamais de l'écran */
+  #page-parametres{max-width:100vw!important;overflow-x:hidden!important;padding:12px!important;box-sizing:border-box;}
+  #page-parametres .bk-page-tiles{padding:0!important;max-width:100%!important;}
+  #page-parametres .bk-tiles-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:11px!important;max-width:100%!important;width:100%!important;justify-content:stretch!important;}
+  #page-parametres .dash-tile{min-width:0!important;max-width:100%!important;}
+}
 /* ── Grand écran : pleine largeur, comme un logiciel de bureau ─────────── */
 @media(min-width:740px){
   /* Le planning compacté ne sert que sur vrai téléphone : on le neutralise ici si besoin */
