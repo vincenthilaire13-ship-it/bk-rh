@@ -151,7 +151,70 @@ nav::-webkit-scrollbar{display:none;}
 nav button{background:none;border:none;color:#888;padding:13px 14px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:.9rem;text-transform:uppercase;letter-spacing:1px;border-bottom:3px solid transparent;white-space:nowrap;transition:color .2s;font-family:Barlow,sans-serif;}
 nav button.active{color:var(--orange);border-bottom-color:var(--orange);}
 .page{display:none;padding:16px;max-width:1400px;margin:0 auto;}
-@media(min-width:1100px){.page:not(.bk-tiles-mode){max-width:none;padding-left:clamp(24px,4vw,72px);padding-right:clamp(24px,4vw,72px);}}
+@media(min-width:1100px){.page:not(.bk-tiles-mode){max-width:1100px;}}
+/* ── Grand écran : afficher l'app comme un téléphone centré (comme BK Tech) ── */
+@media(min-width:740px){
+  body{background:#0a0a0a;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;}
+  #app{
+    width:430px;max-width:430px;min-height:92vh;max-height:940px;height:92vh;
+    margin:max(0px,calc((100vh - 940px)/2)) auto 0;
+    background:var(--dark);
+    border-radius:32px;overflow:hidden;
+    box-shadow:0 18px 60px rgba(0,0,0,0.45);
+    border:1px solid rgba(255,255,255,0.08);
+    display:flex;flex-direction:column;position:relative;
+  }
+  /* La barre du haut reste figée en haut du cadre, le contenu défile dessous */
+  #app > header{flex-shrink:0;}
+  #app > nav#main-nav{flex-shrink:0;}
+  #app > #resto-actif-bandeau{flex-shrink:0;margin:10px 12px 0!important;padding:12px 14px!important;}
+  #app > #resto-actif-bandeau #resto-actif-titre{font-size:1.3rem!important;}
+  #app > #resto-actif-bandeau #resto-actif-heure{font-size:1.3rem!important;}
+  #app > #resto-actif-bandeau #resto-actif-pastille{font-size:1.7rem!important;}
+  /* Header compacté pour tenir dans le cadre */
+  #app > header{padding:0 12px!important;gap:6px;}
+  #app > header h1{font-size:1.1rem!important;}
+  #app > header #maj-badge{display:none!important;}
+  #app > header #user-info{gap:5px;font-size:.74rem;margin-left:auto;}
+  #app > header #user-info #btn-logout{padding:4px 8px;font-size:.72rem;}
+  #app > header #user-info #uname{max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #app > .page{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  /* En cadre téléphone, on force la vue "étroite" partout */
+  #app .page{max-width:100%!important;margin:0!important;padding:12px!important;}
+  #app, #app *{box-sizing:border-box;}
+  /* Rien ne doit dépasser la largeur du cadre */
+  #app header, #app nav#main-nav, #app .page, #app .card,
+  #app .resto-banner, #app [id*="banner"], #app [class*="banner"]{max-width:100%!important;}
+  #app img, #app table, #app canvas{max-width:100%;}
+
+  /* Toutes les grilles de tuiles repassent en 1 colonne */
+  #app .bk-tiles-grid{grid-template-columns:1fr!important;max-width:100%!important;justify-content:stretch!important;}
+  #app .dash-grid{grid-template-columns:1fr!important;}
+  #app #pin-settings{grid-template-columns:1fr!important;}
+  #app .ptg-grid{grid-template-columns:repeat(2,1fr)!important;}
+  #app .eq-cat-grid{grid-template-columns:repeat(2,1fr)!important;}
+  #app .prob-grid{grid-template-columns:1fr!important;}
+  #app .stats-grid{grid-template-columns:repeat(2,1fr)!important;}
+  #app .form-row{grid-template-columns:1fr!important;}
+  /* Tuiles : largeur fluide au lieu de largeurs fixes */
+  #app .tile-bk, #app .tile-dir{width:100%!important;max-width:100%!important;height:auto!important;min-height:120px;aspect-ratio:auto!important;}
+
+  /* Incidents : une seule colonne */
+  #app #page-incidents{max-width:100%!important;}
+  #app #page-incidents .inc-2col{display:block!important;}
+  #app #page-incidents .inc-2col > *{min-width:0!important;max-width:100%!important;}
+
+  /* Planning d'encadrement & module Horaires : scroll horizontal interne (pas de débordement du cadre) */
+  #app #page-planning, #app #page-horaires{overflow-x:hidden;}
+  #app #page-planning table, #app .cal-grid{max-width:100%;}
+  #app .pl-wrap, #app .planning-scroll, #app .hr-tl-wrap, #app .hr-gt-wrap{overflow-x:auto!important;-webkit-overflow-scrolling:touch;}
+  #app #sec-horaires{min-height:0;}
+  #app #sec-horaires .hr-sec{padding:.8rem!important;}
+  #app #sec-horaires .hr-hdr{padding:.7rem .8rem!important;flex-wrap:wrap;gap:8px;}
+
+  /* Modales : centrées par-dessus le cadre, format téléphone */
+  .modal{max-width:400px!important;}
+}
 /* Incidents : vue téléphone (étroite) */
 #page-incidents{max-width:480px;}
 @media(min-width:1000px){
