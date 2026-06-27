@@ -151,7 +151,11 @@ nav::-webkit-scrollbar{display:none;}
 nav button{background:none;border:none;color:#888;padding:13px 14px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:.9rem;text-transform:uppercase;letter-spacing:1px;border-bottom:3px solid transparent;white-space:nowrap;transition:color .2s;font-family:Barlow,sans-serif;}
 nav button.active{color:var(--orange);border-bottom-color:var(--orange);}
 .page{display:none;padding:16px;max-width:1400px;margin:0 auto;}
-@media(min-width:1100px){.page:not(.bk-tiles-mode){max-width:none;padding-left:clamp(24px,4vw,72px);padding-right:clamp(24px,4vw,72px);}}
+@media(min-width:1100px){.page:not(.bk-tiles-mode){max-width:none;padding-left:24px;padding-right:24px;}}
+/* Empêche tout débordement horizontal (qui décalerait l'en-tête collant) */
+html,body{overflow-x:hidden;}
+#page-parametres, #page-parametres *{max-width:100%;}
+#page-parametres .bk-tiles-grid{max-width:100%;}
 /* ── Grand écran : pleine largeur, comme un logiciel de bureau ─────────── */
 @media(min-width:740px){
   /* Le planning compacté ne sert que sur vrai téléphone : on le neutralise ici si besoin */
@@ -276,7 +280,12 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
   .pl-dayhead{min-width:30px!important;font-size:.64rem!important;padding:4px 1px!important;}
   .pl-cell{min-width:30px!important;height:30px!important;font-size:.66rem!important;}
   .pl-total{min-width:42px!important;font-size:.7rem!important;}
-  .pl-sem .pl-dayhead,.pl-sem .pl-cell{min-width:64px!important;}
+  /* Vue SEMAINE sur téléphone : tient dans la largeur, pas de défilement */
+  .pl-sem{width:100%!important;table-layout:fixed!important;}
+  .pl-sem .pl-name{width:64px!important;min-width:64px!important;max-width:64px!important;font-size:.7rem!important;padding:5px 5px!important;}
+  .pl-sem .pl-dayhead,.pl-sem .pl-cell{min-width:0!important;width:auto!important;font-size:.6rem!important;}
+  .pl-sem .pl-cell{height:32px!important;}
+  .pl-sem .pl-total{width:34px!important;min-width:34px!important;max-width:34px!important;padding:0 2px!important;font-size:.6rem!important;}
 }
 .pl-cat-row td{background:#241400;color:var(--orange);font-weight:700;text-transform:uppercase;letter-spacing:1px;font-size:.76rem;padding:5px 12px!important;text-align:left!important;position:sticky;left:0;}
 .pl-dayhead{font-size:.72rem;color:#888;padding:5px 3px!important;min-width:40px;}
