@@ -148,6 +148,11 @@ nav button.active{color:var(--orange);border-bottom-color:var(--orange);}
 @media(min-width:1100px){.page:not(.bk-tiles-mode){max-width:none;padding-left:clamp(24px,4vw,72px);padding-right:clamp(24px,4vw,72px);}}
 /* Incidents : vue téléphone (étroite) */
 #page-incidents{max-width:480px;}
+@media(min-width:1000px){
+  #page-incidents{max-width:none;}
+  #page-incidents .inc-2col{display:grid;grid-template-columns:minmax(420px,1fr) minmax(420px,1.1fr);gap:20px;align-items:start;}
+  #page-incidents .inc-2col > .inc-col-hist{margin-top:0;}
+}
 /* Planning : pleine largeur (grand écran) */
 #page-planning{max-width:none;}
 /* La page Horaires utilise toute la largeur de l'écran (module pensé grand écran) */
@@ -321,6 +326,8 @@ body.tv-mode #eye-viewas{display:none!important;}
 .dash-banner-txt{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1.05rem;letter-spacing:1px;color:var(--yellow);}
 .dash-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;}
 .bk-tiles-grid{display:grid;grid-template-columns:repeat(3,minmax(180px,230px));gap:16px;justify-content:start;}
+.eq-cat-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))!important;}
+@media(max-width:600px){.eq-cat-grid{grid-template-columns:repeat(2,1fr)!important;}}
 .bk-page-tiles{padding:8px 4px;}
 /* Mode tuiles : toutes les pages affichent leurs tuiles avec EXACTEMENT le même
    cadrage que Pointage (colonne centrée de 1000px), quel que soit le max-width
@@ -577,6 +584,8 @@ body.tv-mode #eye-viewas{display:none!important;}
 
   <!-- INCIDENTS -->
   <div class="page" id="page-incidents">
+    <div class="inc-2col">
+    <div class="inc-col-form">
     <div class="card">
       <div class="sec-title">⚠️ Signaler un incident</div>
       <div class="form-row">
@@ -619,6 +628,8 @@ body.tv-mode #eye-viewas{display:none!important;}
         <button class="btn btn-gray" onclick="resetForm()">✕ Réinitialiser</button>
       </div>
     </div>
+    </div><!-- /inc-col-form -->
+    <div class="inc-col-hist">
     <div class="sec-title" id="hist-title">🕒 Incidents récents</div>
     <div class="filters" id="hist-filters">
       <select id="f-who" onchange="renderHistory()"><option value="">Tous</option></select>
@@ -631,6 +642,8 @@ body.tv-mode #eye-viewas{display:none!important;}
       <input type="date" id="f-date" onchange="renderHistory()">
     </div>
     <div id="inc-list"></div>
+    </div><!-- /inc-col-hist -->
+    </div><!-- /inc-2col -->
   </div>
 
 
@@ -3403,18 +3416,31 @@ function renderEquipe(){
       {key:'apprenti', label:'Apprentis', ico:'🎓',test:estApprenti},
       {key:'equipier', label:'Équipiers', ico:'👤',test:function(e){return e.role==='equipier'&&!estApprenti(e);}}
     ];
-    CATS.forEach(function(cat){
-      var grp=emps.filter(cat.test);if(!grp.length)return;
-      var open=!!eqOpenCats[cat.key];
+    var accentsCat={directeur:'#e8b923',manager:'#e87722',leader:'#5BA3F5',apprenti:'#3ecf8e',equipier:'#9a9a9a'};
+    // Catégories non vides
+    var catsNonVides=CATS.map(function(cat){return {cat:cat,grp:emps.filter(cat.test)};}).filter(function(x){return x.grp.length;});
+    if(!catsNonVides.length){h+='<p style="color:#555;font-size:.83rem;padding:8px 0 18px;">Aucun membre dans cette catégorie.</p>';return;}
+    // Grille de tuiles cliquables
+    h+='<div class="bk-tiles-grid eq-cat-grid" style="margin:6px 0 4px;">';
+    catsNonVides.forEach(function(x){
+      var cat=x.cat, grp=x.grp, open=!!eqOpenCats[cat.key];
+      h+='<div class="dash-tile'+(open?' eq-cat-on':'')+'" onclick="eqToggleCat(\''+cat.key+'\')" style="min-height:120px;'+(open?'border-color:'+(accentsCat[cat.key]||'#e87722')+';':'')+'">'
+        +'<div class="dt-accent" style="background:'+(accentsCat[cat.key]||'#e87722')+';"></div>'
+        +'<div class="dt-em">'+cat.ico+'</div>'
+        +'<div><div class="dt-tt">'+cat.label+'</div>'
+        +'<div class="dt-ds">'+grp.length+' membre'+(grp.length!==1?'s':'')+(open?' · ouvert':'')+'</div></div>'
+        +'</div>';
+    });
+    h+='</div>';
+    // Membres de la/des catégorie(s) ouverte(s), sous la grille
+    catsNonVides.forEach(function(x){
+      var cat=x.cat, grp=x.grp;
+      if(!eqOpenCats[cat.key])return;
       grp.sort(function(a,b){return a.name.localeCompare(b.name,'fr');});
-      h+='<button onclick="eqToggleCat(\''+cat.key+'\')" '
-        +'style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;'
-        +'background:#16321f;border:1px solid #3ecf8e;color:#3ecf8e;font-weight:700;'
-        +'border-radius:10px;padding:11px 14px;margin:10px 0 6px;cursor:pointer;font-size:.95rem;text-align:left;">'
-        +'<span>'+cat.ico+' '+cat.label+' <span style="opacity:.8;font-weight:600;">('+grp.length+')</span></span>'
-        +'<span style="font-size:1.1rem;'+(open?'transform:rotate(180deg);display:inline-block;':'')+'">▾</span>'
-        +'</button>';
-      if(open){ grp.forEach(function(e){ h+=empCardHtml(e,e.role,canView,canManage); }); }
+      h+='<div class="eq-cat-members" style="margin:10px 0 6px;">'
+        +'<div class="sec-title" style="font-size:1rem;margin-bottom:8px;">'+cat.ico+' '+cat.label+' <span style="opacity:.7;font-weight:600;">('+grp.length+')</span></div>';
+      grp.forEach(function(e){ h+=empCardHtml(e,e.role,canView,canManage); });
+      h+='</div>';
     });
     if(restosToShow.length>1)h+='<div style="height:10px;"></div>';
   });
