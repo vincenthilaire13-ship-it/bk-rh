@@ -4056,10 +4056,13 @@ function dbxDl(link){
   if(u.indexOf('dl=0')>=0) return u.replace('dl=0','dl=1');
   return u+(u.indexOf('?')>=0?'&':'?')+'dl=1';
 }
-// Télécharge un document (force le téléchargement via Dropbox dl=1)
-function dlDoc(link){
-  var u=dbxDl(link); if(!u) return;
-  var a=document.createElement('a'); a.href=u; a.target='_blank'; a.rel='noopener';
+// Télécharge un document. Gère les liens Dropbox (dl=1) ET les fichiers en base64 (data:).
+function dlDoc(link,name){
+  if(!link) return;
+  var isData=String(link).indexOf('data:')===0;
+  var u=isData?link:dbxDl(link);
+  var a=document.createElement('a'); a.href=u; a.rel='noopener';
+  if(isData){ a.download=name||'document'; } else { a.target='_blank'; }
   document.body.appendChild(a); a.click(); setTimeout(function(){ try{document.body.removeChild(a);}catch(e){} },200);
 }
 
@@ -4083,12 +4086,12 @@ function renderEmpDocs(empId,boxId){
         || full===(emp.name||'').toUpperCase() || full2===(emp.name||'').toUpperCase();
     });
   }
-  if(cand&&cand.documents&&Object.keys(cand.documents).length){
+  if(cand&&(Object.keys(cand.documents||{}).length||cand.cvName||cand.cvData||cand.photo)){
     h+='<div style="border-top:1px solid #333;padding-top:14px;margin-bottom:6px;">'
       +'<div style="font-size:.78rem;color:#3ecf8e;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:700;">🎯 Documents du recrutement (déposés par le salarié)</div>';
     DOC_TYPES.forEach(function(d){
       function pieceLine(key,lbl){
-        var p=cand.documents[key];if(!p||!(p.link||p.data))return '';
+        var p=(cand.documents||{})[key];if(!p||!(p.link||p.data))return '';
         return '<div style="display:flex;align-items:center;gap:8px;background:#11160f;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
           +'<span style="flex:1;min-width:0;font-size:.82rem;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">✓ '+lbl+'</span>'
           +(p.link?'<button class="btn btn-gray btn-sm" onclick="window.open(\''+p.link+'\',\'_blank\')">👁️ Lire</button> <button class="btn btn-gray btn-sm" onclick="dlDoc(\''+p.link+'\')">⬇️ Télécharger</button>':'<span style="font-size:.72rem;color:#a8460f;">déposé (local)</span>')
@@ -4097,6 +4100,20 @@ function renderEmpDocs(empId,boxId){
       if(d.sides){d.sides.forEach(function(s){h+=pieceLine(d.id+'_'+s.toLowerCase(),d.label+' — '+s);});}
       else{h+=pieceLine(d.id,d.label);}
     });
+    // CV (lien Dropbox ou PDF base64 — chargé à la demande)
+    if(cand.cvName||cand.cvData){
+      h+='<div style="display:flex;align-items:center;gap:8px;background:#11160f;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
+        +'<span style="flex:1;min-width:0;font-size:.82rem;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📄 CV'+(cand.cvName?' — '+cand.cvName:'')+'</span>'
+        +'<button class="btn btn-gray btn-sm" onclick="viewCV(\''+cand.id+'\')">👁️ Lire</button> <button class="btn btn-gray btn-sm" onclick="downloadCV(\''+cand.id+'\')">⬇️ Télécharger</button>'
+        +'</div>';
+    }
+    // Photo
+    if(cand.photo){
+      h+='<div style="display:flex;align-items:center;gap:8px;background:#11160f;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
+        +'<span style="flex:1;min-width:0;font-size:.82rem;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📷 Photo</span>'
+        +'<button class="btn btn-gray btn-sm" onclick="viewCandPhoto(\''+cand.id+'\')">👁️ Lire</button> <button class="btn btn-gray btn-sm" onclick="dlCandPhoto(\''+cand.id+'\')">⬇️ Télécharger</button>'
+        +'</div>';
+    }
     h+='</div>';
   }
   h+='<div style="border-top:1px solid #333;padding-top:14px;">'
@@ -6886,7 +6903,7 @@ function openCand(id){
     +'<div><div class="flabel">Nationalité</div><span style="color:#eee;font-size:.85rem;">'+(c.nationalite||'—')+'</span></div>'
     +'<div><div class="flabel">Sexe</div><span style="color:#eee;font-size:.85rem;">'+(c.sexe||'—')+'</span></div>'
     +'<div style="grid-column:1/-1;"><div class="flabel">Adresse</div><span style="color:#eee;font-size:.85rem;">'+(c.adresse||'—')+((c.codePostal||c.ville)?', '+(c.codePostal||'')+' '+(c.ville||''):'')+'</span></div>'
-    +(c.cvData?'<div style="grid-column:1/-1;"><div class="flabel">CV</div><button class="btn btn-gray btn-sm" onclick="viewCV(\''+c.id+'\')">👁️ Lire le CV'+(c.cvName?' ('+c.cvName+')':'')+'</button></div>':'')
+    +((c.cvName||c.cvData)?'<div style="grid-column:1/-1;"><div class="flabel">CV</div><button class="btn btn-gray btn-sm" onclick="viewCV(\''+c.id+'\')">👁️ Lire le CV'+(c.cvName?' ('+c.cvName+')':'')+'</button> <button class="btn btn-gray btn-sm" onclick="downloadCV(\''+c.id+'\')">⬇️ Télécharger</button></div>':'')
     +'</div>'
     +'<div class="flabel" style="margin-top:6px;">📅 Disponibilités</div>'
     +'<div style="background:#1A1A1A;border-radius:8px;padding:10px 14px;margin-bottom:14px;">'+disposHtml+'</div>'
@@ -6911,6 +6928,20 @@ async function viewCV(id){
   document.getElementById('docview-body').innerHTML=docViewerHtml(c.cvData,c.cvName||'CV');
   document.getElementById('modal-docview').classList.add('open');
 }
+
+// Télécharge le CV (charge le base64 à la demande si besoin ; gère base64 ET lien Dropbox)
+async function downloadCV(id){
+  var c=DB.candidatures.find(function(x){return x.id===id;}); if(!c) return;
+  if(!c.cvData){
+    try{ var rows=await sb.get('bks_candidatures','select=cv_data,cv_name&id=eq.'+id);
+      if(rows&&rows[0]){ c.cvData=rows[0].cv_data||''; if(rows[0].cv_name) c.cvName=rows[0].cv_name; } }catch(e){ console.warn('downloadCV load',e); }
+  }
+  if(!c.cvData){ alert('CV introuvable pour ce candidat.'); return; }
+  dlDoc(c.cvData, c.cvName||('CV_'+(c.prenom||'')+'_'+(c.nom||'')+'.pdf'));
+}
+// Voir / télécharger la photo d'un candidat par id (évite d'injecter un base64 dans le HTML)
+function viewCandPhoto(id){ var c=DB.candidatures.find(function(x){return x.id===id;}); if(c&&c.photo) candPhotoZoom(c.photo); }
+function dlCandPhoto(id){ var c=DB.candidatures.find(function(x){return x.id===id;}); if(c&&c.photo) dlDoc(c.photo, 'Photo_'+(c.prenom||'')+'_'+(c.nom||'')+'.jpg'); }
 
 function candPhotoZoom(src){
   if(!src) return;
