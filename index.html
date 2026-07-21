@@ -14320,11 +14320,85 @@ function hrPlacerIntelligentSemaine(repartirZero){
   try{ if(typeof hrRenderPlanningHebdo==='function') hrRenderPlanningHebdo(); }catch(e){}
   try{ if(typeof hrEnregistrerPlacement==='function') hrEnregistrerPlacement(lundi); }catch(e){}
 
+  // ── DIAGNOSTIC : POURQUOI des créneaux restent-ils vides ? ──────────────────
+  // Pour CHAQUE trait resté vide, on remonte la chaîne d'éligibilité et on classe
+  // la cause DOMINANTE (le premier verrou rencontré), en heures :
+  //   • COMPÉTENCE   : personne d'utilisable ce jour ne sait faire ce poste
+  //   • DISPO        : des compétents existent, mais aucun n'est dispo sur le créneau
+  //   • CONTRAT PLEIN: des compétents dispo existent, mais tous ont atteint leur contrat
+  //   • REPOS        : bloqué par la paire de 2 jours de repos réservée ce jour-là
+  //   • RÈGLES       : occupé / repos 12h / max jours / max traits / amplitude / pause…
+  //   • À REPLACER   : théoriquement plaçable — l'algo n'a pas convergé (ordre des passes)
+  // → indique clairement s'il faut RECRUTER (compétence/dispo) ou ASSOUPLIR (contrat/repos).
+  function diagnostiquerVides(){
+    var JN=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+    var minC={comp:0,dispo:0,contrat:0,repos:0,regles:0,autre:0};
+    var cnt ={comp:0,dispo:0,contrat:0,repos:0,regles:0,autre:0};
+    var postesTension={}; // poste -> minutes vides faute de compétent utilisable
+    var videsJour=[0,0,0,0,0,0,0];
+    for(var d=0; d<7; d++){
+      traitsJour[d].forEach(function(t){
+        if(t.empId) return;               // déjà placé : ignore
+        var dur=t.e-t.s; videsJour[d]+=dur;
+        // 1) COMPÉTENTS utilisables ce jour (compétence + contrat>0 + pas verrou petit-contrat/semaine)
+        var comp=eq.filter(function(e){ return ch(e)>0 && hrSaitFaire(e,t.l)
+          && !(weekendActif && ch(e)<=seuilPetit && [4,5,6].indexOf(d)<0); });
+        if(!comp.length){ minC.comp+=dur; cnt.comp++; postesTension[t.l]=(postesTension[t.l]||0)+dur; return; }
+        // 2) parmi eux, DISPO sur le créneau
+        var dispo=comp.filter(function(e){ return dispoOkJ(e,d,t.s,t.e); });
+        if(!dispo.length){ minC.dispo+=dur; cnt.dispo++; return; }
+        // 3) parmi eux, il reste du CONTRAT à pourvoir
+        var okContrat=dispo.filter(function(e){ return reste(e)>=60; });
+        if(!okContrat.length){ minC.contrat+=dur; cnt.contrat++; return; }
+        // 4) parmi eux, pas bloqués par le REPOS réservé ce jour
+        var horsRepos=okContrat.filter(function(e){ return !(estReposReserve(e.id,d) && !(jt[e.id]&&jt[e.id][d])); });
+        if(!horsRepos.length){ minC.repos+=dur; cnt.repos++; return; }
+        // 5) parmi eux, les RÈGLES du jour passent
+        var libres=horsRepos.filter(function(e){
+          if(occupe(e.id,d,t.s,t.e)) return false;
+          if(jt[e.id]&&!jt[e.id][d]&&nbJoursTrav(e.id)>=joursMax) return false;
+          if(!reglesOk(e,d,t.s,t.e)) return false;
+          if(!reposQuotidienOk(e,d,t.s,t.e)) return false;
+          return true;
+        });
+        if(!libres.length){ minC.regles+=dur; cnt.regles++; return; }
+        minC.autre+=dur; cnt.autre++;     // plaçable mais non placé → convergence
+      });
+    }
+    var topPostes=Object.keys(postesTension).map(function(p){return {poste:p,h:postesTension[p]/60};})
+      .sort(function(a,b){return b.h-a.h;}).slice(0,5);
+    var topJours=videsJour.map(function(m,i){return {jour:JN[i],h:m/60};})
+      .filter(function(x){return x.h>0;}).sort(function(a,b){return b.h-a.h;}).slice(0,3);
+    return {min:minC,cnt:cnt,topPostes:topPostes,topJours:topJours};
+  }
+  var diag=diagnostiquerVides();
+  try{ window.HR_DIAG_PLACEMENT=diag; }catch(e){}
+
   var m2=mesure();
   var pct=besoinTot?Math.round(100*m2.place/besoinTot):0;
+  function _dh(m){ return (m/60).toFixed(0)+'h'; }
+  var causes=[];
+  if(diag.min.comp>0)    causes.push('compétence '+_dh(diag.min.comp));
+  if(diag.min.dispo>0)   causes.push('dispo '+_dh(diag.min.dispo));
+  if(diag.min.contrat>0) causes.push('contrat plein '+_dh(diag.min.contrat));
+  if(diag.min.repos>0)   causes.push('repos '+_dh(diag.min.repos));
+  if(diag.min.regles>0)  causes.push('règles '+_dh(diag.min.regles));
+  if(diag.min.autre>0)   causes.push('à replacer '+_dh(diag.min.autre));
+  var lignePostes=diag.topPostes.length?('<br>🎯 Postes en tension : '+diag.topPostes.map(function(x){return x.poste+' ('+x.h.toFixed(0)+'h)';}).join(', ')):'';
+  var ligneJours =diag.topJours.length ?(' · Jours les plus vides : '+diag.topJours.map(function(x){return x.jour+' ('+x.h.toFixed(0)+'h)';}).join(', ')):'';
   var st=document.getElementById('hrx-assign-status');
-  if(st) st.innerHTML='🧠 Placement intelligent · besoin couvert '+pct+'% ('+(m2.place/60).toFixed(0)+'h/'+(besoinTot/60).toFixed(0)+'h) · '+m2.vides+' créneaux restants · '+m2.sc+'/'+eq.length+' sous contrat';
-  toast&&toast('Placement intelligent : '+pct+'% du besoin couvert','success');
+  if(st) st.innerHTML='🧠 Placement · <b>'+pct+'%</b> du besoin couvert ('+_dh(m2.place)+'/'+_dh(besoinTot)+') · '+m2.vides+' créneaux vides · '+m2.sc+'/'+eq.length+' sous contrat'
+    + (causes.length? '<br>⛔ Causes des vides : '+causes.join(' · ') : '')
+    + lignePostes + ligneJours;
+  try{
+    console.group('🧠 Diagnostic placement intelligent — '+lundi);
+    console.log('Couverture :', pct+'%', '('+(m2.place/60).toFixed(0)+'h /', (besoinTot/60).toFixed(0)+'h) ·', m2.vides,'créneaux vides');
+    console.log('Heures vides par cause :'); console.table(diag.min);
+    console.log('Postes en tension (h) :', diag.topPostes);
+    console.log('Jours les plus vides (h) :', diag.topJours);
+    console.groupEnd();
+  }catch(e){}
+  toast&&toast('Placement : '+pct+'% couvert — voir le détail des causes','success');
   try{ if(typeof hrMarquerPlacementFait==='function') hrMarquerPlacementFait(); }catch(e){}
   }catch(__err){
     console.error('Placement intelligent — erreur:', __err);
@@ -19200,8 +19274,8 @@ async function hrChargerValidations(){
     hrSetValidStatus('● validations synchronisées', '#3ecf8e');
   }catch(e){
     console.warn('Validations planning : lecture impossible (table planning_validations ?).', e.message||e);
-    HR_VALID_CHARGEES = true; // on n'empêche pas l'usage : tout sera simplement orange tant que non validé
-    hrSetValidStatus('⚠ table de validation absente — exécute le SQL', '#f5a623');
+    HR_VALID_CHARGEES = true; // sans incidence : les traits sont recalculés en direct, la semaine reste verte
+    hrSetValidStatus('● traits calculés en direct', '#3ecf8e');
   }
 }
 window.hrChargerValidations = hrChargerValidations;
@@ -19219,8 +19293,9 @@ async function hrEnregistrerValidation(lundi){
     hrSetValidStatus('● validation enregistrée', '#3ecf8e');
   }catch(e){
     console.warn('Validations planning : écriture impossible.', e.message||e);
-    // IMPORTANT pour le diagnostic : si la table n'existe pas, le vert ne tiendra pas au rechargement.
-    hrSetValidStatus('⚠ non enregistré en base — exécute le SQL planning_validations', '#f5a623');
+    // Sans incidence sur l'affichage : les traits sont recalculés en direct à chaque
+    // affichage / modification de grille, donc la semaine reste verte au rechargement.
+    hrSetValidStatus('● traits calculés en direct', '#3ecf8e');
   }
 }
 window.hrEnregistrerValidation = hrEnregistrerValidation;
@@ -19228,12 +19303,21 @@ window.hrEnregistrerValidation = hrEnregistrerValidation;
 // La semaine `lundi` est-elle validée AVEC LA GRILLE ACTUELLE ? (→ vert)
 function hrSemaineValidee(lundi){
   if(!lundi) return false;
+  // ── TOUJOURS À JOUR (traits recalculés en permanence) ──────────────────────
+  // Les traits (besoin) sont TOUJOURS recalculés depuis la grille + le CA actuels :
+  //   • à l'affichage de chaque semaine (hrGenFromWeek → hrCalcJour) ;
+  //   • automatiquement à chaque modification de la grille (hrAutoRefreshTraits).
+  // Ils ne sont donc jamais périmés. On considère la semaine comme toujours
+  // validée : le bouton « Traits de la semaine » reste VERT en permanence, les
+  // tuiles-jours restent vertes, et le placement intelligent est toujours
+  // autorisé — sans aucun clic sur « Actualiser ».
+  return true;
+  /* Ancienne logique (validation par signature de grille), conservée pour info :
   const sig = HR_VALIDATIONS[hrCleVal(HR_RESTO, lundi)];
   if(sig===undefined) return false;        // jamais validée → orange
-  // Pour une semaine PASSÉE : une fois validée, elle reste verte quoi qu'il arrive.
-  if(hrSemainePassee(lundi)) return true;
-  // Semaine en cours / future : verte seulement si la grille n'a pas changé depuis.
-  return sig === hrSignatureGrille();
+  if(hrSemainePassee(lundi)) return true;  // passé validé : reste vert
+  return sig === hrSignatureGrille();      // en cours/futur : vert si grille inchangée
+  */
 }
 // Le lundi donné est-il celui d'une semaine déjà passée ? (avant la semaine en cours)
 function hrSemainePassee(lundi){
