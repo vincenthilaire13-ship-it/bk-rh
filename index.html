@@ -445,10 +445,7 @@ html,body{overflow-x:hidden;}
       <div class="tile tile-tv" onclick="pickTV(curResto)" style="border-color:#42a5f5;"><div class="tile-icon">📺</div><div class="tile-label">Écran TV</div><div class="tile-sub">Dashboard du restaurant</div></div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
-      <div class="tile tile-mgr" onclick="pickProfile('manager1')"><div class="tile-icon">⭐</div><div class="tile-label">Manager 1</div><div class="tile-sub" id="m1-sub">Manager 1</div></div>
-      <div class="tile tile-mgr" onclick="pickProfile('manager2')"><div class="tile-icon">⭐</div><div class="tile-label">Manager 2</div><div class="tile-sub" id="m2-sub">Manager 2</div></div>
-      <div class="tile tile-mgr" onclick="pickProfile('manager3')"><div class="tile-icon">⭐</div><div class="tile-label">Manager 3</div><div class="tile-sub" id="m3-sub">Manager 3</div></div>
-      <div class="tile tile-mgr" onclick="pickProfile('manager4')"><div class="tile-icon">⭐</div><div class="tile-label">Manager 4</div><div class="tile-sub" id="m4-sub">Manager 4</div></div>
+      <div class="tile tile-mgr" onclick="pickManagerDirect()"><div class="tile-icon">⭐</div><div class="tile-label">Manager</div><div class="tile-sub">Signaler un incident</div></div>
     </div>
   </div>
 
@@ -936,6 +933,10 @@ html,body{overflow-x:hidden;}
   <div class="page" id="page-incidents">
     <div class="card">
       <div class="sec-title">⚠️ Signaler un incident</div>
+      <div id="inc-mgr-wrap" style="display:none;margin-bottom:6px;">
+        <label class="flabel">⭐ Manager déclarant</label>
+        <select id="inc-mgr-sel" class="fi"></select>
+      </div>
       <div class="form-row">
         <div style="grid-column:1/-1"><label class="flabel">Équipier concerné</label>
           <input type="text" id="emp-search" class="fi" placeholder="🔍 Rechercher par nom ou email..." oninput="filterEmpList()" autocomplete="off" style="margin-bottom:5px;">
@@ -1466,6 +1467,7 @@ html,body{overflow-x:hidden;}
 
 <!-- SUIVI POINTAGE (réservé RH / direction) -->
 <div class="page" id="page-suivipointage">
+  <div class="card" id="ptg-msg-admin" style="margin-bottom:14px;"></div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
       <div class="sec-title" style="margin:0;">📋 Suivi des pointages</div>
@@ -2383,49 +2385,35 @@ function pickTV(restoId) {
 function pickResto(restoId) {
   curResto = restoId;
   var names = DB.restoNames[restoId] || {};
-  // Noms RÉELS depuis l'équipe du restaurant (repli automatique si aucun nom
-  // personnalisé n'a été saisi dans Paramètres → Noms). Ainsi les tuiles affichent
-  // « Manager 1 » en titre et le NOM de la personne en dessous.
-  var _emps=(DB.employees||[]).filter(function(e){return !e.archived && e.restoId===restoId;});
-  function _parRole(role){ return _emps.filter(function(e){return e.role===role;}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');}); }
-  var _dirs=_parRole('directeur'), _mgrs=_parRole('manager'), _leads=_parRole('leader');
-  var auto={
-    directeur:_dirs[0]?_dirs[0].name:'',
-    manager1:_mgrs[0]?_mgrs[0].name:'', manager2:_mgrs[1]?_mgrs[1].name:'', manager3:_mgrs[2]?_mgrs[2].name:'', manager4:_mgrs[3]?_mgrs[3].name:'',
-    leader1:_leads[0]?_leads[0].name:'', leader2:_leads[1]?_leads[1].name:'', leader3:_leads[2]?_leads[2].name:'', leader4:_leads[3]?_leads[3].name:''
-  };
   document.getElementById('resto-title').textContent = RESTOS[restoId].label;
   ['dir','m1','m2','m3','m4'].forEach(function(k,i){
-    var key = ['directeur','manager1','manager2','manager3','manager4'][i];
+    var keys = ['directeur','manager1','manager2','manager3','manager4'];
     var el = document.getElementById(k+'-sub');
-    if (el) el.textContent = names[key] || auto[key] || PROFILES[key].title;
+    if (el) el.textContent = names[keys[i]] || PROFILES[keys[i]].title;
   });
   ['l1','l2','l3','l4'].forEach(function(k,i){
-    var key = ['leader1','leader2','leader3','leader4'][i];
+    var keys = ['leader1','leader2','leader3','leader4'];
     var el = document.getElementById(k+'-sub');
-    if (el) el.textContent = names[key] || auto[key] || PROFILES[key].title;
+    if (el) el.textContent = names[keys[i]] || PROFILES[keys[i]].title;
   });
   showStep('step-profiles');
 }
 
-// Nom à afficher pour un profil (Manager 1, Directeur…) d'un restaurant :
-// nom personnalisé (Paramètres) sinon nom réel du salarié correspondant, sinon libellé.
-function restoNomProfil(restoId, key){
-  try{
-    var names=(DB.restoNames&&DB.restoNames[restoId])||{};
-    if(names[key]) return names[key];
-    var emps=(DB.employees||[]).filter(function(e){return !e.archived && e.restoId===restoId;});
-    function parRole(role){ return emps.filter(function(e){return e.role===role;}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');}); }
-    var m=(''+key).match(/^(directeur|manager|leader)(\d*)$/);
-    if(m){ var arr=parRole(m[1]); var idx=m[2]?parseInt(m[2],10)-1:0; if(arr[idx]) return arr[idx].name; }
-  }catch(e){}
-  return (PROFILES[key]&&PROFILES[key].title)||key;
+function pickManagerDirect() {
+  // Accès Manager direct : aucun code PIN. On entre tout de suite sur la page
+  // « Signaler un incident ». Le manager précis est choisi dans le formulaire.
+  pinProf = {key:'manager',icon:'⭐',title:'Manager',sub:RESTOS[curResto].label,role:'manager',pin:null,restoId:curResto};
+  curUser = {id:'manager',name:'Manager',role:'manager',restoId:curResto};
+  window.ACTIVE_RESTO = curResto || 'bk526';
+  _entrerDansApp('manager');
 }
-window.restoNomProfil=restoNomProfil;
+window.pickManagerDirect = pickManagerDirect;
+
 function pickProfile(profileKey) {
   var tmpl = PROFILES[profileKey];
+  var names = DB.restoNames[curResto] || {};
   var pins = DB.restoPins[curResto] || {};
-  pinProf = {key:profileKey,icon:tmpl.icon,title:restoNomProfil(curResto,profileKey),sub:RESTOS[curResto].label,role:tmpl.role,pin:pins[profileKey]||'0000',restoId:curResto};
+  pinProf = {key:profileKey,icon:tmpl.icon,title:names[profileKey]||tmpl.title,sub:RESTOS[curResto].label,role:tmpl.role,pin:pins[profileKey]||'0000',restoId:curResto};
   openPin();
 }
 
@@ -3083,6 +3071,22 @@ function initForm(){
   fillFilters();
   // Manager : pas de choix de sanction, toujours "observation orale"
   var isMgr=(curUser&&curUser.role==='manager');
+  // Sélecteur « Manager déclarant » : visible uniquement pour le rôle manager.
+  // Remplace l'identification par code PIN (Manager 1/2/3/4) supprimée à la connexion.
+  var mgrWrap=document.getElementById('inc-mgr-wrap'),mgrSel=document.getElementById('inc-mgr-sel');
+  if(mgrWrap&&mgrSel){
+    if(isMgr){
+      // Vrais managers du restaurant (leurs prénoms), pas « Manager 1/2/3 »
+      var _mgrs=(DB.employees||[]).filter(function(e){return e.role==='manager'&&e.restoId===curUser.restoId&&!e.archived;})
+                                  .sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+      var _opts='<option value="">— Choisir le manager —</option>';
+      _mgrs.forEach(function(e){ _opts+='<option value="'+e.id+'">'+(e.name||'Manager')+'</option>'; });
+      mgrSel.innerHTML=_opts;
+      mgrWrap.style.display='';
+    } else {
+      mgrWrap.style.display='none';
+    }
+  }
   var lbl=document.getElementById('sanction-label'),row=document.getElementById('sanction-row'),mgrNote=document.getElementById('sanction-mgr-note');
   if(isMgr){
     // On garde le libellé et on n'affiche QUE le bouton "Observation orale", déjà sélectionné
@@ -3199,11 +3203,26 @@ async function submitInc(){
   selSev={verbal:'2',ecrit:'2',avert:'3',mise:'4'}[selSanction]||'2';
   var emp=DB.employees.find(function(e){return e.id===empId;});
   var reporterName=pinProf?pinProf.title:curUser.name;
+  var reporterId=curUser.id||'';
+  // Manager : l'identité du déclarant vient du sélecteur du formulaire, pas du code PIN
+  if(curUser&&curUser.role==='manager'){
+    var _mk=(document.getElementById('inc-mgr-sel')||{}).value||'';
+    if(!_mk){toast("Choisissez le manager déclarant",'error');return;}
+    var _mgr=DB.employees.find(function(e){return e.id===_mk;});
+    reporterName=_mgr?_mgr.name:'Manager';
+    reporterId=_mk;
+  }
+  // Directeur : l'incident est clairement marqué comme signalé par le directeur
+  else if(curUser&&curUser.role==='directeur'){
+    var _dn=(DB.restoNames[curUser.restoId]||{}).directeur||'';
+    reporterName=(_dn && _dn!=='Directeur')?('Directeur — '+_dn):'Directeur';
+    reporterId=curUser.id||'directeur';
+  }
   try {
     var incData = {
       id:'inc_'+Date.now()+'_'+Math.floor(Math.random()*1000),
       emp_id:empId, resto_id:emp?emp.restoId:curUser.restoId,
-      reporter_id:curUser.id||'', reporter_name:reporterName,
+      reporter_id:reporterId, reporter_name:reporterName,
       inc_datetime:dt?new Date(dt).toISOString():new Date().toISOString(),
       problems:Array.from(selProbs), extra:Object.assign({},extraData),
       severity:selSev, sanction_type:selSanction,
@@ -6528,6 +6547,7 @@ function ptgRoleLabel(r){
 // ─── Écran salarié ───
 function ptgInit(){
   try{ ptgChargerPartage('badgeuse'); }catch(e){}   // pointages partagés (autres tablettes)
+  try{ ptgMsgCharger('badgeuse'); }catch(e){}        // messages/infos partagés
   var vis=ptgRestosVisibles();
   if(!PTG_RESTO || vis.indexOf(PTG_RESTO)<0) PTG_RESTO=vis[0];
   var hr=document.getElementById('ptg-hero-resto');
@@ -6628,6 +6648,8 @@ function ptgShowActions(){
   var estEncadrant=(e.role==='manager'||e.role==='leader'||e.role==='directeur');
   var body=document.getElementById('ptg-modal-body');
   var h='<div class="ptg-modal-name" style="font-size:1.2rem;">'+e.name+'</div>';
+  // Linéaire du jour : postes + créneaux où le salarié travaille aujourd'hui.
+  try{ h+=_ptgLineaireBoard(e, dateISO); }catch(err){ console.warn('lineaire',err); }
   // Créneau prévu (planning) + écarts, pour le retour immédiat au salarié.
   var _prevu=ptgPrevuDe(e, dateISO);
   function _stBadge(ec,sens){ if(ec==null) return ''; var s=ptgStatut(ec,sens); return ' <span style="font-size:.72rem;font-weight:700;color:'+s.coul+';">'+(s.code==='ok'?'✓ à l\'heure':s.txt)+'</span>'; }
@@ -6654,6 +6676,8 @@ function ptgShowActions(){
   } else {
     h+='<div class="ptg-done">✅ Vous avez bien pointé votre journée. Bonne soirée !</div>';
   }
+  // Zone messages/infos affichée aux salariés (rendez-vous, annonces…).
+  try{ h+=_ptgMsgBoard(e.restoId||PTG_RESTO); }catch(err){ console.warn('_ptgMsgBoard',err); }
   // Encadré « Mes demandes » : congés (CP) et indisponibilités (CSS) avec leur statut.
   try{ h+=_ptgMesDemandes(e.id); }catch(err){ console.warn('_ptgMesDemandes',err); }
   body.innerHTML=h;
@@ -6767,6 +6791,7 @@ function ptgMajEcarts(emp, rec, iso){
 // ─── Écran suivi (RH / direction) ───
 function ptgSuiviInit(){
   try{ ptgChargerPartage('suivi'); }catch(e){}   // pointages partagés (toutes tablettes)
+  try{ ptgMsgCharger('suivi'); }catch(e){}       // messages/infos partagés
   var vis=ptgRestosVisibles();
   if(!PTGS_RESTO || vis.indexOf(PTGS_RESTO)<0) PTGS_RESTO=vis[0];
   var tabs=document.getElementById('ptgs-resto-tabs');
@@ -6779,6 +6804,7 @@ function ptgSuiviInit(){
   }
   var sd=document.getElementById('ptgs-date'); if(sd && !sd.value) sd.value=ptgTodayISO();
   ptgRenderSuivi();
+  try{ ptgRenderMsgAdmin(); }catch(e){}
 }
 function ptgsSetResto(r){ PTGS_RESTO=r; ptgSuiviInit(); }
 
@@ -6839,6 +6865,126 @@ function ptgSaveNote(empId,dateISO,val){
   try{ var ctx=ptgRec(empId,dateISO); ctx.rec.note=val; ptgSaveAll(ctx.all); }catch(e){ console.warn('ptgSaveNote',e); }
 }
 window.ptgSaveNote=ptgSaveNote;
+
+// ─── LINÉAIRE DU JOUR (où et quand le salarié travaille) ──────────────────────
+function _ptgEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function _ptgPosteLabel(l){
+  // Équipier : l = poste seul (ex. CUISINE). Manager/leader : l = "CODE Prénom" → on garde le code.
+  l=String(l||'').trim(); if(!l) return 'Poste';
+  var parts=l.split(/\s+/);
+  if(parts.length>=2 && parts[0].length<=4) return parts[0];
+  return l;
+}
+// Segments (poste + créneau) planifiés pour un salarié un jour donné, depuis le planning transféré.
+function ptgLineaireDe(emp, iso){
+  try{
+    if(!emp) return [];
+    var resto=emp.restoId||PTG_RESTO;
+    var src=(typeof HR_AFFECT_BY_RESTO!=='undefined' && HR_AFFECT_BY_RESTO[resto]) ? HR_AFFECT_BY_RESTO[resto]
+           : ((typeof HR_AFFECT!=='undefined') ? HR_AFFECT : {});
+    var arr=(src && src[iso]) ? src[iso] : [];
+    var bars=arr.filter(function(b){ return b && b.empId===emp.id && b.s!=null && b.e!=null; })
+                .slice().sort(function(a,b){ return a.s-b.s; });
+    var out=[];
+    bars.forEach(function(b){
+      var last=out[out.length-1];
+      if(last && last.l===b.l && b.s<=last.e+1){ last.e=Math.max(last.e,b.e); }
+      else { out.push({l:b.l, s:b.s, e:b.e, col:b.col||'#e8a020'}); }
+    });
+    return out;
+  }catch(e){ return []; }
+}
+function _ptgLineaireBoard(emp, iso){
+  var segs=[];
+  try{ segs=ptgLineaireDe(emp, iso); }catch(e){}
+  var head='<div style="padding:9px 12px;background:#1d1d1d;color:#fff;font-weight:700;font-size:.9rem;border-bottom:1px solid #2a2a2a;">📍 Où je travaille aujourd\'hui</div>';
+  if(!segs.length){
+    return '<div style="margin:8px 0 4px;background:#161616;border:1px solid #2a2a2a;border-radius:10px;overflow:hidden;">'
+      +head+'<div style="padding:14px 12px;color:#888;font-size:.86rem;text-align:center;">Aucun poste planifié pour aujourd\'hui.</div></div>';
+  }
+  var lignes=segs.map(function(s){
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #232323;">'
+      +'<span style="width:11px;height:11px;border-radius:50%;background:'+(s.col||'#e8a020')+';flex:none;box-shadow:0 0 0 3px '+(s.col||'#e8a020')+'22;"></span>'
+      +'<span style="color:#fff;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;">'+_ptgMin2hm(s.s)+' → '+_ptgMin2hm(s.e)+'</span>'
+      +'<span style="margin-left:auto;color:#e8c468;font-weight:700;text-transform:uppercase;letter-spacing:.4px;font-size:.82rem;">'+_ptgEsc(_ptgPosteLabel(s.l))+'</span>'
+    +'</div>';
+  }).join('');
+  return '<div style="margin:8px 0 4px;background:#161616;border:1px solid #2a2a2a;border-radius:10px;overflow:hidden;">'+head+lignes+'</div>';
+}
+window.ptgLineaireDe=ptgLineaireDe;
+
+// ─── MESSAGES / INFOS AUX SALARIÉS (badgeuse), partagés via app_config ────────
+function ptgMsgKey(){ return 'bkrh_ptg_messages'; }
+function ptgMsgGetAll(){ try{ return JSON.parse(localStorage.getItem(ptgMsgKey())||'{}'); }catch(e){ return {}; } }
+function ptgMsgSaveLocal(o){ try{ localStorage.setItem(ptgMsgKey(), JSON.stringify(o)); }catch(e){} }
+function ptgMsgSaveAll(o){
+  ptgMsgSaveLocal(o);
+  try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:ptgMsgKey(), valeur:o},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
+}
+async function ptgMsgCharger(reRender){
+  try{
+    if(typeof SB==='undefined' || !SB) return;
+    var r=await SB.from('app_config').select('valeur').eq('cle',ptgMsgKey()).maybeSingle();
+    if(r && r.data && r.data.valeur && typeof r.data.valeur==='object'){ ptgMsgSaveLocal(r.data.valeur); }
+  }catch(e){ console.warn('ptg msg charger',e); }
+  if(reRender==='suivi'){ try{ ptgRenderMsgAdmin(); }catch(e){} }
+}
+window.ptgMsgCharger=ptgMsgCharger;
+function ptgMessagesPour(resto){
+  var all=ptgMsgGetAll();
+  return [].concat(all.ALL||[], all[resto]||[]).filter(function(m){ return m && m.txt; });
+}
+function _ptgMsgBoard(resto){
+  var list=ptgMessagesPour(resto);
+  if(!list.length) return '';
+  var lignes=list.map(function(m){
+    return '<div style="padding:10px 12px;border-bottom:1px solid #1f3a24;color:#eaffea;font-size:.9rem;white-space:pre-wrap;">'+_ptgEsc(m.txt)+'</div>';
+  }).join('');
+  return '<div style="margin-top:16px;background:#12210f;border:1px solid #2e5e33;border-radius:10px;overflow:hidden;">'
+    +'<div style="padding:9px 12px;background:#16321f;color:#8fe6a8;font-weight:700;font-size:.9rem;border-bottom:1px solid #2e5e33;">📣 Infos &amp; messages</div>'
+    +lignes+'</div>';
+}
+// Éditeur admin (page Suivi pointage)
+function ptgRenderMsgAdmin(){
+  var box=document.getElementById('ptg-msg-admin'); if(!box) return;
+  var resto=PTGS_RESTO||PTG_RESTO||'bk500';
+  var all=ptgMsgGetAll();
+  function bloc(cle,titre){
+    var list=all[cle]||[];
+    var items=list.map(function(m){
+      return '<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-bottom:1px solid #232323;">'
+        +'<div style="flex:1;color:#eee;font-size:.85rem;white-space:pre-wrap;">'+_ptgEsc(m.txt)+'</div>'
+        +'<button onclick="ptgMsgDel(\''+cle+'\',\''+m.id+'\')" title="Supprimer" style="background:none;border:none;color:#e8623a;cursor:pointer;font-size:1rem;line-height:1;">🗑️</button>'
+      +'</div>';
+    }).join('') || '<div style="padding:10px 12px;color:#777;font-size:.82rem;">Aucun message.</div>';
+    return '<div style="background:#161616;border:1px solid #2a2a2a;border-radius:10px;overflow:hidden;margin-bottom:10px;">'
+      +'<div style="padding:8px 11px;background:#1d1d1d;color:#fff;font-weight:700;font-size:.85rem;border-bottom:1px solid #2a2a2a;">'+titre+'</div>'
+      +items
+      +'<div style="display:flex;gap:8px;padding:10px;">'
+      +'<textarea id="ptg-msg-input-'+cle+'" rows="2" placeholder="Nouveau message (ex : Réunion musicale vendredi 18h)…" style="flex:1;background:#111;border:1px solid #333;border-radius:8px;color:#eee;padding:8px;font-size:.85rem;font-family:inherit;resize:vertical;"></textarea>'
+      +'<button onclick="ptgMsgAdd(\''+cle+'\')" class="btn btn-red btn-sm" style="align-self:flex-end;white-space:nowrap;">➕ Ajouter</button>'
+      +'</div>'
+    +'</div>';
+  }
+  box.innerHTML='<div class="sec-title" style="margin:0 0 8px;">📣 Messages affichés aux salariés (badgeuse)</div>'
+    +'<p style="font-size:.8rem;color:#aaa;margin:0 0 12px;">Ces messages s\'affichent à chaque salarié quand il pointe. « Tous les restaurants » = visible partout ; sinon uniquement pour le restaurant choisi ci-dessus.</p>'
+    +bloc('ALL','🌐 Tous les restaurants')
+    +bloc(resto,'🍔 '+((RESTOS[resto]&&RESTOS[resto].label)||resto));
+}
+function ptgMsgAdd(cle){
+  var ta=document.getElementById('ptg-msg-input-'+cle); if(!ta) return;
+  var txt=(ta.value||'').trim(); if(!txt) return;
+  var all=ptgMsgGetAll(); if(!all[cle]) all[cle]=[];
+  all[cle].push({id:'m'+Date.now()+'_'+Math.floor(Math.random()*1000), txt:txt});
+  ptgMsgSaveAll(all); ta.value=''; ptgRenderMsgAdmin();
+  try{ toast('Message ajouté ✔','success'); }catch(e){}
+}
+function ptgMsgDel(cle,id){
+  var all=ptgMsgGetAll(); if(!all[cle]) return;
+  all[cle]=all[cle].filter(function(m){return m.id!==id;});
+  ptgMsgSaveAll(all); ptgRenderMsgAdmin();
+}
+window.ptgMsgAdd=ptgMsgAdd; window.ptgMsgDel=ptgMsgDel; window.ptgRenderMsgAdmin=ptgRenderMsgAdmin;
 
 
 function setReglement(k,v){ var R=getReglement(); R[k]=v; }
