@@ -4088,7 +4088,10 @@ function renderEmpDocs(empId,boxId){
   }
   if(cand&&(Object.keys(cand.documents||{}).length||cand.cvName||cand.cvData||cand.photo)){
     h+='<div style="border-top:1px solid #333;padding-top:14px;margin-bottom:6px;">'
-      +'<div style="font-size:.78rem;color:#3ecf8e;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:700;">🎯 Documents du recrutement (déposés par le salarié)</div>';
+      +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap;">'
+      +'<div style="font-size:.78rem;color:#3ecf8e;text-transform:uppercase;letter-spacing:1px;font-weight:700;">🎯 Documents du recrutement (déposés par le salarié)</div>'
+      +'<button class="btn btn-red btn-sm" onclick="downloadAllCandDocs(\''+cand.id+'\')">⬇️ Tout télécharger</button>'
+      +'</div>';
     DOC_TYPES.forEach(function(d){
       function pieceLine(key,lbl){
         var p=(cand.documents||{})[key];if(!p||!(p.link||p.data))return '';
@@ -6905,6 +6908,7 @@ function openCand(id){
     +'<div style="grid-column:1/-1;"><div class="flabel">Adresse</div><span style="color:#eee;font-size:.85rem;">'+(c.adresse||'—')+((c.codePostal||c.ville)?', '+(c.codePostal||'')+' '+(c.ville||''):'')+'</span></div>'
     +((c.cvName||c.cvData)?'<div style="grid-column:1/-1;"><div class="flabel">CV</div><button class="btn btn-gray btn-sm" onclick="viewCV(\''+c.id+'\')">👁️ Lire le CV'+(c.cvName?' ('+c.cvName+')':'')+'</button> <button class="btn btn-gray btn-sm" onclick="downloadCV(\''+c.id+'\')">⬇️ Télécharger</button></div>':'')
     +'</div>'
+    +candDocsHtml(c)
     +'<div class="flabel" style="margin-top:6px;">📅 Disponibilités</div>'
     +'<div style="background:#1A1A1A;border-radius:8px;padding:10px 14px;margin-bottom:14px;">'+disposHtml+'</div>'
     +(c.motivation?'<div class="flabel">💬 Pourquoi nous rejoindre</div><div style="background:#1A1A1A;border-radius:8px;padding:10px 14px;margin-bottom:4px;color:#eee;font-size:.86rem;white-space:pre-wrap;">'+c.motivation+'</div>':'');
@@ -6942,6 +6946,60 @@ async function downloadCV(id){
 // Voir / télécharger la photo d'un candidat par id (évite d'injecter un base64 dans le HTML)
 function viewCandPhoto(id){ var c=DB.candidatures.find(function(x){return x.id===id;}); if(c&&c.photo) candPhotoZoom(c.photo); }
 function dlCandPhoto(id){ var c=DB.candidatures.find(function(x){return x.id===id;}); if(c&&c.photo) dlDoc(c.photo, 'Photo_'+(c.prenom||'')+'_'+(c.nom||'')+'.jpg'); }
+
+// Voir / télécharger une pièce déposée au recrutement (par id + clé, pour ne pas injecter de base64)
+function viewCandDoc(candId,key){
+  var c=DB.candidatures.find(function(x){return x.id===candId;}); if(!c) return;
+  var p=(c.documents||{})[key]; if(!p) return;
+  if(p.link){ window.open(p.link,'_blank'); return; }
+  if(p.data){ document.getElementById('docview-title').textContent='📄 '+(p.name||'Document');
+    document.getElementById('docview-body').innerHTML=docViewerHtml(p.data,p.name);
+    document.getElementById('modal-docview').classList.add('open'); }
+}
+function dlCandDoc(candId,key){
+  var c=DB.candidatures.find(function(x){return x.id===candId;}); if(!c) return;
+  var p=(c.documents||{})[key]; if(!p) return;
+  dlDoc(p.link||p.data, p.name||key);
+}
+// Liste HTML de toutes les pièces déposées par un candidat (Lire + Télécharger)
+function candDocsHtml(c){
+  var docs=c.documents||{}, out='';
+  DOC_TYPES.forEach(function(d){
+    function line(key,lbl){
+      var p=docs[key]; if(!p||!(p.link||p.data)) return '';
+      return '<div style="display:flex;align-items:center;gap:8px;background:#11160f;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
+        +'<span style="flex:1;min-width:0;font-size:.82rem;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">✓ '+lbl+'</span>'
+        +'<button class="btn btn-gray btn-sm" onclick="viewCandDoc(\''+c.id+'\',\''+key+'\')">👁️ Lire</button> <button class="btn btn-gray btn-sm" onclick="dlCandDoc(\''+c.id+'\',\''+key+'\')">⬇️ Télécharger</button>'
+        +'</div>';
+    }
+    if(d.sides){d.sides.forEach(function(s){out+=line(d.id+'_'+s.toLowerCase(),d.label+' — '+s);});}
+    else{out+=line(d.id,d.label);}
+  });
+  var hasAny=out||c.cvName||c.cvData||c.photo;
+  if(!hasAny) return '';
+  return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;margin-bottom:4px;flex-wrap:wrap;">'
+      +'<div class="flabel" style="margin:0;">📎 Documents déposés (CV, identité, domicile, RIB…)</div>'
+      +'<button class="btn btn-red btn-sm" onclick="downloadAllCandDocs(\''+c.id+'\')">⬇️ Tout télécharger</button>'
+    +'</div>'
+    +'<div style="background:#1A1A1A;border-radius:8px;padding:10px 14px;margin-bottom:14px;">'+(out||'<span style="font-size:.8rem;color:#888;">CV et photo ci-dessus — inclus dans « Tout télécharger ».</span>')+'</div>';
+}
+
+// Télécharge d'un coup TOUS les documents d'un candidat (pièces + CV + photo)
+async function downloadAllCandDocs(candId){
+  var c=DB.candidatures.find(function(x){return x.id===candId;}); if(!c) return;
+  var items=[], docs=c.documents||{};
+  DOC_TYPES.forEach(function(d){
+    function add(key,lbl){ var p=docs[key]; if(p&&(p.link||p.data)) items.push({url:p.link||p.data,name:p.name||(lbl+'.pdf')}); }
+    if(d.sides){d.sides.forEach(function(s){add(d.id+'_'+s.toLowerCase(),d.label+'_'+s);});}
+    else add(d.id,d.label);
+  });
+  if(!c.cvData&&c.cvName){ try{ var rows=await sb.get('bks_candidatures','select=cv_data,cv_name&id=eq.'+candId); if(rows&&rows[0]){c.cvData=rows[0].cv_data||''; if(rows[0].cv_name)c.cvName=rows[0].cv_name;} }catch(e){ console.warn('dlAll cv',e); } }
+  if(c.cvData) items.push({url:c.cvData,name:c.cvName||('CV_'+(c.prenom||'')+'_'+(c.nom||'')+'.pdf')});
+  if(c.photo) items.push({url:c.photo,name:'Photo_'+(c.prenom||'')+'_'+(c.nom||'')+'.jpg'});
+  if(!items.length){ try{alert('Aucun document à télécharger.');}catch(e){} return; }
+  items.forEach(function(it,idx){ setTimeout(function(){ dlDoc(it.url,it.name); }, idx*700); });
+  try{ toast('Téléchargement de '+items.length+' document(s)…',''); }catch(e){}
+}
 
 function candPhotoZoom(src){
   if(!src) return;
