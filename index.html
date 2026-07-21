@@ -2383,25 +2383,49 @@ function pickTV(restoId) {
 function pickResto(restoId) {
   curResto = restoId;
   var names = DB.restoNames[restoId] || {};
+  // Noms RÉELS depuis l'équipe du restaurant (repli automatique si aucun nom
+  // personnalisé n'a été saisi dans Paramètres → Noms). Ainsi les tuiles affichent
+  // « Manager 1 » en titre et le NOM de la personne en dessous.
+  var _emps=(DB.employees||[]).filter(function(e){return !e.archived && e.restoId===restoId;});
+  function _parRole(role){ return _emps.filter(function(e){return e.role===role;}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');}); }
+  var _dirs=_parRole('directeur'), _mgrs=_parRole('manager'), _leads=_parRole('leader');
+  var auto={
+    directeur:_dirs[0]?_dirs[0].name:'',
+    manager1:_mgrs[0]?_mgrs[0].name:'', manager2:_mgrs[1]?_mgrs[1].name:'', manager3:_mgrs[2]?_mgrs[2].name:'', manager4:_mgrs[3]?_mgrs[3].name:'',
+    leader1:_leads[0]?_leads[0].name:'', leader2:_leads[1]?_leads[1].name:'', leader3:_leads[2]?_leads[2].name:'', leader4:_leads[3]?_leads[3].name:''
+  };
   document.getElementById('resto-title').textContent = RESTOS[restoId].label;
   ['dir','m1','m2','m3','m4'].forEach(function(k,i){
-    var keys = ['directeur','manager1','manager2','manager3','manager4'];
+    var key = ['directeur','manager1','manager2','manager3','manager4'][i];
     var el = document.getElementById(k+'-sub');
-    if (el) el.textContent = names[keys[i]] || PROFILES[keys[i]].title;
+    if (el) el.textContent = names[key] || auto[key] || PROFILES[key].title;
   });
   ['l1','l2','l3','l4'].forEach(function(k,i){
-    var keys = ['leader1','leader2','leader3','leader4'];
+    var key = ['leader1','leader2','leader3','leader4'][i];
     var el = document.getElementById(k+'-sub');
-    if (el) el.textContent = names[keys[i]] || PROFILES[keys[i]].title;
+    if (el) el.textContent = names[key] || auto[key] || PROFILES[key].title;
   });
   showStep('step-profiles');
 }
 
+// Nom à afficher pour un profil (Manager 1, Directeur…) d'un restaurant :
+// nom personnalisé (Paramètres) sinon nom réel du salarié correspondant, sinon libellé.
+function restoNomProfil(restoId, key){
+  try{
+    var names=(DB.restoNames&&DB.restoNames[restoId])||{};
+    if(names[key]) return names[key];
+    var emps=(DB.employees||[]).filter(function(e){return !e.archived && e.restoId===restoId;});
+    function parRole(role){ return emps.filter(function(e){return e.role===role;}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');}); }
+    var m=(''+key).match(/^(directeur|manager|leader)(\d*)$/);
+    if(m){ var arr=parRole(m[1]); var idx=m[2]?parseInt(m[2],10)-1:0; if(arr[idx]) return arr[idx].name; }
+  }catch(e){}
+  return (PROFILES[key]&&PROFILES[key].title)||key;
+}
+window.restoNomProfil=restoNomProfil;
 function pickProfile(profileKey) {
   var tmpl = PROFILES[profileKey];
-  var names = DB.restoNames[curResto] || {};
   var pins = DB.restoPins[curResto] || {};
-  pinProf = {key:profileKey,icon:tmpl.icon,title:names[profileKey]||tmpl.title,sub:RESTOS[curResto].label,role:tmpl.role,pin:pins[profileKey]||'0000',restoId:curResto};
+  pinProf = {key:profileKey,icon:tmpl.icon,title:restoNomProfil(curResto,profileKey),sub:RESTOS[curResto].label,role:tmpl.role,pin:pins[profileKey]||'0000',restoId:curResto};
   openPin();
 }
 
@@ -6437,7 +6461,34 @@ var _ptgSel = null;              // employé en cours de pointage
 var _ptgClockTimer = null;       // horloge live
 function ptgStoreKey(){ return 'bkrh_pointages'; }
 function ptgGetAll(){ try{ return JSON.parse(localStorage.getItem(ptgStoreKey())||'{}'); }catch(e){ return {}; } }
-function ptgSaveAll(o){ try{ localStorage.setItem(ptgStoreKey(), JSON.stringify(o)); }catch(e){} }
+function ptgSaveAllLocal(o){ try{ localStorage.setItem(ptgStoreKey(), JSON.stringify(o)); }catch(e){} }
+// Enregistre en local ET en ligne (app_config, partagé tous appareils) → le suivi RH
+// voit les pointages faits depuis n'importe quelle tablette. Upsert « fire-and-forget ».
+function ptgSaveAll(o){
+  ptgSaveAllLocal(o);
+  try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:'bkrh_pointages', valeur:o},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
+}
+// Charge les pointages partagés depuis Supabase puis rafraîchit l'écran donné.
+async function ptgChargerPartage(reRender){
+  try{
+    if(typeof SB==='undefined' || !SB) return;
+    var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_pointages').maybeSingle();
+    if(r && r.data && r.data.valeur && typeof r.data.valeur==='object'){
+      var local=ptgGetAll(), remote=r.data.valeur;
+      // Fusion : la base fait foi, mais on garde une entrée locale PLUS complète
+      // (ex. départ pointé à l'instant, pas encore synchronisé ailleurs).
+      var merged=Object.assign({}, local, remote);
+      Object.keys(local).forEach(function(k){
+        var l=local[k], m=remote[k];
+        if(l && (!m || ((l.depart?1:0)+(l.arrivee?1:0)) > ((m&&m.depart?1:0)+(m&&m.arrivee?1:0)))) merged[k]=l;
+      });
+      ptgSaveAllLocal(merged);
+    }
+  }catch(e){ console.warn('ptg charger partagé',e); }
+  try{ if(reRender==='suivi' && typeof ptgRenderSuivi==='function') ptgRenderSuivi(); }catch(e){}
+  try{ if(reRender==='badgeuse' && typeof ptgRenderList==='function') ptgRenderList(); }catch(e){}
+}
+window.ptgChargerPartage=ptgChargerPartage;
 function ptgTodayISO(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function ptgNowHM(){ var d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
 function ptgRec(empId, dateISO){
@@ -6476,6 +6527,7 @@ function ptgRoleLabel(r){
 
 // ─── Écran salarié ───
 function ptgInit(){
+  try{ ptgChargerPartage('badgeuse'); }catch(e){}   // pointages partagés (autres tablettes)
   var vis=ptgRestosVisibles();
   if(!PTG_RESTO || vis.indexOf(PTG_RESTO)<0) PTG_RESTO=vis[0];
   var hr=document.getElementById('ptg-hero-resto');
@@ -6576,13 +6628,17 @@ function ptgShowActions(){
   var estEncadrant=(e.role==='manager'||e.role==='leader'||e.role==='directeur');
   var body=document.getElementById('ptg-modal-body');
   var h='<div class="ptg-modal-name" style="font-size:1.2rem;">'+e.name+'</div>';
+  // Créneau prévu (planning) + écarts, pour le retour immédiat au salarié.
+  var _prevu=ptgPrevuDe(e, dateISO);
+  function _stBadge(ec,sens){ if(ec==null) return ''; var s=ptgStatut(ec,sens); return ' <span style="font-size:.72rem;font-weight:700;color:'+s.coul+';">'+(s.code==='ok'?'✓ à l\'heure':s.txt)+'</span>'; }
   // récap perso (le salarié voit SA journée)
   h+='<div class="ptg-recap">';
-  h+='<div class="rline"><span>Arrivée</span><b>'+(rec.arrivee||'—')+'</b></div>';
+  if(_prevu) h+='<div class="rline" style="color:#9aa;"><span>Prévu</span><b>'+_prevu.arr+' → '+_prevu.dep+'</b></div>';
+  h+='<div class="rline"><span>Arrivée</span><b>'+(rec.arrivee||'—')+_stBadge(rec.ecartArr,'arr')+'</b></div>';
   if(rec.pauses && rec.pauses.length){
     rec.pauses.forEach(function(p){ h+='<div class="rline"><span>Pause</span><b>'+(p.debut||'?')+' → '+(p.fin||'…')+'</b></div>'; });
   }
-  h+='<div class="rline"><span>Départ</span><b>'+(rec.depart||'—')+'</b></div>';
+  h+='<div class="rline"><span>Départ</span><b>'+(rec.depart||'—')+_stBadge(rec.ecartDep,'dep')+'</b></div>';
   var ht=ptgHeuresTravaillees(rec);
   if(ht!=null) h+='<div class="rline" style="border-top:1px solid #2a2a2a;margin-top:4px;padding-top:6px;"><span>Total</span><b>'+(Math.round(ht*100)/100)+' h</b></div>';
   h+='</div>';
@@ -6649,6 +6705,8 @@ function ptgAction(type){
   }
   else if(type==='pause_debut'){ rec.pauses=rec.pauses||[]; rec.pauses.push({debut:now,fin:''}); }
   else if(type==='pause_fin'){ if(rec.pauses && rec.pauses.length) rec.pauses[rec.pauses.length-1].fin=now; }
+  // Contrôle : on enregistre le créneau prévu + les écarts (jamais bloquant).
+  try{ ptgMajEcarts(e, rec, dateISO); }catch(e2){}
   ptgSaveAll(ctx.all);
   ptgShowActions();
   ptgRenderList();
@@ -6662,8 +6720,53 @@ function ptgHeuresTravaillees(rec){
   return tot/60;
 }
 
+// ─── CONTRÔLE : comparaison POINTÉ vs PRÉVU ───────────────────────────────────
+var PTG_TOLERANCE=1;   // minutes de tolérance autour de l'heure prévue (choix : ±1 min)
+function _ptgHm2min(hm){ if(!hm) return null; var p=(''+hm).split(':'); if(p.length<2) return null; return (+p[0])*60+(+p[1]); }
+function _ptgMin2hm(mins){ mins=((Math.round(mins)%1440)+1440)%1440; return String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0'); }
+// Créneau PRÉVU d'un salarié pour une date, depuis les traits posés/transférés
+// (HR_AFFECT du restaurant). Renvoie {arr,dep} en HH:MM, ou null si rien de prévu.
+function ptgPrevuDe(emp, iso){
+  try{
+    if(!emp) return null;
+    var resto=emp.restoId||PTG_RESTO;
+    var src=(typeof HR_AFFECT_BY_RESTO!=='undefined' && HR_AFFECT_BY_RESTO[resto]) ? HR_AFFECT_BY_RESTO[resto]
+           : ((typeof HR_AFFECT!=='undefined') ? HR_AFFECT : {});
+    var arr=(src && src[iso]) ? src[iso] : [];
+    var bars=arr.filter(function(b){ return b && b.empId===emp.id; });
+    if(!bars.length) return null;
+    var s=Math.min.apply(null, bars.map(function(b){return b.s;}));
+    var e=Math.max.apply(null, bars.map(function(b){return b.e;}));
+    return { arr:_ptgMin2hm(s), dep:_ptgMin2hm(e) };
+  }catch(e){ return null; }
+}
+// Écart en minutes entre prévu et réel (réel − prévu ; positif = plus tard).
+function ptgEcartMin(prevuHM, reelHM){
+  var a=_ptgHm2min(prevuHM), b=_ptgHm2min(reelHM); if(a==null||b==null) return null;
+  var d=b-a; if(d>720)d-=1440; if(d<-720)d+=1440; return d;
+}
+// Statut d'un pointage vs prévu. sens='arr' (arrivée) ou 'dep' (départ).
+function ptgStatut(ecart, sens){
+  if(ecart==null) return {coul:'#888', txt:'', code:'na'};
+  var a=Math.abs(ecart);
+  if(a<=PTG_TOLERANCE) return {coul:'#3ecf8e', txt:'à l\'heure', code:'ok'};
+  var lib = (sens==='arr') ? (ecart>0?'retard':'en avance') : (ecart<0?'parti trop tôt':'parti tard');
+  var coul = (a<=15) ? '#e8a020' : '#e8623a';
+  return {coul:coul, txt:lib+' '+(ecart>0?'+':'−')+a+' min', code:(coul==='#e8623a'?'grave':'leger')};
+}
+// Enregistre le prévu + les écarts sur un enregistrement de pointage.
+function ptgMajEcarts(emp, rec, iso){
+  try{
+    var prevu=ptgPrevuDe(emp, iso);
+    rec.prevuArr = prevu?prevu.arr:''; rec.prevuDep = prevu?prevu.dep:'';
+    rec.ecartArr = (prevu && rec.arrivee) ? ptgEcartMin(prevu.arr, rec.arrivee) : null;
+    rec.ecartDep = (prevu && rec.depart) ? ptgEcartMin(prevu.dep, rec.depart) : null;
+  }catch(e){}
+}
+
 // ─── Écran suivi (RH / direction) ───
 function ptgSuiviInit(){
+  try{ ptgChargerPartage('suivi'); }catch(e){}   // pointages partagés (toutes tablettes)
   var vis=ptgRestosVisibles();
   if(!PTGS_RESTO || vis.indexOf(PTGS_RESTO)<0) PTGS_RESTO=vis[0];
   var tabs=document.getElementById('ptgs-resto-tabs');
@@ -6684,26 +6787,58 @@ function ptgRenderSuivi(){
   var dateISO=((document.getElementById('ptgs-date')||{}).value)||ptgTodayISO();
   var emps=ptgEmployesResto(PTGS_RESTO||PTG_RESTO);
   var all=ptgGetAll();
+  // Compteurs de synthèse (haut de tableau)
+  var nOk=0,nEcart=0,nAbsPointage=0,nPointes=0;
   var rows=emps.map(function(e){
     var rec=all[e.id+'_'+dateISO];
+    var prevu=ptgPrevuDe(e,dateISO);
+    var prevuTxt = prevu?(prevu.arr+' → '+prevu.dep):'—';
+    // écarts recalculés en direct (au cas où le prévu a changé depuis le pointage)
+    var ecA=(rec&&rec.arrivee&&prevu)?ptgEcartMin(prevu.arr,rec.arrivee):(rec?rec.ecartArr:null);
+    var ecD=(rec&&rec.depart&&prevu)?ptgEcartMin(prevu.dep,rec.depart):(rec?rec.ecartDep:null);
+    var stA=ptgStatut(ecA,'arr'), stD=ptgStatut(ecD,'dep');
     var arr=rec&&rec.arrivee?rec.arrivee:'—';
     var dep=rec&&rec.depart?rec.depart:'—';
     var h=rec?ptgHeuresTravaillees(rec):null;
-    var pauses=(rec&&rec.pauses&&rec.pauses.length)?rec.pauses.map(function(p){return (p.debut||'?')+'→'+(p.fin||'…');}).join(' '):'—';
-    var col=(rec&&rec.arrivee&&!rec.depart)?'#3ecf8e':(rec&&rec.depart?'#aaa':'#666');
+    // état global de la ligne
+    var etat='—', etatCoul='#666';
+    if(!rec||!rec.arrivee){ etat = prevu?'⚠️ Pas pointé':'—'; etatCoul=prevu?'#e8623a':'#666'; if(prevu) nAbsPointage++; }
+    else {
+      nPointes++;
+      var grave=(stA.code==='grave'||stD.code==='grave');
+      var leger=(stA.code==='leger'||stD.code==='leger');
+      if(grave){ etat='🔴 Écart important'; etatCoul='#e8623a'; nEcart++; }
+      else if(leger){ etat='🟠 Petit écart'; etatCoul='#e8a020'; nEcart++; }
+      else if(!rec.depart){ etat='🟢 Présent'; etatCoul='#3ecf8e'; nOk++; }
+      else { etat='✅ Conforme'; etatCoul='#3ecf8e'; nOk++; }
+    }
+    function _ec(ec,st){ return (ec!=null&&Math.abs(ec)>PTG_TOLERANCE)?(' <span style="font-size:.72rem;color:'+st.coul+';">('+(ec>0?'+':'−')+Math.abs(ec)+')</span>'):''; }
+    var note=((rec&&rec.note)||'').replace(/"/g,'&quot;');
     return '<tr style="border-bottom:1px solid #2a2a2a;">'
-      +'<td style="padding:7px 10px;color:#eee;">'+e.name+'</td>'
-      +'<td style="padding:7px 10px;color:'+col+';">'+arr+'</td>'
-      +'<td style="padding:7px 10px;color:'+col+';">'+dep+'</td>'
-      +'<td style="padding:7px 10px;color:#bbb;font-size:.8rem;">'+pauses+'</td>'
-      +'<td style="padding:7px 10px;color:#eee;font-weight:700;">'+(h!=null?(Math.round(h*100)/100)+'h':'—')+'</td>'
+      +'<td style="padding:7px 10px;color:#eee;font-weight:600;white-space:nowrap;">'+e.name+'</td>'
+      +'<td style="padding:7px 10px;color:#9aa;white-space:nowrap;">'+prevuTxt+'</td>'
+      +'<td style="padding:7px 10px;color:'+(rec&&rec.arrivee?stA.coul:'#666')+';white-space:nowrap;">'+arr+_ec(ecA,stA)+'</td>'
+      +'<td style="padding:7px 10px;color:'+(rec&&rec.depart?stD.coul:'#666')+';white-space:nowrap;">'+dep+_ec(ecD,stD)+'</td>'
+      +'<td style="padding:7px 10px;color:#eee;font-weight:700;white-space:nowrap;">'+(h!=null?(Math.round(h*100)/100)+'h':'—')+'</td>'
+      +'<td style="padding:7px 10px;color:'+etatCoul+';font-weight:700;white-space:nowrap;">'+etat+'</td>'
+      +'<td style="padding:5px 8px;"><input type="text" value="'+note+'" placeholder="note…" onchange="ptgSaveNote(\''+e.id+'\',\''+dateISO+'\',this.value)" style="width:130px;background:#111;border:1px solid #333;border-radius:6px;color:#eee;padding:4px 7px;font-size:.78rem;"></td>'
       +'</tr>';
   }).join('');
-  box.innerHTML='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.85rem;">'
+  var synth='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">'
+    +'<span style="background:#16321f;border:1px solid #2e5e33;color:#3ecf8e;padding:5px 12px;border-radius:20px;font-size:.8rem;font-weight:700;">✅ '+nOk+' conforme'+(nOk>1?'s':'')+'</span>'
+    +'<span style="background:#3a2a10;border:1px solid #7a5a1a;color:#e8a020;padding:5px 12px;border-radius:20px;font-size:.8rem;font-weight:700;">🟠🔴 '+nEcart+' écart'+(nEcart>1?'s':'')+'</span>'
+    +'<span style="background:#3a1616;border:1px solid #6a2a2a;color:#e8623a;padding:5px 12px;border-radius:20px;font-size:.8rem;font-weight:700;">⚠️ '+nAbsPointage+' pas pointé'+(nAbsPointage>1?'s':'')+'</span>'
+    +'</div>';
+  box.innerHTML=synth+'<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.85rem;">'
     +'<thead><tr style="color:#888;text-align:left;border-bottom:1px solid #333;">'
-    +'<th style="padding:7px 10px;">Salarié</th><th style="padding:7px 10px;">Arrivée</th><th style="padding:7px 10px;">Départ</th><th style="padding:7px 10px;">Pauses</th><th style="padding:7px 10px;">Total</th>'
-    +'</tr></thead><tbody>'+(rows||'<tr><td style="padding:12px;color:#888;" colspan="5">Aucun salarié.</td></tr>')+'</tbody></table></div>';
+    +'<th style="padding:7px 10px;">Salarié</th><th style="padding:7px 10px;">Prévu</th><th style="padding:7px 10px;">Arrivée</th><th style="padding:7px 10px;">Départ</th><th style="padding:7px 10px;">Total</th><th style="padding:7px 10px;">Contrôle</th><th style="padding:7px 10px;">Note</th>'
+    +'</tr></thead><tbody>'+(rows||'<tr><td style="padding:12px;color:#888;" colspan="7">Aucun salarié.</td></tr>')+'</tbody></table></div>';
 }
+// Note RH sur un pointage (partagée). Crée l'enregistrement du jour si besoin.
+function ptgSaveNote(empId,dateISO,val){
+  try{ var ctx=ptgRec(empId,dateISO); ctx.rec.note=val; ptgSaveAll(ctx.all); }catch(e){ console.warn('ptgSaveNote',e); }
+}
+window.ptgSaveNote=ptgSaveNote;
 
 
 function setReglement(k,v){ var R=getReglement(); R[k]=v; }
