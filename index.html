@@ -323,6 +323,10 @@ body.tv-mode #eye-viewas{display:none!important;}
 /* Mode tuiles : toutes les pages affichent leurs tuiles avec EXACTEMENT le même
    cadrage que Pointage (colonne centrée de 1000px), quel que soit le max-width
    propre de la page (incidents 480px, autres 1400px, etc.). */
+/* Onglets restaurants (fondus dans le bandeau rouge) : choisir 1 resto → toutes les sections suivent */
+#resto-actif-tabs .ratab{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.42);border-radius:20px;padding:6px 14px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .12s;white-space:nowrap;}
+#resto-actif-tabs .ratab:hover{background:rgba(255,255,255,.30);}
+#resto-actif-tabs .ratab.on{background:#fff;color:#D62300;border-color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.22);}
 .page.bk-tiles-mode{max-width:1000px!important;margin:0 auto!important;padding:16px!important;}
 #page-horaires.bk-tiles-mode{max-width:1000px!important;margin:0 auto!important;padding:16px!important;}
 #page-horaires.bk-tiles-mode #sec-horaires{display:none!important;}
@@ -419,25 +423,16 @@ html,body{overflow-x:hidden;}
       <p style="color:#888;font-size:.83rem;margin-top:4px;">Sélectionnez votre accès</p>
       <div id="login-maj" style="display:inline-block;margin-top:12px;background:rgba(76,175,80,.12);border:1px solid #4CAF50;color:#4CAF50;padding:5px 16px;border-radius:20px;font-size:.8rem;font-weight:600;"></div>
     </div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:14px;">
-      <div class="tile tile-admin" onclick="pickGlobal('admin')"><div class="tile-icon">🛡️</div><div class="tile-label">Admin</div><div class="tile-sub">Accès total</div></div>
-      <div class="tile tile-rh" onclick="pickGlobal('rh')"><div class="tile-icon">👩‍💼</div><div class="tile-label">Superviseure</div><div class="tile-sub">RH / Supervision</div></div>
-    </div>
-    <p style="color:#555;font-size:.76rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;">📺 Écrans TV restaurant</p>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:20px;">
-      <div class="tile tile-tv" onclick="pickTV('bk500')" style="border-color:#42a5f5;"><div class="tile-icon">📺</div><div class="tile-label">Écran TV 500</div><div class="tile-sub">Dashboard BK 500</div></div>
-      <div class="tile tile-tv" onclick="pickTV('bk509')" style="border-color:#42a5f5;"><div class="tile-icon">📺</div><div class="tile-label">Écran TV 509</div><div class="tile-sub">Dashboard BK 509</div></div>
-      <div class="tile tile-tv" onclick="pickTV('bk526')" style="border-color:#42a5f5;"><div class="tile-icon">📺</div><div class="tile-label">Écran TV 526</div><div class="tile-sub">Dashboard BK 526</div></div>
-    </div>
-    <div style="width:100%;max-width:620px;height:1px;background:#333;margin-bottom:18px;"></div>
     <p style="color:#555;font-size:.76rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;">Restaurants</p>
-    <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;">
+    <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-bottom:24px;">
       <div class="tile tile-bk" onclick="pickResto('bk500')" style="border-color:#FF8732;"><div class="tile-icon">🍔</div><div class="tile-label">BK 500</div><div class="tile-sub">Sélectionner</div></div>
       <div class="tile tile-bk" onclick="pickResto('bk509')" style="border-color:#FF6B35;"><div class="tile-icon">🍔</div><div class="tile-label">BK 509</div><div class="tile-sub">Sélectionner</div></div>
       <div class="tile tile-bk" onclick="pickResto('bk526')" style="border-color:#FFB347;"><div class="tile-icon">🍔</div><div class="tile-label">BK 526</div><div class="tile-sub">Sélectionner</div></div>
     </div>
-    <div style="margin-top:24px;">
-      <button onclick="openFeedback()" style="background:rgba(245,166,35,.10);color:#F5A623;border:1px solid rgba(245,166,35,.4);padding:11px 22px;border-radius:24px;cursor:pointer;font-size:.85rem;font-weight:700;font-family:inherit;">💡 Correctifs &amp; demandes</button>
+    <div style="width:100%;max-width:620px;height:1px;background:#333;margin:0 auto 18px;"></div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+      <div class="tile tile-admin" onclick="pickGlobal('admin')"><div class="tile-icon">🛡️</div><div class="tile-label">Admin</div><div class="tile-sub">Accès total</div></div>
+      <div class="tile tile-rh" onclick="pickGlobal('rh')"><div class="tile-icon">👩‍💼</div><div class="tile-label">Superviseure</div><div class="tile-sub">RH / Supervision</div></div>
     </div>
   </div>
 
@@ -447,6 +442,7 @@ html,body{overflow-x:hidden;}
     <p style="color:#888;font-size:.82rem;margin-bottom:24px;">Sélectionnez votre profil</p>
     <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-bottom:12px;">
       <div class="tile tile-dir" onclick="pickProfile('directeur')" id="tile-dir"><div class="tile-icon">👔</div><div class="tile-label">Directeur</div><div class="tile-sub" id="dir-sub">Directeur</div></div>
+      <div class="tile tile-tv" onclick="pickTV(curResto)" style="border-color:#42a5f5;"><div class="tile-icon">📺</div><div class="tile-label">Écran TV</div><div class="tile-sub">Dashboard du restaurant</div></div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
       <div class="tile tile-mgr" onclick="pickProfile('manager1')"><div class="tile-icon">⭐</div><div class="tile-label">Manager 1</div><div class="tile-sub" id="m1-sub">Manager 1</div></div>
@@ -484,7 +480,6 @@ html,body{overflow-x:hidden;}
         <button class="ra-tile" onclick="choisirRestoActif('bk500')" style="cursor:pointer;background:#1A1A1A;border:1px solid #555;border-radius:12px;padding:16px 20px;color:#fff;font-size:1.05rem;font-weight:700;display:flex;align-items:center;gap:12px;transition:all .12s;" onmouseover="this.style.borderColor='#F5A623';this.style.background='#2a2416';" onmouseout="this.style.borderColor='#555';this.style.background='#1A1A1A';">🍔 BK 500 <span style="font-size:.78rem;color:#888;font-weight:400;">Près des Arènes</span></button>
         <button class="ra-tile" onclick="choisirRestoActif('bk509')" style="cursor:pointer;background:#1A1A1A;border:1px solid #555;border-radius:12px;padding:16px 20px;color:#fff;font-size:1.05rem;font-weight:700;display:flex;align-items:center;gap:12px;transition:all .12s;" onmouseover="this.style.borderColor='#F5A623';this.style.background='#2a2416';" onmouseout="this.style.borderColor='#555';this.style.background='#1A1A1A';">🍔 BK 509 <span style="font-size:.78rem;color:#888;font-weight:400;">Saint-Jean-de-Védas</span></button>
         <button class="ra-tile" onclick="choisirRestoActif('bk526')" style="cursor:pointer;background:#1A1A1A;border:1px solid #555;border-radius:12px;padding:16px 20px;color:#fff;font-size:1.05rem;font-weight:700;display:flex;align-items:center;gap:12px;transition:all .12s;" onmouseover="this.style.borderColor='#F5A623';this.style.background='#2a2416';" onmouseout="this.style.borderColor='#555';this.style.background='#1A1A1A';">🍔 BK 526 <span style="font-size:.78rem;color:#888;font-weight:400;">Saint-Clément-de-Rivière</span></button>
-        <button class="ra-tile" onclick="choisirRestoActif('ALL')" style="cursor:pointer;background:#16241a;border:1px solid #2e5e33;border-radius:12px;padding:13px 20px;color:#9fe3b5;font-size:.92rem;font-weight:700;display:flex;align-items:center;gap:12px;transition:all .12s;" onmouseover="this.style.borderColor='#3ecf8e';" onmouseout="this.style.borderColor='#2e5e33';">🗂️ Tous les restaurants <span style="font-size:.74rem;color:#6a9a78;font-weight:400;">(je choisirai page par page)</span></button>
       </div>
     </div>
   </div>
@@ -574,13 +569,22 @@ html,body{overflow-x:hidden;}
       <span id="resto-actif-titre" style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.9rem;letter-spacing:1px;color:#fff;text-transform:uppercase;">Bonjour 👋 BK 500</span>
       <span id="resto-actif-sstitre" style="font-size:.95rem;color:rgba(255,255,255,.92);font-weight:600;">Près des Arènes</span>
     </div>
-    <div id="resto-actif-datetime" style="margin-left:auto;text-align:right;line-height:1.2;">
-      <div id="resto-actif-heure" style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.7rem;letter-spacing:1px;color:#fff;">--:--</div>
-      <div id="resto-actif-date" style="font-size:.82rem;color:rgba(255,255,255,.92);font-weight:600;text-transform:capitalize;">—</div>
+    <!-- Onglets restaurants fondus dans le bandeau : un seul choix pilote TOUTES les
+         sections (Équipe, Horaires, État équipe, Recrutement…). Planning & Paramètres communs. -->
+    <div style="margin-left:auto;display:flex;align-items:center;gap:18px;flex-wrap:wrap;justify-content:flex-end;">
+      <div id="resto-actif-tabs" style="display:none;gap:7px;flex-wrap:wrap;align-items:center;">
+        <button class="ratab" data-r="bk500" onclick="changerRestoActif('bk500')">🍔 BK 500</button>
+        <button class="ratab" data-r="bk509" onclick="changerRestoActif('bk509')">🍔 BK 509</button>
+        <button class="ratab" data-r="bk526" onclick="changerRestoActif('bk526')">🍔 BK 526</button>
+      </div>
+      <div id="resto-actif-datetime" style="text-align:right;line-height:1.2;">
+        <div id="resto-actif-heure" style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.7rem;letter-spacing:1px;color:#fff;">--:--</div>
+        <div id="resto-actif-date" style="font-size:.82rem;color:rgba(255,255,255,.92);font-weight:600;text-transform:capitalize;">—</div>
+      </div>
     </div>
   </div>
   <nav id="main-nav">
-    <button onclick="goPage('dashboard',this)">🏠 Accueil</button>
+    <button onclick="goPage('dashboard',this)">📺 Écran télé</button>
     <button class="desktop-only" onclick="goPage('equipe',this)">👥 Équipe</button>
     <button onclick="goPage('etatequipe',this)">🧑‍🤝‍🧑 État équipe <span id="eebadge" style="background:var(--orange);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
     <button onclick="goPage('horaires',this)">🕐 Horaires</button>
@@ -881,6 +885,10 @@ html,body{overflow-x:hidden;}
         <button class="rtab" id="cst-essai" onclick="setCandFilter('essai')">⏳ Période d'essai</button>
         <button class="rtab" id="cst-refuse" onclick="setCandFilter('refuse')">❌ Refusé</button>
       </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+        <button class="btn btn-gray btn-sm" onclick="dbxRangerToutMaintenant()" title="Range d'un coup TOUS les dossiers Dropbox existants (candidats + salariés) dans le bon sous-dossier selon leur statut actuel. Rien n'est supprimé, les dossiers sont seulement déplacés.">🗂️ Ranger tout mon Dropbox</button>
+        <span id="dbx-ranger-status" style="font-size:.76rem;color:#888;"></span>
+      </div>
 
       <!-- agenda (visible en Entretien) -->
       <div id="rec-agenda-wrap" style="display:none;margin-bottom:16px;">
@@ -1141,6 +1149,7 @@ html,body{overflow-x:hidden;}
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
         <div class="sec-title" style="margin:0;color:#f0b450;">⭐ Managers · Leaders · autres</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn btn-gray btn-sm" onclick="importerEncadrementEquipe()" title="Ajoute automatiquement tous les managers et leaders de l'équipe (BK 500 / 509 / 526) dans ce planning, sans horaires. Tu poseras les journées ensuite.">⬇️ Importer l'équipe</button>
           <button class="btn btn-gray btn-sm" onclick="managePeople('encadrement')">👥 Gérer les personnes</button>
           <button class="btn btn-gray btn-sm" onclick="manageCodes('encadrement')">🎨 Gérer les codes</button>
         </div>
@@ -2570,7 +2579,7 @@ window.choisirRestoActif=choisirRestoActif;
 
 // Changement de restaurant en cours de route (sélecteur dans l'en-tête)
 function changerRestoActif(resto){
-  window.ACTIVE_RESTO = resto;
+  window.ACTIVE_RESTO = (!resto || resto==='ALL') ? 'bk500' : resto;  // plus de « Tous »
   try{ if(resto && resto!=='ALL' && typeof hrSwitchRestoGrille==='function') hrSwitchRestoGrille(resto); }catch(e){}
   // recharger la page courante avec le nouveau resto
   var cur=document.querySelector('.page.active');
@@ -2583,14 +2592,20 @@ window.changerRestoActif=changerRestoActif;
 
 // Met à jour le sélecteur de resto (en-tête) ET le grand bandeau "restaurant actif"
 function majBadgeRestoActif(){
+  // Plus de « Tous » : le franchise/admin a toujours un restaurant actif (défaut BK 500).
+  if(curUser && curUser.role==='franchise' && (!window.ACTIVE_RESTO || window.ACTIVE_RESTO==='ALL')) window.ACTIVE_RESTO='bk500';
+  // Ancien menu déroulant : remplacé par les onglets → toujours masqué.
   var sel=document.getElementById('resto-actif-sel');
-  // 1) Sélecteur en haut à droite (franchise uniquement)
-  if(sel){
+  if(sel) sel.style.display='none';
+  // 1) Onglets restaurants (franchise/admin uniquement) : surligne le resto actif.
+  var tabs=document.getElementById('resto-actif-tabs');
+  if(tabs){
     if(curUser && curUser.role==='franchise'){
-      sel.style.display='inline-block';
-      sel.value = window.ACTIVE_RESTO || 'ALL';
+      tabs.style.display='flex';
+      var _cur=window.ACTIVE_RESTO||'ALL';
+      tabs.querySelectorAll('.ratab').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-r')===_cur); });
     } else {
-      sel.style.display='none';
+      tabs.style.display='none';
     }
   }
   // 2) Grand bandeau visible sur toutes les pages
@@ -2700,7 +2715,7 @@ function logout() {
   _realUser = null;
   try{ var pr=document.getElementById('preview-role'); if(pr) pr.value=''; var bk=document.getElementById('preview-back'); if(bk) bk.style.display='none'; var st=document.getElementById('preview-status'); if(st) st.textContent=''; }catch(e){}
   curUser = null; pinProf = null; pinVal = ''; curResto = null;
-  try{ window.ACTIVE_RESTO = null; var ras=document.getElementById('resto-actif-sel'); if(ras) ras.style.display='none'; var rab=document.getElementById('resto-actif-bandeau'); if(rab) rab.style.display='none'; }catch(e){}
+  try{ window.ACTIVE_RESTO = null; var ras=document.getElementById('resto-actif-sel'); if(ras) ras.style.display='none'; var rat=document.getElementById('resto-actif-tabs'); if(rat) rat.style.display='none'; var rab=document.getElementById('resto-actif-bandeau'); if(rab) rab.style.display='none'; }catch(e){}
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'block';
   showStep('step-resto');
@@ -2711,20 +2726,20 @@ function logout() {
 // PAS les tuiles — on charge directement ce resto via son pick(). Si 'ALL', on
 // garde les tuiles (choix page par page).
 function bkEntrerPage(pageId){
+  // Plus de tuiles de sélection dans les sections : le restaurant est choisi via les
+  // ONGLETS du bandeau. En mode « Tous », on ouvre par défaut le 1er restaurant.
   var ra = window.ACTIVE_RESTO;
-  if(ra && ra!=='ALL' && BK_TILE_PAGES[pageId] && typeof BK_TILE_PAGES[pageId].pick==='function'){
-    // masquer l'éventuel écran de tuiles et montrer le contenu
+  if(!ra || ra==='ALL') ra='bk500';
+  if(BK_TILE_PAGES[pageId] && typeof BK_TILE_PAGES[pageId].pick==='function'){
     var page=document.getElementById('page-'+pageId); if(page) page.classList.remove('bk-tiles-mode');
     var t=document.getElementById('bk-tiles-'+pageId), b=document.getElementById('bk-body-'+pageId);
     if(t) t.style.display='none';
     if(b) b.style.display='block';
-    // retirer un éventuel bouton "← Restaurants" (inutile en mode resto verrouillé)
     var oldBack=document.getElementById('bk-back-'+pageId); if(oldBack) oldBack.remove();
     try{ BK_TILE_PAGES[pageId].pick(ra); }catch(e){ console.warn('bkEntrerPage pick',pageId,e); }
     return;
   }
-  // sinon (ALL ou page sans config) : comportement tuiles classique
-  bkShowTiles(pageId);
+  // page sans config de tuiles : rien à faire (contenu déjà géré ailleurs)
 }
 window.bkEntrerPage=bkEntrerPage;
 
@@ -2746,7 +2761,7 @@ function goPage(id, btn) {
   if (btn) { btn.classList.add('active'); }
   else {
     // Pas de bouton passé (navigation programmée) : on retrouve celui de la page pour le surligner.
-    var _labels={dashboard:'Accueil',equipe:'👥 Équipe',etatequipe:'État équipe',horaires:'Horaires',docsplanning:'Documents planning',recrutement:'Recrutement',visite:'Visite',incidents:'Incidents',rapports:'Rapports',planning:'Planning',parametres:'Paramètres',alertes:'Alertes'};
+    var _labels={dashboard:'Écran télé',equipe:'👥 Équipe',etatequipe:'État équipe',horaires:'Horaires',docsplanning:'Documents planning',recrutement:'Recrutement',visite:'Visite',incidents:'Incidents',rapports:'Rapports',planning:'Planning',parametres:'Paramètres',alertes:'Alertes'};
     var _lbl=_labels[id];
     if(_lbl){ document.querySelectorAll('#main-nav button').forEach(function(b){ if(b.textContent.indexOf(_lbl)>=0) b.classList.add('active'); }); }
   }
@@ -2763,7 +2778,8 @@ function goPage(id, btn) {
   if (id==='equipe'){
     if(curUser.role==='franchise'){
       var ra=window.ACTIVE_RESTO;
-      eqTab = (ra && ra!=='ALL') ? ra : 'none';
+      // Plus de tuiles : en « Tous » on ouvre le 1er restaurant par défaut.
+      eqTab = (ra && ra!=='ALL') ? ra : 'bk500';
     }
     renderEquipe();
   }
@@ -2773,22 +2789,13 @@ function goPage(id, btn) {
   if (id==='horaires'){ try{
     if(!window.__hrDone && window.__hrInit){ window.__hrInit(); }
     var ra=window.ACTIVE_RESTO;
+    if(!ra || ra==='ALL') ra='bk500';   // plus de tuiles : « Tous » ouvre le 1er resto
     var _hrBack=document.getElementById('hr-btn-restos');
     var _hrSel=document.getElementById('hrx-resto-sel');
-    if(ra && ra!=='ALL'){
-      // resto verrouillé : on ouvre directement son planning, pas de tuiles,
-      // et on masque le sélecteur de resto interne (changement uniquement via l'en-tête).
-      if(_hrBack) _hrBack.style.display='none';
-      if(_hrSel) _hrSel.style.display='none';
-      try{ if(typeof hrOuvrirResto==='function') hrOuvrirResto(ra.toUpperCase()); }catch(e){ console.warn('hrOuvrirResto',e); }
-    } else {
-      if(_hrBack) _hrBack.style.display='';
-      if(_hrSel) _hrSel.style.display='';
-      // mode "Tous" : on montre les tuiles de choix
-      var hrT=document.getElementById('hr-tiles'); var hrC=document.getElementById('hr-content');
-      var hrP=document.getElementById('page-horaires'); if(hrP) hrP.classList.add('bk-tiles-mode');
-      if(hrT&&hrC){ hrT.style.display='block'; hrC.style.display='none'; }
-    }
+    // resto ouvert directement (changement via les onglets du bandeau uniquement).
+    if(_hrBack) _hrBack.style.display='none';
+    if(_hrSel) _hrSel.style.display='none';
+    try{ if(typeof hrOuvrirResto==='function') hrOuvrirResto(ra.toUpperCase()); }catch(e){ console.warn('hrOuvrirResto',e); }
   }catch(e){console.warn('init horaires',e);} }
   if (id==='docsplanning'){ try{ if(!window.__hrDone && window.__hrInit){ window.__hrInit(); } }catch(e){} try{ docsPlanningStatus&&docsPlanningStatus(); }catch(e){} }
   if (id==='recrutement'){ if(curUser.role==='franchise'){ bkEntrerPage('recrutement'); } else { setCandFilter(candFilter||'nouveau'); } }
@@ -4129,6 +4136,54 @@ async function dbxMigrerEquipe(e){
     await fetch('https://api.dropboxapi.com/2/files/move_v2',{method:'POST',headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({from_path:from,to_path:to,autorename:false})}).catch(function(){});
   }catch(_){}
 }
+
+// ── RANGEMENT UNIQUE : range TOUS les dossiers existants selon le statut ───────
+// Parcourt tous les candidats et salariés et déplace chaque dossier Dropbox dans
+// le bon sous-dossier (Recrutement/Nouveau|Refusé, Équipe, Archives). Cherche le
+// dossier là où il est susceptible d'être (emplacements actuels + legacy). Ne
+// supprime jamais rien : Dropbox déplace uniquement. Les dossiers déjà bien
+// placés ne bougent pas.
+async function dbxRangerToutMaintenant(){
+  if(!dbxEstPret()){ alert('Dropbox n\'est pas connecté sur cette version.\n\nCe bouton fonctionne sur le site EN LIGNE (là où Dropbox est branché), pas sur un simple aperçu local.'); return; }
+  var cands=DB.candidatures||[], emps=DB.employees||[];
+  var total=cands.length+emps.length;
+  if(!confirm('Ranger tous les dossiers Dropbox selon leur étape ?\n\n'+cands.length+' candidat(s) et '+emps.length+' salarié(s) seront passés en revue.\nLes dossiers sont seulement DÉPLACÉS (rien n\'est supprimé). Cela peut prendre un moment.')) return;
+  var st=document.getElementById('dbx-ranger-status');
+  var done=0, moved=0;
+  function maj(){ if(st) st.textContent='Rangement… '+done+'/'+total+' ('+moved+' déplacé'+(moved>1?'s':'')+')'; }
+  maj();
+  // 1) CANDIDATS (hors « essai » : ceux-là sont des salariés → traités plus bas)
+  for(var i=0;i<cands.length;i++){
+    var c=cands[i];
+    try{
+      var stt=c.statut||'nouveau';
+      if(stt!=='essai'){
+        var sous=dbxRecrutSous(stt);                                   // Nouveau | Refuse
+        var to=dbxRecrutFolder(c.restoId,c.nom,c.prenom,sous);
+        var froms=[
+          dbxRecrutFolderLegacy(c.restoId,c.nom,c.prenom),             // ancien "à plat"
+          dbxRecrutFolder(c.restoId,c.nom,c.prenom,'Nouveau'),
+          dbxRecrutFolder(c.restoId,c.nom,c.prenom,'Refuse')
+        ].filter(function(f){return f!==to;});
+        if(await dbxMoveFirst(froms,to)) moved++;
+      }
+    }catch(e){ console.warn('ranger candidat',e); }
+    done++; maj();
+  }
+  // 2) SALARIÉS : actif → Équipe · archivé → Archives
+  for(var j=0;j<emps.length;j++){
+    var e=emps[j];
+    try{
+      var toE = e.archived ? dbxEmpFolderArchive(e) : dbxEmpFolder(e);
+      var fromsE=[ dbxEmpFolderLegacy(e), dbxEmpFolder(e), dbxEmpFolderArchive(e) ].filter(function(f){return f!==toE;});
+      if(await dbxMoveFirst(fromsE,toE)) moved++;
+    }catch(e2){ console.warn('ranger salarié',e2); }
+    done++; maj();
+  }
+  if(st) st.textContent='✅ Terminé : '+moved+' dossier'+(moved>1?'s':'')+' déplacé'+(moved>1?'s':'')+' sur '+total+' vérifié'+(total>1?'s':'')+'.';
+  alert('Rangement Dropbox terminé.\n\n'+moved+' dossier(s) déplacé(s) dans le bon sous-dossier.\nLes dossiers déjà bien rangés n\'ont pas bougé.');
+}
+window.dbxRangerToutMaintenant=dbxRangerToutMaintenant;
 
 // Transforme un lien Dropbox en lien de TÉLÉCHARGEMENT direct (dl=1)
 function dbxDl(link){
@@ -8573,21 +8628,31 @@ function renderPlanning(){
     var any=cats.some(function(cat){return people.some(function(p){return p.categorie===cat;});});
     if(!any) return '<div class="empty" style="padding:30px 16px;"><div class="ei">🗓️</div><p>Aucune personne. Cliquez sur « Gérer les personnes » pour en ajouter.</p></div>';
     var html=entete();
+    var nRows=0;
+    var _arEnc=(window.ACTIVE_RESTO && window.ACTIVE_RESTO!=='ALL') ? (''+window.ACTIVE_RESTO).toLowerCase() : 'bk500';
     cats.forEach(function(cat){
       var grp=people.filter(function(p){return p.categorie===cat;});
       if(!grp.length)return;
       if(cat==='manager'||cat==='leader'){
-        ['bk500','bk509','bk526'].forEach(function(r){
-          var sub=grp.filter(function(p){return p.resto_id===r;});
-          if(!sub.length)return;
-          html+='<tr class="pl-cat-row"><td colspan="'+(days.length+1+(planView==='semaine'?1:0))+'">'+CAT_LABELS[cat]+' — '+(RESTOS[r]?RESTOS[r].label:r)+'</td></tr>';
-          sub.forEach(function(p){html+=personRow(p,days);});
-        });
+        // Managers/Leaders = PAR RESTAURANT : on n'affiche que le restaurant
+        // sélectionné en haut (les directeurs, eux, restent communs aux 3).
+        var sub=grp.filter(function(p){return (''+(p.resto_id||'')).toLowerCase()===_arEnc;});
+        if(sub.length){
+          html+='<tr class="pl-cat-row"><td colspan="'+(days.length+1+(planView==='semaine'?1:0))+'">'+CAT_LABELS[cat]+' — '+(RESTOS[_arEnc]?RESTOS[_arEnc].label:_arEnc)+'</td></tr>';
+          sub.forEach(function(p){html+=personRow(p,days); nRows++;});
+        }
       }else{
         html+='<tr class="pl-cat-row"><td colspan="'+(days.length+1+(planView==='semaine'?1:0))+'">'+CAT_LABELS[cat]+'</td></tr>';
-        grp.forEach(function(p){html+=personRow(p,days);});
+        grp.forEach(function(p){html+=personRow(p,days); nRows++;});
       }
     });
+    // Encadrement sans personne pour CE restaurant : message clair au lieu d'un tableau vide.
+    if(nRows===0){
+      var estEnc=(cats.indexOf('manager')>=0||cats.indexOf('leader')>=0);
+      return '<div class="empty" style="padding:30px 16px;"><div class="ei">🗓️</div><p>'
+        +(estEnc?('Aucun manager / leader pour '+(RESTOS[_arEnc]?RESTOS[_arEnc].label:_arEnc)+'. Cliquez sur « ⬇️ Importer l\'équipe » ou « Gérer les personnes ».'):'Aucune personne. Cliquez sur « Gérer les personnes » pour en ajouter.')
+        +'</p></div>';
+    }
     return html+'</tbody></table>';
   }
   var gd=document.getElementById('plan-grid-dir'); if(gd) gd.innerHTML=buildGrid(['directeur','superviseur','rh','marchandise']);
@@ -8605,6 +8670,18 @@ function heuresDuCode(code){
   if(hc.h3&&hc.h4){var s2=toMin(hc.h3),e2=toMin(hc.h4); if(s2!=null&&e2!=null){if(e2<=s2)e2+=1440;tot+=e2-s2;}}
   return tot/60;
 }
+// Abréviation affichée dans la case du planning : O (ouverture), F (fermeture),
+// J (journée), R (repos) — comme les directeurs. Les codes courts (CP, J, S, O…)
+// restent inchangés. La COULEUR (jaune manager / bleu leader) distingue déjà les rôles.
+function abrevCode(v){
+  if(!v) return '';
+  var u=(''+v).toUpperCase();
+  if(u.indexOf('OUV')>=0) return 'O';
+  if(u.indexOf('FERM')>=0) return 'F';
+  if(u.indexOf('JOUR')>=0) return 'J';
+  if(u.indexOf('REPOS')>=0) return 'R';
+  return v;   // codes déjà courts (CP, et codes directeurs J/S/R/O/CLOT/REUNION/VPO/H)
+}
 function personRow(p,days){
   var _ajd2=fmtDate(new Date());
   var r='<tr><td class="pl-name">'+p.nom+'</td>';
@@ -8618,7 +8695,7 @@ function personRow(p,days){
     var bg=co?co.couleur:'';
     var hc=co?horairesDuCode(co.code):null; var htxt=hc?fmtHoraireCode(hc):'';
     if(v) totH+=heuresDuCode(v);
-    var disp=htxt?('<div style="font-weight:700;">'+v+'</div><div style="font-size:8.5px;opacity:.95;">'+htxt+'</div>'):v;
+    var disp=v?('<span style="font-weight:800;">'+abrevCode(v)+'</span>'):'';
     var fond = bg || (auj?'#fff4f1':(we?'#141414':'transparent'));
     var style='background:'+fond+';'+(bg?'color:#fff;':(auj?'color:#900;':'color:#bbb;'))+(auj&&!bg?'box-shadow:inset 0 0 0 1px #f3b3a3;':'');
     r+='<td class="pl-cell'+(we?' we':'')+'" data-pid="'+p.id+'" data-date="'+fmtDate(d)+'"'+(v?' draggable="true"':'')+' style="'+style+'" onclick="openCell(\''+p.id+'\',\''+fmtDate(d)+'\')" title="'+(co&&co.label?co.label:v)+'">'+disp+'</td>';
@@ -8797,6 +8874,28 @@ async function addPerson(){
     toast('Personne ajoutée ✔','success');
   }catch(e){toast('Erreur','error');}
 }
+// Importe automatiquement les managers & leaders de l'ÉQUIPE (les 3 restos) dans le
+// planning d'encadrement, sans horaires. Anti-doublon par nom+catégorie+restaurant.
+async function importerEncadrementEquipe(){
+  var emps=(DB.employees||[]).filter(function(e){ return !e.archived && (e.role==='manager'||e.role==='leader'); });
+  if(!emps.length){ toast('Aucun manager/leader dans l\'équipe','error'); return; }
+  function _k(nom,cat,resto){ return (''+(nom||'')).trim().toLowerCase()+'|'+cat+'|'+(''+(resto||'')).toLowerCase(); }
+  var dejaLa={};
+  (PLAN.people||[]).forEach(function(p){ dejaLa[_k(p.nom,p.categorie,p.resto_id)]=true; });
+  var aAjouter=emps.filter(function(e){ return !dejaLa[_k(e.name,e.role,e.restoId)]; });
+  if(!aAjouter.length){ toast('Tous les managers/leaders sont déjà dans le planning ✔','success'); return; }
+  if(!confirm('Importer '+aAjouter.length+' manager(s)/leader(s) de l\'équipe dans le planning d\'encadrement ?\n\nLes noms apparaîtront pour les 3 restaurants (sans horaires) — tu poseras les journées ensuite.')) return;
+  var ordre=(PLAN.people||[]).length+1;
+  for(var i=0;i<aAjouter.length;i++){
+    var e=aAjouter[i];
+    try{ await sb.insert('bks_planning_people',{nom:e.name,categorie:e.role,resto_id:(''+(e.restoId||'')).toLowerCase(),ordre:ordre++,actif:true}); }
+    catch(err){ console.warn('import encadrement',err); }
+  }
+  await loadPlanning(); renderPlanning();
+  try{ renderPeopleList(); }catch(e){}
+  toast(aAjouter.length+' personne(s) importée(s) ✔','success');
+}
+window.importerEncadrementEquipe=importerEncadrementEquipe;
 function renderPeopleList(){
   var box=document.getElementById('people-list');if(!box)return;
   var cats=_peopleGrpFilter?_PEOPLE_CATS[_peopleGrpFilter]:CAT_ORDER;
@@ -9538,14 +9637,12 @@ function initDashboard(){
     try{ if(!tvr){ tvr=localStorage.getItem('dash_resto'); } }catch(e){}
     if(tvr){ DASH_RESTO=tvr; try{localStorage.setItem('dash_resto',tvr);}catch(e){} dashShowBoard(); dashStartClock(); return; }
   }
-  // Franchise avec un restaurant verrouillé (≠ Tous) : on va direct sur son accueil.
-  if(window.ACTIVE_RESTO && window.ACTIVE_RESTO!=='ALL'){
-    DASH_RESTO=window.ACTIVE_RESTO; try{localStorage.setItem('dash_resto',DASH_RESTO);}catch(e){}
-    dashShowBoard(); dashStartClock(); return;
-  }
-  // Sinon : on repart sur l'écran « Choisissez votre restaurant »
-  dashShowPick();
-  dashStartClock();
+  // Plus de « Tous » ni de « Choisissez votre restaurant » : l'Écran télé montre
+  // TOUJOURS le tableau de bord du restaurant actif (choisi via les onglets du haut).
+  var _dr=(window.ACTIVE_RESTO && window.ACTIVE_RESTO!=='ALL') ? window.ACTIVE_RESTO
+          : ((curUser && curUser.restoId) || 'bk500');
+  DASH_RESTO=_dr; try{localStorage.setItem('dash_resto',DASH_RESTO);}catch(e){}
+  dashShowBoard(); dashStartClock();
 }
 function dashShowPick(){
   var pick=document.getElementById('dash-resto-pick'),board=document.getElementById('dash-board'),panel=document.getElementById('dash-panel');
