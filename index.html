@@ -17277,6 +17277,17 @@ function hrAutoApply(){
   GRILLE_BY_RESTO[HR_GRILLE_RESTO]=grille15.map(r=>[...r]);
   // Rafraîchir l'affichage des jours : la nouvelle signature fera virer à l'orange.
   if(document.getElementById('hrx-days')) renderDays();
+  // ── ACTUALISATION AUTOMATIQUE ──────────────────────────────────────────────
+  // Plus besoin de cliquer sur « 🔄 Actualiser les traits de la semaine » :
+  // dès qu'on modifie la grille, on relance le recalcul tout seul. Anti-rebond
+  // (~700 ms) pour ne recalculer qu'UNE fois après une série de modifications
+  // rapides (saisie au clavier, ajustements successifs) plutôt qu'à chaque frappe.
+  try{
+    clearTimeout(_hrAutoTimer);
+    _hrAutoTimer = setTimeout(function(){
+      try{ if(typeof hrAutoRefreshTraits==='function') hrAutoRefreshTraits(); }catch(e){}
+    }, 700);
+  }catch(e){}
 }
 window.hrAutoApply=hrAutoApply;
 
@@ -19601,6 +19612,55 @@ function hrRefreshWeek(){
   etape();
 }
 window.hrRefreshWeek=hrRefreshWeek;
+
+// ── ACTUALISATION AUTOMATIQUE DES TRAITS ─────────────────────────────────────
+// Recalcule silencieusement les traits (besoin) des 7 jours de la semaine
+// affichée dès qu'on modifie la grille — MÊME résultat que le bouton
+// « 🔄 Actualiser les traits de la semaine », mais SANS clic, SANS animation
+// jour-par-jour et SANS changer d'écran (on reste sur la grille pendant l'édition).
+// Déclenché en anti-rebond depuis hrAutoApply() (voir _hrAutoTimer).
+function hrAutoRefreshTraits(){
+  if(HR_REFRESH_EN_COURS) return;
+  // Lundi de la semaine à recalculer : celui mémorisé, sinon le sélecteur.
+  let lundi = HR_WEEK_LUNDI;
+  if(!lundi){
+    const sel = document.getElementById('hrx-sem-sel2') || document.getElementById('hrx-sem-sel');
+    if(sel && sel.value) lundi = sel.value;
+  }
+  if(!lundi) return; // pas de semaine affichée : rien à recalculer
+
+  HR_REFRESH_EN_COURS = true;
+  try{
+    const resto = hrCurrentResto();
+    if(resto !== HR_GRILLE_RESTO) hrSwitchRestoGrille(resto);
+    HR_WEEK_LUNDI = lundi;
+    const base = hrParse(lundi);
+
+    // Valide la semaine avec la grille + le CA actuels (VERT persistant, partagé).
+    hrEnregistrerValidation(lundi);
+    // Actualiser les traits invalide les NOMS posés dessus (comme le bouton manuel).
+    try{ if(typeof hrInvaliderPlacement==='function') hrInvaliderPlacement(lundi); }catch(e){}
+
+    // Recalcule les 7 jours d'un coup (pas d'animation ici : c'est automatique).
+    for(let i=0;i<7;i++){ hrCalcJour(base, i); }
+
+    // Libellé semaine + en-tête + rendus, sans forcer hrShow('planning').
+    const moisC=['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'];
+    const dim=new Date(base); dim.setDate(base.getDate()+6);
+    const dimI=hrISO(dim);
+    WEEK_LABEL = lundi.slice(8,10)+' '+moisC[parseInt(lundi.slice(5,7))-1]+' → '+dimI.slice(8,10)+' '+moisC[parseInt(dimI.slice(5,7))-1]+' '+dimI.slice(0,4);
+    if(window.hrUpdateHeader) hrUpdateHeader();
+    buildCAGrid();
+    renderDays();
+    renderMetrics();
+    try{ if(typeof hrRenderPlanningHebdo==='function') hrRenderPlanningHebdo(); }catch(e){}
+  }catch(e){ console.warn('auto-actualisation traits', e); }
+  HR_REFRESH_EN_COURS = false;
+  // Remet les boutons dans le bon état (traits « à jour » en vert, placement dispo).
+  try{ if(typeof hrMajBoutonActualiser==='function') hrMajBoutonActualiser(); }catch(e){}
+  try{ if(typeof hrMajBoutonPlacer==='function') hrMajBoutonPlacer(); }catch(e){}
+}
+window.hrAutoRefreshTraits=hrAutoRefreshTraits;
 
 // ── PRÉVISION N-1 : courbe d'un jour selon la source choisie ──────────────────
 // Mode : 'auto' (réel sinon N-1), 'reel' (réel seul), 'n1' (toujours N-1)
