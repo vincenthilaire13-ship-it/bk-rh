@@ -1847,10 +1847,32 @@ function dbxCandFolder(c){
   var resto=RESTOS[rid]?RESTOS[rid].label:(rid||'Autre');
   return '/'+dbxClean(resto)+'/'+dbxClean((c.nom||'')+' '+(c.prenom||''));
 }
-// dossier RECRUTEMENT d'un candidat : /<Resto>/Recrutement/<Nom Prenom>
-function dbxRecrutFolder(rid,nom,prenom){
+// dossier RECRUTEMENT d'un candidat, par ÉTAPE :
+//   /<Resto>/Recrutement/<Etape>/<Nom Prenom>   (Etape = 'Nouveau' | 'Refuse')
+function dbxRecrutFolder(rid,nom,prenom,sous){
+  var resto=RESTOS[rid]?RESTOS[rid].label:(rid||'Autre');
+  var etape=(sous?dbxClean(sous):'Nouveau');
+  return '/'+dbxClean(resto)+'/Recrutement/'+etape+'/'+dbxClean((nom||'')+' '+(prenom||''));
+}
+// Ancien emplacement « à plat » (avant les sous-dossiers d'étape) — sert de repli
+// pour retrouver et déplacer les dossiers déjà présents (au fil de l'eau).
+function dbxRecrutFolderLegacy(rid,nom,prenom){
   var resto=RESTOS[rid]?RESTOS[rid].label:(rid||'Autre');
   return '/'+dbxClean(resto)+'/Recrutement/'+dbxClean((nom||'')+' '+(prenom||''));
+}
+// Étape (sous-dossier Recrutement) correspondant au statut d'un candidat.
+// 'essai' n'est pas ici : à l'embauche le dossier part dans « Équipe » (voir dbxEmpFolder).
+function dbxRecrutSous(statut){ return (statut==='refuse')?'Refuse':'Nouveau'; }
+// Dropbox est-il configuré/prêt ?
+function dbxEstPret(){ try{ return (typeof DBX_APP_KEY!=='undefined')&&DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0; }catch(e){ return false; } }
+// Tente de déplacer un dossier vers `to` en essayant plusieurs sources possibles
+// (emplacement attendu + emplacements « legacy »). S'arrête à la 1re réussite.
+async function dbxMoveFirst(froms,to){
+  for(var i=0;i<froms.length;i++){
+    if(!froms[i]||froms[i]===to) continue;
+    try{ var ok=await dbxMove(froms[i],to); if(ok) return true; }catch(e){}
+  }
+  return false;
 }
 // date du jour AAAA-MM-JJ pour nommer les fichiers
 function dbxDateStr(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -3177,6 +3199,7 @@ async function submitInc(){
           var ext=(_incSanctionDoc.name&&_incSanctionDoc.name.indexOf('.')>=0)?_incSanctionDoc.name.split('.').pop():'pdf';
           var sLbl=(SANCTIONS[selSanction]?SANCTIONS[selSanction].label:'Sanction');
           if(dbxReady){
+            await dbxMigrerEquipe(emp);
             var folder=dbxEmpFolder(emp);
             var blob=_dataUrlToBlob(_incSanctionDoc.data);
             link=await dbxUpload(folder+'/Sanction_'+dbxClean(sLbl)+'_'+dateStr+'.'+ext,blob);
@@ -4041,6 +4064,15 @@ async function saveEdit(){
   var rs=document.getElementById('edit-resto');if(rs)data.resto_id=rs.value;
   try {
     await sb.patch('bks_employees','id=eq.'+id,data);
+    // ── Dropbox : si le RESTAURANT (ou le nom) change, on déplace TOUT le dossier
+    //    du salarié vers le nouveau restaurant (source : Équipe, ou ancien emplacement).
+    try{
+      var _newR=data.resto_id||e.restoId, _newN=data.name||e.name;
+      if(dbxEstPret() && (_newR!==e.restoId || _newN!==e.name)){
+        var _to=dbxEmpFolder({restoId:_newR,name:_newN});
+        await dbxMoveFirst([dbxEmpFolder(e), dbxEmpFolderLegacy(e)], _to);
+      }
+    }catch(mvErr){ console.warn('Dropbox mutation salarié',mvErr); }
     // Sauvegarder le PIN si directeur/manager
     var pinRow=document.getElementById('edit-pin-row');
     if(pinRow.style.display!=='none'){
@@ -4073,9 +4105,29 @@ function _empDocCatLbl(id){var c=EMPDOC_CATS.find(function(x){return x.id===id;}
 function _empDocCatIcon(id){var c=EMPDOC_CATS.find(function(x){return x.id===id;});return c?c.icon:'📎';}
 
 // dossier Dropbox d'un salarié : /<Resto>/<Nom>
+// Dossier d'un salarié ACTIF : /<Resto>/Équipe/<Nom>
 function dbxEmpFolder(e){
   var resto=RESTOS[e.restoId]?RESTOS[e.restoId].label:(e.restoId||'Autre');
+  return '/'+dbxClean(resto)+'/Equipe/'+dbxClean(e.name);
+}
+// Ancien emplacement (racine du resto), avant le sous-dossier « Équipe ». Repli.
+function dbxEmpFolderLegacy(e){
+  var resto=RESTOS[e.restoId]?RESTOS[e.restoId].label:(e.restoId||'Autre');
   return '/'+dbxClean(resto)+'/'+dbxClean(e.name);
+}
+// Migration douce « au fil de l'eau » : si un salarié existant a encore son dossier
+// à la racine du resto, on le remonte dans « Équipe » avant d'y déposer un document
+// (best-effort : si la source n'existe pas ou que la destination est déjà là, ignoré).
+async function dbxMigrerEquipe(e){
+  try{
+    if(!dbxEstPret()||!e) return;
+    var from=dbxEmpFolderLegacy(e), to=dbxEmpFolder(e);
+    if(from===to) return;
+    var tok=await dbxToken();
+    var parent=to.slice(0,to.lastIndexOf('/'));
+    if(parent){ await fetch('https://api.dropboxapi.com/2/files/create_folder_v2',{method:'POST',headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({path:parent,autorename:false})}).catch(function(){}); }
+    await fetch('https://api.dropboxapi.com/2/files/move_v2',{method:'POST',headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({from_path:from,to_path:to,autorename:false})}).catch(function(){});
+  }catch(_){}
 }
 
 // Transforme un lien Dropbox en lien de TÉLÉCHARGEMENT direct (dl=1)
@@ -4294,6 +4346,7 @@ async function confirmValiderVisite(){
       if(dbxReady){
         var ext=(_visiteFileName&&_visiteFileName.indexOf('.')>=0)?_visiteFileName.split('.').pop():'jpg';
         var fname='Avis_medical_'+dVisite+'.'+ext;
+        await dbxMigrerEquipe(e);
         var folder=dbxEmpFolder(e);
         var blob=_dataUrlToBlob(_visiteFileData);
         link=await dbxUpload(folder+'/'+fname,blob);
@@ -4339,6 +4392,7 @@ async function handleEmpDocUpload(input){
     var baseName=_empDocCatLbl(cat).replace(/\s+/g,'_')+'_'+dbxClean(e.name)+(label?'_'+dbxClean(label):'')+'_'+dateStr;
     if(dbxReady){
       try{
+        await dbxMigrerEquipe(e);
         var folder=dbxEmpFolder(e);
         dbxPath=folder+'/'+baseName+'.'+ext;
         var blob=_dataUrlToBlob(dataUrl);
@@ -5425,9 +5479,9 @@ async function confirmExit(){
   try {
     await sb.patch('bks_employees','id=eq.'+id,data);
     // Déplacer le dossier Dropbox du salarié vers les Archives
+    // (source : Équipe si déjà migré, sinon ancien emplacement à la racine du resto)
     try{
-      var dbxReady=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
-      if(dbxReady){ await dbxMove(dbxEmpFolder(e), dbxEmpFolderArchive(e)); }
+      if(dbxEstPret()){ await dbxMoveFirst([dbxEmpFolder(e), dbxEmpFolderLegacy(e)], dbxEmpFolderArchive(e)); }
     }catch(mvErr){console.error('Dropbox archive move',mvErr);}
     await loadAll();closeModal('modal-exit');empFilter='actif';renderEquipe();fillFilters();fillRptPersons();
     toast(e.name+' archivé(e). Documents rangés dans les Archives ✔','success');
@@ -7334,9 +7388,12 @@ function mailRupture(){
 // ── ACTIONS : RETENU (intégration) ────────────────────────────────────────────
 async function _candUpdate(patch,msg,after){
   if(!_candId)return;
+  var _cAvant=curCand();  // état AVANT patch (resto + statut + nom/prénom) pour Dropbox
   patch.updated_at=new Date().toISOString();
   try{
     await sb.patch('bks_candidatures','id=eq.'+_candId,patch);
+    // ── Dropbox : le dossier du candidat suit son étape / son restaurant ──
+    try{ await dbxSuivreCandidat(_cAvant,patch); }catch(dbxe){ console.warn('dbx suivi candidat',dbxe); }
     await loadAll();
     renderCandidatures();if(candFilter==='entretien')renderAgenda();updateRBadge();
     closeModal('modal-cand');
@@ -7344,6 +7401,29 @@ async function _candUpdate(patch,msg,after){
     if(after)setTimeout(after,250);
   }catch(e){toast('Erreur','error');console.error(e);}
 }
+
+// Déplace le dossier Dropbox d'un candidat selon son NOUVEAU statut / restaurant.
+//   • nouveau / entretien / retenu → Recrutement/Nouveau
+//   • refuse                       → Recrutement/Refuse
+//   • essai (embauché)             → géré à l'embauche (candContratSigne → Équipe)
+async function dbxSuivreCandidat(c,patch){
+  if(!c||!dbxEstPret()) return;
+  var oldStatut=c.statut||'nouveau';
+  if(oldStatut==='essai') return;                 // déjà passé salarié : dossier dans Équipe
+  var newStatut=(patch&&patch.statut)||oldStatut;
+  if(newStatut==='essai') return;                 // l'embauche s'occupe du déplacement vers Équipe
+  var oldR=c.restoId, newR=(patch&&patch.resto_id)||c.restoId;
+  var from=dbxRecrutFolder(oldR,c.nom,c.prenom,dbxRecrutSous(oldStatut));
+  var to  =dbxRecrutFolder(newR,c.nom,c.prenom,dbxRecrutSous(newStatut));
+  if(from===to) return;
+  // sources de repli : autre sous-dossier de l'ancien resto + ancien emplacement à plat
+  await dbxMoveFirst([
+    from,
+    dbxRecrutFolder(oldR,c.nom,c.prenom,dbxRecrutSous(newStatut)),
+    dbxRecrutFolderLegacy(oldR,c.nom,c.prenom)
+  ], to);
+}
+window.dbxSuivreCandidat=dbxSuivreCandidat;
 
 // Réaffecte le candidat à un autre restaurant (modifiable à tout moment, sans
 // recréer la candidature). Les souhaits d'origine du candidat (restos) sont
@@ -7541,14 +7621,18 @@ async function candContratSigne(){
   var c=curCand();if(!c)return;
   if(!(c.contratSigneDoc&&(c.contratSigneDoc.data||c.contratSigneDoc.link))){alert('Importez d\'abord le contrat signé.');return;}
   if(!confirm('Démarrer la période d\'essai de '+c.prenom+' '+c.nom+' ?\n\nLe salarié sera ajouté à l\'équipe et le contrat archivé dans Dropbox.'))return;
-  var dbxReady=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
-  var restoLbl=RESTOS[c.restoId]?RESTOS[c.restoId].label:(c.restoId||'Autre');
-  var postePath='/'+dbxClean(restoLbl)+'/'+dbxClean((c.nom||'')+' '+(c.prenom||''));
-  // 1) BASCULE DOSSIER : Recrutement -> En poste (déplace CV + photo + docs déjà présents)
+  var dbxReady=dbxEstPret();
+  var _nomEmp=((c.prenom||'')+' '+(c.nom||'')).trim();          // nom du salarié = Prénom Nom
+  var postePath=dbxEmpFolder({restoId:c.restoId,name:_nomEmp}); // /<Resto>/Équipe/<Prénom Nom>
+  // 1) BASCULE DOSSIER : Recrutement (Nouveau/Refusé/legacy) -> Équipe
+  //    (déplace CV + photo + CNI + docs déjà présents ; sources multiples en repli)
   if(dbxReady){
     try{
-      var _from=dbxRecrutFolder(c.restoId,c.nom,c.prenom);
-      await dbxMove(_from,postePath);
+      await dbxMoveFirst([
+        dbxRecrutFolder(c.restoId,c.nom,c.prenom,'Nouveau'),
+        dbxRecrutFolder(c.restoId,c.nom,c.prenom,'Refuse'),
+        dbxRecrutFolderLegacy(c.restoId,c.nom,c.prenom)
+      ], postePath);
     }catch(e){console.warn('Bascule dossier embauche',e);}
   }
   // 2) Upload du contrat signé dans le dossier "en poste" (après la bascule)
@@ -8320,7 +8404,7 @@ async function submitPostuler(){
   // Dossier : /<Resto>/Recrutement/<Nom Prenom>/  — fichiers nommés avec la date.
   // Filet de sécurité : si Dropbox échoue, on retombe sur le base64 pour ne JAMAIS
   // perdre une candidature.
-  var _folder=dbxRecrutFolder(resto,nom,prenom);
+  var _folder=dbxRecrutFolder(resto,nom,prenom,'Nouveau');
   var _ds=dbxDateStr();
   // -- CV --
   if(window._cvData){
