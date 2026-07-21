@@ -6906,7 +6906,6 @@ function openCand(id){
     +'<div><div class="flabel">Nationalité</div><span style="color:#eee;font-size:.85rem;">'+(c.nationalite||'—')+'</span></div>'
     +'<div><div class="flabel">Sexe</div><span style="color:#eee;font-size:.85rem;">'+(c.sexe||'—')+'</span></div>'
     +'<div style="grid-column:1/-1;"><div class="flabel">Adresse</div><span style="color:#eee;font-size:.85rem;">'+(c.adresse||'—')+((c.codePostal||c.ville)?', '+(c.codePostal||'')+' '+(c.ville||''):'')+'</span></div>'
-    +((c.cvName||c.cvData)?'<div style="grid-column:1/-1;"><div class="flabel">CV</div><button class="btn btn-gray btn-sm" onclick="viewCV(\''+c.id+'\')">👁️ Lire le CV'+(c.cvName?' ('+c.cvName+')':'')+'</button> <button class="btn btn-gray btn-sm" onclick="downloadCV(\''+c.id+'\')">⬇️ Télécharger</button></div>':'')
     +'</div>'
     +candDocsHtml(c)
     +'<div class="flabel" style="margin-top:6px;">📅 Disponibilités</div>'
@@ -6964,6 +6963,13 @@ function dlCandDoc(candId,key){
 // Liste HTML de toutes les pièces déposées par un candidat (Lire + Télécharger)
 function candDocsHtml(c){
   var docs=c.documents||{}, out='';
+  // CV en tête de liste
+  if(c.cvName||c.cvData){
+    out+='<div style="display:flex;align-items:center;gap:8px;background:#11160f;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
+      +'<span style="flex:1;min-width:0;font-size:.82rem;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📄 CV'+(c.cvName?' — '+c.cvName:'')+'</span>'
+      +'<button class="btn btn-gray btn-sm" onclick="viewCV(\''+c.id+'\')">👁️ Lire</button> <button class="btn btn-gray btn-sm" onclick="downloadCV(\''+c.id+'\')">⬇️ Télécharger</button>'
+      +'</div>';
+  }
   DOC_TYPES.forEach(function(d){
     function line(key,lbl){
       var p=docs[key]; if(!p||!(p.link||p.data)) return '';
@@ -6975,6 +6981,13 @@ function candDocsHtml(c){
     if(d.sides){d.sides.forEach(function(s){out+=line(d.id+'_'+s.toLowerCase(),d.label+' — '+s);});}
     else{out+=line(d.id,d.label);}
   });
+  // Photo en fin de liste
+  if(c.photo){
+    out+='<div style="display:flex;align-items:center;gap:8px;background:#11160f;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
+      +'<span style="flex:1;min-width:0;font-size:.82rem;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📷 Photo</span>'
+      +'<button class="btn btn-gray btn-sm" onclick="viewCandPhoto(\''+c.id+'\')">👁️ Lire</button> <button class="btn btn-gray btn-sm" onclick="dlCandPhoto(\''+c.id+'\')">⬇️ Télécharger</button>'
+      +'</div>';
+  }
   var hasAny=out||c.cvName||c.cvData||c.photo;
   if(!hasAny) return '';
   return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;margin-bottom:4px;flex-wrap:wrap;">'
