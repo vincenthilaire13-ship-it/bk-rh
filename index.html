@@ -5503,7 +5503,16 @@ var NATIONALITES = ['— Choisir —','Française','Algérienne','Allemande','Am
 var candFilter = 'nouveau';
 var restoFilterQr = null;
 
-function publicBaseUrl(){return window.location.origin+window.location.pathname;}
+// Adresse publique de l'appli. En ligne → on prend l'adresse réelle.
+// Ouverte en local (file://) → on force l'adresse en ligne, sinon le QR/aperçu
+// pointeraient vers le disque dur (file://) et seraient inutilisables.
+var PROD_URL='https://bkrh.vercel.app/';
+function publicBaseUrl(){
+  try{
+    if(window.location.protocol==='file:'||!window.location.origin||window.location.origin==='null') return PROD_URL;
+    return window.location.origin+window.location.pathname;
+  }catch(e){ return PROD_URL; }
+}
 function publicFormUrl(resto){return publicBaseUrl()+'#postuler'+(resto?'/'+resto:'');}
 
 function renderQr(){
