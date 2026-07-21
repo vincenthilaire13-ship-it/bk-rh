@@ -1265,22 +1265,53 @@ html,body{overflow-x:hidden;}
     </div>
     <div class="card param-card" id="pc-mails" style="display:none;">
       <div class="sec-title">✉️ Modèles de mails</div>
-      <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Personnalisez les mails envoyés aux candidats. Variables disponibles : <code style="color:var(--orange);">{prenom}</code>, <code style="color:var(--orange);">{nom}</code>, <code style="color:var(--orange);">{resto}</code>, <code style="color:var(--orange);">{date}</code> (date d'entretien). Les mails s'ouvrent dans votre messagerie, vous validez vous-même l'envoi.</p>
 
-      <div id="mt-tabs" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
-        <button class="rtab on" onclick="setMailTab(this,'entretien')">📅 Entretien</button>
-        <button class="rtab" onclick="setMailTab(this,'rappel')">🔔 Rappel entretien</button>
-        <button class="rtab" onclick="setMailTab(this,'retenu')">✅ Retenu</button>
-        <button class="rtab" onclick="setMailTab(this,'refus')">❌ Refus candidature</button>
-        <button class="rtab" onclick="setMailTab(this,'rupture')">🛑 Rupture FPE</button>
-        <button class="rtab" onclick="setMailTab(this,'demission')">📤 Démission</button>
-        <button class="rtab" onclick="setMailTab(this,'renvoi')">⛔ Renvoi</button>
+      <!-- ÉCRAN TUILES : un jeu de modèles par restaurant -->
+      <div id="mail-tpl-tiles">
+        <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Chaque restaurant a ses <strong>propres modèles de mails</strong> et sa <strong>propre adresse d'expédition</strong>. Choisissez le restaurant à configurer :</p>
+        <div class="bk-tiles-grid">
+          <div class="dash-tile" onclick="openMailResto('bk500')">
+            <div class="dt-accent" style="background:#e53935;"></div>
+            <div class="dt-em">✉️</div>
+            <div><div class="dt-tt">BK 500</div><div class="dt-ds">Modèles de mails</div></div>
+          </div>
+          <div class="dash-tile" onclick="openMailResto('bk509')">
+            <div class="dt-accent" style="background:#1565c0;"></div>
+            <div class="dt-em">✉️</div>
+            <div><div class="dt-tt">BK 509</div><div class="dt-ds">Modèles de mails</div></div>
+          </div>
+          <div class="dash-tile" onclick="openMailResto('bk526')">
+            <div class="dt-accent" style="background:#2e7d32;"></div>
+            <div class="dt-em">✉️</div>
+            <div><div class="dt-tt">BK 526</div><div class="dt-ds">Modèles de mails</div></div>
+          </div>
+        </div>
       </div>
-      <label class="flabel">Objet</label>
-      <input type="text" id="mt-sujet" class="fi" style="margin-bottom:10px;">
-      <label class="flabel">Message</label>
-      <textarea id="mt-corps" class="fi" style="min-height:200px;font-size:.85rem;"></textarea>
-      <button class="btn btn-red" style="margin-top:12px;" onclick="saveMailTpl()">💾 Enregistrer les modèles</button>
+
+      <!-- ÉCRAN ÉDITEUR : modèles du restaurant sélectionné -->
+      <div id="mail-tpl-editor" style="display:none;">
+        <button class="btn btn-gray btn-sm" onclick="backMailTiles()" style="margin-bottom:12px;">← Restaurants</button>
+        <div id="mail-tpl-resto-title" style="font-weight:800;color:var(--orange);font-size:1.05rem;margin-bottom:10px;"></div>
+        <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Variables disponibles : <code style="color:var(--orange);">{prenom}</code>, <code style="color:var(--orange);">{nom}</code>, <code style="color:var(--orange);">{resto}</code>, <code style="color:var(--orange);">{date}</code> (date d'entretien). Les mails s'ouvrent dans votre messagerie, vous validez vous-même l'envoi.</p>
+
+        <label class="flabel">Adresse d'expédition / de réponse (propre à ce restaurant)</label>
+        <input type="email" id="mt-exp-resto" class="fi" placeholder="rh.bk500@votredomaine.fr" style="margin-bottom:16px;">
+
+        <div id="mt-tabs" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+          <button class="rtab on" onclick="setMailTab(this,'entretien')">📅 Entretien</button>
+          <button class="rtab" onclick="setMailTab(this,'rappel')">🔔 Rappel entretien</button>
+          <button class="rtab" onclick="setMailTab(this,'retenu')">✅ Retenu</button>
+          <button class="rtab" onclick="setMailTab(this,'refus')">❌ Refus candidature</button>
+          <button class="rtab" onclick="setMailTab(this,'rupture')">🛑 Rupture FPE</button>
+          <button class="rtab" onclick="setMailTab(this,'demission')">📤 Démission</button>
+          <button class="rtab" onclick="setMailTab(this,'renvoi')">⛔ Renvoi</button>
+        </div>
+        <label class="flabel">Objet</label>
+        <input type="text" id="mt-sujet" class="fi" style="margin-bottom:10px;">
+        <label class="flabel">Message</label>
+        <textarea id="mt-corps" class="fi" style="min-height:200px;font-size:.85rem;"></textarea>
+        <button class="btn btn-red" style="margin-top:12px;" onclick="saveMailTplResto()">💾 Enregistrer les modèles de ce restaurant</button>
+      </div>
     </div>
   </div>
 </div>
@@ -4463,7 +4494,7 @@ async function annulerSortie(){
 }
 function mailSortie(type){
   var e=DB.employees.find(function(x){return x.id===_sortieEmpId;});if(!e)return;
-  var tpl=getMailTpl();var t=tpl[type];if(!t)return;
+  var tpl=getMailTpl(e.restoId);var t=tpl[type];if(!t)return;
   var fake={prenom:e.name.split(' ')[0]||e.name,nom:e.name.split(' ').slice(1).join(' '),restoId:e.restoId,dateDebut:''};
   var sujet=_fillTpl(t.sujet,fake),corps=_fillTpl(t.corps,fake);
   var mailto='mailto:'+(e.email||'')+'?subject='+encodeURIComponent(sujet)+'&body='+encodeURIComponent(corps);
@@ -6900,7 +6931,7 @@ function openCand(id){
     +'<div><div class="flabel">Téléphone</div><a href="tel:'+c.phone+'" style="color:var(--orange);">'+(c.phone||'—')+'</a></div>'
     +'<div><div class="flabel">Email</div><a href="mailto:'+c.email+'" style="color:var(--orange);font-size:.82rem;word-break:break-all;">'+(c.email||'—')+'</a></div>'
     +'<div><div class="flabel">Type de contrat</div><span style="color:#eee;font-size:.85rem;">'+(c.contratLabel||c.poste||'—')+(c.niveauApprentissage&&!c.contratLabel?' · '+c.niveauApprentissage:'')+'</span></div>'
-    +'<div><div class="flabel">Restaurant'+((c.restos&&c.restos.indexOf(',')>=0)?'s':'')+'</div><span style="color:#eee;">'+((c.restos?c.restos.split(',').filter(Boolean):[c.restoId]).map(function(r){return RESTOS[r]?RESTOS[r].label:r;}).join(', '))+'</span></div>'
+    +'<div><div class="flabel">Restaurant assigné</div><select onchange="candChangeResto(this.value)" style="background:#1A1A1A;border:1px solid #444;border-radius:6px;color:#eee;font-size:.85rem;padding:5px 6px;width:100%;">'+Object.keys(RESTOS).map(function(r){return '<option value="'+r+'"'+(r===c.restoId?' selected':'')+'>'+RESTOS[r].label+'</option>';}).join('')+'</select>'+((c.restos&&c.restos.split(',').filter(Boolean).length>1)?'<div style="font-size:.68rem;color:#888;margin-top:3px;">Souhaits du candidat : '+c.restos.split(',').filter(Boolean).map(function(r){return RESTOS[r]?RESTOS[r].label:r;}).join(', ')+'</div>':'')+'</div>'
     +'<div><div class="flabel">Transport</div><span style="color:#eee;font-size:.85rem;">'+(c.transport||'—')+(c.trajet?' · '+c.trajet:'')+'</span></div>'
     +'<div><div class="flabel">Dernier emploi</div><span style="color:#eee;font-size:.85rem;">'+(c.dernierEmploi||'—')+'</span></div>'
     +'<div><div class="flabel">Nationalité</div><span style="color:#eee;font-size:.85rem;">'+(c.nationalite||'—')+'</span></div>'
@@ -6970,6 +7001,14 @@ function candDocsHtml(c){
       +'<button class="btn btn-gray btn-sm" onclick="viewCV(\''+c.id+'\')">👁️ Lire</button> <button class="btn btn-gray btn-sm" onclick="downloadCV(\''+c.id+'\')">⬇️ Télécharger</button>'
       +'</div>';
   }
+  // Pièce d'identité (CNI) déposée à la candidature — recto + verso (+ legacy)
+  [['piece_identite_recto','🪪 Pièce d\'identité — Recto'],['piece_identite_verso','🪪 Pièce d\'identité — Verso'],['piece_identite','🪪 Pièce d\'identité (CNI)']].forEach(function(pi){
+    var p=docs[pi[0]]; if(!p||!(p.link||p.data)) return;
+    out+='<div style="display:flex;align-items:center;gap:8px;background:#11160f;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
+      +'<span style="flex:1;min-width:0;font-size:.82rem;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+pi[1]+'</span>'
+      +'<button class="btn btn-gray btn-sm" onclick="viewCandDoc(\''+c.id+'\',\''+pi[0]+'\')">👁️ Lire</button> <button class="btn btn-gray btn-sm" onclick="dlCandDoc(\''+c.id+'\',\''+pi[0]+'\')">⬇️ Télécharger</button>'
+      +'</div>';
+  });
   DOC_TYPES.forEach(function(d){
     function line(key,lbl){
       var p=docs[key]; if(!p||!(p.link||p.data)) return '';
@@ -7198,17 +7237,24 @@ var MAIL_DEFAULTS={
     corps:'Bonjour {prenom},\n\nNous vous confirmons la fin de votre contrat de travail au sein de l\'équipe {resto}.\n\nVotre dernier jour de travail est fixé au {date_fin}.\n\nVos documents de fin de contrat (solde de tout compte, certificat de travail, attestation France Travail) vous seront remis dans les délais légaux.\n\nCordialement,\nL\'équipe {resto}'
   }
 };
-function getMailTpl(){
-  var m=(DB.mailSettings&&DB.mailSettings.mailTpl)||{};
+// Modèles de mails — PAR RESTAURANT si défini, sinon modèle commun, sinon défaut.
+//   getMailTpl(restoId) : restoId = restaurant du candidat/salarié ('bk500'…).
+//   Sans argument (ex. rapports) → modèle commun / défaut.
+// Priorité : mailTplByResto[resto] > mailTpl (commun) > MAIL_DEFAULTS.
+function getMailTpl(restoId){
+  var g=(DB.mailSettings&&DB.mailSettings.mailTpl)||{};                 // commun (existant)
+  var byR=(DB.mailSettings&&DB.mailSettings.mailTplByResto)||{};
+  var r=(restoId&&(byR[restoId]||byR[(''+restoId).toLowerCase()]))||{}; // propre au resto
+  function pick(k){ return r[k]||g[k]||MAIL_DEFAULTS[k]; }
   return {
-    expediteur:m.expediteur||MAIL_DEFAULTS.expediteur,
-    entretien:m.entretien||MAIL_DEFAULTS.entretien,
-    rappel:m.rappel||MAIL_DEFAULTS.rappel,
-    retenu:m.retenu||MAIL_DEFAULTS.retenu,
-    refus:m.refus||MAIL_DEFAULTS.refus,
-    rupture:m.rupture||MAIL_DEFAULTS.rupture,
-    demission:m.demission||MAIL_DEFAULTS.demission,
-    renvoi:m.renvoi||MAIL_DEFAULTS.renvoi
+    expediteur:r.expediteur||g.expediteur||MAIL_DEFAULTS.expediteur,
+    entretien:pick('entretien'),
+    rappel:pick('rappel'),
+    retenu:pick('retenu'),
+    refus:pick('refus'),
+    rupture:pick('rupture'),
+    demission:pick('demission'),
+    renvoi:pick('renvoi')
   };
 }
 function _restoLabel(c){return RESTOS[c.restoId]?RESTOS[c.restoId].label:'Burger King';}
@@ -7225,7 +7271,7 @@ function _fillTpl(txt,c,dateStr){
     .replace(/{date_fin}/g,dFin);
 }
 function _mailto(c,subject,body){
-  var tpl=getMailTpl();
+  var tpl=getMailTpl(c&&c.restoId);
   var dest=(c.email||'').trim();
   if(!dest){toast('Ce candidat n\'a pas d\'adresse email renseignée.','error');return;}
   // CC : adresse principale RH (commune à tous)
@@ -7259,29 +7305,29 @@ function _mailto(c,subject,body){
 
 function mailConvocation(){
   var c=curCand();if(!c)return;
-  var tpl=getMailTpl();
+  var tpl=getMailTpl(c.restoId);
   var dt=c.entretienDate?new Date(c.entretienDate).toLocaleString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'(à confirmer)';
   _mailto(c,_fillTpl(tpl.entretien.sujet,c,dt),_fillTpl(tpl.entretien.corps,c,dt));
 }
 function mailRappelEntretien(){
   var c=curCand();if(!c)return;
-  var tpl=getMailTpl();
+  var tpl=getMailTpl(c.restoId);
   var dt=c.entretienDate?new Date(c.entretienDate).toLocaleString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'(à confirmer)';
   _mailto(c,_fillTpl(tpl.rappel.sujet,c,dt),_fillTpl(tpl.rappel.corps,c,dt));
 }
 function mailRefus(){
   var c=curCand();if(!c)return;
-  var tpl=getMailTpl();
+  var tpl=getMailTpl(c.restoId);
   _mailto(c,_fillTpl(tpl.refus.sujet,c),_fillTpl(tpl.refus.corps,c));
 }
 function mailDocuments(){
   var c=curCand();if(!c)return;
-  var tpl=getMailTpl();
+  var tpl=getMailTpl(c.restoId);
   _mailto(c,_fillTpl(tpl.retenu.sujet,c),_fillTpl(tpl.retenu.corps,c));
 }
 function mailRupture(){
   var c=curCand();if(!c)return;
-  var tpl=getMailTpl();
+  var tpl=getMailTpl(c.restoId);
   _mailto(c,_fillTpl(tpl.rupture.sujet,c),_fillTpl(tpl.rupture.corps,c));
 }
 
@@ -7298,6 +7344,15 @@ async function _candUpdate(patch,msg,after){
     if(after)setTimeout(after,250);
   }catch(e){toast('Erreur','error');console.error(e);}
 }
+
+// Réaffecte le candidat à un autre restaurant (modifiable à tout moment, sans
+// recréer la candidature). Les souhaits d'origine du candidat (restos) sont
+// conservés ; seul le restaurant ASSIGNÉ change (il pilote mails, dossier, badges).
+function candChangeResto(rid){
+  var c=curCand(); if(!c||!rid||rid===c.restoId) return;
+  _candUpdate({resto_id:rid},'Candidat réaffecté à '+((RESTOS[rid]&&RESTOS[rid].label)||rid)+' ✔',function(){openCand(_candId);});
+}
+window.candChangeResto=candChangeResto;
 
 // ── DOCUMENTS D'INTÉGRATION ───────────────────────────────────────────────────
 var DOC_TYPES=[
@@ -7959,6 +8014,32 @@ function showPostulerPage(presetResto){
     +'<button type="button" class="btn btn-gray btn-sm" onclick="document.getElementById(\'p-photo-input\').click()">🖼️ Choisir une photo</button>'
     +'</div>'
     +'<p style="font-size:.72rem;color:#666;margin-top:6px;">La photo est réduite automatiquement.</p></div></div></div>'
+    +'<div class="card"><div class="sec-title">🪪 Votre carte d\'identité ou passeport *</div>'
+    +'<p style="font-size:.8rem;color:#aaa;margin-bottom:12px;">Prenez en photo (ou importez) le <strong>recto</strong> et le <strong>verso</strong> de votre carte d\'identité, ou les pages de votre passeport. Les deux sont obligatoires.</p>'
+    // RECTO
+    +'<label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Recto *</label>'
+    +'<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:6px 0 14px;">'
+    +'<div id="p-cni-recto-preview" style="width:118px;height:76px;border-radius:10px;background:#1A1A1A;border:2px dashed #444;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#555;background-size:cover;background-position:center;">🪪</div>'
+    +'<div style="flex:1;min-width:180px;">'
+    +'<input type="file" id="p-cni-recto-cam" accept="image/*" capture="environment" style="display:none;" onchange="handleCNISide(this,\'recto\')">'
+    +'<input type="file" id="p-cni-recto-file" accept="image/*,application/pdf" style="display:none;" onchange="handleCNISide(this,\'recto\')">'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+    +'<button type="button" class="btn btn-gray btn-sm" onclick="document.getElementById(\'p-cni-recto-cam\').click()">📸 Prendre en photo</button>'
+    +'<button type="button" class="btn btn-gray btn-sm" onclick="document.getElementById(\'p-cni-recto-file\').click()">🖼️ Choisir</button>'
+    +'</div>'
+    +'<div id="p-cni-recto-name" style="font-size:.78rem;color:#4CAF50;margin-top:6px;"></div></div></div>'
+    // VERSO
+    +'<label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Verso *</label>'
+    +'<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:6px 0 4px;">'
+    +'<div id="p-cni-verso-preview" style="width:118px;height:76px;border-radius:10px;background:#1A1A1A;border:2px dashed #444;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#555;background-size:cover;background-position:center;">🪪</div>'
+    +'<div style="flex:1;min-width:180px;">'
+    +'<input type="file" id="p-cni-verso-cam" accept="image/*" capture="environment" style="display:none;" onchange="handleCNISide(this,\'verso\')">'
+    +'<input type="file" id="p-cni-verso-file" accept="image/*,application/pdf" style="display:none;" onchange="handleCNISide(this,\'verso\')">'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+    +'<button type="button" class="btn btn-gray btn-sm" onclick="document.getElementById(\'p-cni-verso-cam\').click()">📸 Prendre en photo</button>'
+    +'<button type="button" class="btn btn-gray btn-sm" onclick="document.getElementById(\'p-cni-verso-file\').click()">🖼️ Choisir</button>'
+    +'</div>'
+    +'<div id="p-cni-verso-name" style="font-size:.78rem;color:#4CAF50;margin-top:6px;"></div></div></div></div>'
     +'<div class="card"><div class="sec-title">📄 Votre CV *</div>'
     +'<p style="font-size:.8rem;color:#aaa;margin-bottom:10px;">Joignez votre CV (PDF ou image). Obligatoire.</p>'
     +'<input type="file" id="p-cv-input" accept="application/pdf,image/*" style="display:none;" onchange="handleCV(this)">'
@@ -8083,6 +8164,37 @@ function handleCV(input){
   reader.readAsDataURL(file);
 }
 
+// Pièce d'identité — recto/verso, pris en photo (appareil) ou importés.
+// Les images sont compressées à une taille LISIBLE (≈1600 px) ; les PDF gardés tels quels.
+function handleCNISide(input,side){
+  var file=input.files&&input.files[0];if(!file)return;
+  if(file.size>10*1024*1024){alert('Fichier trop volumineux (max 10 Mo).');input.value='';return;}
+  var key=side==='verso'?'Verso':'Recto';
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var isPdf=(file.type&&file.type.indexOf('pdf')>=0);
+    function store(dataUrl){
+      window['_cni'+key+'Data']=dataUrl;
+      window['_cni'+key+'Name']=file.name;
+      window['_cni'+key+'Type']=file.type;
+      var nm=document.getElementById('p-cni-'+side+'-name');if(nm)nm.textContent='✓ '+file.name;
+      var pv=document.getElementById('p-cni-'+side+'-preview');
+      if(pv){ if(isPdf){ pv.innerHTML='📄'; } else { pv.innerHTML='';pv.style.border='none';pv.style.backgroundImage='url('+dataUrl+')'; } }
+    }
+    if(isPdf){ store(e.target.result); return; }
+    var img=new Image();
+    img.onload=function(){
+      var max=1600;var w=img.width,h=img.height;
+      if(w>h&&w>max){h=h*max/w;w=max;}else if(h>max){w=w*max/h;h=max;}
+      var cv=document.createElement('canvas');cv.width=w;cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      store(cv.toDataURL('image/jpeg',0.82));
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 function handlePhoto(input){
   var file=input.files&&input.files[0];if(!file)return;
   var reader=new FileReader();
@@ -8190,6 +8302,8 @@ async function submitPostuler(){
   if(nbJoursDispo===0){alert('Merci d\'indiquer vos disponibilités sur au moins un jour (cochez un jour et renseignez les horaires).');return;}
   if(!window._photoData){alert('Merci d\'ajouter une photo (prenez-vous en photo ou choisissez un fichier).');return;}
   if(!window._cvData){alert('Merci de joindre votre CV (PDF ou image).');return;}
+  if(!window._cniRectoData){alert('Merci d\'ajouter le RECTO de votre pièce d\'identité (photo ou fichier).');return;}
+  if(!window._cniVersoData){alert('Merci d\'ajouter le VERSO de votre pièce d\'identité (photo ou fichier).');return;}
   var data={prenom:prenom,nom:nom,date_naissance:naissance,phone:phone,email:email,
     adresse:adresse,code_postal:cp,ville:ville,nationalite:nationalite,sexe:sexe,
     resto_id:resto,restos:restosArr.join(','),
@@ -8226,9 +8340,25 @@ async function submitPostuler(){
       data.photo=_phLink||window._photoData;
     }catch(e){ console.warn('Dropbox photo upload, fallback base64',e); data.photo=window._photoData; }
   } else { data.photo=''; }
+  // -- CNI (pièce d'identité) : recto + verso, stockés dans documents --
+  data.documents=data.documents||{};
+  var _cniSides=[['Recto','piece_identite_recto','CNI_Recto'],['Verso','piece_identite_verso','CNI_Verso']];
+  for(var _si=0;_si<_cniSides.length;_si++){
+    var _sk=_cniSides[_si][0], _dkey=_cniSides[_si][1], _fname=_cniSides[_si][2];
+    var _sd=window['_cni'+_sk+'Data'];
+    if(!_sd) continue;
+    var _sn=window['_cni'+_sk+'Name'], _st=window['_cni'+_sk+'Type'];
+    try{
+      var _sExt=(_sn&&_sn.indexOf('.')>=0)?_sn.split('.').pop():((_st&&_st.indexOf('pdf')>=0)?'pdf':'jpg');
+      var _sBlob=_dataUrlToBlob(_sd);
+      var _sLink=await dbxUpload(_folder+'/'+_fname+'_'+dbxClean(nom+'_'+prenom)+'_'+_ds+'.'+_sExt,_sBlob);
+      data.documents[_dkey]=_sLink?{link:_sLink,name:(_sn||(_fname+'.'+_sExt))}:{data:_sd,name:(_sn||(_fname+'.'+_sExt))};
+    }catch(e){ console.warn('Dropbox CNI '+_sk,e); data.documents[_dkey]={data:_sd,name:(_sn||_fname)}; }
+  }
   try{
     await sb.insert('bks_candidatures',data);
     window._photoData=null;window._cvData=null;window._cvName=null;
+    window._cniRectoData=null;window._cniRectoName=null;window._cniVersoData=null;window._cniVersoName=null;
     document.getElementById('postuler-body').innerHTML='<div style="text-align:center;padding:60px 20px;">'
       +'<div style="font-size:3.5rem;">✅</div>'
       +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.5rem;font-weight:700;color:#4CAF50;margin-top:14px;">Candidature envoyée !</div>'
@@ -8870,14 +9000,33 @@ async function saveSeuilOral(){
 }
 
 var _mailTab='entretien';
+var _mailResto=null;   // restaurant dont on édite les modèles (écran tuiles)
 function loadMailTpl(){
+  // Carte « Adresses d'expédition » : adresse commune (repli) + mode + copies cachées.
   var tpl=getMailTpl();
   var exp=document.getElementById('mt-exp');if(exp)exp.value=tpl.expediteur||'';
   var md=document.getElementById('mt-mode');if(md)md.value=(DB.mailSettings&&DB.mailSettings.mailMode)||'gmail';
   renderCcList();
+  // Carte « Modèles de mails » : on revient à l'écran des tuiles.
+  backMailTiles();
+}
+// Entre dans les modèles d'un restaurant (depuis une tuile).
+function openMailResto(rid){
+  _mailResto=rid;
+  var tiles=document.getElementById('mail-tpl-tiles'); if(tiles)tiles.style.display='none';
+  var ed=document.getElementById('mail-tpl-editor'); if(ed)ed.style.display='block';
+  var ti=document.getElementById('mail-tpl-resto-title'); if(ti)ti.textContent='🍔 '+((RESTOS[rid]&&RESTOS[rid].label)||rid);
+  var tpl=getMailTpl(rid);
+  var ex=document.getElementById('mt-exp-resto'); if(ex)ex.value=tpl.expediteur||'';
   _mailTab='entretien';
   document.querySelectorAll('#mt-tabs .rtab').forEach(function(b,i){b.classList.toggle('on',i===0);});
   fillMailFields();
+}
+// Revient à l'écran des tuiles (sans rien perdre : la saisie est déjà mémorisée).
+function backMailTiles(){
+  _mailResto=null;
+  var tiles=document.getElementById('mail-tpl-tiles'); if(tiles)tiles.style.display='block';
+  var ed=document.getElementById('mail-tpl-editor'); if(ed)ed.style.display='none';
 }
 function renderCcList(){
   var box=document.getElementById('cc-list');if(!box)return;
@@ -8921,7 +9070,7 @@ async function saveMailAddresses(){
   toast('Adresses enregistrées ✔','success');
 }
 function fillMailFields(){
-  var tpl=getMailTpl();var t=tpl[_mailTab];
+  var tpl=getMailTpl(_mailResto);var t=tpl[_mailTab];
   var s=document.getElementById('mt-sujet'),co=document.getElementById('mt-corps');
   if(s)s.value=t.sujet;if(co)co.value=t.corps;
 }
@@ -8933,16 +9082,22 @@ function setMailTab(btn,tab){
   btn.classList.add('on');
   fillMailFields();
 }
+// Mémorise le modèle en cours d'édition DANS le restaurant sélectionné.
 function _stashMailField(){
+  if(!_mailResto)return;
   if(!DB.mailSettings)DB.mailSettings={};
-  if(!DB.mailSettings.mailTpl)DB.mailSettings.mailTpl=JSON.parse(JSON.stringify(getMailTpl()));
-  DB.mailSettings.mailTpl[_mailTab]={sujet:document.getElementById('mt-sujet').value,corps:document.getElementById('mt-corps').value};
+  if(!DB.mailSettings.mailTplByResto)DB.mailSettings.mailTplByResto={};
+  if(!DB.mailSettings.mailTplByResto[_mailResto])DB.mailSettings.mailTplByResto[_mailResto]=JSON.parse(JSON.stringify(getMailTpl(_mailResto)));
+  var s=document.getElementById('mt-sujet'),co=document.getElementById('mt-corps');
+  if(s&&co)DB.mailSettings.mailTplByResto[_mailResto][_mailTab]={sujet:s.value,corps:co.value};
 }
-async function saveMailTpl(){
+// Enregistre TOUS les modèles + l'adresse d'expédition du restaurant sélectionné.
+async function saveMailTplResto(){
+  if(!_mailResto){toast('Choisissez d\'abord un restaurant','error');return;}
   _stashMailField();
-  DB.mailSettings.mailTpl.expediteur=document.getElementById('mt-exp').value.trim();
+  DB.mailSettings.mailTplByResto[_mailResto].expediteur=document.getElementById('mt-exp-resto').value.trim();
   await saveDB();
-  toast('Modèles de mails enregistrés ✔','success');
+  toast('Modèles de '+((RESTOS[_mailResto]&&RESTOS[_mailResto].label)||_mailResto)+' enregistrés ✔','success');
 }
 
 function renderNamesSettings(){
@@ -14321,84 +14476,94 @@ function hrPlacerIntelligentSemaine(repartirZero){
   try{ if(typeof hrEnregistrerPlacement==='function') hrEnregistrerPlacement(lundi); }catch(e){}
 
   // ── DIAGNOSTIC : POURQUOI des créneaux restent-ils vides ? ──────────────────
-  // Pour CHAQUE trait resté vide, on remonte la chaîne d'éligibilité et on classe
-  // la cause DOMINANTE (le premier verrou rencontré), en heures :
-  //   • COMPÉTENCE   : personne d'utilisable ce jour ne sait faire ce poste
-  //   • DISPO        : des compétents existent, mais aucun n'est dispo sur le créneau
-  //   • CONTRAT PLEIN: des compétents dispo existent, mais tous ont atteint leur contrat
-  //   • REPOS        : bloqué par la paire de 2 jours de repos réservée ce jour-là
-  //   • RÈGLES       : occupé / repos 12h / max jours / max traits / amplitude / pause…
-  //   • À REPLACER   : théoriquement plaçable — l'algo n'a pas convergé (ordre des passes)
-  // → indique clairement s'il faut RECRUTER (compétence/dispo) ou ASSOUPLIR (contrat/repos).
+  // Pour CHAQUE trait vide, on remonte la chaîne d'éligibilité et on isole le
+  // LEVIER le plus simple pour le pourvoir (en heures) :
+  //   COMPÉTENCE  : personne d'utilisable ce jour ne sait faire ce poste   → recruter / former
+  //   DISPO       : compétents présents mais aucun dispo sur le créneau     → recruter / élargir dispos
+  //   CONTRAT     : compétents dispo mais tous au plafond de leur contrat   → recruter / heures sup
+  //   À REPLACER  : un équipier serait ÉLIGIBLE → l'algo n'a pas convergé   → améliorer l'algo
+  //   ÉCHANGE     : bloqué seulement car déjà occupé ailleurs à cette heure → meilleur échange de créneaux (algo)
+  //   JOURS/REPOS : bloqué seulement par max jours ou la paire de repos     → assouplir jours de repos
+  //   REPOS 12H   : bloqué seulement par le repos quotidien de 12h          → décaler nuit/matin
+  //   COUPURE     : bloqué par max 2 séquences / coupure / amplitude / pause → assouplir règles du jour
+  //   MULTI       : bloqué par plusieurs règles à la fois                   → cas difficile (recruter)
   function diagnostiquerVides(){
     var JN=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-    var minC={comp:0,dispo:0,contrat:0,repos:0,regles:0,autre:0};
-    var cnt ={comp:0,dispo:0,contrat:0,repos:0,regles:0,autre:0};
-    var postesTension={}; // poste -> minutes vides faute de compétent utilisable
-    var videsJour=[0,0,0,0,0,0,0];
+    var minC={comp:0,dispo:0,contrat:0,placable:0,echange:0,jours:0,repos12:0,coupure:0,multi:0};
+    var postesTension={}; var videsJour=[0,0,0,0,0,0,0];
+    var PRIO={placable:0,echange:1,jours:2,repos12:3,coupure:4};
     for(var d=0; d<7; d++){
       traitsJour[d].forEach(function(t){
-        if(t.empId) return;               // déjà placé : ignore
+        if(t.empId) return;
         var dur=t.e-t.s; videsJour[d]+=dur;
-        // 1) COMPÉTENTS utilisables ce jour (compétence + contrat>0 + pas verrou petit-contrat/semaine)
+        // 1) COMPÉTENTS utilisables ce jour
         var comp=eq.filter(function(e){ return ch(e)>0 && hrSaitFaire(e,t.l)
           && !(weekendActif && ch(e)<=seuilPetit && [4,5,6].indexOf(d)<0); });
-        if(!comp.length){ minC.comp+=dur; cnt.comp++; postesTension[t.l]=(postesTension[t.l]||0)+dur; return; }
-        // 2) parmi eux, DISPO sur le créneau
+        if(!comp.length){ minC.comp+=dur; postesTension[t.l]=(postesTension[t.l]||0)+dur; return; }
+        // 2) DISPO sur le créneau
         var dispo=comp.filter(function(e){ return dispoOkJ(e,d,t.s,t.e); });
-        if(!dispo.length){ minC.dispo+=dur; cnt.dispo++; return; }
-        // 3) parmi eux, il reste du CONTRAT à pourvoir
-        var okContrat=dispo.filter(function(e){ return reste(e)>=60; });
-        if(!okContrat.length){ minC.contrat+=dur; cnt.contrat++; return; }
-        // 4) parmi eux, pas bloqués par le REPOS réservé ce jour
-        var horsRepos=okContrat.filter(function(e){ return !(estReposReserve(e.id,d) && !(jt[e.id]&&jt[e.id][d])); });
-        if(!horsRepos.length){ minC.repos+=dur; cnt.repos++; return; }
-        // 5) parmi eux, les RÈGLES du jour passent
-        var libres=horsRepos.filter(function(e){
-          if(occupe(e.id,d,t.s,t.e)) return false;
-          if(jt[e.id]&&!jt[e.id][d]&&nbJoursTrav(e.id)>=joursMax) return false;
-          if(!reglesOk(e,d,t.s,t.e)) return false;
-          if(!reposQuotidienOk(e,d,t.s,t.e)) return false;
-          return true;
+        if(!dispo.length){ minC.dispo+=dur; return; }
+        // 3) reste du CONTRAT à pourvoir
+        var okC=dispo.filter(function(e){ return reste(e)>=60; });
+        if(!okC.length){ minC.contrat+=dur; return; }
+        // 4) parmi ces candidats sérieux, quel est le LEVIER le plus simple ?
+        var levier=null, prioBest=99;
+        okC.forEach(function(e){
+          var dejaCeJour=!!(jt[e.id]&&jt[e.id][d]);
+          var jours = (!dejaCeJour && nbJoursTrav(e.id)>=joursMax)      // trop de jours
+                   || (estReposReserve(e.id,d) && !dejaCeJour);          // ou repos réservé ce jour
+          var occ  = occupe(e.id,d,t.s,t.e);                             // déjà occupé à cette heure
+          var r12  = !reposQuotidienOk(e,d,t.s,t.e);                     // repos 12h
+          var rg   = !reglesOk(e,d,t.s,t.e);                             // 2 traits / coupure / amplitude / pause
+          var blk=[]; if(occ)blk.push('echange'); if(jours)blk.push('jours'); if(r12)blk.push('repos12'); if(rg)blk.push('coupure');
+          var cat = blk.length===0 ? 'placable' : (blk.length===1 ? blk[0] : null);
+          if(cat && PRIO[cat]<prioBest){ prioBest=PRIO[cat]; levier=cat; }
         });
-        if(!libres.length){ minC.regles+=dur; cnt.regles++; return; }
-        minC.autre+=dur; cnt.autre++;     // plaçable mais non placé → convergence
+        if(!levier) levier='multi';   // tous bloqués par ≥2 règles simultanées
+        minC[levier]+=dur;
       });
     }
     var topPostes=Object.keys(postesTension).map(function(p){return {poste:p,h:postesTension[p]/60};})
       .sort(function(a,b){return b.h-a.h;}).slice(0,5);
     var topJours=videsJour.map(function(m,i){return {jour:JN[i],h:m/60};})
       .filter(function(x){return x.h>0;}).sort(function(a,b){return b.h-a.h;}).slice(0,3);
-    return {min:minC,cnt:cnt,topPostes:topPostes,topJours:topJours};
+    return {min:minC,topPostes:topPostes,topJours:topJours};
   }
   var diag=diagnostiquerVides();
   try{ window.HR_DIAG_PLACEMENT=diag; }catch(e){}
 
+  // ── COUVERTURE RÉELLE (globale) : placements conservés + nouveaux, tous ──────
+  // traits productifs de la semaine. (Avant, on n'affichait QUE les traits
+  // remplis lors de ce clic → « 0% » trompeur quand la semaine était déjà placée.)
+  var totProd=0, placeProd=0;
+  for(var dg=0; dg<7; dg++){
+    (ROWS_BY_DAY[dg]||[]).forEach(function(row){
+      row.bars.forEach(function(b){ if(estTraitEncadrement(b.l)) return; var du=b.e-b.s; totProd+=du; if(b.empId) placeProd+=du; });
+    });
+  }
+  var pctG=totProd?Math.round(100*placeProd/totProd):0;
+
   var m2=mesure();
-  var pct=besoinTot?Math.round(100*m2.place/besoinTot):0;
   function _dh(m){ return (m/60).toFixed(0)+'h'; }
-  var causes=[];
-  if(diag.min.comp>0)    causes.push('compétence '+_dh(diag.min.comp));
-  if(diag.min.dispo>0)   causes.push('dispo '+_dh(diag.min.dispo));
-  if(diag.min.contrat>0) causes.push('contrat plein '+_dh(diag.min.contrat));
-  if(diag.min.repos>0)   causes.push('repos '+_dh(diag.min.repos));
-  if(diag.min.regles>0)  causes.push('règles '+_dh(diag.min.regles));
-  if(diag.min.autre>0)   causes.push('à replacer '+_dh(diag.min.autre));
+  var LBL={comp:'compétence',dispo:'dispo',contrat:'contrat plein',placable:'à replacer (algo)',echange:'échange créneaux',jours:'jours/repos',repos12:'repos 12h',coupure:'coupure/2 traits',multi:'multi-règles'};
+  var causes=Object.keys(LBL).filter(function(k){return diag.min[k]>0;})
+    .sort(function(a,b){return diag.min[b]-diag.min[a];})
+    .map(function(k){return LBL[k]+' '+_dh(diag.min[k]);});
   var lignePostes=diag.topPostes.length?('<br>🎯 Postes en tension : '+diag.topPostes.map(function(x){return x.poste+' ('+x.h.toFixed(0)+'h)';}).join(', ')):'';
   var ligneJours =diag.topJours.length ?(' · Jours les plus vides : '+diag.topJours.map(function(x){return x.jour+' ('+x.h.toFixed(0)+'h)';}).join(', ')):'';
   var st=document.getElementById('hrx-assign-status');
-  if(st) st.innerHTML='🧠 Placement · <b>'+pct+'%</b> du besoin couvert ('+_dh(m2.place)+'/'+_dh(besoinTot)+') · '+m2.vides+' créneaux vides · '+m2.sc+'/'+eq.length+' sous contrat'
+  if(st) st.innerHTML='🧠 Placement · <b>'+pctG+'%</b> du besoin couvert ('+_dh(placeProd)+'/'+_dh(totProd)+') · '+m2.vides+' créneaux vides · '+m2.sc+'/'+eq.length+' sous contrat'
     + (causes.length? '<br>⛔ Causes des vides : '+causes.join(' · ') : '')
     + lignePostes + ligneJours;
   try{
-    console.group('🧠 Diagnostic placement intelligent — '+lundi);
-    console.log('Couverture :', pct+'%', '('+(m2.place/60).toFixed(0)+'h /', (besoinTot/60).toFixed(0)+'h) ·', m2.vides,'créneaux vides');
-    console.log('Heures vides par cause :'); console.table(diag.min);
+    console.group('🧠 Diagnostic placement intelligent — '+lundi+' — couverture '+pctG+'%');
+    console.log('Placé :', (placeProd/60).toFixed(0)+'h /', (totProd/60).toFixed(0)+'h ·', m2.vides,'créneaux vides');
+    console.log('Heures vides par LEVIER :'); console.table(diag.min);
     console.log('Postes en tension (h) :', diag.topPostes);
     console.log('Jours les plus vides (h) :', diag.topJours);
     console.groupEnd();
   }catch(e){}
-  toast&&toast('Placement : '+pct+'% couvert — voir le détail des causes','success');
+  toast&&toast('Placement : '+pctG+'% du besoin couvert','success');
   try{ if(typeof hrMarquerPlacementFait==='function') hrMarquerPlacementFait(); }catch(e){}
   }catch(__err){
     console.error('Placement intelligent — erreur:', __err);
