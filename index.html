@@ -4047,6 +4047,22 @@ function dbxEmpFolder(e){
   return '/'+dbxClean(resto)+'/'+dbxClean(e.name);
 }
 
+// Transforme un lien Dropbox en lien de TÉLÉCHARGEMENT direct (dl=1)
+function dbxDl(link){
+  if(!link) return '';
+  var u=String(link);
+  if(u.indexOf('dl=1')>=0) return u;
+  if(u.indexOf('raw=1')>=0) return u.replace('raw=1','dl=1');
+  if(u.indexOf('dl=0')>=0) return u.replace('dl=0','dl=1');
+  return u+(u.indexOf('?')>=0?'&':'?')+'dl=1';
+}
+// Télécharge un document (force le téléchargement via Dropbox dl=1)
+function dlDoc(link){
+  var u=dbxDl(link); if(!u) return;
+  var a=document.createElement('a'); a.href=u; a.target='_blank'; a.rel='noopener';
+  document.body.appendChild(a); a.click(); setTimeout(function(){ try{document.body.removeChild(a);}catch(e){} },200);
+}
+
 var _empDocCtx={empId:null,boxId:'histo-docs'};
 function renderEmpDocs(empId,boxId){
   var box=document.getElementById(boxId||'histo-docs');if(!box)return;
@@ -4075,7 +4091,7 @@ function renderEmpDocs(empId,boxId){
         var p=cand.documents[key];if(!p||!(p.link||p.data))return '';
         return '<div style="display:flex;align-items:center;gap:8px;background:#11160f;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
           +'<span style="flex:1;min-width:0;font-size:.82rem;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">✓ '+lbl+'</span>'
-          +(p.link?'<button class="btn btn-gray btn-sm" onclick="window.open(\''+p.link+'\',\'_blank\')">👁️ Lire</button>':'<span style="font-size:.72rem;color:#a8460f;">déposé (local)</span>')
+          +(p.link?'<button class="btn btn-gray btn-sm" onclick="window.open(\''+p.link+'\',\'_blank\')">👁️ Lire</button> <button class="btn btn-gray btn-sm" onclick="dlDoc(\''+p.link+'\')">⬇️ Télécharger</button>':'<span style="font-size:.72rem;color:#a8460f;">déposé (local)</span>')
           +'</div>';
       }
       if(d.sides){d.sides.forEach(function(s){h+=pieceLine(d.id+'_'+s.toLowerCase(),d.label+' — '+s);});}
@@ -4097,7 +4113,7 @@ function renderEmpDocs(empId,boxId){
         var dt=d.createdAt?new Date(d.createdAt).toLocaleDateString('fr-FR'):'';
         h+='<div style="display:flex;align-items:center;gap:8px;background:#141414;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
           +'<span style="flex:1;min-width:0;font-size:.82rem;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(d.label||d.name||'Document')+(dt?' <span style="color:#666;font-size:.72rem;">· '+dt+'</span>':'')+'</span>'
-          +(d.link?'<button class="btn btn-gray btn-sm" onclick="viewDoc(\''+d.id+'\')">👁️ Lire</button>':'<span style="font-size:.72rem;color:#a8460f;">non lisible</span>')
+          +(d.link?'<button class="btn btn-gray btn-sm" onclick="viewDoc(\''+d.id+'\')">👁️ Lire</button> <button class="btn btn-gray btn-sm" onclick="dlDoc(\''+d.link+'\')">⬇️ Télécharger</button>':'<span style="font-size:.72rem;color:#a8460f;">non lisible</span>')
           +((curUser&&curUser.role==='franchise')?'<button class="btn-danger" style="padding:3px 8px;" onclick="delEmpDoc(\''+d.id+'\')">🗑️</button>':'')
           +'</div>';
       });
