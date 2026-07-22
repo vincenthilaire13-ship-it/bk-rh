@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-06-29 17:44 · v326';
+  var EMBEDDED_VERSION = '2026-07-22 08:02 · v327';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -2289,10 +2289,8 @@ function startRealtime(){
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 (async function() {
-  var majTxt='Mise à jour : '+formatMajDate(APP_VERSION);
-  var lv=document.getElementById('login-version');if(lv)lv.textContent='Version '+APP_VERSION;
-  var lm=document.getElementById('login-maj');if(lm)lm.textContent='✓ '+majTxt;
-  var mb=document.getElementById('maj-badge');if(mb)mb.textContent='🔄 '+majTxt;
+  // Badge de version / « mise à jour » retiré à la demande : on masque les indicateurs.
+  ['login-version','login-maj','maj-badge'].forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display='none'; });
   // Indicateur vert/orange : comparer la version embarquée à la version officielle (Supabase app_config)
   (function(){
     try{
@@ -2946,8 +2944,7 @@ var PARAM_TILES=[
   {ico:'⚠️', titre:'Observations',  sub:'Seuil rappel oral',            type:'card', card:'pc-seuil',       accent:'#d35400'},
   {ico:'👁️', titre:'Aperçu fiche',  sub:'Vue candidat',                 type:'card', card:'rec-apercu-card',accent:'#7f8c8d'},
   {ico:'📧', titre:'Adresses mail', sub:'Expédition RH',                type:'card', card:'pc-adresses',    accent:'#2c3e50'},
-  {ico:'✉️', titre:'Modèles mails', sub:'Mails aux candidats',          type:'card', card:'pc-mails',       accent:'#27ae60'},
-  {ico:'ℹ️', titre:'Version',       sub:'Version de l\'app',            type:'card', card:'pc-version',     accent:'#555'}
+  {ico:'✉️', titre:'Modèles mails', sub:'Mails aux candidats',          type:'card', card:'pc-mails',       accent:'#27ae60'}
 ];
 function renderParamTiles(){
   var page=document.getElementById('page-parametres'); if(page) page.classList.add('bk-tiles-mode');
@@ -4016,19 +4013,38 @@ function renderEquipe(){
       {key:'apprenti', label:'Apprentis', ico:'🎓',test:estApprenti},
       {key:'equipier', label:'Équipiers', ico:'👤',test:function(e){return e.role==='equipier'&&!estApprenti(e);}}
     ];
-    CATS.forEach(function(cat){
-      var grp=emps.filter(cat.test);if(!grp.length)return;
-      var open=!!eqOpenCats[cat.key];
-      grp.sort(function(a,b){return a.name.localeCompare(b.name,'fr');});
-      h+='<button onclick="eqToggleCat(\''+cat.key+'\')" '
-        +'style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;'
-        +'background:#16321f;border:1px solid #3ecf8e;color:#3ecf8e;font-weight:700;'
-        +'border-radius:10px;padding:11px 14px;margin:10px 0 6px;cursor:pointer;font-size:.95rem;text-align:left;">'
-        +'<span>'+cat.ico+' '+cat.label+' <span style="opacity:.8;font-weight:600;">('+grp.length+')</span></span>'
-        +'<span style="font-size:1.1rem;'+(open?'transform:rotate(180deg);display:inline-block;':'')+'">▾</span>'
-        +'</button>';
-      if(open){ grp.forEach(function(e){ h+=empCardHtml(e,e.role,canView,canManage); }); }
-    });
+    // Tuiles de catégories (compactes et jolies) au lieu des grandes barres pleine largeur.
+    var catColors={directeur:'#e53935',manager:'#F5A623',leader:'#5b9bd5',apprenti:'#3ecf8e',equipier:'#16a085'};
+    var visibles=CATS.map(function(cat){return {cat:cat,grp:emps.filter(cat.test)};}).filter(function(o){return o.grp.length;});
+    if(visibles.length){
+      h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:6px 0 2px;">';
+      visibles.forEach(function(o){
+        var cat=o.cat, grp=o.grp, open=!!eqOpenCats[cat.key], col=catColors[cat.key]||'#3ecf8e';
+        h+='<button onclick="eqToggleCat(\''+cat.key+'\')" title="'+cat.label+'" '
+          +'style="position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:1px;'
+          +'background:'+(open?col:'#161616')+';color:'+(open?'#111':'#eee')+';'
+          +'border:1px solid '+col+';border-radius:14px;padding:13px 16px 12px;cursor:pointer;text-align:left;'
+          +'box-shadow:'+(open?('0 6px 18px '+col+'55'):'none')+';transition:all .12s;overflow:hidden;">'
+          +'<span style="position:absolute;top:0;left:0;bottom:0;width:5px;background:'+col+';"></span>'
+          +'<span style="font-size:1.4rem;line-height:1.1;">'+cat.ico+'</span>'
+          +'<span style="font-size:1.75rem;font-weight:900;font-family:\'Barlow Condensed\',sans-serif;line-height:1.05;">'+grp.length+'</span>'
+          +'<span style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;opacity:'+(open?'.9':'.72')+';">'+cat.label+'</span>'
+          +'<span style="position:absolute;top:11px;right:13px;font-size:.85rem;opacity:.65;display:inline-block;'+(open?'transform:rotate(180deg);':'')+'">▾</span>'
+          +'</button>';
+      });
+      h+='</div>';
+      // Membres des catégories ouvertes, affichés sous la rangée de tuiles.
+      visibles.forEach(function(o){
+        var cat=o.cat, grp=o.grp; if(!eqOpenCats[cat.key])return;
+        var col=catColors[cat.key]||'#3ecf8e';
+        grp.sort(function(a,b){return a.name.localeCompare(b.name,'fr');});
+        h+='<div style="display:flex;align-items:center;gap:8px;margin:18px 0 8px;color:'+col+';font-weight:800;font-size:.95rem;">'
+          +'<span>'+cat.ico+' '+cat.label+'</span>'
+          +'<span style="opacity:.7;font-weight:600;">('+grp.length+')</span>'
+          +'<span style="flex:1;height:1px;background:'+col+'33;"></span></div>';
+        grp.forEach(function(e){ h+=empCardHtml(e,e.role,canView,canManage); });
+      });
+    }
     if(restosToShow.length>1)h+='<div style="height:10px;"></div>';
   });
   list.innerHTML=h||'<div class="empty"><div class="ei">👥</div><p>Aucun membre</p></div>';
