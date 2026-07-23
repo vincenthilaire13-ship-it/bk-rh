@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-22 08:02 · v327';
+  var EMBEDDED_VERSION = '2026-07-23 · v328';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -588,7 +588,7 @@ html,body{overflow-x:hidden;}
     <button onclick="goPage('docsplanning',this)">📄 Documents planning</button>
     <button onclick="goPage('recrutement',this)">🎯 Recrutement <span id="rbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
     <button class="desktop-only" onclick="goPage('visite',this)">🩺 Visite médicale <span id="vbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
-    <button onclick="goPage('incidents',this)">📋 Incidents</button>
+    <button onclick="goPage('incidents',this)">📋 Incidents <span id="incbadge" style="background:var(--red);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
     <button class="desktop-only" onclick="goPage('rapports',this)">📊 Rapports</button>
     <button onclick="goPage('planning',this)">🗓️ Planning encadrement</button>
     <button class="desktop-only" onclick="goPage('parametres',this)">⚙️ Paramètres</button>
@@ -2120,6 +2120,7 @@ async function doSoftRefresh(){
     try{ updateVBadge(); }catch(e){}
     try{ updateRBadge(); }catch(e){}
     try{ if(typeof updateAlBadge==="function") updateAlBadge(); }catch(e){}
+    try{ if(typeof syncIncidentNotifs==="function") syncIncidentNotifs(); }catch(e){}
     // ── REDESSIN TEMPS RÉEL DE LA PAGE ACTIVE ────────────────────────────────
     // Tout l'app est synchronisé : on redessine la page actuellement affichée
     // pour qu'elle reflète immédiatement les données rechargées. On NE redessine
@@ -2712,6 +2713,8 @@ function _entrerDansApp(r){
     updateVBadge();
     updateRBadge();
     if(typeof updateAlBadge==="function")updateAlBadge();
+    try{ if(typeof syncIncidentNotifs==="function") syncIncidentNotifs(); }catch(e){}
+    try{ if(['franchise','directeur','manager'].indexOf(curUser&&curUser.role)>=0) ensureNotifPermission(); }catch(e){}
     loadMailSettings();
     renderPinSettings();
     renderNamesSettings();
@@ -3255,7 +3258,10 @@ async function submitInc(){
         }catch(docErr){console.error('Doc sanction échec',docErr);}
       }
       _incSanctionDoc=null;
-      toast('Signalement enregistré ✔','success');
+      // Notification : marquer cet incident comme déjà vu (pour ne pas re-notifier
+      // le déclarant via la synchro), puis prévenir localement (toast + push système).
+      try{ if(_incSeen===null) _incSeen=new Set(); _incSeen.add(inc.id); }catch(_){}
+      try{ ensureNotifPermission(); notifyIncident(inc,'create'); }catch(_){ toast('Signalement enregistré ✔','success'); }
       resetForm();renderHistory();updateVBadge();await loadAll();
       // Pas d'envoi de mail pour une observation orale (verbal) : mail uniquement pour les sanctions écrites
       if(emp&&emp.email&&lid&&selSanction!=='verbal') setTimeout(function(){sendLetterEmail(lid);},700);
@@ -6056,6 +6062,29 @@ function collectAlertes(restoFiltre){
       alerts.push({prio:1,cat:'Visite médicale',icon:'🩺',col:'#F5A623',
         titre:e.name+' — visite dans '+v.jours+' j',
         sub:'Avant le '+v.prochStr+' · '+resto,empId:e.id});
+    }
+  });
+
+  // ── 1bis) MUTUELLE (salariés) : expiration dépassée + rappels 30 j et 15 j ──
+  emps.forEach(function(e){
+    var fin=(e.infos&&e.infos.mutuelle_fin)||'';
+    if(!fin) return;
+    var d=new Date(fin+'T12:00:00');
+    if(isNaN(d.getTime())) return;
+    var jours=Math.round((d-new Date())/(24*3600*1000));
+    var resto=rlabel(e.restoId);
+    if(jours<0){
+      alerts.push({prio:0,cat:'Mutuelle',icon:'❤️',col:'#cc5555',
+        titre:e.name+' — mutuelle expirée',
+        sub:'Échéance le '+_frDate(fin)+' · '+resto,empId:e.id});
+    }else if(jours<=15){
+      alerts.push({prio:1,cat:'Mutuelle',icon:'❤️',col:'#cc5555',
+        titre:e.name+' — mutuelle expire dans '+jours+' j',
+        sub:'Avant le '+_frDate(fin)+' · '+resto,empId:e.id});
+    }else if(jours<=30){
+      alerts.push({prio:2,cat:'Mutuelle',icon:'❤️',col:'#F5A623',
+        titre:e.name+' — mutuelle expire dans '+jours+' j',
+        sub:'Avant le '+_frDate(fin)+' · '+resto,empId:e.id});
     }
   });
 
@@ -9891,13 +9920,16 @@ async function confirmAnnulation(){
     return;
   }
   try{
+    var _incCanceled=(DB.incidents||[]).find(function(i){return i.id===_incToCancel;});
     await sb.del('bks_incidents','id=eq.'+_incToCancel);
     await sb.del('bks_letters','id=eq.let_'+_incToCancel).catch(function(){});
+    try{ if(_incSeen) _incSeen.delete(_incToCancel); }catch(_){}
     await loadAll();
     closeModal('modal-cancel-inc');
     _incToCancel=null;
     renderHistory();updateVBadge();
-    toast('Incident annulé ✔','success');
+    if(_incCanceled){ try{ notifyIncident(_incCanceled,'cancel'); }catch(_){ toast('Incident annulé ✔','success'); } }
+    else toast('Incident annulé ✔','success');
   }catch(e){toast('Erreur','error');console.error(e);}
 }
 
@@ -9906,6 +9938,88 @@ function toast(msg,type){
   var el=document.getElementById('toast');
   el.textContent=msg;el.className=type?'show '+type:'show';
   clearTimeout(toastTm);toastTm=setTimeout(function(){el.classList.remove('show');},3200);
+}
+
+// ══ NOTIFICATIONS D'INCIDENT ════════════════════════════════════════════════
+// Notification DANS l'application (toast + pastille rouge sur l'onglet Incidents)
+// et, si le navigateur l'autorise, une notification « push » système.
+// Fonctionne aussi quand un incident est créé/annulé depuis un AUTRE poste :
+// la synchro périodique (doSoftRefresh → syncIncidentNotifs) le détecte et prévient.
+var _incSeen = null;   // Set des ids d'incidents déjà connus (null = pas encore initialisé)
+
+function _incPerimetre(i){
+  // limite au périmètre du directeur (son resto) ; franchise/RH voient tout
+  if(curUser && curUser.role==='directeur' && i.restoId!==curUser.restoId) return false;
+  return true;
+}
+function _incRecents(){
+  var now=new Date(), out=[];
+  (DB.incidents||[]).forEach(function(i){
+    if(!_incPerimetre(i)) return;
+    var d=new Date(i.datetime||i.createdAt);
+    var j=Math.floor((now-d)/(24*3600*1000));
+    if(!isNaN(j) && j>=0 && j<=30) out.push(i);
+  });
+  return out;
+}
+function updateIncBadge(){
+  var b=document.getElementById('incbadge'); if(!b) return;
+  var n=_incRecents().length;
+  b.textContent=n; b.style.display=n>0?'inline-flex':'none';
+}
+function ensureNotifPermission(){
+  try{
+    if(!('Notification' in window)) return;
+    if(Notification.permission==='default'){ Notification.requestPermission().catch(function(){}); }
+  }catch(e){}
+}
+function _pushNotif(title, body){
+  try{
+    if(('Notification' in window) && Notification.permission==='granted'){
+      var n=new Notification(title,{body:body,tag:'bkrh-incident',renotify:true});
+      setTimeout(function(){try{n.close();}catch(_){}} ,8000);
+    }
+  }catch(e){}
+}
+function notifyIncident(inc, action){
+  // action : 'create' | 'cancel'
+  var eid=inc.empId||inc.emp_id, rid=inc.restoId||inc.resto_id;
+  var emp=(DB.employees||[]).find(function(e){return e.id===eid;});
+  var nom=emp?emp.name:'Salarié';
+  var resto=(RESTOS[rid]?RESTOS[rid].label:'');
+  var motifs=(inc.problems&&inc.problems.length)?inc.problems.slice(0,2).join(', '):'Incident';
+  if(action==='cancel'){
+    toast('🔔 Incident annulé — '+nom,'success');
+    _pushNotif('Incident annulé', nom+(resto?' · '+resto:''));
+  }else{
+    var grave=(String(inc.severity)==='3'||String(inc.severity)==='4');
+    toast('🔔 Nouvel incident — '+nom,'success');
+    _pushNotif((grave?'⚠️ Incident grave':'Nouvel incident'), nom+' — '+motifs+(resto?' · '+resto:''));
+  }
+  try{ updateIncBadge(); }catch(_){}
+}
+// Détecte les incidents apparus depuis la dernière synchro (créés sur un autre
+// poste). Prévient une seule fois par incident. Au 1er chargement, on mémorise
+// l'existant sans notifier.
+function syncIncidentNotifs(){
+  try{
+    var list=(DB.incidents||[]);
+    var ids=list.map(function(i){return i.id;});
+    if(_incSeen===null){ _incSeen=new Set(ids); updateIncBadge(); return; }
+    list.forEach(function(i){
+      if(!_incSeen.has(i.id)){
+        _incSeen.add(i.id);
+        if(!_incPerimetre(i)) return;
+        var d=new Date(i.datetime||i.createdAt);
+        var j=Math.floor((new Date()-d)/(24*3600*1000));
+        if(!isNaN(j) && j>=0 && j<=2) notifyIncident(i,'create'); // seulement les tout récents
+      }
+    });
+    // purge des ids disparus (incidents annulés ailleurs)
+    var present=new Set(ids);
+    Array.from(_incSeen).forEach(function(id){ if(!present.has(id)) _incSeen.delete(id); });
+    updateIncBadge();
+  }catch(e){ console.warn('syncIncidentNotifs',e); }
 }
 
 window.onload=function(){schedReports();};
@@ -13650,13 +13764,34 @@ function hrReappliquerAffectations(){
     var iso=(DAY_DATES&&DAY_DATES[d])?DAY_DATES[d]:null;
     var aff=iso?HR_AFFECT[iso]:null;
     if(!aff){ continue; }
-    (ROWS_BY_DAY[d]||[]).forEach(function(row){
-      row.bars.forEach(function(b){
-        // retrouver l'affectation correspondante (même poste + mêmes heures)
-        var m=aff.find(function(a){return a.l===b.l && a.s===b.s && a.e===b.e && !a._used;});
-        if(m){ b.emp=m.emp; b.empId=m.empId; m._used=true; }
-        else { b.emp=null; b.empId=null; }
+    // Liste à plat des bars du jour (pour un 2e passage tolérant)
+    var _bars=[];
+    (ROWS_BY_DAY[d]||[]).forEach(function(row){ row.bars.forEach(function(b){ _bars.push(b); }); });
+    // ── PASSE 1 : correspondance EXACTE (même poste + mêmes heures) ──
+    // Comportement historique inchangé dans le cas normal.
+    _bars.forEach(function(b){
+      var m=aff.find(function(a){return a.l===b.l && a.s===b.s && a.e===b.e && !a._used;});
+      if(m){ b.emp=m.emp; b.empId=m.empId; m._used=true; }
+      else { b.emp=null; b.empId=null; }
+    });
+    // ── PASSE 2 : rattrapage TOLÉRANT (corrige le bug « à affecter » au rechargement) ──
+    // Un créneau déjà affecté ne doit pas réapparaître « à affecter » simplement parce
+    // que ses heures ont légèrement bougé (CA recalculé, ajustement d'horaire pas encore
+    // chargé, arrondi…). On rattache alors, sur le MÊME poste, l'affectation restante qui
+    // CHEVAUCHE le créneau et dont les heures sont les plus proches. Non destructif :
+    // ne touche QUE les bars restés sans nom et n'utilise chaque affectation qu'une fois.
+    _bars.forEach(function(b){
+      if(b.empId) return;
+      var be=(b.e!=null?b.e:b.s+60);
+      var best=null, bestScore=Infinity;
+      aff.forEach(function(a){
+        if(a._used || a.l!==b.l) return;                 // même poste obligatoire
+        var ae=(a.e!=null?a.e:a.s+60);
+        if(Math.min(be,ae)-Math.max(b.s,a.s) <= 0) return; // doit se chevaucher dans le temps
+        var score=Math.abs(a.s-b.s)+Math.abs(ae-be);       // le plus proche en horaire gagne
+        if(score<bestScore){ bestScore=score; best=a; }
       });
+      if(best){ b.emp=best.emp; b.empId=best.empId; best._used=true; }
     });
     // réinitialiser les marqueurs _used pour le prochain passage
     aff.forEach(function(a){delete a._used;});
@@ -15432,6 +15567,8 @@ function hrTransfererSemaine(){
   var lundi=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?hrLundiDe(DAY_DATES[0]):null);
   if(!lundi){ toast&&toast('Choisis une semaine','error'); return; }
   if(hrSemaineTransferee(lundi)){ toast&&toast('Cette semaine est déjà transférée aux employés','success'); return; }
+  // ── CONTRÔLE BLOQUANT : repos 12 h + vacation 5 h ──
+  if(typeof hrBloquerSiReglesKO==='function' && hrBloquerSiReglesKO('Transfert')) return;
   if(!confirm('Transférer les horaires de la semaine du '+lundi+' aux employés ?\n\nLa semaine sera verrouillée 🔒 et visible dans « Mes horaires » (Accueil) et dans Rapports. Pour la rouvrir ensuite, il faudra un code.')) return;
   var L=hrLocks(); L[lundi]={transfere:true, date:(new Date()).toISOString()};
   hrSauverLocks(); hrMajBoutonsVerrou();
@@ -17445,7 +17582,21 @@ function renderTimeline(){
     return _dispoJourOk(empObj, curDay);
   });
 
-  empList.sort(function(a,b){ return (a.nom||'').localeCompare(b.nom||'','fr'); });
+  // ── TRI DU SQUELETTE : par heure d'arrivée (créneau le plus tôt du jour affiché),
+  // puis les salariés EN REPOS (aucun créneau ce jour) en fin de liste, triés par nom.
+  // Ce tri est recalculé à chaque rendu de renderTimeline → conservé à chaque actualisation.
+  function _arrMin(id){
+    var rec=EMP_IDX[id];
+    var bars=(rec&&rec.jours[curDay])?rec.jours[curDay].bars:[];
+    if(!bars || !bars.length) return Infinity; // repos / non placé ce jour → en bas
+    var m=Infinity; for(var i=0;i<bars.length;i++){ if(bars[i].s<m) m=bars[i].s; }
+    return m;
+  }
+  empList.sort(function(a,b){
+    var da=_arrMin(a.id), db=_arrMin(b.id);
+    if(da!==db) return da-db;                              // heure d'arrivée croissante ; repos (Infinity) en dernier
+    return (a.nom||'').localeCompare(b.nom||'','fr');      // à égalité, ordre alphabétique
+  });
 
   const body=document.getElementById('hrx-rows');body.innerHTML='';
 
@@ -20131,10 +20282,124 @@ window.hrMajEtatBoutonsFlux=hrMajEtatBoutonsFlux;
 // (placements automatiques + modifications manuelles de créneaux) dans HR_AFFECT,
 // sauvegarde en base (Supabase), puis horodate. Au retour sur l'application, la
 // semaine est rechargée telle quelle — on ne repart jamais de zéro.
+// ══ CONTRÔLE DES RÈGLES AVANT VALIDATION DU PLANNING ═════════════════════════
+// Deux règles métier BLOQUANTES (voir demandes Vincent) :
+//   • REPOS 12 H : au moins 12 h de repos entre la fin de service d'un jour et le
+//     début du service du lendemain (ex : fin 00h00 → reprise à 12h00 minimum).
+//   • VACATION 5 H : aucune vacation CONTINUE (créneau non coupé, productif +
+//     improductif fusionnés) ne doit dépasser 5 h.
+// Seuils ajustables ci-dessous. Le repos mini suit la réglementation si définie.
+var HR_VACATION_MAX_MIN = 5*60;   // ← 5 h de vacation continue max (modifiable ici)
+function _hrMinToHHMM(m){
+  m=Math.round(m);
+  var mm=((m%1440)+1440)%1440;     // ramène sur 24 h (les créneaux après minuit sont codés +1440)
+  var h=Math.floor(mm/60), mi=mm%60;
+  return String(h).padStart(2,'0')+'h'+String(mi).padStart(2,'0');
+}
+function _hrDureeTxt(min){ var h=Math.floor(min/60), m=Math.round(min%60); return m?(h+'h'+String(m).padStart(2,'0')):(h+'h'); }
+// Scanne la semaine affichée (ROWS_BY_DAY) et renvoie la liste des infractions.
+function hrControleReglesPlanning(){
+  var infractions=[];
+  if(typeof ROWS_BY_DAY==='undefined') return infractions;
+  var R=(typeof getReglement==='function')?getReglement():{};
+  var reposMinH=(R&&R.reposQuotidienH!=null)?parseFloat(R.reposQuotidienH):12;
+  if(isNaN(reposMinH)||reposMinH<=0) reposMinH=12;
+  var reposMin=reposMinH*60;
+  var vacMax=HR_VACATION_MAX_MIN;
+  var JN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  // 1) regrouper par salarié → par jour (hors encadrement)
+  var parEmp={};
+  for(var d=0; d<7; d++){
+    ((ROWS_BY_DAY[d])||[]).forEach(function(row){
+      (row.bars||[]).forEach(function(b){
+        if(!b.empId) return;
+        if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return;
+        var e=b.e||b.s+60;
+        if(!parEmp[b.empId]) parEmp[b.empId]={nom:b.emp||b.empId, jours:{}};
+        (parEmp[b.empId].jours[d]=parEmp[b.empId].jours[d]||[]).push({s:b.s,e:e,l:b.l});
+      });
+    });
+  }
+  // 2) pour chaque salarié : fusionner en séquences continues, puis tester les règles
+  Object.keys(parEmp).forEach(function(id){
+    var rec=parEmp[id], nom=rec.nom, seqParJour={};
+    for(var d=0; d<7; d++){
+      var arr=(rec.jours[d]||[]).slice().sort(function(a,b){return a.s-b.s;});
+      var seqs=[], cur=null;
+      arr.forEach(function(p){ if(cur && p.s<=cur.e){ cur.e=Math.max(cur.e,p.e); } else { cur={s:p.s,e:p.e}; seqs.push(cur); } });
+      seqParJour[d]=seqs;
+      // ── VACATION 5 H (par créneau continu) ──
+      seqs.forEach(function(sq){
+        var dur=sq.e-sq.s;
+        if(dur>vacMax+0.001){
+          infractions.push({type:'5h', emp:nom, jour:d,
+            detail:JN[d]+' : vacation continue '+_hrMinToHHMM(sq.s)+'→'+_hrMinToHHMM(sq.e)+' = '+_hrDureeTxt(dur)+' (max autorisé '+_hrDureeTxt(vacMax)+')'});
+        }
+      });
+    }
+    // ── REPOS 12 H (entre deux journées consécutives) ──
+    for(var dd=1; dd<7; dd++){
+      var veille=seqParJour[dd-1], jour=seqParJour[dd];
+      if(!veille || !veille.length || !jour || !jour.length) continue;
+      var finVeille=-1; veille.forEach(function(s){ if(s.e>finVeille) finVeille=s.e; });
+      var debutJour=Infinity; jour.forEach(function(s){ if(s.s<debutJour) debutJour=s.s; });
+      if(finVeille<0 || debutJour===Infinity) continue;
+      var repos=(debutJour+1440)-finVeille;   // même calcul que la règle R1 du placement
+      if(repos<reposMin-0.001){
+        infractions.push({type:'12h', emp:nom, jour:dd,
+          detail:JN[dd-1]+' fin '+_hrMinToHHMM(finVeille)+' → '+JN[dd]+' début '+_hrMinToHHMM(debutJour)+' = '+_hrDureeTxt(Math.max(0,repos))+' de repos (minimum requis '+_hrDureeTxt(reposMin)+')'});
+      }
+    }
+  });
+  return infractions;
+}
+// Affiche un panneau bloquant détaillé. Renvoie true s'il y a blocage.
+function hrBloquerSiReglesKO(actionLbl){
+  var inf=hrControleReglesPlanning();
+  if(!inf.length) return false;
+  var v12=inf.filter(function(x){return x.type==='12h';});
+  var v5 =inf.filter(function(x){return x.type==='5h';});
+  function bloc(titre, icone, arr){
+    if(!arr.length) return '';
+    // regrouper par salarié
+    var parNom={}; arr.forEach(function(x){ (parNom[x.emp]=parNom[x.emp]||[]).push(x.detail); });
+    var h='<div style="margin-bottom:12px;"><div style="font-weight:700;color:#F5A623;margin-bottom:6px;">'+icone+' '+titre+'</div>';
+    Object.keys(parNom).forEach(function(nom){
+      h+='<div style="background:#141414;border-left:3px solid var(--red);border-radius:0 6px 6px 0;padding:8px 10px;margin-bottom:6px;">'
+        +'<div style="font-weight:600;color:#fff;font-size:.9rem;">'+nom+'</div>'
+        +parNom[nom].map(function(t){return '<div style="font-size:.78rem;color:#cbb;margin-top:3px;">• '+t+'</div>';}).join('')
+        +'</div>';
+    });
+    return h+'</div>';
+  }
+  var body=''
+    + '<div style="font-size:.82rem;color:#bbb;margin-bottom:12px;">'+(actionLbl||'Validation')+' bloquée : le planning ne respecte pas les règles suivantes. Corrigez les créneaux concernés puis réessayez.</div>'
+    + bloc('Repos minimum de 12 h non respecté', '🛌', v12)
+    + bloc('Vacation continue de plus de 5 h', '⏱️', v5);
+  var mv=document.getElementById('modal-bloc-regles');
+  if(!mv){
+    mv=document.createElement('div'); mv.className='modal-ov'; mv.id='modal-bloc-regles';
+    mv.innerHTML='<div class="modal" style="width:560px;max-width:96vw;">'
+      +'<div class="modal-title" style="color:var(--red);">🚫 Planning non conforme</div>'
+      +'<div id="modal-bloc-regles-body" style="max-height:60vh;overflow-y:auto;"></div>'
+      +'<div style="display:flex;justify-content:flex-end;margin-top:14px;"><button class="btn btn-red" onclick="closeModal(\'modal-bloc-regles\')">J\'ai compris</button></div>'
+      +'</div>';
+    document.body.appendChild(mv);
+  }
+  document.getElementById('modal-bloc-regles-body').innerHTML=body;
+  mv.classList.add('open');
+  try{ toast&&toast('Blocage : '+inf.length+' règle(s) non respectée(s)','error'); }catch(e){}
+  return true;
+}
+window.hrControleReglesPlanning=hrControleReglesPlanning;
+window.hrBloquerSiReglesKO=hrBloquerSiReglesKO;
+
 function hrEnregistrerSemaineManuel(){
   try{
     var lundi=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?hrLundiDe(DAY_DATES[0]):null);
     if(!lundi){ toast&&toast('Choisis d\'abord une semaine','error'); return; }
+    // ── CONTRÔLE BLOQUANT : repos 12 h + vacation 5 h ──
+    if(hrBloquerSiReglesKO('Enregistrement')) return;
     // 1) Snapshot de la grille affichée → HR_AFFECT (bars portant un empId)
     for(var dj=0; dj<7; dj++){
       var isoJ=(typeof DAY_DATES!=='undefined'&&DAY_DATES[dj])?DAY_DATES[dj]:null; if(!isoJ) continue;
