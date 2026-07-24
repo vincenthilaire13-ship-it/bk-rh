@@ -1151,8 +1151,8 @@ html,body{overflow-x:hidden;}
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
         <div class="sec-title" style="margin:0;color:#f0b450;">⭐ Managers · Leaders · autres</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button class="btn btn-gray btn-sm" onclick="importerEncadrementEquipe()" title="Ajoute automatiquement tous les managers et leaders de l'équipe (BK 500 / 509 / 526) dans ce planning, sans horaires. Tu poseras les journées ensuite.">⬇️ Importer l'équipe</button>
-          <button class="btn btn-gray btn-sm" onclick="managePeople('encadrement')">👥 Gérer les personnes</button>
+          <!-- « Importer l'équipe » et « Gérer les personnes » retirés : l'encadrement se
+               remplit automatiquement depuis l'Équipe (sans doublon). -->
           <button class="btn btn-gray btn-sm" onclick="manageCodes('encadrement')">🎨 Gérer les codes</button>
         </div>
       </div>
@@ -1325,11 +1325,17 @@ html,body{overflow-x:hidden;}
           <button class="rtab" onclick="setMailTab(this,'rupture')">🛑 Rupture FPE</button>
           <button class="rtab" onclick="setMailTab(this,'demission')">📤 Démission</button>
           <button class="rtab" onclick="setMailTab(this,'renvoi')">⛔ Renvoi</button>
+          <button class="rtab" onclick="setMailTab(this,'observation_ecrite')">📝 Observation écrite</button>
+          <button class="rtab" onclick="setMailTab(this,'avertissement')">⚠️ Avertissement</button>
+          <button class="rtab" onclick="setMailTab(this,'mise_en_demeure')">🔴 Mise en demeure</button>
+          <button class="rtab" onclick="setMailTab(this,'mise_a_pied')">🚷 Mise à pied</button>
+          <button class="rtab" onclick="setMailTab(this,'refus_signature')">✍️ Refus de signature</button>
         </div>
         <label class="flabel">Objet</label>
         <input type="text" id="mt-sujet" class="fi" style="margin-bottom:10px;">
         <label class="flabel">Message</label>
         <textarea id="mt-corps" class="fi" style="min-height:200px;font-size:.85rem;"></textarea>
+        <p style="font-size:.72rem;color:#666;margin-top:6px;">Variables : {prenom} {nom} {resto} {date} · Documents disciplinaires : <strong>{document}</strong> (texte du document), <strong>{lien_signature}</strong> (lien de signature en ligne) · Refus de signature : <strong>{type_document}</strong> (type du document refusé).</p>
         <button class="btn btn-red" style="margin-top:12px;" onclick="saveMailTplResto()">💾 Enregistrer les modèles de ce restaurant</button>
       </div>
     </div>
@@ -3483,8 +3489,11 @@ function renderHistory(){
       var tags=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});if(!p)return'';var xtra=i.extraData&&i.extraData[pid]?Array.isArray(i.extraData[pid])?' ('+i.extraData[pid].length+' jour'+(i.extraData[pid].length>1?'s':'')+')':' ('+i.extraData[pid]+')':'';return'<span class="tag">'+p.icon+' '+p.label+xtra+'</span>';}).join('');
       var dt=i.datetime?new Date(i.datetime).toLocaleString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
       var sevLbl=sLbls[parseInt(i.severity)]||'';
-      return '<div class="inc-item" data-s="'+i.severity+'" style="margin-bottom:6px;">'
-        +'<div class="inc-head">'+(canAvert?'<input type="checkbox" class="hist-inc-chk" value="'+i.id+'" data-emp="'+eid+'" style="width:15px;height:15px;accent-color:#FF8732;margin-right:7px;vertical-align:middle;">':'')+'<span class="inc-meta">'+dt+' · '+(i.reporterName||'?')+' · '+sevLbl+'</span></div>'
+      var dejaS=(i.sanctionType && i.sanctionType!=='verbal');
+      var sancLbl={ecrit:'Observation écrite',avert:'Avertissement',mise:'Mise en demeure',mise_a_pied:'Mise à pied'}[i.sanctionType]||'sanctionné';
+      var pre=canAvert?(dejaS?'<span title="Déjà sanctionné — ne peut pas resservir" style="margin-right:7px;font-size:.68rem;color:#4CAF50;font-weight:700;white-space:nowrap;">✅ '+sancLbl+'</span>':'<input type="checkbox" class="hist-inc-chk" value="'+i.id+'" data-emp="'+eid+'" style="width:15px;height:15px;accent-color:#FF8732;margin-right:7px;vertical-align:middle;">'):'';
+      return '<div class="inc-item" data-s="'+i.severity+'" style="margin-bottom:6px;'+(dejaS?'opacity:.7;':'')+'">'
+        +'<div class="inc-head">'+pre+'<span class="inc-meta">'+dt+' · '+(i.reporterName||'?')+' · '+sevLbl+'</span></div>'
         +'<div class="inc-tags">'+tags+'</div>'
         +(i.note?'<div class="inc-note">💬 '+i.note+'</div>':'')
         +(canCancel?'<div style="margin-top:6px;"><button onclick="annulerInc(\''+i.id+'\')" style="background:transparent;border:1px solid #663333;color:#cc5555;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:.72rem;">🚫 Annuler</button></div>':'')
@@ -3528,8 +3537,11 @@ function incidentsGroupedHtml(incs, r){
       var tags=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});if(!p)return'';var xtra=i.extraData&&i.extraData[pid]?Array.isArray(i.extraData[pid])?' ('+i.extraData[pid].length+' jour'+(i.extraData[pid].length>1?'s':'')+')':' ('+i.extraData[pid]+')':'';return'<span class="tag">'+p.icon+' '+p.label+xtra+'</span>';}).join('');
       var dt=i.datetime?new Date(i.datetime).toLocaleString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
       var sevLbl=sLbls[parseInt(i.severity)]||'';
-      return '<div class="inc-item" data-s="'+i.severity+'" style="margin-bottom:6px;">'
-        +'<div class="inc-head">'+(canAvert?'<input type="checkbox" class="hist-inc-chk" value="'+i.id+'" data-emp="'+eid+'" style="width:15px;height:15px;accent-color:#FF8732;margin-right:7px;vertical-align:middle;">':'')+'<span class="inc-meta">'+dt+' · '+(i.reporterName||'?')+' · '+sevLbl+'</span></div>'
+      var dejaS=(i.sanctionType && i.sanctionType!=='verbal');
+      var sancLbl={ecrit:'Observation écrite',avert:'Avertissement',mise:'Mise en demeure',mise_a_pied:'Mise à pied'}[i.sanctionType]||'sanctionné';
+      var pre=canAvert?(dejaS?'<span title="Déjà sanctionné — ne peut pas resservir" style="margin-right:7px;font-size:.68rem;color:#4CAF50;font-weight:700;white-space:nowrap;">✅ '+sancLbl+'</span>':'<input type="checkbox" class="hist-inc-chk" value="'+i.id+'" data-emp="'+eid+'" style="width:15px;height:15px;accent-color:#FF8732;margin-right:7px;vertical-align:middle;">'):'';
+      return '<div class="inc-item" data-s="'+i.severity+'" style="margin-bottom:6px;'+(dejaS?'opacity:.7;':'')+'">'
+        +'<div class="inc-head">'+pre+'<span class="inc-meta">'+dt+' · '+(i.reporterName||'?')+' · '+sevLbl+'</span></div>'
         +'<div class="inc-tags">'+tags+'</div>'
         +(i.note?'<div class="inc-note">💬 '+i.note+'</div>':'')
         +(canCancel?'<div style="margin-top:6px;"><button onclick="annulerInc(\''+i.id+'\')" style="background:transparent;border:1px solid #663333;color:#cc5555;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:.72rem;">🚫 Annuler</button></div>':'')
@@ -4146,9 +4158,18 @@ function genReport(){
   var h='<div style="text-align:center;padding:18px;background:linear-gradient(135deg,#1A1A1A,#2C2C2C);border-radius:var(--r);margin-bottom:16px;border:1px solid #333;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.5rem;color:var(--yellow);text-transform:uppercase;letter-spacing:3px;">📊 Rapport — '+pl[period]+'</div><p style="color:#888;margin-top:5px;font-size:.82rem;">Généré le '+now.toLocaleString('fr-FR')+'</p>'+(r==='franchise'&&rptTab!=='all'?'<p style="color:var(--orange);font-size:.85rem;margin-top:3px;">'+RESTOS[rptTab].label+'</p>':'')+'</div>';
   h+='<div class="stats-grid"><div class="stat-card"><div class="stat-n">'+total+'</div><div class="stat-l">Total incidents</div></div><div class="stat-card"><div class="stat-n" style="color:#4CAF50;">'+targets.length+'</div><div class="stat-l">Membres</div></div><div class="stat-card"><div class="stat-n" style="color:var(--orange);">'+ser+'</div><div class="stat-l">Sérieux</div></div><div class="stat-card"><div class="stat-n" style="color:var(--red);">'+grave+'</div><div class="stat-l">Graves</div></div></div>';
   var isMulti=r==='franchise'&&rptTab==='all'&&personId==='all';
-  if(isMulti){Object.keys(RESTOS).forEach(function(rid){h+=buildRestoBlock(rid,incs,targets);});}
+  var canDoc=(r==='franchise'||r==='directeur');
+  // ── 3 tuiles de navigation ──
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0 16px;">';
+  h+=_incRptTile('apercu','📋','Vue par salarié','Tableau + scores','#e87722');
+  h+=_incRptTile('cat','🏷️','Par catégorie','Ce qui ressort le plus','#8e44ad');
+  if(canDoc) h+=_incRptTile('doc','📄','Créer un document','Observation / avertissement…','#c0392b');
+  h+='</div>';
+  // ── SECTION 1 : vue par salarié ──
+  var apercu='';
+  if(isMulti){ Object.keys(RESTOS).forEach(function(rid){ apercu+=buildRestoBlock(rid,incs,targets); }); }
   else{
-    h+='<div class="card" style="padding:0;overflow:hidden;"><table class="tbl"><thead><tr><th>Nom</th><th>Rôle</th><th>Incidents</th><th>Type fréquent</th><th>Max</th><th>Score</th></tr></thead><tbody>';
+    apercu+='<div class="card" style="padding:0;overflow:hidden;"><table class="tbl"><thead><tr><th>Nom</th><th>Rôle</th><th>Incidents</th><th>Type fréquent</th><th>Max</th><th>Score</th></tr></thead><tbody>';
     sortByRoleThenName(targets).forEach(function(emp){
       var mInc=incs.filter(function(i){return i.empId===emp.id;});var t=mInc.length;
       var maxSev=mInc.reduce(function(m,i){return Math.max(m,parseInt(i.severity)||0);},0);
@@ -4156,22 +4177,57 @@ function genReport(){
       var top='—';if(Object.keys(freq).length){var tid=Object.entries(freq).sort(function(a,b){return b[1]-a[1];})[0][0];var pp=PROBS.find(function(x){return x.id===tid;});if(pp)top=pp.icon+' '+pp.label;}
       var sv=Math.min(100,t*8+(maxSev>2?(maxSev-2)*10:0));var sc=sv<20?'sg':sv<50?'so':sv<80?'sb':'sc';
       var sevT=['','🟢','🟡','🟠','🔴'][maxSev]||'—';var rLbl=r==='franchise'&&RESTOS[emp.restoId]?' ['+RESTOS[emp.restoId].label+']':'';
-      h+='<tr><td><strong>'+emp.name+rLbl+'</strong></td><td><span class="role-pill rp-'+emp.role[0]+'">'+cap(emp.role)+'</span></td><td style="font-weight:600;color:'+(t>5?'var(--red)':t>2?'var(--orange)':'#4CAF50')+'">'+t+'</td><td style="font-size:.8rem;">'+top+'</td><td>'+sevT+'</td><td><div class="score-wrap '+sc+'"><div class="score-bar"><div class="score-fill" style="width:'+sv+'%"></div></div><span style="font-size:.75rem;color:#888;width:28px;text-align:right;">'+sv+'</span></div></td></tr>';
+      apercu+='<tr><td><strong>'+emp.name+rLbl+'</strong></td><td><span class="role-pill rp-'+emp.role[0]+'">'+cap(emp.role)+'</span></td><td style="font-weight:600;color:'+(t>5?'var(--red)':t>2?'var(--orange)':'#4CAF50')+'">'+t+'</td><td style="font-size:.8rem;">'+top+'</td><td>'+sevT+'</td><td><div class="score-wrap '+sc+'"><div class="score-bar"><div class="score-fill" style="width:'+sv+'%"></div></div><span style="font-size:.75rem;color:#888;width:28px;text-align:right;">'+sv+'</span></div></td></tr>';
     });
-    h+='</tbody></table></div>';
-    if(total>0){h+='<div style="font-size:.78rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px;">Incidents par type</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:8px;">';PROBS.forEach(function(p){var cnt=incs.filter(function(i){return i.problems.indexOf(p.id)>=0;}).length;if(!cnt)return;var pct=Math.round(cnt/total*100);h+='<div style="background:#1A1A1A;border-radius:8px;padding:10px;"><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span style="font-size:.8rem;">'+p.icon+' '+p.label+'</span><strong style="color:var(--orange);">'+cnt+'</strong></div><div class="score-bar"><div class="score-fill" style="width:'+pct+'%;background:var(--orange);"></div></div></div>';});h+='</div>';}
+    apercu+='</tbody></table></div>';
   }
-  // ── DOCUMENTS : liste par salarié pour créer observation écrite / avertissement / mise en demeure ──
-  if(r==='franchise'||r==='directeur'){
+  h+='<div id="incrpt-apercu">'+apercu+'</div>';
+  // ── SECTION 2 : par catégorie (ce qui ressort le plus) ──
+  var catCounts=PROBS.map(function(p){return {p:p,cnt:incs.filter(function(i){return (i.problems||[]).indexOf(p.id)>=0;}).length};}).filter(function(x){return x.cnt>0;}).sort(function(a,b){return b.cnt-a.cnt;});
+  var maxCnt=catCounts.length?catCounts[0].cnt:0;
+  var catHtml='';
+  if(catCounts.length){
+    catHtml+='<div style="background:#1a1400;border:1px solid #5a4420;border-radius:8px;padding:12px;margin-bottom:12px;color:#F5A623;font-size:.9rem;">🏆 Le plus fréquent : <strong>'+catCounts[0].p.icon+' '+catCounts[0].p.label+'</strong> — '+catCounts[0].cnt+' incident'+(catCounts[0].cnt>1?'s':'')+'</div>';
+    catHtml+=catCounts.map(function(x){
+      var pct=total?Math.round(x.cnt/total*100):0; var barPct=maxCnt?Math.round(x.cnt/maxCnt*100):0;
+      return '<div style="background:#1A1A1A;border-radius:8px;padding:12px;margin-bottom:8px;">'
+        +'<div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:.92rem;font-weight:600;">'+x.p.icon+' '+x.p.label+'</span><strong style="color:var(--orange);">'+x.cnt+' <span style="color:#888;font-weight:400;font-size:.8rem;">('+pct+'%)</span></strong></div>'
+        +'<div class="score-bar"><div class="score-fill" style="width:'+barPct+'%;background:var(--orange);"></div></div>'
+        +'</div>';
+    }).join('');
+  } else { catHtml='<div style="color:#888;padding:12px;">Aucun incident sur cette période.</div>'; }
+  h+='<div id="incrpt-cat" style="display:none;">'+catHtml+'</div>';
+  // ── SECTION 3 : créer un document ──
+  if(canDoc){
     var _tIds=targets.map(function(x){return x.id;});
     var _incsList=incs.filter(function(i){return _tIds.indexOf(i.empId)>=0;});
-    h+='<div style="font-size:.82rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin:18px 0 8px;font-weight:700;">📄 Créer un document — observation écrite / avertissement / mise en demeure</div>';
-    h+='<div style="margin-bottom:8px;"><button class="btn btn-gray btn-sm" style="background:#12233a;border-color:#2a4a6a;color:#8fc3f5;" onclick="rapportHebdoIncidents()">📊 Rapport hebdo des incidents (PDF)</button></div>';
-    h+='<div style="font-size:.8rem;color:#888;margin-bottom:10px;">Ouvrez un salarié (menu déroulant), cochez ses observations orales, puis créez le document : PDF téléchargé + envoi par mail proposé.</div>';
-    h+=incidentsGroupedHtml(_incsList, r);
+    var docHtml='<div style="margin-bottom:8px;"><button class="btn btn-gray btn-sm" style="background:#12233a;border-color:#2a4a6a;color:#8fc3f5;" onclick="rapportHebdoIncidents()">📊 Rapport hebdo des incidents (PDF)</button></div>';
+    docHtml+='<div style="font-size:.8rem;color:#888;margin-bottom:10px;">Ouvrez un salarié (menu déroulant), cochez ses observations orales, puis créez le document : PDF téléchargé + envoi par mail proposé.</div>';
+    docHtml+=incidentsGroupedHtml(_incsList, r);
+    h+='<div id="incrpt-doc" style="display:none;">'+docHtml+'</div>';
   }
   out.innerHTML=h;
+  // Toutes les tuiles fermées au départ : l'utilisateur en ouvre une au clic.
+  try{ _incRptApply(window._incRptView||''); }catch(_){}
 }
+// Tuile de navigation du rapport Incidents
+function _incRptTile(id,ico,tt,ds,accent){
+  return '<div class="dash-tile" id="incrpt-tile-'+id+'" onclick="incRptTab(\''+id+'\')" style="cursor:pointer;">'
+    +'<div class="dt-accent" style="background:'+accent+';"></div>'
+    +'<div class="dt-em">'+ico+'</div>'
+    +'<div><div class="dt-tt">'+tt+'</div><div class="dt-ds">'+ds+'</div></div></div>';
+}
+function _incRptApply(v){
+  ['apercu','cat','doc'].forEach(function(k){
+    var sec=document.getElementById('incrpt-'+k); if(sec) sec.style.display=(k===v)?'block':'none';
+    var t=document.getElementById('incrpt-tile-'+k); if(t) t.style.boxShadow=(k===v)?'0 0 0 2px var(--orange)':'';
+  });
+}
+function incRptTab(v){
+  if(window._incRptView===v) v=''; // re-clic sur la tuile ouverte -> on la referme
+  window._incRptView=v; _incRptApply(v);
+}
+window._incRptTile=_incRptTile; window.incRptTab=incRptTab; window._incRptApply=_incRptApply;
 
 // RAPPORT HEBDO DES INCIDENTS (7 derniers jours) en PDF, par restaurant et par salarié.
 // Accessible en un clic depuis la page Incidents (direction). Rappel automatique le lundi.
@@ -6039,11 +6095,16 @@ async function creerDocMulti(empId, type){
   var lid='letM_'+Date.now();
   try{
     await sb.insert('bks_letters',{id:lid,incident_id:(incs[0]?incs[0].id:''),emp_id:empId,emp_name:e.name,emp_email:e.email||'',sanction_type:type,type:type,status:'pending',sig_status:'pending',body:body,created_by:reporter,created_at:new Date().toISOString()});
+    // Anti double-sanction : les incidents utilisés sont marqués « sanctionnés » (ne peuvent plus servir à un autre document)
+    for(var q=0;q<incs.length;q++){ try{ await sb.patch('bks_incidents','id=eq.'+incs[q].id,{sanction_type:type}); }catch(_){} }
     await loadAll(); try{ updateVBadge(); }catch(_){}
     var titre={ecrit:'OBSERVATION ÉCRITE',avert:'AVERTISSEMENT',mise:'MISE EN DEMEURE'}[type]||'DOCUMENT';
     try{ avertPdf(e, body, titre, lib); }catch(pe){ console.error('avertPdf',pe); }
     toast(lib.charAt(0).toUpperCase()+lib.slice(1)+' créée pour '+e.name+'. PDF téléchargé.','success');
-    if(e.email && confirm('Envoyer aussi ce document par mail à '+e.email+' ?\n(le mail inclut le lien de signature)')){
+    // Choix : faire signer sur la tablette (main propre) OU envoyer par mail
+    if(confirm('Faire signer '+e.name+' directement sur la tablette (remise en main propre) ?\n\nOK = signer maintenant sur la tablette\nAnnuler = plus tard / par mail')){
+      try{ signerSurPlace(lid); }catch(_){}
+    } else if(e.email && confirm('Envoyer le document par mail à '+e.email+' ?\n(le mail ouvre un brouillon que vous validez avant envoi ; il inclut le lien de signature)')){
       try{ sendLetterEmail(lid); }catch(_){}
     }
     try{ if(typeof _rptCurrent!=='undefined' && _rptCurrent==='incidents'){ genReport(); } else { renderHistory(); } }catch(_){}
@@ -6116,13 +6177,29 @@ function renderLetters(){
 
 async function sendLetterEmail(lid){
   var l=DB.letters.find(function(x){return x.id===lid;});if(!l||!l.empEmail)return;
-  var st=SANCTIONS[l.sanctionType]||{label:'Courrier'};
+  var emp=DB.employees.find(function(x){return x.id===l.empId;});
+  var restoId=emp?emp.restoId:'';
   var ms=DB.mailSettings||{};
   var cc=(ms.ccRecipients||[]).concat((ms.recipients||[]).map(function(r){return r.email;})).filter(Boolean).join(',');
   var sigUrl=window.location.origin+window.location.pathname+'#sign/'+lid;
-  var subj='[BK] '+st.label+' - '+l.empName;
-  var body=l.text+'\n\n────────────────────────────────────\n🔗 Lien pour signer ce document :\n'+sigUrl;
-  window.open('mailto:'+l.empEmail+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank');
+  // Modèle par restaurant selon le type de document
+  var tpl=getMailTpl(restoId);
+  var key={ecrit:'observation_ecrite',avert:'avertissement',mise:'mise_en_demeure',mise_a_pied:'mise_a_pied'}[l.sanctionType]||'avertissement';
+  var t=tpl[key]||{sujet:'[BK] Document - {nom}',corps:'{document}\n\n🔗 Lien pour signer :\n{lien_signature}'};
+  var nomComplet=l.empName||(emp&&emp.name)||'';
+  var prenom=(nomComplet.split(' ')[0]||'');
+  var restoLbl=RESTOS[restoId]?RESTOS[restoId].label:'Burger King';
+  function fill(s){ return (s||'').replace(/{prenom}/g,prenom).replace(/{nom}/g,nomComplet)
+      .replace(/{resto}/g,restoLbl).replace(/{date}/g,new Date().toLocaleDateString('fr-FR'))
+      .replace(/{document}/g,l.text||'').replace(/{lien_signature}/g,sigUrl); }
+  var subj=fill(t.sujet), body=fill(t.corps);
+  var mode=(ms.mailMode)||'gmail';
+  if(mode==='gmail'){
+    var g='https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);
+    window.open(g,'_blank');
+  } else {
+    window.open('mailto:'+l.empEmail+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank');
+  }
   try{await sb.patch('bks_letters','id=eq.'+lid,{sent_at:new Date().toISOString()});await loadAll();}catch(e){}
 }
 
@@ -8229,6 +8306,26 @@ var MAIL_DEFAULTS={
   renvoi:{
     sujet:'Fin de votre contrat — {resto}',
     corps:'Bonjour {prenom},\n\nNous vous confirmons la fin de votre contrat de travail au sein de l\'équipe {resto}.\n\nVotre dernier jour de travail est fixé au {date_fin}.\n\nVos documents de fin de contrat (solde de tout compte, certificat de travail, attestation France Travail) vous seront remis dans les délais légaux.\n\nCordialement,\nL\'équipe {resto}'
+  },
+  observation_ecrite:{
+    sujet:'Observation écrite — {resto}',
+    corps:'Bonjour {nom},\n\nVeuillez trouver ci-dessous l\'observation écrite qui vous est adressée.\n\n{document}\n\n🔗 Pour prendre connaissance et signer ce document en ligne :\n{lien_signature}\n\nCordialement,\nL\'équipe {resto}'
+  },
+  avertissement:{
+    sujet:'Avertissement — {resto}',
+    corps:'Bonjour {nom},\n\nVeuillez trouver ci-dessous l\'avertissement écrit qui vous est notifié.\n\n{document}\n\n🔗 Pour prendre connaissance et signer ce document en ligne :\n{lien_signature}\n\nCordialement,\nL\'équipe {resto}'
+  },
+  mise_en_demeure:{
+    sujet:'Mise en demeure — {resto}',
+    corps:'Bonjour {nom},\n\nVeuillez trouver ci-dessous la mise en demeure qui vous est notifiée.\n\n{document}\n\n🔗 Pour prendre connaissance et signer ce document en ligne :\n{lien_signature}\n\nCordialement,\nL\'équipe {resto}'
+  },
+  mise_a_pied:{
+    sujet:'Mise à pied — {resto}',
+    corps:'Bonjour {nom},\n\nNous vous notifions par la présente une mise à pied.\n\n{document}\n\n🔗 Pour prendre connaissance et signer ce document en ligne :\n{lien_signature}\n\nCordialement,\nL\'équipe {resto}'
+  },
+  refus_signature:{
+    sujet:'Refus de signature — {resto}',
+    corps:'Bonjour {nom},\n\nLe {date}, nous vous avons présenté en main propre, via notre application, le document suivant : {type_document}.\n\nVous avez refusé de le signer. Nous vous le transmettons donc par le présent courriel. Nous vous précisons que ce document est bien pris en compte et versé à votre dossier, malgré votre refus de signature.\n\n{document}\n\nCordialement,\nL\'équipe {resto}'
   }
 };
 // Modèles de mails — PAR RESTAURANT si défini, sinon modèle commun, sinon défaut.
@@ -8248,7 +8345,12 @@ function getMailTpl(restoId){
     refus:pick('refus'),
     rupture:pick('rupture'),
     demission:pick('demission'),
-    renvoi:pick('renvoi')
+    renvoi:pick('renvoi'),
+    observation_ecrite:pick('observation_ecrite'),
+    avertissement:pick('avertissement'),
+    mise_en_demeure:pick('mise_en_demeure'),
+    mise_a_pied:pick('mise_a_pied'),
+    refus_signature:pick('refus_signature')
   };
 }
 function _restoLabel(c){return RESTOS[c.restoId]?RESTOS[c.restoId].label:'Burger King';}
@@ -9434,8 +9536,38 @@ async function loadPlanning(){
 
 async function openPlanning(){
   await loadPlanning();
+  try{ await _syncEncadrementAuto(); }catch(_){}
   renderPlanning();
 }
+// Synchro AUTOMATIQUE de l'encadrement : supprime les doublons de noms (ordre indifférent)
+// puis ajoute les managers/leaders de l'Équipe absents du planning. Silencieux.
+async function _syncEncadrementAuto(){
+  try{
+    if(typeof _nomKey!=='function' || !window.PLAN) return;
+    function key(nom,cat,resto){ return _nomKey(nom)+'|'+(cat||'')+'|'+((''+(resto||'')).toLowerCase()); }
+    // 1) Nettoyage des doublons existants (on garde la première occurrence)
+    var byKey={};
+    (PLAN.people||[]).forEach(function(p){ (byKey[key(p.nom,p.categorie,p.resto_id)]=byKey[key(p.nom,p.categorie,p.resto_id)]||[]).push(p); });
+    var supprime=false;
+    for(var k in byKey){
+      var arr=byKey[k];
+      for(var j=1;j<arr.length;j++){ if(arr[j].id){ try{ await sb.del('bks_planning_people','id=eq.'+arr[j].id); supprime=true; }catch(_){} } }
+    }
+    if(supprime){ try{ await loadPlanning(); }catch(_){} }
+    // 2) Ajout des managers/leaders manquants depuis l'Équipe
+    var emps=(DB.employees||[]).filter(function(e){ return !e.archived && (e.role==='manager'||e.role==='leader'); });
+    var dejaLa={}; (PLAN.people||[]).forEach(function(p){ dejaLa[key(p.nom,p.categorie,p.resto_id)]=true; });
+    var aAjouter=emps.filter(function(e){ return !dejaLa[key(e.name,e.role,e.restoId)]; });
+    if(aAjouter.length){
+      var ordre=(PLAN.people||[]).length+1;
+      for(var i=0;i<aAjouter.length;i++){ var e=aAjouter[i];
+        try{ await sb.insert('bks_planning_people',{nom:e.name,categorie:e.role,resto_id:(''+(e.restoId||'')).toLowerCase(),ordre:ordre++,actif:true}); }catch(_){}
+      }
+      try{ await loadPlanning(); }catch(_){}
+    }
+  }catch(_){}
+}
+window._syncEncadrementAuto=_syncEncadrementAuto;
 
 function setPlanView(v){
   var ancien=planView;
@@ -9519,6 +9651,11 @@ function renderPlanning(){
   // construit un tableau pour une liste de catégories
   function buildGrid(cats){
     var people=PLAN.people.slice();
+    // Dédoublonnage par nom (ordre indifférent : « Julia HEMLED » = « HEMLED JULIA »)
+    var _vu={}; people=people.filter(function(p){
+      var k=(typeof _nomKey==='function'?_nomKey(p.nom):(''+(p.nom||'')).toLowerCase())+'|'+(p.categorie||'')+'|'+((''+(p.resto_id||'')).toLowerCase());
+      if(_vu[k]) return false; _vu[k]=1; return true;
+    });
     var any=cats.some(function(cat){return people.some(function(p){return p.categorie===cat;});});
     if(!any) return '<div class="empty" style="padding:30px 16px;"><div class="ei">🗓️</div><p>Aucune personne. Cliquez sur « Gérer les personnes » pour en ajouter.</p></div>';
     var html=entete();
@@ -10019,6 +10156,70 @@ async function doRefuse(lid){
   try{await sb.patch('bks_letters','id=eq.'+lid,{sig_status:'refused',refused_at:new Date().toISOString()});document.getElementById('sig-body').innerHTML='<div style="text-align:center;padding:40px;"><div style="font-size:3rem;">❌</div><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.4rem;font-weight:700;color:#cc5555;margin-top:10px;">Refus enregistré.</div></div>';}
   catch(e){alert('Erreur');}
 }
+
+// ── SIGNATURE SUR LA TABLETTE (remise en main propre) ────────────────────────
+// Le directeur présente le document au salarié sur la tablette : il signe, ou il
+// refuse. En cas de refus, on propose d'envoyer l'attestation de refus par mail.
+function signerSurPlace(lid){
+  var l=DB.letters.find(function(x){return x.id===lid;}); if(!l){ toast('Document introuvable','error'); return; }
+  var st=SANCTIONS[l.sanctionType]||{label:'Document'};
+  var old=document.getElementById('signplace-ov'); if(old) old.remove();
+  var ov=document.createElement('div'); ov.id='signplace-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  ov.innerHTML='<div style="background:#1A1A1A;border:1px solid #444;border-radius:12px;max-width:640px;width:100%;max-height:92vh;overflow:auto;">'
+    +'<div style="background:linear-gradient(135deg,#C01E00,#8B1500);padding:14px 20px;text-align:center;border-radius:12px 12px 0 0;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.3rem;color:#F5A623;text-transform:uppercase;letter-spacing:2px;">Signature — '+st.label+'</div></div>'
+    +'<div id="signplace-inner" style="padding:20px;">'
+    +'<div style="color:#aaa;text-align:center;margin-bottom:12px;">Présenté à : <strong style="color:#fff;">'+l.empName+'</strong></div>'
+    +'<div style="background:#fafafa;color:#111;border-radius:8px;padding:22px;font-family:Georgia,serif;line-height:1.7;white-space:pre-wrap;font-size:.85rem;max-height:42vh;overflow:auto;">'+l.text+'</div>'
+    +'<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;">'
+    +'<button onclick="signPlaceSign(\''+lid+'\')" style="background:linear-gradient(135deg,#4CAF50,#2E7D32);color:#fff;border:none;padding:12px 24px;border-radius:8px;font-weight:700;cursor:pointer;">✅ Je signe</button>'
+    +'<button onclick="signPlaceRefuse(\''+lid+'\')" style="background:#333;color:#ccc;border:1px solid #555;padding:12px 24px;border-radius:8px;font-weight:700;cursor:pointer;">❌ Je refuse de signer</button>'
+    +'</div>'
+    +'<div style="text-align:center;margin-top:14px;"><button onclick="document.getElementById(\'signplace-ov\').remove()" style="background:none;border:none;color:#888;cursor:pointer;font-size:.82rem;">Fermer</button></div>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+}
+window.signerSurPlace=signerSurPlace;
+async function signPlaceSign(lid){
+  try{ await sb.patch('bks_letters','id=eq.'+lid,{sig_status:'signed',signed_at:new Date().toISOString()}); await loadAll(); }catch(e){}
+  var inner=document.getElementById('signplace-inner');
+  if(inner) inner.innerHTML='<div style="text-align:center;padding:24px;"><div style="font-size:2.6rem;">✅</div><div style="color:#4CAF50;font-weight:700;margin-top:8px;">Signature enregistrée. Merci !</div><button onclick="document.getElementById(\'signplace-ov\').remove()" style="margin-top:16px;background:#333;color:#ccc;border:1px solid #555;padding:9px 20px;border-radius:8px;cursor:pointer;">Fermer</button></div>';
+  toast('Document signé ✔','success');
+}
+window.signPlaceSign=signPlaceSign;
+async function signPlaceRefuse(lid){
+  if(!confirm('Le salarié refuse de signer ?\n\nLe refus sera daté à maintenant. Le document reste valable et versé au dossier.')) return;
+  try{ await sb.patch('bks_letters','id=eq.'+lid,{sig_status:'refused',refused_at:new Date().toISOString()}); await loadAll(); }catch(e){}
+  var inner=document.getElementById('signplace-inner');
+  if(inner) inner.innerHTML='<div style="text-align:center;padding:18px;"><div style="font-size:2.6rem;">❌</div><div style="color:#cc5555;font-weight:700;margin-top:8px;">Refus de signer enregistré le '+new Date().toLocaleDateString('fr-FR')+'.</div>'
+    +'<div style="color:#aaa;font-size:.84rem;margin:12px 0;">Le document reste valable et versé au dossier. Vous pouvez envoyer au salarié l\'attestation de refus par mail (elle atteste qu\'il a été présenté et refusé).</div>'
+    +'<button onclick="sendRefusEmail(\''+lid+'\')" style="background:linear-gradient(135deg,#D62300,#8B1500);color:#fff;border:none;padding:11px 22px;border-radius:8px;font-weight:700;cursor:pointer;">✉️ Envoyer l\'attestation de refus</button>'
+    +'<div style="margin-top:12px;"><button onclick="document.getElementById(\'signplace-ov\').remove()" style="background:none;border:none;color:#888;cursor:pointer;">Fermer</button></div></div>';
+  toast('Refus enregistré','');
+}
+window.signPlaceRefuse=signPlaceRefuse;
+// Mail d'attestation de refus de signature (ouvre un brouillon à valider). 4 types de docs.
+async function sendRefusEmail(lid){
+  var l=DB.letters.find(function(x){return x.id===lid;}); if(!l){ toast('Document introuvable','error'); return; }
+  if(!l.empEmail){ toast('Ce salarié n\'a pas d\'email renseigné.','error'); return; }
+  var emp=DB.employees.find(function(x){return x.id===l.empId;});
+  var restoId=emp?emp.restoId:'';
+  var tpl=getMailTpl(restoId);
+  var t=tpl.refus_signature||{sujet:'Refus de signature — {resto}',corps:'{document}'};
+  var typeDoc={ecrit:'l\'observation écrite',avert:'l\'avertissement écrit',mise:'la mise en demeure',mise_a_pied:'la mise à pied'}[l.sanctionType]||'le document';
+  var nomComplet=l.empName||(emp&&emp.name)||''; var prenom=(nomComplet.split(' ')[0]||'');
+  var restoLbl=RESTOS[restoId]?RESTOS[restoId].label:'Burger King';
+  var dRefus=l.refusedAt?new Date(l.refusedAt).toLocaleDateString('fr-FR'):new Date().toLocaleDateString('fr-FR');
+  function fill(s){ return (s||'').replace(/{prenom}/g,prenom).replace(/{nom}/g,nomComplet).replace(/{resto}/g,restoLbl).replace(/{date}/g,dRefus).replace(/{type_document}/g,typeDoc).replace(/{document}/g,l.text||''); }
+  var subj=fill(t.sujet), body=fill(t.corps);
+  var ms=DB.mailSettings||{}; var cc=(ms.ccRecipients||[]).concat((ms.recipients||[]).map(function(r){return r.email;})).filter(Boolean).join(',');
+  var mode=(ms.mailMode)||'gmail';
+  if(mode==='gmail'){ window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
+  else { window.open('mailto:'+l.empEmail+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
+  try{ await sb.patch('bks_letters','id=eq.'+lid,{sent_at:new Date().toISOString()}); await loadAll(); }catch(e){}
+  toast('Attestation de refus prête (brouillon à valider avant envoi).','success');
+}
+window.sendRefusEmail=sendRefusEmail;
 
 // ── PARAMÈTRES ────────────────────────────────────────────────────────────────
 function renderPinSettings(){
