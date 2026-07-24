@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-23 · v328';
+  var EMBEDDED_VERSION = '2026-07-24 · v337';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -338,6 +338,91 @@ body.tv-mode #eye-viewas{display:none!important;}
 .dash-tile .dt-accent{position:absolute;top:0;left:0;width:100%;height:5px;}
 .dash-tile.dt-soon{opacity:.62;}
 .dash-tile.dt-soon::after{content:'BIENTÔT';position:absolute;top:12px;right:12px;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:.66rem;letter-spacing:1px;color:#1A1A1A;background:#777;padding:2px 8px;border-radius:10px;}
+/* ─── Téléphone équipe ─────────────────────────────────────────────── */
+.tel-wrap{display:flex;gap:34px;align-items:flex-start;flex-wrap:wrap;padding:6px 2px;}
+.tel-config{flex:1 1 380px;min-width:300px;max-width:620px;}
+.tel-intro{color:#b9b9b9;font-size:.92rem;line-height:1.5;margin:0 0 18px;}
+.tel-toggles{display:flex;flex-direction:column;gap:10px;}
+.tel-tog{display:flex;align-items:center;gap:13px;background:#1A1A1A;border:1px solid #2e2e2e;border-radius:14px;padding:12px 15px;cursor:pointer;transition:border-color .15s,background .15s;}
+.tel-tog:hover{border-color:#4a4a4a;}
+.tel-tog .tt-em{font-size:1.5rem;line-height:1;width:30px;text-align:center;}
+.tel-tog .tt-txt{flex:1;}
+.tel-tog .tt-tt{font-weight:700;color:#fff;font-size:.96rem;}
+.tel-tog .tt-ds{font-size:.78rem;color:#8f8f8f;margin-top:1px;}
+.tel-tog .tt-sw{position:relative;width:46px;height:26px;border-radius:20px;background:#3a3a3a;transition:background .18s;flex:none;}
+.tel-tog .tt-sw::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .18s;}
+.tel-tog.on{border-color:#2e5e33;background:#15211654;}
+.tel-tog.on .tt-sw{background:#2e7d32;}
+.tel-tog.on .tt-sw::after{left:23px;}
+.tel-locked{display:flex;gap:12px;align-items:flex-start;background:#1a1614;border:1px dashed #5a4632;border-radius:14px;padding:13px 15px;margin-top:16px;color:#c9b79c;font-size:.85rem;line-height:1.45;}
+.tel-locked-ico{font-size:1.4rem;line-height:1;opacity:.8;}
+.tel-note{margin-top:16px;background:#12161c;border:1px solid #2a3646;border-radius:12px;padding:12px 14px;color:#8fa4c0;font-size:.82rem;line-height:1.5;}
+.tel-preview{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:12px;}
+.tel-phone{width:300px;background:#0c0c0d;border:2px solid #333;border-radius:40px;padding:16px 12px 22px;box-shadow:0 22px 60px rgba(0,0,0,.55);position:relative;}
+.tel-phone-notch{width:110px;height:22px;background:#0c0c0d;border:2px solid #333;border-top:none;border-radius:0 0 16px 16px;margin:-16px auto 12px;}
+.tel-phone-screen{background:#141414;border-radius:26px;padding:16px 12px;min-height:430px;}
+.tel-phone-top{margin-bottom:14px;padding:0 4px;}
+.tel-phone-hello{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.15rem;color:#fff;}
+.tel-phone-resto{font-size:.8rem;color:#F5A623;font-weight:700;}
+.tel-phone-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.tel-mini{position:relative;border-radius:15px;padding:14px 11px;min-height:104px;border:1px solid #3a3a3a;background:linear-gradient(155deg,#2E2E2E,#1E1E1E);display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;}
+.tel-mini .tm-accent{position:absolute;top:0;left:0;width:100%;height:4px;}
+.tel-mini .tm-em{font-size:1.7rem;line-height:1;}
+.tel-mini .tm-tt{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:.92rem;letter-spacing:.5px;color:#fff;text-transform:uppercase;margin-top:9px;}
+.tel-mini .tm-ds{font-size:.66rem;color:#9a9a9a;margin-top:2px;line-height:1.3;}
+.tel-mini.tm-soon{opacity:.6;}
+.tel-phone-empty{text-align:center;color:#777;font-size:.82rem;padding:40px 14px;line-height:1.5;}
+.tel-preview-cap{color:#888;font-size:.8rem;font-weight:600;letter-spacing:.5px;}
+@media(max-width:640px){.tel-phone{width:100%;max-width:320px;}.tel-wrap{gap:22px;}}
+/* ── Écran télé : bouton config + aperçu cadre télé ── */
+.dash-gear{margin-top:5px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:20px;padding:5px 13px;font-size:.76rem;cursor:pointer;font-family:Barlow,sans-serif;margin-right:8px;}
+.dash-gear:hover{background:rgba(0,0,0,.4);}
+.dash-cfg-page{padding:4px 2px;}
+/* Écran télé (réglage admin) : interrupteurs collés à gauche + GRAND écran télé large à droite */
+#dash-config .tel-wrap{gap:28px;align-items:flex-start;flex-wrap:nowrap;}
+#dash-config .tel-config{flex:0 0 380px;max-width:420px;}
+#dash-config .tel-preview{flex:1 1 540px;min-width:0;align-items:stretch;}
+.tel-tv{width:100%;background:#0c0c0d;border:5px solid #2a2a2a;border-radius:16px;padding:18px;box-shadow:0 22px 60px rgba(0,0,0,.55);}
+.tel-tv-screen{background:#141414;border-radius:8px;padding:20px 18px;min-height:360px;}
+.tel-tv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.tel-tv-grid .tel-mini{min-height:118px;}
+.tel-tv-stand{width:150px;height:16px;background:#1a1a1a;border:1px solid #2a2a2a;border-top:none;border-radius:0 0 12px 12px;margin:0 auto;}
+@media(max-width:900px){#dash-config .tel-wrap{flex-wrap:wrap;}#dash-config .tel-config{flex:1 1 320px;}.tel-tv-grid{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:640px){.tel-tv-grid{grid-template-columns:1fr 1fr;}}
+/* ── Espace équipier (accès PIN sur téléphone) ── */
+#equipier-portail{position:fixed;inset:0;z-index:11000;display:none;}
+.eq-back{position:absolute;inset:0;background:rgba(8,8,10,.92);display:flex;align-items:flex-start;justify-content:center;padding:38px 14px;overflow:auto;font-family:Barlow,sans-serif;}
+.eq-card{position:relative;background:#161618;border:1px solid #333;border-radius:22px;width:100%;max-width:390px;padding:26px 22px 24px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.6);}
+.eq-close{position:absolute;top:12px;right:16px;background:none;border:none;color:#888;font-size:1.6rem;cursor:pointer;line-height:1;}
+.eq-h{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.5rem;color:#F5A623;letter-spacing:1px;margin-top:4px;}
+.eq-sub{font-size:.84rem;color:#9a9a9a;margin:5px 0 18px;}
+.eq-restos{display:flex;flex-direction:column;gap:11px;}
+.eq-resto{background:#1A1A1A;border:1px solid #555;border-radius:13px;padding:15px 18px;color:#fff;font-size:1.02rem;font-weight:700;cursor:pointer;text-align:left;transition:all .12s;}
+.eq-resto:hover{border-color:#F5A623;background:#2a2416;}
+.eq-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.eq-emp{background:#1A1A1A;border:1px solid #2e2e2e;border-radius:13px;padding:14px 8px;cursor:pointer;transition:all .12s;}
+.eq-emp:hover{border-color:#F5A623;}
+.eq-av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:1rem;margin:0 auto 8px;}
+.eq-av-lg{width:64px;height:64px;font-size:1.4rem;margin:6px auto 10px;}
+.eq-nm{font-size:.86rem;color:#eee;font-weight:600;line-height:1.2;}
+.eq-nm-r{font-size:.68rem;color:#F5A623;font-weight:600;margin-top:2px;}
+.eq-search{width:100%;box-sizing:border-box;background:#0e0e0e;border:1px solid #444;border-radius:12px;color:#fff;font-size:.95rem;padding:11px 14px;margin-bottom:14px;font-family:inherit;}
+.eq-fld{width:100%;box-sizing:border-box;background:#0e0e0e;border:1px solid #444;border-radius:12px;color:#fff;font-size:1rem;padding:13px 14px;margin-bottom:11px;font-family:inherit;text-align:center;}
+.eq-fld:focus{outline:none;border-color:#F5A623;}
+#eq-list{max-height:360px;overflow:auto;}
+.eq-pin{width:170px;margin:4px auto 0;display:block;background:#0e0e0e;border:1px solid #444;border-radius:12px;color:#fff;font-size:1.7rem;text-align:center;letter-spacing:10px;padding:12px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:800;}
+.eq-msg{font-size:.82rem;min-height:18px;margin-top:10px;}
+.eq-hint{font-size:.74rem;color:#777;margin-top:8px;line-height:1.4;}
+.eq-lnk{background:none;border:none;color:#8fa4c0;font-size:.84rem;cursor:pointer;padding:6px 8px;}
+.eq-lnk:hover{color:#cfe0f0;}
+.eq-bigbtn{display:block;width:100%;margin-top:14px;background:#F5A623;color:#1A1A1A;border:none;border-radius:13px;padding:14px;font-size:1rem;font-weight:800;cursor:pointer;font-family:inherit;}
+.eq-home-top{text-align:left;margin-bottom:14px;}
+.eq-hello{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.25rem;color:#fff;}
+.eq-home-nm{font-size:.84rem;color:#F5A623;font-weight:700;}
+.eq-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.eq-empty{color:#888;font-size:.85rem;padding:26px 12px;}
+.eq-actions{display:flex;justify-content:space-between;align-items:center;margin-top:16px;border-top:1px solid #2a2a2a;padding-top:12px;}
+.tile-equipier{border:2px solid #3ecf8e!important;}
 .bk-gated #rec-resto-filter,.bk-gated #visite-resto-filter,.bk-gated #rpt-tabs{display:none!important;}
 .dash-panel{background:var(--gray);border-radius:16px;border:1px solid #333;overflow:hidden;}
 .dash-panel-hdr{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;background:linear-gradient(135deg,var(--red),#A01800);}
@@ -433,6 +518,7 @@ html,body{overflow-x:hidden;}
     <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
       <div class="tile tile-admin" onclick="pickGlobal('admin')"><div class="tile-icon">🛡️</div><div class="tile-label">Admin</div><div class="tile-sub">Accès total</div></div>
       <div class="tile tile-rh" onclick="pickGlobal('rh')"><div class="tile-icon">👩‍💼</div><div class="tile-label">Superviseure</div><div class="tile-sub">RH / Supervision</div></div>
+      <div class="tile tile-equipier" onclick="equipierPortail()"><div class="tile-icon">👤</div><div class="tile-label">Espace équipier</div><div class="tile-sub">Mon téléphone équipe</div></div>
     </div>
   </div>
 
@@ -582,6 +668,7 @@ html,body{overflow-x:hidden;}
   </div>
   <nav id="main-nav">
     <button onclick="goPage('dashboard',this)">📺 Écran télé</button>
+    <button class="desktop-only" onclick="goPage('telephone',this)">📱 Téléphone équipe</button>
     <button class="desktop-only" onclick="goPage('equipe',this)">👥 Équipe</button>
     <button onclick="goPage('etatequipe',this)">🧑‍🤝‍🧑 État équipe <span id="eebadge" style="background:var(--orange);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
     <button onclick="goPage('horaires',this)">🕐 Horaires</button>
@@ -632,6 +719,54 @@ html,body{overflow-x:hidden;}
           <div style="width:90px;"></div>
         </div>
         <div class="dash-panel-body" id="dash-panel-body"></div>
+      </div>
+      <div id="dash-config" class="dash-cfg-page" style="display:none;">
+        <div class="tel-wrap" style="margin-top:2px;">
+          <div class="tel-config">
+            <div class="sec-title" style="margin-bottom:6px;">⚙️ Pièces de l'Écran télé</div>
+            <p class="tel-intro">Choisis les boutons affichés sur l'Écran télé du restaurant. Active ou masque une pièce quand tu veux — l'écran s'adapte tout de suite. (Ici on garde « Pointer » : le pointage se fait au restaurant.)</p>
+            <div class="tel-toggles" id="dash-cfg-toggles"></div>
+          </div>
+          <div class="tel-preview">
+            <div class="tel-tv">
+              <div class="tel-tv-screen">
+                <div class="tel-phone-top">
+                  <div class="tel-phone-hello" id="dash-cfg-hello">Bonjour 👋</div>
+                  <div class="tel-phone-resto" id="dash-cfg-resto">Mon restaurant</div>
+                </div>
+                <div class="tel-tv-grid" id="dash-cfg-grid"></div>
+                <div class="tel-phone-empty" id="dash-cfg-empty" style="display:none;">Aucune pièce activée — coche au moins une pièce à gauche.</div>
+              </div>
+            </div>
+            <div class="tel-tv-stand"></div>
+            <div class="tel-preview-cap">Aperçu — Écran télé du restaurant</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ TÉLÉPHONE ÉQUIPE (ce que les salariés voient sur leur téléphone) ════════ -->
+  <div class="page" id="page-telephone">
+    <div class="tel-wrap">
+      <div class="tel-config">
+        <div class="sec-title" style="margin-bottom:6px;">📱 Téléphone équipe</div>
+        <p class="tel-intro">Ce que l'équipe retrouve sur son téléphone perso : le même contenu que l'Écran télé, <b>sans le pointage</b> (on ne pointe jamais depuis la maison). Choisis ci-dessous les pièces à afficher.</p>
+        <div class="tel-toggles" id="tel-toggles"></div>
+      </div>
+      <div class="tel-preview">
+        <div class="tel-phone">
+          <div class="tel-phone-notch"></div>
+          <div class="tel-phone-screen">
+            <div class="tel-phone-top">
+              <div class="tel-phone-hello" id="tel-phone-hello">Bonjour 👋</div>
+              <div class="tel-phone-resto" id="tel-phone-resto">Mon restaurant</div>
+            </div>
+            <div class="tel-phone-grid" id="tel-phone-grid"></div>
+            <div class="tel-phone-empty" id="tel-phone-empty" style="display:none;">Aucune pièce activée — coche au moins une pièce à gauche.</div>
+          </div>
+        </div>
+        <div class="tel-preview-cap">Aperçu — écran du salarié</div>
       </div>
     </div>
   </div>
@@ -2182,6 +2317,8 @@ async function loadAll(light) {
   try{ if(typeof hrChargerCodesSupabase==='function'){ await hrChargerCodesSupabase(); } }catch(e){}
   try{ if(typeof hrChargerModelesSupabase==='function'){ await hrChargerModelesSupabase(); } }catch(e){}
   try{ if(typeof hrChargerSocieteSupabase==='function'){ await hrChargerSocieteSupabase(); } }catch(e){}
+  try{ if(typeof hrChargerTelephoneSupabase==='function'){ await hrChargerTelephoneSupabase(); } }catch(e){}
+  try{ if(typeof hrChargerDashboardSupabase==='function'){ await hrChargerDashboardSupabase(); } }catch(e){}
 }
 
 async function saveDB() {
@@ -2875,7 +3012,7 @@ function goPage(id, btn) {
   if (btn) { btn.classList.add('active'); }
   else {
     // Pas de bouton passé (navigation programmée) : on retrouve celui de la page pour le surligner.
-    var _labels={dashboard:'Écran télé',equipe:'👥 Équipe',etatequipe:'État équipe',horaires:'Horaires',docsplanning:'Documents planning',recrutement:'Recrutement',visite:'Visite',incidents:'Incidents',rapports:'Rapports',planning:'Planning',parametres:'Paramètres',alertes:'Alertes'};
+    var _labels={dashboard:'Écran télé',telephone:'Téléphone équipe',equipe:'👥 Équipe',etatequipe:'État équipe',horaires:'Horaires',docsplanning:'Documents planning',recrutement:'Recrutement',visite:'Visite',incidents:'Incidents',rapports:'Rapports',planning:'Planning',parametres:'Paramètres',alertes:'Alertes'};
     var _lbl=_labels[id];
     if(_lbl){ document.querySelectorAll('#main-nav button').forEach(function(b){ if(b.textContent.indexOf(_lbl)>=0) b.classList.add('active'); }); }
   }
@@ -2899,6 +3036,7 @@ function goPage(id, btn) {
   }
   if (id==='dashboard'){ try{ initDashboard(); dashStartAutoRefresh(); }catch(e){console.warn('dash',e);} }
   else { try{ dashStopAutoRefresh(); }catch(e){} }
+  if (id==='telephone'){ try{ renderTelephone(); }catch(e){console.warn('telephone',e);} }
   if (id==='incidents'){ if(curUser.role==='franchise'){ bkEntrerPage('incidents'); } else { window.__incResto=curUser.restoId; try{ initForm(); }catch(e){} } }
   if (id==='horaires'){ try{
     if(!window.__hrDone && window.__hrInit){ window.__hrInit(); }
@@ -6246,6 +6384,20 @@ function renderEmpFicheInfos(id){
     });
     h+='</div></div>';
   });
+  // ── Accès Téléphone équipe (code PIN) ──
+  var _pin=empPin(e), _def=empPinEstDefaut(e);
+  h+='<div class="card" style="margin-bottom:12px;"><div class="sec-title">🔐 Accès Téléphone équipe</div>';
+  if(_pin){
+    h+='<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">'
+      +'<div><div style="font-size:.7rem;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Code actuel</div>'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.6rem;letter-spacing:4px;color:var(--orange);">'+_pin+'</div></div>'
+      +'<span style="font-size:.74rem;background:#141414;border-radius:6px;padding:5px 10px;color:#bbb;">'+(_def?'Par défaut : date de naissance (JJMM)':'Code personnalisé par le salarié')+'</span>'
+      +((canEdit&&!_def)?'<button class="btn btn-gray btn-sm" onclick="empPinResetUI(\''+id+'\')">↩︎ Réinitialiser (date de naissance)</button>':'')
+      +'</div>';
+  } else {
+    h+='<div style="font-size:.85rem;color:#F5A623;">Renseignez la date de naissance pour générer automatiquement le code d\'accès (jour + mois).</div>';
+  }
+  h+='<div id="emp-pin-status" style="font-size:.78rem;color:#888;margin-top:8px;"></div></div>';
   document.getElementById('empf-pane-infos').innerHTML=h;
 }
 
@@ -11862,16 +12014,322 @@ function dashShowBoard(){
   var b=document.getElementById('dash-banner');if(b)b.style.display='none';
   // restaurant verrouillé (TV, directeur, ou franchise avec resto choisi) → on masque « Changer de resto »
   try{ var cb=document.querySelector('.dash-change'); if(cb) cb.style.display=( (typeof _restoVerrouille==='function' && _restoVerrouille()) )?'none':''; }catch(e){}
+  // ── Écran télé : deux vues selon qui regarde ──────────────────────────────
+  // • Mode Écran TV du restaurant (role 'tv', code 0000) → tuiles EN DIRECT.
+  // • Direction / back-office → directement le réglage des pièces : interrupteurs
+  //   à gauche (non affichés sur la télé) + aperçu dans un CADRE TÉLÉ à droite,
+  //   exactement comme le Téléphone équipe. Pas de bouton « roue ».
+  try{
+    var _isTV=(curUser && curUser.role==='tv');
+    var _board=document.getElementById('dash-board');
+    var _cfg=document.getElementById('dash-config');
+    if(_isTV){ if(_board)_board.style.display='block'; if(_cfg)_cfg.style.display='none'; }
+    else { if(_board)_board.style.display='none'; if(_cfg){ _cfg.style.display='block'; dashRenderConfig(); } }
+  }catch(e){}
 }
 function dashRenderTiles(){
   var g=document.getElementById('dash-grid');if(!g)return;
-  g.innerHTML=DASH_TILES.map(function(t){
+  var cfg=getDashConfig();
+  g.innerHTML=DASH_TILES.filter(function(t){ return cfg[t.id]!==false; }).map(function(t){
     var soon=!t.action;
     return '<div class="dash-tile'+(soon?' dt-soon':'')+'" '+(t.action?('onclick="'+t.action+'()"'):'')+'>'
       +'<div class="dt-accent" style="background:'+t.color+'"></div><div class="dt-em">'+t.em+'</div>'
       +'<div><div class="dt-tt">'+t.tt+'</div><div class="dt-ds">'+t.ds+'</div></div></div>';
   }).join('');
 }
+// ══ ÉCRAN TÉLÉ — pièces configurables (même système que le Téléphone équipe) ══
+// L'Écran télé garde TOUTES ses pièces (Pointer inclus) ; la direction choisit
+// lesquelles s'affichent. Config partagée via app_config (clé 'bkrh_dashboard')
+// + miroir localStorage. Indépendante de la config du Téléphone équipe.
+var DASH_CONFIG=null;
+function dashDefaultConfig(){ var o={}; DASH_TILES.forEach(function(t){ o[t.id]=true; }); return o; }
+function getDashConfig(){
+  if(DASH_CONFIG) return DASH_CONFIG;
+  try{ var raw=localStorage.getItem('bkrh_dashboard'); if(raw){ DASH_CONFIG=Object.assign(dashDefaultConfig(),JSON.parse(raw)); return DASH_CONFIG; } }catch(e){}
+  DASH_CONFIG=dashDefaultConfig(); return DASH_CONFIG;
+}
+function saveDashConfig(){
+  try{ localStorage.setItem('bkrh_dashboard',JSON.stringify(DASH_CONFIG)); }catch(e){}
+  try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:'bkrh_dashboard',valeur:DASH_CONFIG},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
+}
+async function hrChargerDashboardSupabase(){
+  try{
+    if(typeof SB==='undefined' || !SB) return;
+    var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_dashboard').maybeSingle();
+    if(r && r.data && r.data.valeur){ DASH_CONFIG=Object.assign(dashDefaultConfig(),r.data.valeur); try{localStorage.setItem('bkrh_dashboard',JSON.stringify(DASH_CONFIG));}catch(e){} }
+  }catch(e){ console.warn('Écran télé : lecture Supabase impossible', e&&e.message||e); }
+}
+window.hrChargerDashboardSupabase=hrChargerDashboardSupabase;
+function dashOpenConfig(){
+  var board=document.getElementById('dash-board'),panel=document.getElementById('dash-panel'),cfg=document.getElementById('dash-config');
+  if(board)board.style.display='none'; if(panel)panel.style.display='none'; if(cfg)cfg.style.display='block';
+  // en-tête aperçu
+  try{
+    var r=dashRestoList().find(function(x){return x.id===DASH_RESTO;})||{label:'Mon restaurant'};
+    var nm=document.getElementById('dash-cfg-resto'); if(nm) nm.textContent=r.label||'Mon restaurant';
+    var h=new Date().getHours(); var hel=document.getElementById('dash-cfg-hello'); if(hel) hel.textContent=(h<12?'Bonjour':(h<18?'Bon après-midi':'Bonsoir'))+' 👋';
+  }catch(e){}
+  dashRenderConfig();
+}
+function dashCloseConfig(){
+  var board=document.getElementById('dash-board'),cfg=document.getElementById('dash-config');
+  if(cfg)cfg.style.display='none'; if(board)board.style.display='block';
+  dashRenderTiles();
+}
+function dashToggleTile(id){ var c=getDashConfig(); c[id]=(c[id]===false)?true:false; saveDashConfig(); dashRenderConfig(); }
+function dashRenderConfig(){
+  var cfg=getDashConfig();
+  // en-tête de l'aperçu (cadre télé) : restaurant + salutation
+  try{
+    var r=dashRestoList().find(function(x){return x.id===DASH_RESTO;})||{label:'Mon restaurant'};
+    var nm=document.getElementById('dash-cfg-resto'); if(nm) nm.textContent=r.label||'Mon restaurant';
+    var hh=new Date().getHours(); var hel=document.getElementById('dash-cfg-hello'); if(hel) hel.textContent=(hh<12?'Bonjour':(hh<18?'Bon après-midi':'Bonsoir'))+' 👋';
+  }catch(e){}
+  var tg=document.getElementById('dash-cfg-toggles');
+  if(tg){
+    tg.innerHTML=DASH_TILES.map(function(t){
+      var on=cfg[t.id]!==false;
+      return '<div class="tel-tog'+(on?' on':'')+'" onclick="dashToggleTile(\''+t.id+'\')">'
+        +'<div class="tt-em">'+t.em+'</div>'
+        +'<div class="tt-txt"><div class="tt-tt">'+t.tt+'</div><div class="tt-ds">'+t.ds+'</div></div>'
+        +'<div class="tt-sw"></div></div>';
+    }).join('');
+  }
+  var actives=DASH_TILES.filter(function(t){ return cfg[t.id]!==false; });
+  var grid=document.getElementById('dash-cfg-grid');
+  if(grid){
+    // Tuiles CLIQUABLES (vraies actions) : vrai écran télé de test — on ouvre
+    // Mes horaires, Pointer, etc. exactement comme au restaurant.
+    grid.innerHTML=actives.map(function(t){
+      var soon=!t.action;
+      return '<div class="tel-mini'+(soon?' tm-soon':'')+'" '+(t.action?('onclick="'+t.action+'()"'):'')+' style="cursor:'+(t.action?'pointer':'default')+';">'
+        +'<div class="tm-accent" style="background:'+t.color+'"></div><div class="tm-em">'+t.em+'</div>'
+        +'<div><div class="tm-tt">'+t.tt+'</div><div class="tm-ds">'+t.ds+'</div></div></div>';
+    }).join('');
+  }
+  var emp=document.getElementById('dash-cfg-empty'); if(emp) emp.style.display=actives.length?'none':'block';
+}
+window.dashOpenConfig=dashOpenConfig; window.dashCloseConfig=dashCloseConfig; window.dashToggleTile=dashToggleTile;
+// ══ TÉLÉPHONE ÉQUIPE — miroir de l'Écran télé, SANS pointage, pièces configurables ══
+// Reprend DASH_TILES en retirant la tuile « pointer » (on ne pointe jamais depuis la
+// maison). Chaque pièce peut être activée/désactivée ; la config est partagée via
+// app_config (clé 'bkrh_telephone') + miroir localStorage, comme la Société.
+var TEL_TILES = DASH_TILES.filter(function(t){ return t.id!=='pointer'; });
+var TEL_CONFIG = null;
+function telDefaultConfig(){ var o={}; TEL_TILES.forEach(function(t){ o[t.id]=true; }); return o; }
+function getTelConfig(){
+  if(TEL_CONFIG) return TEL_CONFIG;
+  try{ var raw=localStorage.getItem('bkrh_telephone'); if(raw){ TEL_CONFIG=Object.assign(telDefaultConfig(),JSON.parse(raw)); return TEL_CONFIG; } }catch(e){}
+  TEL_CONFIG=telDefaultConfig(); return TEL_CONFIG;
+}
+function saveTelConfig(){
+  try{ localStorage.setItem('bkrh_telephone',JSON.stringify(TEL_CONFIG)); }catch(e){}
+  try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:'bkrh_telephone',valeur:TEL_CONFIG},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
+}
+async function hrChargerTelephoneSupabase(){
+  try{
+    if(typeof SB==='undefined' || !SB) return;
+    var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_telephone').maybeSingle();
+    if(r && r.data && r.data.valeur){ TEL_CONFIG=Object.assign(telDefaultConfig(),r.data.valeur); try{localStorage.setItem('bkrh_telephone',JSON.stringify(TEL_CONFIG));}catch(e){} }
+  }catch(e){ console.warn('Téléphone équipe : lecture Supabase impossible', e&&e.message||e); }
+}
+window.hrChargerTelephoneSupabase=hrChargerTelephoneSupabase;
+function telToggle(id){ var c=getTelConfig(); c[id]=!c[id]; saveTelConfig(); renderTelephone(); }
+function renderTelephone(){
+  var cfg=getTelConfig();
+  // En-tête de l'aperçu : restaurant actif + salutation (comme l'Écran télé)
+  try{
+    var _rid=(typeof DASH_RESTO!=='undefined' && DASH_RESTO) ? DASH_RESTO
+             : ((window.ACTIVE_RESTO && window.ACTIVE_RESTO!=='ALL') ? window.ACTIVE_RESTO : (curUser && curUser.restoId));
+    var r=dashRestoList().find(function(x){return x.id===_rid;})||{label:'Mon restaurant'};
+    var nm=document.getElementById('tel-phone-resto'); if(nm) nm.textContent=r.label||'Mon restaurant';
+  }catch(e){}
+  try{
+    var h=new Date().getHours();
+    var hel=document.getElementById('tel-phone-hello'); if(hel) hel.textContent=(h<12?'Bonjour':(h<18?'Bon après-midi':'Bonsoir'))+' 👋';
+  }catch(e){}
+  // Interrupteurs : choix des pièces à afficher
+  var tg=document.getElementById('tel-toggles');
+  if(tg){
+    tg.innerHTML=TEL_TILES.map(function(t){
+      var on=!!cfg[t.id];
+      return '<div class="tel-tog'+(on?' on':'')+'" onclick="telToggle(\''+t.id+'\')">'
+        +'<div class="tt-em">'+t.em+'</div>'
+        +'<div class="tt-txt"><div class="tt-tt">'+t.tt+'</div><div class="tt-ds">'+t.ds+'</div></div>'
+        +'<div class="tt-sw"></div></div>';
+    }).join('');
+  }
+  // Aperçu téléphone : uniquement les pièces activées
+  var actives=TEL_TILES.filter(function(t){ return !!cfg[t.id]; });
+  var grid=document.getElementById('tel-phone-grid');
+  if(grid){
+    // Tuiles CLIQUABLES pour tester (comme l'Écran télé) : on choisit un salarié
+    // pour prévisualiser Mes horaires / Mes congés / Indisponibilités.
+    grid.innerHTML=actives.map(function(t){
+      var soon=!t.action;
+      return '<div class="tel-mini'+(soon?' tm-soon':'')+'" '+(t.action?('onclick="telPreviewTile(\''+t.id+'\')"'):'')+' style="cursor:'+(t.action?'pointer':'default')+';">'
+        +'<div class="tm-accent" style="background:'+t.color+'"></div><div class="tm-em">'+t.em+'</div>'
+        +'<div><div class="tm-tt">'+t.tt+'</div><div class="tm-ds">'+t.ds+'</div></div></div>';
+    }).join('');
+  }
+  var emp=document.getElementById('tel-phone-empty'); if(emp) emp.style.display=actives.length?'none':'block';
+}
+// Test depuis l'aperçu Téléphone équipe : choisir un salarié → ouvrir la rubrique
+// (mêmes surcouches que l'Écran télé). Overlay autonome, aucun impact sur le reste.
+function telPreviewTile(kind){
+  var resto=(typeof DASH_RESTO!=='undefined'&&DASH_RESTO) || (typeof ACTIVE_RESTO!=='undefined'&&ACTIVE_RESTO&&ACTIVE_RESTO!=='ALL'?ACTIVE_RESTO:null) || (typeof curUser!=='undefined'&&curUser&&curUser.restoId) || 'bk500';
+  try{ DASH_RESTO=resto; }catch(_){}
+  var list=[]; try{ list=_dashEmployesResto(resto)||[]; }catch(_){}
+  var titre = kind==='horaires'?'Mes horaires':(kind==='conges'?'Mes congés':'Indisponibilités');
+  var ov=document.getElementById('tel-test-ov'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='tel-test-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:11500;display:flex;align-items:flex-start;justify-content:center;padding:44px 16px;overflow:auto;font-family:Barlow,sans-serif;';
+  var grid = list.length ? ('<div class="ptg-grid">'+list.map(function(e){
+      return '<div class="ptg-tile" onclick="telPreviewPick(\''+kind+'\',\''+e.id+'\')"><div class="ptg-tile-av" style="background:'+ptgAvColor(e.name)+'">'+ptgInitials(e.name)+'</div><div class="ptg-tile-nm">'+e.name+'</div><div class="ptg-tile-role">'+ptgRoleLabel(e.role)+'</div></div>';
+    }).join('')+'</div>') : '<div style="color:#aaa;padding:14px;">Aucun salarié pour ce restaurant.</div>';
+  ov.innerHTML='<div style="background:#1c1c1f;border:1px solid #555;border-radius:16px;max-width:540px;width:100%;padding:22px;">'
+    +'<button onclick="document.getElementById(\'tel-test-ov\').remove()" style="float:right;background:none;border:none;color:#aaa;font-size:1.5rem;cursor:pointer;line-height:1;">×</button>'
+    +'<div style="font-weight:800;color:#fff;font-size:1.05rem;margin-bottom:2px;">'+titre+' — test</div>'
+    +'<div style="color:#888;font-size:.82rem;margin-bottom:14px;">Choisis un salarié pour prévisualiser son écran.</div>'
+    +grid+'</div>';
+  document.body.appendChild(ov);
+}
+function telPreviewPick(kind, empId){
+  var ov=document.getElementById('tel-test-ov'); if(ov) ov.remove();
+  if(kind==='horaires'){ try{dashHorairesOpen(empId);}catch(e){console.warn(e);} var o=document.getElementById('dash-hor-ov'); if(o)o.style.zIndex='11800'; }
+  else { _dashDemType=kind; try{dashDemOpen(empId);}catch(e){console.warn(e);} var o2=document.getElementById('dash-dem-ov'); if(o2)o2.style.zIndex='11800'; }
+}
+window.renderTelephone=renderTelephone; window.telToggle=telToggle; window.telPreviewTile=telPreviewTile; window.telPreviewPick=telPreviewPick;
+// ══ CODE PIN ÉQUIPIER — accès au Téléphone équipe ═══════════════════════════════
+// Par défaut = date de naissance JJMM (ex. 09/01 → 0901), via la logique existante
+// ptgCodeAttendu(). Le salarié peut le changer ; le code choisi est stocké dans la
+// fiche (infos.pin) et partagé via Supabase (bks_employees.infos) → visible côté RH.
+function empPinDefaut(e){ try{ var c=ptgCodeAttendu(e); if(c) return c; }catch(_){} return null; }
+function empPin(e){
+  var p=(e && e.infos && e.infos.pin)?String(e.infos.pin):'';
+  if(/^\d{4}$/.test(p)) return p;
+  return empPinDefaut(e);
+}
+function empPinEstDefaut(e){ return !(e && e.infos && /^\d{4}$/.test(String((e.infos.pin!=null?e.infos.pin:'')))); }
+async function empPinSave(e, pin){
+  if(!e || !/^\d{4}$/.test(String(pin))) return false;
+  if(!e.infos) e.infos={};
+  e.infos.pin=String(pin);
+  try{ await sb.patch('bks_employees','id=eq.'+e.id,{infos:e.infos}); }catch(err){ console.warn('empPinSave',err); return false; }
+  return true;
+}
+async function empPinReset(e){
+  if(!e || !e.infos) return true;
+  if(e.infos.pin!==undefined){
+    delete e.infos.pin;
+    try{ await sb.patch('bks_employees','id=eq.'+e.id,{infos:e.infos}); }catch(err){ console.warn('empPinReset',err); return false; }
+  }
+  return true;
+}
+async function empPinResetUI(id){
+  var e=(DB.employees||[]).find(function(x){return x.id===id;}); if(!e)return;
+  var st=document.getElementById('emp-pin-status'); if(st)st.textContent='⏳ Réinitialisation…';
+  var ok=await empPinReset(e);
+  if(ok){ if(st)st.textContent='✅ Code remis à la date de naissance.'; try{renderEmpFicheInfos(id);}catch(_){}}
+  else { if(st)st.textContent='❌ Erreur, réessayez.'; }
+}
+window.empPin=empPin; window.empPinResetUI=empPinResetUI;
+
+// ══ ESPACE ÉQUIPIER — accès sécurisé par code PIN (sur le téléphone du salarié) ══
+// Overlay autonome : restaurant → nom → code → accueil (les tuiles du Téléphone
+// équipe). Ne touche pas au menu admin ni aux rôles.
+var _eqSel=null, _eqResto=null;
+function equipierPortail(){
+  _eqSel=null; _eqResto=null;
+  var ov=document.getElementById('equipier-portail');
+  if(!ov){ ov=document.createElement('div'); ov.id='equipier-portail'; document.body.appendChild(ov); }
+  ov.style.display='block';
+  // Formulaire simple : le salarié TAPE son nom, son prénom et son code. Pas de
+  // recherche, pas de choix de restaurant → l'appli le retrouve et le connecte.
+  ov.innerHTML=_eqShell('<div class="eq-h">👤 Espace équipier</div><div class="eq-sub">Connecte-toi avec ton nom, ton prénom et ton code</div>'
+    +'<input id="eq-nom" class="eq-fld" placeholder="Nom" autocomplete="off" onkeydown="if(event.key===\'Enter\')eqLogin()">'
+    +'<input id="eq-prenom" class="eq-fld" placeholder="Prénom" autocomplete="off" onkeydown="if(event.key===\'Enter\')eqLogin()">'
+    +'<input id="eq-pin" class="eq-fld" type="tel" inputmode="numeric" maxlength="4" placeholder="Code (4 chiffres)" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');" onkeydown="if(event.key===\'Enter\')eqLogin()">'
+    +'<div id="eq-msg" class="eq-msg"></div>'
+    +'<button class="eq-bigbtn" onclick="eqLogin()">Entrer</button>'
+    +'<div class="eq-hint">Ton code par défaut : jour + mois de naissance (ex. 0901 pour le 9 janvier).</div>');
+  setTimeout(function(){var s=document.getElementById('eq-nom');if(s)s.focus();},120);
+}
+function equipierFermer(){ var ov=document.getElementById('equipier-portail'); if(ov) ov.style.display='none'; _eqSel=null; _eqResto=null; }
+function _eqShell(inner){
+  return '<div class="eq-back"><div class="eq-card"><button class="eq-close" onclick="equipierFermer()">×</button>'+inner+'</div></div>';
+}
+function _eqNorm(s){ try{ return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,' ').trim(); }catch(_){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); } }
+function _eqAllEmployes(){
+  return (DB.employees||[]).filter(function(e){
+    return !e.archived && (e.role==='equipier'||e.role==='leader'||e.role==='manager');
+  });
+}
+function eqLogin(){
+  var nom=((document.getElementById('eq-nom')||{}).value||'').trim();
+  var prenom=((document.getElementById('eq-prenom')||{}).value||'').trim();
+  var pin=((document.getElementById('eq-pin')||{}).value||'').trim();
+  var msg=document.getElementById('eq-msg');
+  function ko(t){ if(msg){msg.style.color='#e8623a';msg.textContent=t;} }
+  if(!nom||!prenom){ ko('Indique ton nom et ton prénom.'); return; }
+  if(!/^\d{4}$/.test(pin)){ ko('Ton code fait 4 chiffres.'); return; }
+  var tn=_eqNorm(nom), tp=_eqNorm(prenom);
+  // on retrouve le salarié : nom ET prénom présents dans son nom complet (ordre libre)
+  var cands=_eqAllEmployes().filter(function(e){ var n=_eqNorm(e.name); return tn && tp && n.indexOf(tn)>=0 && n.indexOf(tp)>=0; });
+  if(!cands.length){ ko('Nom introuvable. Vérifie l\'orthographe ou préviens le RH.'); return; }
+  var e=null;
+  for(var i=0;i<cands.length;i++){ if(empPin(cands[i])===pin){ e=cands[i]; break; } }
+  if(!e){ ko('Code incorrect.'); var p=document.getElementById('eq-pin'); if(p){p.value='';p.focus();} return; }
+  _eqSel=e; _eqResto=e.restoId||e.resto_id||null;
+  eqHome();
+}
+function eqHome(){
+  var e=_eqSel; if(!e)return; var ov=document.getElementById('equipier-portail'); if(!ov)return;
+  var lbl=(RESTOS[_eqResto]&&RESTOS[_eqResto].label)||_eqResto||'';
+  var cfg=(typeof getTelConfig==='function')?getTelConfig():{};
+  var tiles=(typeof TEL_TILES!=='undefined'?TEL_TILES:[]).filter(function(t){return cfg[t.id]!==false;});
+  var grid=tiles.length?('<div class="eq-tiles">'+tiles.map(function(t){
+      var soon=!t.action;
+      // Tuiles CLIQUABLES pour le salarié connecté : Mes horaires / Mes congés /
+      // Indisponibilités s'ouvrent directement sur SES infos (comme l'Écran télé).
+      return '<div class="tel-mini'+(soon?' tm-soon':'')+'" '+(t.action?('onclick="eqOpenTile(\''+t.id+'\')"'):'')+' style="cursor:'+(t.action?'pointer':'default')+';">'
+        +'<div class="tm-accent" style="background:'+t.color+'"></div><div class="tm-em">'+t.em+'</div><div><div class="tm-tt">'+t.tt+'</div><div class="tm-ds">'+t.ds+'</div></div></div>';
+    }).join('')+'</div>'):'<div class="eq-empty">Aucune rubrique activée pour l\'instant.</div>';
+  var hh=new Date().getHours();
+  ov.innerHTML=_eqShell('<div class="eq-home-top"><div class="eq-hello">'+(hh<12?'Bonjour':(hh<18?'Bon après-midi':'Bonsoir'))+' 👋</div><div class="eq-home-nm">'+e.name+' · '+lbl+'</div></div>'+grid
+    +'<div class="eq-actions"><button class="eq-lnk" onclick="eqChangeCode()">🔑 Changer mon code</button><button class="eq-lnk" onclick="equipierFermer()">Déconnexion</button></div>');
+}
+function eqChangeCode(){
+  var e=_eqSel; if(!e)return; var ov=document.getElementById('equipier-portail'); if(!ov)return;
+  ov.innerHTML=_eqShell('<button class="eq-lnk" onclick="eqHome()">← Retour</button><div class="eq-h">🔑 Changer mon code</div><div class="eq-sub">Nouveau code à 4 chiffres</div>'
+    +'<input id="eq-np1" class="eq-pin" type="tel" inputmode="numeric" maxlength="4" placeholder="Nouveau code" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');">'
+    +'<input id="eq-np2" class="eq-pin" type="tel" inputmode="numeric" maxlength="4" placeholder="Confirme le code" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');">'
+    +'<div id="eq-msg" class="eq-msg"></div><button class="eq-bigbtn" onclick="eqSaveCode()">Enregistrer mon code</button>');
+}
+async function eqSaveCode(){
+  var e=_eqSel; if(!e)return;
+  var a=((document.getElementById('eq-np1')||{}).value||'').trim();
+  var b=((document.getElementById('eq-np2')||{}).value||'').trim();
+  var msg=document.getElementById('eq-msg');
+  if(!/^\d{4}$/.test(a)){ if(msg){msg.style.color='#e8623a';msg.textContent='Le code doit faire 4 chiffres.';} return; }
+  if(a!==b){ if(msg){msg.style.color='#e8623a';msg.textContent='Les deux codes ne correspondent pas.';} return; }
+  if(msg){msg.style.color='#F5A623';msg.textContent='⏳ Enregistrement…';}
+  var ok=await empPinSave(e,a);
+  if(ok){ if(msg){msg.style.color='#3ecf8e';msg.textContent='✅ Code enregistré.';} setTimeout(eqHome,900); }
+  else { if(msg){msg.style.color='#e8623a';msg.textContent='❌ Erreur, réessaie.';} }
+}
+// Ouvre une rubrique du téléphone pour le salarié DÉJÀ connecté (Mes horaires,
+// Mes congés, Indisponibilités) via les surcouches existantes, sur SON restaurant.
+// On remonte le z-index de la surcouche pour qu'elle passe au-dessus du portail.
+function eqOpenTile(kind){
+  var e=_eqSel; if(!e) return;
+  try{ DASH_RESTO=_eqResto||e.restoId||e.resto_id; localStorage.setItem('dash_resto',DASH_RESTO); }catch(_){}
+  if(kind==='horaires'){ try{ dashHorairesOpen(e.id, true); }catch(err){console.warn(err);} var o=document.getElementById('dash-hor-ov'); if(o)o.style.zIndex='12000'; }
+  else if(kind==='conges'){ _dashDemType='conges'; try{ dashDemOpen(e.id, true); }catch(err){console.warn(err);} var o2=document.getElementById('dash-dem-ov'); if(o2)o2.style.zIndex='12000'; }
+  else if(kind==='indispo'){ _dashDemType='indispo'; try{ dashDemOpen(e.id, true); }catch(err){console.warn(err);} var o3=document.getElementById('dash-dem-ov'); if(o3)o3.style.zIndex='12000'; }
+}
+window.equipierPortail=equipierPortail; window.equipierFermer=equipierFermer; window.eqLogin=eqLogin;
+window.eqHome=eqHome; window.eqChangeCode=eqChangeCode; window.eqSaveCode=eqSaveCode; window.eqOpenTile=eqOpenTile;
 function dashStartClock(){
   if(_dashClockTm)clearInterval(_dashClockTm);
   function tick(){
@@ -11895,14 +12353,23 @@ function dashRefreshOpenPanel(){
   var p=document.getElementById('dash-panel');
   if(p&&p.style.display!=='none'&&_dashOpenTile&&typeof window[_dashOpenTile]==='function'){try{window[_dashOpenTile]();}catch(e){}}
 }
+var _dashPanelFrom='board';
 function dashOpenPanel(title){
-  document.getElementById('dash-board').style.display='none';
+  var cfg=document.getElementById('dash-config');
+  _dashPanelFrom=(cfg && cfg.style.display==='block')?'config':'board';
+  var board=document.getElementById('dash-board'); if(board)board.style.display='none';
+  if(cfg) cfg.style.display='none';
   var p=document.getElementById('dash-panel');
   document.getElementById('dash-panel-title').textContent=title;
   p.style.display='block';
   return document.getElementById('dash-panel-body');
 }
-function dashClosePanel(){_dashOpenTile=null;document.getElementById('dash-panel').style.display='none';document.getElementById('dash-board').style.display='block';}
+function dashClosePanel(){
+  _dashOpenTile=null;
+  document.getElementById('dash-panel').style.display='none';
+  if(_dashPanelFrom==='config'){ var c=document.getElementById('dash-config'); if(c){c.style.display='block'; try{dashRenderConfig();}catch(e){}} }
+  else { var b=document.getElementById('dash-board'); if(b)b.style.display='block'; }
+}
 function dashOpenHoraires(){
   _dashOpenTile='dashOpenHoraires';
   var resto=DASH_RESTO;
@@ -11917,10 +12384,10 @@ function dashOpenHoraires(){
 // Le salarié clique sur sa tuile → saisit son code (jour+mois de naissance) →
 // voit UNIQUEMENT ses horaires, semaine par semaine, sur les semaines transférées.
 var _dashHorEmp=null;
-function dashHorairesOpen(empId){
+function dashHorairesOpen(empId, direct){
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
   if(!e) return;
-  _dashHorEmp=null;
+  _dashHorEmp = direct ? e : null;   // direct = salarié déjà connecté → pas de code
   var ov=document.getElementById('dash-hor-ov'); if(ov) ov.remove();
   ov=document.createElement('div'); ov.id='dash-hor-ov';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.66);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:50px 16px;overflow:auto;';
@@ -11929,13 +12396,19 @@ function dashHorairesOpen(empId){
     +'<div class="ptg-tile-av" style="background:'+ptgAvColor(e.name)+';margin:4px auto 12px;width:56px;height:56px;font-size:1.3rem;">'+ptgInitials(e.name)+'</div>'
     +'<div style="font-size:1.15rem;font-weight:800;color:#fff;margin-bottom:2px;">'+(e.name||'')+'</div>'
     +'<div style="color:#1565c0;font-size:.9rem;font-weight:700;margin-bottom:14px;">Mes horaires</div>'
-    +'<div style="color:#bbb;font-size:.82rem;margin-bottom:8px;">Saisis ton code : jour + mois de naissance (4 chiffres, ex. 0309 pour le 3 septembre)</div>'
-    +'<input id="dash-hor-pin" type="tel" inputmode="numeric" maxlength="4" placeholder="••••" style="width:140px;background:#111;border:1px solid #444;color:#eee;border-radius:10px;padding:11px;font-size:1.3rem;letter-spacing:.35em;text-align:center;" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');dashHorairesCheckPin(\''+e.id+'\');">'
-    +'<div id="dash-hor-msg" style="font-size:.84rem;min-height:18px;margin:8px 0;"></div>'
-    +'<div id="dash-hor-cal" style="display:none;margin-top:6px;"></div>'
+    +(direct?'':('<div style="color:#bbb;font-size:.82rem;margin-bottom:8px;">Saisis ton code : jour + mois de naissance (4 chiffres, ex. 0309 pour le 3 septembre)</div>'
+      +'<input id="dash-hor-pin" type="tel" inputmode="numeric" maxlength="4" placeholder="••••" style="width:140px;background:#111;border:1px solid #444;color:#eee;border-radius:10px;padding:11px;font-size:1.3rem;letter-spacing:.35em;text-align:center;" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');dashHorairesCheckPin(\''+e.id+'\');">'
+      +'<div id="dash-hor-msg" style="font-size:.84rem;min-height:18px;margin:8px 0;"></div>'))
+    +'<div id="dash-hor-cal" style="'+(direct?'':'display:none;')+'margin-top:6px;"></div>'
     +'</div>';
   document.body.appendChild(ov);
-  setTimeout(function(){ var p=document.getElementById('dash-hor-pin'); if(p) p.focus(); }, 60);
+  if(direct){
+    var cal=document.getElementById('dash-hor-cal');
+    if(cal) cal.innerHTML='<div style="color:#aaa;padding:14px;font-size:.86rem;">Chargement de tes horaires…</div>';
+    try{ _dashChargerHorairesPuisAfficher(e); }catch(err){ console.warn('horaires direct',err); }
+  } else {
+    setTimeout(function(){ var p=document.getElementById('dash-hor-pin'); if(p) p.focus(); }, 60);
+  }
 }
 window.dashHorairesOpen=dashHorairesOpen;
 
@@ -12161,10 +12634,10 @@ function dashOpenIndispo(){
   _dashRenderTuiles(body, resto, 'dashDemOpen');
 }
 // Clic sur une tuile → modale code PIN
-function dashDemOpen(empId){
+function dashDemOpen(empId, direct){
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
   if(!e) return;
-  _dashDemEmp=null;
+  _dashDemEmp = direct ? e : null;   // direct = salarié déjà connecté → pas de code
   var titre = _dashDemType==='conges' ? 'Demander un congé' : 'Signaler une indisponibilité';
   var accent = _dashDemType==='conges' ? '#F5A623' : '#FF8732';
   var ov=document.getElementById('dash-dem-ov'); if(ov) ov.remove();
@@ -12175,10 +12648,10 @@ function dashDemOpen(empId){
     +'<div class="ptg-tile-av" style="background:'+ptgAvColor(e.name)+';margin:4px auto 12px;width:56px;height:56px;font-size:1.3rem;">'+ptgInitials(e.name)+'</div>'
     +'<div style="font-size:1.15rem;font-weight:800;color:#fff;margin-bottom:2px;">'+(e.name||'')+'</div>'
     +'<div style="color:'+accent+';font-size:.9rem;font-weight:700;margin-bottom:14px;">'+titre+'</div>'
-    +'<div style="color:#bbb;font-size:.82rem;margin-bottom:8px;">Saisis ton code : jour + mois de naissance (4 chiffres, ex. 0309 pour le 3 septembre)</div>'
-    +'<input id="dash-dem-pin" type="tel" inputmode="numeric" maxlength="4" placeholder="••••" style="width:140px;background:#111;border:1px solid #444;color:#eee;border-radius:10px;padding:11px;font-size:1.3rem;letter-spacing:.35em;text-align:center;" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');dashDemCheckPin(\''+e.id+'\');">'
-    +'<div id="dash-dem-msg" style="font-size:.84rem;min-height:18px;margin:8px 0;"></div>'
-    +'<div id="dash-dem-form" style="display:none;text-align:left;">'
+    +(direct?'':('<div style="color:#bbb;font-size:.82rem;margin-bottom:8px;">Saisis ton code : jour + mois de naissance (4 chiffres, ex. 0309 pour le 3 septembre)</div>'
+      +'<input id="dash-dem-pin" type="tel" inputmode="numeric" maxlength="4" placeholder="••••" style="width:140px;background:#111;border:1px solid #444;color:#eee;border-radius:10px;padding:11px;font-size:1.3rem;letter-spacing:.35em;text-align:center;" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');dashDemCheckPin(\''+e.id+'\');">'
+      +'<div id="dash-dem-msg" style="font-size:.84rem;min-height:18px;margin:8px 0;"></div>'))
+    +'<div id="dash-dem-form" style="display:'+(direct?'block':'none')+';text-align:left;">'
       +'<div style="color:#bbb;font-size:.8rem;margin-bottom:10px;">Clique un jour pour une seule date, ou clique-glisse pour sélectionner une période.</div>'
       +'<div id="dash-dem-cal"></div>'
       +'<div id="dash-dem-recap" style="color:#3ecf8e;font-size:.86rem;font-weight:700;min-height:20px;margin:10px 0;"></div>'
@@ -12186,7 +12659,8 @@ function dashDemOpen(empId){
     +'</div>'
     +'</div>';
   document.body.appendChild(ov);
-  setTimeout(function(){ var p=document.getElementById('dash-dem-pin'); if(p) p.focus(); },120);
+  if(direct){ try{ dashCalInit(); }catch(err){ console.warn('dem direct',err); } }
+  else { setTimeout(function(){ var p=document.getElementById('dash-dem-pin'); if(p) p.focus(); },120); }
 }
 function dashDemCheckPin(empId){
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
