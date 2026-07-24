@@ -1228,6 +1228,16 @@ html,body{overflow-x:hidden;}
         <button class="btn btn-red btn-sm" onclick="baremesSave()">💾 Enregistrer les barèmes</button>
       </div>
     </div>
+    <div class="card param-card" id="pc-societe" style="display:none;">
+      <div class="sec-title">🏢 Société / employeur</div>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:12px;">Informations de l'entreprise employeur, utilisées pour <strong>remplir automatiquement les contrats</strong> (champs {societe}, {societe_details}, {urssaf}). Vous ne les saisissez qu'une fois.</p>
+      <div style="display:flex;flex-direction:column;gap:10px;max-width:640px;">
+        <div><div class="flabel">Raison sociale (nom de la société)</div><input type="text" id="soc-nom" class="fi" placeholder="Ex : SARL BK RESTAURATION"></div>
+        <div><div class="flabel">Coordonnées / détails (adresse, SIRET, forme, capital…)</div><textarea id="soc-details" class="fi" style="min-height:80px;" placeholder="Ex : SARL au capital de 10 000 € — 12 rue des Arènes, 34000 Montpellier — SIRET 123 456 789 00012 — Code APE 5610C"></textarea></div>
+        <div><div class="flabel">N° URSSAF</div><input type="text" id="soc-urssaf" class="fi" placeholder="Ex : 337 1234567890"></div>
+        <div><button class="btn btn-red btn-sm" onclick="saveSociete()">💾 Enregistrer</button> <span id="soc-status" style="font-size:.78rem;color:#888;"></span></div>
+      </div>
+    </div>
     <div class="card param-card" id="pc-qr" style="display:none;">
       <div class="sec-title">📲 QR code de candidature</div>
       <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">Un seul QR code pour les trois restaurants. Le candidat le scanne, arrive directement sur la fiche de recrutement et choisit lui-même le restaurant souhaité — sans code ni accès à l'application.</p>
@@ -2171,6 +2181,7 @@ async function loadAll(light) {
   try{ if(typeof hrChargerContratsSupabase==='function'){ await hrChargerContratsSupabase(); } }catch(e){}
   try{ if(typeof hrChargerCodesSupabase==='function'){ await hrChargerCodesSupabase(); } }catch(e){}
   try{ if(typeof hrChargerModelesSupabase==='function'){ await hrChargerModelesSupabase(); } }catch(e){}
+  try{ if(typeof hrChargerSocieteSupabase==='function'){ await hrChargerSocieteSupabase(); } }catch(e){}
 }
 
 async function saveDB() {
@@ -3039,7 +3050,8 @@ var PARAM_TILES=[
   {ico:'📧', titre:'Adresses mail', sub:'Expédition RH',                type:'card', card:'pc-adresses',    accent:'#2c3e50'},
   {ico:'✉️', titre:'Modèles mails', sub:'Mails aux candidats',          type:'card', card:'pc-mails',       accent:'#27ae60'},
   {ico:'🗂️', titre:'Ranger des documents', sub:'Glisser-déposer dans une fiche', type:'card', card:'pc-dbximport',   accent:'#5BA3F5'},
-  {ico:'⚖️', titre:'Barèmes',       sub:'Seuils de sanction',           type:'card', card:'pc-baremes',     accent:'#b23a3a'}
+  {ico:'⚖️', titre:'Barèmes',       sub:'Seuils de sanction',           type:'card', card:'pc-baremes',     accent:'#b23a3a'},
+  {ico:'🏢', titre:'Société',       sub:'Employeur (contrats)',         type:'card', card:'pc-societe',     accent:'#34495e'}
 ];
 function renderParamTiles(){
   var page=document.getElementById('page-parametres'); if(page) page.classList.add('bk-tiles-mode');
@@ -3070,6 +3082,7 @@ function paramOuvrir(type, ref){
     card.style.display=(ref==='pc-version')?'flex':'block';
     if(ref==='pc-baremes'){ try{ _baremesDraft=null; renderBaremes(); }catch(_){} }
     if(ref==='pc-dbximport'){ try{ dbxDropInit(); }catch(_){} }
+    if(ref==='pc-societe'){ try{ renderSocieteForm(); }catch(_){} }
     // bouton retour en tête de page
     var back=document.getElementById('param-back');
     if(!back){
@@ -5153,7 +5166,10 @@ function renderEmpDocs(empId,boxId){
     h+='</div>';
   }
   h+='<div style="border-top:1px solid #333;padding-top:14px;">'
-    +'<div style="font-size:.78rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:700;">📁 Documents RH</div>';
+    +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px;">'
+    +'<div style="font-size:.78rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;font-weight:700;">📁 Documents RH</div>'
+    +((!window.__readOnly && curUser && (curUser.role==='franchise'||curUser.role==='directeur'))?'<button class="btn btn-red btn-sm" onclick="openContratGen(\''+empId+'\')">📄 Générer un contrat / avenant</button>':'')
+    +'</div>';
   // liste groupée par catégorie
   if(!docs.length){
     h+='<p style="font-size:.78rem;color:#666;margin-bottom:10px;">Aucun document RH pour l\'instant.</p>';
@@ -6541,7 +6557,7 @@ function avertPdf(emp, body, titre, fnLabel){
 window.avertPdf=avertPdf;
 
 function updateVBadge(){
-  var n=(DB.letters||[]).filter(function(l){return l.sigStatus==='pending'||l.status==='pending';}).length;
+  var n=(DB.letters||[]).filter(function(l){return (l.type!=='contrat'&&l.sanctionType!=='contrat')&&(l.sigStatus==='pending'||l.status==='pending');}).length;
   var b=document.getElementById('vbadge');if(!b)return;
   b.textContent=n;b.style.display=n>0?'inline-flex':'none';
 }
@@ -6551,6 +6567,8 @@ function renderLetters(){
   var letters=DB.letters.slice().sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);});
   var r=curUser.role;
   if(r!=='franchise'){var ids=DB.employees.filter(function(e){return e.restoId===curUser.restoId;}).map(function(e){return e.id;});letters=letters.filter(function(l){return ids.indexOf(l.empId)>=0;});}
+  // les contrats ont leur propre suivi (page Contrats) : on les exclut des courriers disciplinaires
+  letters=letters.filter(function(l){return l.type!=='contrat' && l.sanctionType!=='contrat';});
   if(!letters.length){c.innerHTML='<div class="empty"><div class="ei">✉️</div><p>Aucun courrier</p></div>';return;}
   var canVal=r==='directeur'||r==='franchise';
   c.innerHTML=letters.map(function(l){
@@ -7090,6 +7108,21 @@ function collectAlertes(restoFiltre){
     });
   }catch(e){}
 
+  // ── 1ter) CONTRATS À SIGNER (validation en cours) ──
+  try{
+    var _brC=restoFiltre?(''+restoFiltre).toLowerCase():null;
+    (DB.letters||[]).filter(function(l){ return (l.type==='contrat'||l.sanctionType==='contrat') && (l.sigStatus==='pending'||!l.sigStatus); }).forEach(function(l){
+      var e=(DB.employees||[]).find(function(x){return x.id===l.empId;});
+      if(!e || e.archived) return;
+      if(_brC && (''+(e.restoId||'')).toLowerCase()!==_brC) return;
+      var jours=Math.round((new Date()-new Date(l.createdAt))/(24*3600*1000));
+      alerts.push({prio:(jours>7?1:2),cat:'Contrats à signer',icon:'📄',col:(jours>7?'#cc5555':'#F5A623'),
+        titre:e.name+' — contrat à faire signer',
+        sub:'créé le '+_frDate((''+(l.createdAt||'')).slice(0,10))+(jours>0?(' · depuis '+jours+' j'):'')+(l.empEmail?' · mail possible':'')+' · '+rlabel(e.restoId),
+        action:"signerSurPlace('"+l.id+"')"});
+    });
+  }catch(e){}
+
   // ── 2) VISITE MÉDICALE D'EMBAUCHE (candidats en période d'essai) ──
   cands.filter(function(c){return (c.statut||'')==='essai';}).forEach(function(c){
     var v=visiteInfo(c); var resto=rlabel(c.restoId);
@@ -7179,38 +7212,72 @@ function _alertesApply(v){
 }
 function alertesTab(v){ if(window._alertesView===v) v=''; window._alertesView=v; _alertesApply(v); if(v){ try{ var s=document.getElementById('alrt-sec-'+v); if(s) s.scrollIntoView({behavior:'smooth',block:'nearest'}); }catch(_){} } }
 window._alertesApply=_alertesApply; window.alertesTab=alertesTab;
+// Toutes les catégories d'alerte RÉELLES (celles que collectAlertes peut produire),
+// dans un ORDRE LOGIQUE (parcours du salarié) — affichées MÊME si vides, IDENTIQUES
+// sur tous les restaurants. desc = à quoi sert la tuile (affiché en permanence).
+// ── 1) Recrutement & intégration ─────────────────────────
+var ALERT_CATS=[
+  {cat:'Recrutement',icon:'🎯',desc:'Candidatures, visites d\'embauche, dossiers candidats'},
+  {cat:'Période d\'essai',icon:'⏳',desc:'Fins de période d\'essai à valider'},
+  {cat:'Dossiers incomplets',icon:'📋',desc:'Pièces manquantes au dossier salarié'},
+  // ── 2) Contrats ────────────────────────────────────────
+  {cat:'Contrats à signer',icon:'📄',desc:'Contrats en attente de signature'},
+  {cat:'Contrats',icon:'🎓',desc:'Échéances de contrat (apprentissage, DPAE…)'},
+  // ── 3) Suivi santé & administratif ─────────────────────
+  {cat:'Visite médicale',icon:'🩺',desc:'Visites médicales périodiques à planifier'},
+  {cat:'Mutuelle',icon:'❤️',desc:'Mutuelles arrivant à expiration'},
+  // ── 4) Discipline ──────────────────────────────────────
+  {cat:'Incidents',icon:'⚠️',desc:'Suivi des incidents signalés'},
+  {cat:'À sanctionner',icon:'⚖️',desc:'Salariés à sanctionner (selon barèmes)'},
+  {cat:'À faire signer',icon:'✍️',desc:'Avertissements / sanctions à faire signer'}
+];
 function renderAlertes(){
   var box=document.getElementById('alertes-list');if(!box)return;
   var alerts=collectAlertes(window.__alertResto);
-  if(!alerts.length){box.innerHTML='<div class="empty"><div class="ei">✅</div><p>Aucune alerte en cours</p></div>';return;}
-  // grouper par catégorie
   var cats={};alerts.forEach(function(a){(cats[a.cat]=cats[a.cat]||[]).push(a);});
-  var catKeys=Object.keys(cats);
-  var accents={'À sanctionner':'#c0392b','À faire signer':'#e8a020','Visite médicale':'#e87722','Mutuelle':'#c0392b','Contrats':'#8e44ad','Visite d\'embauche':'#16a085','Période d\'essai':'#2980b9','Dossiers incomplets':'#d35400','Incidents':'#c0392b'};
-  // ── Tuiles par catégorie (fermées au départ, on en ouvre une au clic) ──
-  var h='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px;">';
-  catKeys.forEach(function(cat){
-    var arr=cats[cat]; var slug=_alrtSlug(cat); var accent=accents[cat]||'#e87722';
-    h+='<div class="dash-tile" id="alrt-tile-'+slug+'" onclick="alertesTab(\''+slug+'\')" style="cursor:pointer;position:relative;">'
+  var accents={'Recrutement':'#2e7d32','À sanctionner':'#c0392b','À faire signer':'#e8a020','Contrats à signer':'#c2185b','Visite médicale':'#e87722','Mutuelle':'#c0392b','Contrats':'#8e44ad','Visite d\'embauche':'#16a085','Période d\'essai':'#2980b9','Dossiers incomplets':'#d35400','Incidents':'#c0392b'};
+  // ordre canonique (toutes les tuiles) + catégories imprévues éventuelles ajoutées à la fin
+  var order=ALERT_CATS.map(function(c){return c.cat;});
+  Object.keys(cats).forEach(function(c){ if(order.indexOf(c)<0) order.push(c); });
+  var iconOf=function(cat){ var f=ALERT_CATS.find(function(x){return x.cat===cat;}); if(f) return f.icon; if(cats[cat]&&cats[cat][0]) return cats[cat][0].icon; return '🔔'; };
+  var descOf=function(cat){ var f=ALERT_CATS.find(function(x){return x.cat===cat;}); return f?f.desc:''; };
+  var total=alerts.length;
+  var h='<div style="font-size:.8rem;color:#888;margin-bottom:12px;">'+(total?(total+' alerte'+(total>1?'s':'')+' en cours'):'✅ Rien à traiter pour le moment')+' — toutes les catégories sont affichées, même vides.</div>';
+  // ── Tuiles par catégorie (toutes affichées ; les vides sont grisées) ──
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px;">';
+  order.forEach(function(cat){
+    var arr=cats[cat]||[]; var n=arr.length; var vide=(n===0);
+    var slug=_alrtSlug(cat); var accent=accents[cat]||'#e87722';
+    h+='<div class="dash-tile" id="alrt-tile-'+slug+'" onclick="alertesTab(\''+slug+'\')" style="cursor:pointer;position:relative;'+(vide?'opacity:.45;':'')+'">'
       +'<div class="dt-accent" style="background:'+accent+';"></div>'
-      +'<div class="dt-em">'+arr[0].icon+'</div>'
-      +'<div><div class="dt-tt">'+cat+'</div><div class="dt-ds">'+arr.length+' alerte'+(arr.length>1?'s':'')+' · 👆 cliquer pour voir</div></div>'
-      +'<div style="position:absolute;top:10px;right:12px;color:#888;font-size:1.3rem;">›</div></div>';
+      +'<div class="dt-em">'+iconOf(cat)+'</div>'
+      +'<div><div class="dt-tt">'+cat+'</div>'
+        +'<div class="dt-ds" style="color:#bbb;">'+descOf(cat)+'</div>'
+        +'<div class="dt-ds" style="margin-top:3px;color:'+(vide?'#666':'#F5A623')+';font-weight:'+(vide?'400':'700')+';">'+(vide?'Aucune · rien à traiter':(n+' à traiter · 👆 cliquer pour voir'))+'</div>'
+      +'</div>'
+      +'<span style="position:absolute;top:10px;right:12px;background:'+(vide?'#444':'#D62300')+';color:'+(vide?'#aaa':'#fff')+';min-width:22px;height:22px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center;font-size:.76rem;font-weight:800;padding:0 6px;box-shadow:0 1px 4px rgba(0,0,0,.4);">'+n+'</span>'
+      +'</div>';
   });
   h+='</div>';
   // ── Sections (une par catégorie), cachées par défaut ──
-  catKeys.forEach(function(cat){
-    var arr=cats[cat]; var slug=_alrtSlug(cat);
+  order.forEach(function(cat){
+    var arr=cats[cat]||[]; var slug=_alrtSlug(cat);
     h+='<div id="alrt-sec-'+slug+'" style="display:none;margin-bottom:10px;">'
-      +'<div style="font-size:.82rem;color:var(--orange);font-weight:700;margin-bottom:8px;">'+arr[0].icon+' '+cat+' ('+arr.length+')</div>'
-      +arr.map(function(a){
+      +'<div style="font-size:.82rem;color:var(--orange);font-weight:700;margin-bottom:2px;">'+iconOf(cat)+' '+cat+' ('+arr.length+')</div>'
+      +'<div style="font-size:.74rem;color:#888;margin-bottom:8px;">'+descOf(cat)+'</div>';
+    if(!arr.length){
+      h+='<div style="font-size:.82rem;color:#666;padding:10px 2px;background:#141414;border-radius:8px;">Rien à signaler dans cette catégorie pour le moment. ✅</div>';
+    } else {
+      h+=arr.map(function(a){
         var onclick=a.action?('onclick="'+a.action+'"'):(a.empId?'onclick="openEmpFiche(\''+a.empId+'\')"':(a.candId?'onclick="openCand(\''+a.candId+'\')"':''));
         var clickable=!!(a.action||a.empId||a.candId);
         return '<div class="emp-card" style="border-left:4px solid '+a.col+';cursor:'+(clickable?'pointer':'default')+';" '+onclick+'>'
           +'<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:.9rem;">'+a.titre+'</div>'
           +'<div style="font-size:.74rem;color:#888;margin-top:2px;">'+a.sub+'</div></div>'
           +(clickable?'<span style="color:'+a.col+';font-size:1.3rem;">›</span>':'')+'</div>';
-      }).join('')+'</div>';
+      }).join('');
+    }
+    h+='</div>';
   });
   box.innerHTML=h;
   try{ _alertesApply(window._alertesView||''); }catch(_){}
@@ -8122,8 +8189,37 @@ function renderContrats(){
       h+='</div>';
     });
   });
-  box.innerHTML=h||'<p style="color:#777;font-size:.82rem;">Aucun modèle pour le moment.</p>';
+  box.innerHTML=_contratsSuiviHtml()+(h||'<p style="color:#777;font-size:.82rem;">Aucun modèle pour le moment.</p>');
 }
+// Suivi des contrats générés (à signer / signés / refusés) — en tête de la page Contrats.
+function _contratsSuiviHtml(){
+  var r=curUser?curUser.role:'';
+  var lets=(DB.letters||[]).filter(function(l){return l.type==='contrat'||l.sanctionType==='contrat';});
+  if(r!=='franchise'){ var ids=(DB.employees||[]).filter(function(e){return e.restoId===curUser.restoId;}).map(function(e){return e.id;}); lets=lets.filter(function(l){return ids.indexOf(l.empId)>=0;}); }
+  lets.sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);});
+  var enAttente=lets.filter(function(l){return (l.sigStatus||'pending')==='pending';}).length;
+  var h='<div style="background:#141414;border:1px solid #2A2A2A;border-radius:10px;padding:14px;margin-bottom:16px;">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">'
+    +'<div class="sec-title" style="margin:0;font-size:.95rem;">✍️ Contrats à signer / signés</div>'
+    +(enAttente?('<span style="background:#2A2000;color:#F5A623;padding:2px 10px;border-radius:10px;font-size:.72rem;font-weight:700;">'+enAttente+' en attente</span>'):'')
+    +'</div>';
+  if(!lets.length){ h+='<p style="font-size:.8rem;color:#777;margin:2px 0;">Aucun contrat généré pour l\'instant. Générez-en un depuis la fiche d\'un salarié (Équipe → Fiche → Documents → « Générer un contrat »).</p></div>'; return h; }
+  lets.slice(0,30).forEach(function(l){
+    var ss=l.sigStatus||'pending';
+    var st=ss==='signed'?('<span style="color:#4CAF50;font-weight:700;">✍️ Signé'+(l.signedAt?(' le '+new Date(l.signedAt).toLocaleString('fr-FR')):'')+'</span>')
+      :ss==='refused'?('<span style="color:#cc5555;font-weight:700;">❌ Refus'+(l.refusedAt?(' le '+new Date(l.refusedAt).toLocaleString('fr-FR')):'')+'</span>')
+      :'<span style="color:#F5A623;font-weight:700;">⏳ En attente de signature</span>';
+    var dt=l.createdAt?new Date(l.createdAt).toLocaleDateString('fr-FR'):'';
+    h+='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid #222;padding:8px 0;">'
+      +'<span style="flex:1;min-width:140px;font-size:.84rem;color:#eee;">👤 '+(l.empName||'')+' <span style="color:#666;font-size:.72rem;">· '+dt+'</span><br>'+st+'</span>'
+      +'<button class="btn btn-gray btn-sm" onclick="voirCourrier(\''+l.id+'\')">👁️ Voir</button>'
+      +(ss==='pending'?('<button class="btn btn-gray btn-sm" onclick="signerSurPlace(\''+l.id+'\')">✍️ Faire signer</button>'+(l.empEmail?('<button class="btn btn-gray btn-sm" onclick="sendContratEmail(\''+l.id+'\')">✉️ Mail</button>'):'')):'')
+      +'</div>';
+  });
+  h+='</div>';
+  return h;
+}
+window._contratsSuiviHtml=_contratsSuiviHtml;
 function delContrat(id){
   if(!confirm('Supprimer ce modèle de la bibliothèque ?'))return;
   var list=getContrats();var i=list.findIndex(function(m){return m.id===id;});
@@ -8221,6 +8317,271 @@ function resetCtModele(){
   openContratViewer(_ctViewerKey,nom);
   toast('Texte d\'origine rétabli','success');
 }
+// ══ SOCIÉTÉ / EMPLOYEUR (pour remplir les contrats) ══════════════════════════
+var DB_SOCIETE=null;
+function getSociete(){
+  if(DB_SOCIETE)return DB_SOCIETE;
+  try{var raw=localStorage.getItem('bkrh_societe');if(raw){DB_SOCIETE=JSON.parse(raw);return DB_SOCIETE;}}catch(e){}
+  DB_SOCIETE={nom:'',details:'',urssaf:''};
+  return DB_SOCIETE;
+}
+function renderSocieteForm(){
+  var s=getSociete();
+  var n=document.getElementById('soc-nom'); if(n)n.value=s.nom||'';
+  var d=document.getElementById('soc-details'); if(d)d.value=s.details||'';
+  var u=document.getElementById('soc-urssaf'); if(u)u.value=s.urssaf||'';
+}
+function saveSociete(){
+  var s={nom:((document.getElementById('soc-nom')||{}).value||'').trim(),
+         details:((document.getElementById('soc-details')||{}).value||'').trim(),
+         urssaf:((document.getElementById('soc-urssaf')||{}).value||'').trim()};
+  DB_SOCIETE=s;
+  try{ localStorage.setItem('bkrh_societe',JSON.stringify(s)); }catch(e){}
+  try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:'bkrh_societe',valeur:s},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
+  var st=document.getElementById('soc-status'); if(st){ st.textContent='✅ Enregistré'; setTimeout(function(){if(st)st.textContent='';},4000); }
+  try{ toast('Société enregistrée ✔','success'); }catch(_){}
+}
+window.getSociete=getSociete; window.saveSociete=saveSociete; window.renderSocieteForm=renderSocieteForm;
+async function hrChargerSocieteSupabase(){
+  try{
+    if(typeof SB==='undefined' || !SB) return;
+    var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_societe').maybeSingle();
+    if(r && r.data && r.data.valeur){ DB_SOCIETE=r.data.valeur; try{localStorage.setItem('bkrh_societe',JSON.stringify(DB_SOCIETE));}catch(e){} }
+  }catch(e){ console.warn('Société : lecture Supabase impossible', e&&e.message||e); }
+}
+window.hrChargerSocieteSupabase=hrChargerSocieteSupabase;
+// statut lié au niveau de la grille (pour le champ {statut} du contrat)
+function _statutNiveau(row){
+  if(!row) return '';
+  var n=(row.niveau||'').toLowerCase(), e=(row.echelon||'').toLowerCase();
+  if(n.indexOf('apprenti')>=0) return 'Apprenti';
+  if(n.indexOf('iv')>=0){ return (e.indexOf('c')>=0||e.indexOf('d')>=0)?'Cadre':'Agent de maîtrise'; }
+  return 'Employé';
+}
+// ligne de grille la plus proche du poste du salarié
+function _gridMatchIdx(e){
+  var g=getSalaires(); var poste=((e&&e.infos&&e.infos.poste)||(e&&e.role)||'').toString().toUpperCase().trim();
+  if(!poste) return -1;
+  var idx=g.findIndex(function(r){return (r.poste||'').toUpperCase()===poste;});
+  if(idx<0) idx=g.findIndex(function(r){var p=(r.poste||'').toUpperCase(); return p&&(poste.indexOf(p)>=0||p.indexOf(poste)>=0);});
+  return idx;
+}
+// heures/semaine d'un modèle (type_heures, sinon lu dans le nom "20h")
+function _modelHeures(key){
+  var m=(getContrats()||[]).find(function(x){return (x.id||'').replace('mod_','')===key;});
+  if(m && m.type_heures) return m.type_heures;
+  var nom=(m&&m.nom)||''; var mt=nom.match(/(\d{1,2})\s*h/i); return mt?parseInt(mt[1],10):'';
+}
+
+// ══ GÉNÉRATION & SIGNATURE DE CONTRATS (depuis un modèle) ═════════════════════
+var _contratGenEmp=null;
+// Modèles disposant d'un TEXTE éditable (donc générables/pré-remplissables dans l'app)
+function _contratModelsDispo(){
+  var out=[];
+  (getContrats()||[]).forEach(function(m){
+    var key=(m.id||'').replace('mod_','');
+    var lines=null; try{ lines=getModeleTexte(key); }catch(_){}
+    if(lines && lines.length) out.push({key:key, nom:m.nom, cat:m.cat});
+  });
+  return out;
+}
+function _frD(v){ if(!v)return ''; try{ return new Date((''+v).slice(0,10)+'T12:00:00').toLocaleDateString('fr-FR'); }catch(_){ return v; } }
+// Retrouve la candidature (fiche de recrutement) liée à un salarié — source fiable
+// pour NOM / Prénom (champs séparés), date de naissance, adresse, nationalité…
+function _empCand(e){
+  if(!e) return null;
+  var c=null;
+  if(e.fromCandId){ c=(DB.candidatures||[]).find(function(x){return x.id===e.fromCandId;}); }
+  if(!c){
+    c=(DB.candidatures||[]).find(function(x){
+      var full=((x.nom||'')+' '+(x.prenom||'')).trim().toUpperCase();
+      var full2=((x.prenom||'')+' '+(x.nom||'')).trim().toUpperCase();
+      return (e.email&&x.email&&e.email.toLowerCase()===x.email.toLowerCase())
+        || full===(e.name||'').toUpperCase() || full2===(e.name||'').toUpperCase();
+    });
+  }
+  return c||null;
+}
+// Remplit les {champs} connus ; priorité à la candidature (nom/prénom séparés, dans le
+// bon ordre), puis la fiche ; complète l'économique via la grille (opts.row) + heures
+// (opts.heures) et la société ; laisse les autres tels quels (à compléter dans l'aperçu).
+function _contratRemplir(lines, e, opts){
+  opts=opts||{};
+  var inf=e.infos||{};
+  var c=_empCand(e)||{};
+  var soc=getSociete()||{};
+  var row=opts.row||null;
+  var heures=parseFloat(opts.heures)||0;
+  var tauxNum=row?tauxEffectif(row.taux):(parseFloat(inf.taux_horaire)||0);
+  var _fr2=function(n){ return (Math.round(n*100)/100).toFixed(2).replace('.',','); };
+  var tauxTxt=tauxNum?_fr2(tauxNum):(inf.taux_horaire||'');
+  var hMois=heures?(heures*52/12):0;
+  var niveauEch=row?((row.niveau||'')+(row.echelon&&row.echelon!=='—'?(' '+row.echelon):'')):(inf.niveau_echelon||'');
+  var statut=row?_statutNiveau(row):(inf.statut||'');
+  var hStr=heures?(''+ (Math.round(heures*100)/100)).replace('.',','):'';
+  // NOM / Prénom : d'abord la candidature (champs séparés), sinon découpage "NOM Prénom"
+  var nom=c.nom||'', prenom=c.prenom||'';
+  if(!nom && !prenom){
+    var toks=(e.name||'').trim().split(/\s+/);
+    if(toks.length>1){ prenom=toks[toks.length-1]; nom=toks.slice(0,toks.length-1).join(' '); }
+    else { nom=e.name||''; }
+  }
+  var resto=RESTOS[e.restoId]?RESTOS[e.restoId].label:(e.restoId||'');
+  var adresse=(c.adresse||inf.adresse||'');
+  var cpville=[c.codePostal||'', c.ville||''].filter(Boolean).join(' ');
+  if(cpville) adresse=(adresse?adresse+', ':'')+cpville;
+  var sexe=(c.sexe||inf.civilite||'').toString().toLowerCase();
+  var civilite=inf.civilite|| (sexe.charAt(0)==='f'?'Madame':(sexe.charAt(0)==='h'||sexe.charAt(0)==='m'?'Monsieur':''));
+  var map={
+    prenom:prenom, nom:nom, email:c.email||e.email||'', poste:c.poste||inf.poste||'',
+    restaurant:resto, resto:resto,
+    date_debut:_frD(inf.date_anciennete||c.dateDebut), date_naissance:_frD(inf.date_naissance||c.dateNaissance),
+    ville_naissance:inf.ville_naissance||'', num_secu:inf.num_secu||'',
+    adresse:adresse, nationalite:c.nationalite||inf.nationalite||'',
+    date_signature:new Date().toLocaleDateString('fr-FR'),
+    civilite:civilite,
+    // économique : depuis la grille des salaires + heures choisies
+    statut:statut, niveau_echelon:niveauEch,
+    taux_horaire:tauxTxt,
+    heures_mois:hMois?_fr2(hMois):(inf.heures_mois||''),
+    brut_mensuel:(tauxNum&&hMois)?_fr2(tauxNum*hMois):(inf.brut_mensuel||''),
+    h_s1:hStr, h_s2:hStr, h_s3:hStr, h_s4:hStr,
+    // société / employeur (Paramètres → Société)
+    societe:soc.nom||'', societe_details:soc.details||'', urssaf:soc.urssaf||''
+  };
+  return lines.map(function(pair){
+    var t=(pair[0]||'').replace(/\{([a-z_0-9]+)\}/g,function(full,k){ return (map[k]!=null && map[k]!=='') ? map[k] : full; });
+    return [t, pair[1]];
+  });
+}
+function openContratGen(empId){
+  if(!(curUser&&(curUser.role==='franchise'||curUser.role==='directeur'))){ toast('Réservé à la direction.','error'); return; }
+  var e=(DB.employees||[]).find(function(x){return x.id===empId;}); if(!e){ toast('Salarié introuvable.','error'); return; }
+  _contratGenEmp=empId;
+  var models=_contratModelsDispo();
+  var old=document.getElementById('contratgen-ov'); if(old) old.remove();
+  var ov=document.createElement('div'); ov.id='contratgen-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100000;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto;';
+  var opts=models.length?models.map(function(m){return '<option value="'+m.key+'">'+m.nom+'</option>';}).join(''):'<option value="">(aucun modèle avec texte éditable)</option>';
+  var _mIdx=_gridMatchIdx(e);
+  var gridOpts='<option value="">— choisir le poste / niveau —</option>'+getSalaires().map(function(r,i){return '<option value="'+i+'"'+(i===_mIdx?' selected':'')+'>'+r.poste+' · '+tauxEffectif(r.taux).toFixed(2).replace('.',',')+' €</option>';}).join('');
+  var _h0=_modelHeures(models.length?models[0].key:'')||'';
+  ov.innerHTML='<div style="background:#1A1A1A;border:1px solid #444;border-radius:12px;max-width:760px;width:100%;margin:auto;">'
+    +'<div style="background:linear-gradient(135deg,#C01E00,#8B1500);padding:14px 20px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.25rem;color:#F5A623;text-transform:uppercase;letter-spacing:1.5px;">📄 Générer un contrat — '+e.name+'</div>'
+      +'<button onclick="document.getElementById(\'contratgen-ov\').remove()" style="background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;">✕</button>'
+    +'</div>'
+    +'<div style="padding:18px 20px;">'
+      +'<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">'
+        +'<div style="flex:1;min-width:200px;"><div class="flabel">Modèle de contrat</div><select id="contratgen-model" class="fi" onchange="contratGenModelChange()">'+opts+'</select></div>'
+        +'<div style="flex:1;min-width:200px;"><div class="flabel">Poste / niveau (grille des salaires)</div><select id="contratgen-grille" class="fi" onchange="contratGenPreview()">'+gridOpts+'</select></div>'
+        +'<div style="min-width:110px;"><div class="flabel">Heures / semaine</div><input type="number" id="contratgen-heures" class="fi" min="0" step="0.5" value="'+_h0+'" oninput="contratGenPreview()"></div>'
+      +'</div>'
+      +'<div style="font-size:.78rem;color:#888;margin-bottom:6px;">Le taux horaire, le niveau et le salaire mensuel se remplissent depuis la grille + les heures. Les champs <span style="background:#ffe08a;color:#7a5c00;border-radius:3px;padding:0 3px;">en jaune</span> restent à compléter. Vous pouvez tout modifier avant d\'envoyer.</div>'
+      +'<div id="contratgen-preview" contenteditable="true" style="background:#fafafa;color:#111;border-radius:8px;padding:20px;font-family:Georgia,serif;line-height:1.7;white-space:pre-wrap;font-size:.85rem;max-height:48vh;overflow:auto;"></div>'
+      +'<div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px;">'
+        +'<button class="btn btn-gray" onclick="document.getElementById(\'contratgen-ov\').remove()">Annuler</button>'
+        +'<button class="btn btn-gray" onclick="contratGenAction(\'mail\')">✉️ Envoyer au salarié</button>'
+        +'<button class="btn btn-red" onclick="contratGenAction(\'tablette\')">✍️ Faire signer sur la tablette</button>'
+      +'</div>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  contratGenPreview();
+}
+window.openContratGen=openContratGen;
+function contratGenModelChange(){
+  var sel=document.getElementById('contratgen-model'); var key=sel?sel.value:'';
+  var h=_modelHeures(key); var hi=document.getElementById('contratgen-heures'); if(hi && h) hi.value=h;
+  contratGenPreview();
+}
+window.contratGenModelChange=contratGenModelChange;
+function contratGenPreview(){
+  var e=(DB.employees||[]).find(function(x){return x.id===_contratGenEmp;}); if(!e) return;
+  var sel=document.getElementById('contratgen-model'); var key=sel?sel.value:'';
+  var box=document.getElementById('contratgen-preview'); if(!box) return;
+  var lines=null; try{ lines=key?getModeleTexte(key):null; }catch(_){}
+  if(!lines){ box.innerHTML='<em style="color:#888;">Aucun texte de modèle disponible. Ajoutez ou éditez le modèle dans Paramètres → Contrats.</em>'; return; }
+  var gi=document.getElementById('contratgen-grille'); var row=(gi&&gi.value!=='')?getSalaires()[+gi.value]:null;
+  var hi=document.getElementById('contratgen-heures'); var heures=hi?hi.value:'';
+  var filled=_contratRemplir(lines, e, {row:row, heures:heures});
+  var html=filled.map(function(pair){
+    var t=escapeHtmlCt(pair[0]||'');
+    t=t.replace(/\{([a-z_0-9]+)\}/g,'<span style="background:#ffe08a;color:#7a5c00;border-radius:3px;padding:0 2px;">{$1}</span>');
+    return '<div>'+(t||'&nbsp;')+'</div>';
+  }).join('');
+  box.innerHTML=html;
+}
+window.contratGenPreview=contratGenPreview;
+async function contratGenAction(mode){
+  var e=(DB.employees||[]).find(function(x){return x.id===_contratGenEmp;}); if(!e){ toast('Salarié introuvable.','error'); return; }
+  var box=document.getElementById('contratgen-preview'); if(!box) return;
+  var texte=(box.innerText||box.textContent||'').replace(/ /g,' ').replace(/\n{3,}/g,'\n\n').trim();
+  if(!texte){ toast('Le contrat est vide.','error'); return; }
+  if(/\{[a-z_0-9]+\}/.test(texte)){
+    if(!confirm('Il reste des champs à compléter (surlignés en jaune, ex. {taux_horaire}). Envoyer quand même ?')) return;
+  }
+  if(mode==='mail' && !e.email){ toast('Ce salarié n\'a pas d\'email renseigné (à renseigner dans la fiche).','error'); return; }
+  if(window._contratEnCours) return; window._contratEnCours=true;
+  var lid='letC_'+Date.now();
+  var reporter=(curUser.role==='directeur')?('Directeur — '+(curUser.name||'')):(curUser.name||'Direction');
+  try{
+    await sb.insert('bks_letters',{id:lid,incident_id:'',emp_id:e.id,emp_name:e.name,emp_email:e.email||'',sanction_type:'contrat',type:'contrat',status:'pending',sig_status:'pending',body:texte,created_by:reporter,created_at:new Date().toISOString()});
+    await loadAll(); try{ updateVBadge(); }catch(_){}
+    try{ avertPdf(e, texte, 'CONTRAT DE TRAVAIL', 'Contrat'); }catch(_){}
+    var ov=document.getElementById('contratgen-ov'); if(ov) ov.remove();
+    if(mode==='tablette'){ try{ signerSurPlace(lid); }catch(_){} }
+    else { try{ await sendContratEmail(lid); }catch(_){} }
+    try{ if(document.getElementById('empf-docs')) renderEmpDocs(e.id,'empf-docs'); }catch(_){}
+    try{ if(typeof renderContrats==='function' && document.getElementById('contrats-list')) renderContrats(); }catch(_){}
+    toast('Contrat créé pour '+e.name+' — PDF téléchargé.','success');
+  }catch(err){ console.error('contratGenAction',err); toast('Erreur à la création du contrat','error'); }
+  finally{ window._contratEnCours=false; }
+}
+window.contratGenAction=contratGenAction;
+// Mail « votre contrat à signer » (ouvre un brouillon à valider). Direction/admin.
+async function sendContratEmail(lid){
+  var l=(DB.letters||[]).find(function(x){return x.id===lid;}); if(!l){ toast('Contrat introuvable','error'); return; }
+  if(!l.empEmail){ toast('Pas d\'email pour ce salarié.','error'); return; }
+  var emp=(DB.employees||[]).find(function(x){return x.id===l.empId;});
+  var restoLbl=emp&&RESTOS[emp.restoId]?RESTOS[emp.restoId].label:'Burger King';
+  var prenom=(l.empName||'').trim().split(/\s+/).slice(-1)[0]||'';
+  var sigUrl=window.location.origin+window.location.pathname+'#sign/'+lid;
+  var subj='Votre contrat à signer — '+restoLbl;
+  var body='Bonjour '+prenom+',\n\nVeuillez trouver ci-dessous votre contrat de travail. Merci de le lire attentivement et de le signer en ligne via le lien ci-dessous :\n\n🔗 '+sigUrl+'\n\n———\n'+(l.text||'')+'\n———\n\nCordialement,\n'+restoLbl;
+  var ms=DB.mailSettings||{}; var cc=(ms.ccRecipients||[]).concat((ms.recipients||[]).map(function(r){return r.email;})).filter(Boolean).join(',');
+  var mode=(ms.mailMode)||'gmail';
+  if(mode==='gmail'){ window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
+  else { window.open('mailto:'+l.empEmail+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
+  try{ await sb.patch('bks_letters','id=eq.'+lid,{sent_at:new Date().toISOString()}); await loadAll(); }catch(_){}
+  toast('Mail du contrat prêt (brouillon à valider avant envoi).','success');
+}
+window.sendContratEmail=sendContratEmail;
+// Archive le PDF du contrat SIGNÉ dans le dossier Dropbox du salarié + fiche.
+async function _archiveContrat(l){
+  try{
+    if(typeof dbxEstPret!=='function' || !dbxEstPret()) return;
+    var e=(DB.employees||[]).find(function(x){return x.id===l.empId;}); if(!e) return;
+    var JS=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF; if(!JS) return;
+    var doc=new JS({unit:'mm',format:'a4'}); var M=18,W=210,y=22;
+    doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.text('CONTRAT DE TRAVAIL', M, y); y+=10;
+    doc.setFont('helvetica','normal'); doc.setFontSize(10.5);
+    var body=(l.text||'')+'\n\n✍️ Signé le '+(l.signedAt?new Date(l.signedAt).toLocaleString('fr-FR'):new Date().toLocaleString('fr-FR'))+' (via l\'application).';
+    var lines=doc.splitTextToSize(body, W-2*M);
+    for(var i=0;i<lines.length;i++){ if(y>282){ doc.addPage(); y=20; } doc.text(lines[i], M, y); y+=5.6; }
+    var blob=doc.output('blob');
+    try{ if(typeof dbxMigrerEquipe==='function') await dbxMigrerEquipe(e); }catch(_){}
+    var ds=new Date().toLocaleDateString('fr-FR').replace(/\//g,'-');
+    var dest=dbxEmpFolder(e)+'/Contrat_signe_'+ds+'.pdf';
+    var link=await dbxUpload(dest, blob);
+    await sb.insert('bks_emp_docs',{id:'dc'+Date.now(),emp_id:e.id,categorie:'contrat',label:'Contrat signé le '+(l.signedAt?new Date(l.signedAt).toLocaleDateString('fr-FR'):new Date().toLocaleDateString('fr-FR')),link:link,name:'Contrat_signe_'+ds+'.pdf',dbx_path:dest});
+    await loadAll();
+    try{ _refreshCourriers(); }catch(_){}
+    try{ if(document.getElementById('contrats-list') && typeof renderContrats==='function') renderContrats(); }catch(_){}
+    toast('Contrat signé archivé dans le dossier de '+e.name+'.','success');
+  }catch(err){ console.error('_archiveContrat',err); }
+}
+window._archiveContrat=_archiveContrat;
+
 function renderVisiteList(){
   var list=document.getElementById('visite-list');if(!list)return;
   var isDir=(curUser&&curUser.role==='directeur');
@@ -9455,16 +9816,56 @@ function parseTailles(str){
   return t;
 }
 
+// ── CONTRÔLE DES PIÈCES DÉPOSÉES (SANS IA — 100% règles, aucun service payant) ──
+// Vérifie : type de fichier autorisé, taille (pas vide / pas énorme), lisibilité
+// (résolution mini pour une image, fichier non corrompu) et détection de doublon
+// (même fichier déposé pour deux pièces différentes, ex. recto = verso).
+var PIECE_MIN_OCTETS=15*1024;      // en dessous : quasi vide / illisible → bloqué
+var PIECE_FAIBLE_OCTETS=45*1024;   // en dessous : sans doute flou → simple avertissement
+var PIECE_MIN_PX=600;              // côté le plus long mini pour une image lisible
+function _pieceTypeOk(file){
+  var t=(file.type||'').toLowerCase(), n=(file.name||'').toLowerCase();
+  if(t.indexOf('image/')===0 || t==='application/pdf') return true;
+  return /\.(jpe?g|png|heic|heif|webp|pdf)$/.test(n);
+}
+function _pieceDoublon(file,key,store){
+  try{ for(var k in store){ if(!store.hasOwnProperty(k)||k===key) continue; var it=store[k];
+    if(it && it._size!=null && it._size===file.size && it.name && file.name && it.name===file.name) return k; } }catch(_){}
+  return null;
+}
+function _pieceControles(file,key,store){
+  return new Promise(function(resolve){
+    if(!_pieceTypeOk(file)){ resolve({block:true,msg:'Ce type de fichier n\'est pas accepté. Déposez une PHOTO (JPG/PNG) ou un PDF de la pièce demandée.'}); return; }
+    if(file.size<PIECE_MIN_OCTETS){ resolve({block:true,msg:'Le fichier semble vide ou illisible (trop petit). Reprenez la photo en plein cadre et bien nette.'}); return; }
+    var dup=_pieceDoublon(file,key,store||{});
+    var warnDup=dup?'⚠️ Ce fichier a déjà été déposé pour une autre pièce. Vérifiez que vous ne confondez pas deux documents (par ex. recto et verso).':'';
+    var t=(file.type||'').toLowerCase();
+    if(t.indexOf('image/')===0 && window.URL && URL.createObjectURL){
+      var url=URL.createObjectURL(file), img=new Image();
+      img.onload=function(){ var big=Math.max(img.naturalWidth||0,img.naturalHeight||0); try{URL.revokeObjectURL(url);}catch(_){}
+        if(big && big<PIECE_MIN_PX){ resolve({block:true,msg:'La photo est trop petite ou peu nette pour être lisible ('+big+' px de côté). Reprenez-la de plus près, en bon éclairage.'}); return; }
+        var w=warnDup; if(file.size<PIECE_FAIBLE_OCTETS){ w=(w?w+'\n':'')+'ℹ️ Image de faible qualité : vérifiez qu\'elle est bien lisible avant d\'envoyer.'; }
+        resolve({block:false,warn:w}); };
+      img.onerror=function(){ try{URL.revokeObjectURL(url);}catch(_){}; resolve({block:true,msg:'Cette image est illisible ou corrompue. Reprenez la photo.'}); };
+      img.src=url;
+    } else { resolve({block:false,warn:warnDup}); }
+  });
+}
+window._pieceControles=_pieceControles;
 function handleDocFile(key,input){
   var file=input.files&&input.files[0];if(!file)return;
   if(file.size>5*1024*1024){alert('Fichier trop volumineux (max 5 Mo).');input.value='';return;}
-  var reader=new FileReader();
-  reader.onload=function(e){
-    _docsData[key]={data:e.target.result,name:file.name};
-    var ic=document.getElementById('doc-ic-'+key);if(ic){ic.textContent='✓';ic.style.color='#4CAF50';}
-    var nm=document.getElementById('doc-nm-'+key);if(nm)nm.textContent=file.name;
-  };
-  reader.readAsDataURL(file);
+  _pieceControles(file,key,_docsData).then(function(res){
+    if(res.block){ alert('⛔ '+res.msg); input.value=''; return; }
+    if(res.warn){ alert(res.warn); }
+    var reader=new FileReader();
+    reader.onload=function(e){
+      _docsData[key]={data:e.target.result,name:file.name,_size:file.size};
+      var ic=document.getElementById('doc-ic-'+key);if(ic){ic.textContent='✓';ic.style.color='#4CAF50';}
+      var nm=document.getElementById('doc-nm-'+key);if(nm)nm.textContent=file.name;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 async function submitDocs(){
@@ -9787,6 +10188,18 @@ function handleCNISide(input,side){
   var file=input.files&&input.files[0];if(!file)return;
   if(file.size>10*1024*1024){alert('Fichier trop volumineux (max 10 Mo).');input.value='';return;}
   var key=side==='verso'?'Verso':'Recto';
+  // contrôle sans IA : type, taille, lisibilité + recto ≠ verso (autre côté déjà déposé ?)
+  var autre=side==='verso'?'Recto':'Verso';
+  var storeCni={};
+  if(window['_cni'+autre+'Data']){ storeCni[autre]={_size:window['_cni'+autre+'Size'],name:window['_cni'+autre+'Name']}; }
+  _pieceControles(file,key,storeCni).then(function(res){
+    if(res.block){ alert('⛔ '+res.msg); input.value=''; return; }
+    if(res.warn){ alert(res.warn.replace('une autre pièce','l\'autre côté').replace('recto et verso','le recto et le verso')); }
+    _cniStore(input,side,file);
+  });
+}
+function _cniStore(input,side,file){
+  var key=side==='verso'?'Verso':'Recto';
   var reader=new FileReader();
   reader.onload=function(e){
     var isPdf=(file.type&&file.type.indexOf('pdf')>=0);
@@ -9794,6 +10207,7 @@ function handleCNISide(input,side){
       window['_cni'+key+'Data']=dataUrl;
       window['_cni'+key+'Name']=file.name;
       window['_cni'+key+'Type']=file.type;
+      window['_cni'+key+'Size']=file.size;
       var nm=document.getElementById('p-cni-'+side+'-name');if(nm)nm.textContent='✓ '+file.name;
       var pv=document.getElementById('p-cni-'+side+'-preview');
       if(pv){ if(isPdf){ pv.innerHTML='📄'; } else { pv.innerHTML='';pv.style.border='none';pv.style.backgroundImage='url('+dataUrl+')'; } }
@@ -10674,6 +11088,8 @@ window.signerSurPlace=signerSurPlace;
 async function signPlaceSign(lid){
   try{ await sb.patch('bks_letters','id=eq.'+lid,{sig_status:'signed',signed_at:new Date().toISOString()}); await loadAll(); }catch(e){}
   try{ _refreshCourriers(); }catch(_){}
+  // contrat signé → on archive le PDF dans le dossier Dropbox du salarié
+  try{ var _lc=(DB.letters||[]).find(function(x){return x.id===lid;}); if(_lc && (_lc.type==='contrat'||_lc.sanctionType==='contrat')){ _archiveContrat(_lc); } }catch(_){}
   var inner=document.getElementById('signplace-inner');
   if(inner) inner.innerHTML='<div style="text-align:center;padding:22px;"><div style="font-size:2.6rem;">✅</div><div style="color:#4CAF50;font-weight:700;margin-top:8px;">Signature enregistrée le '+new Date().toLocaleDateString('fr-FR')+'. Merci !</div>'
     +'<div style="color:#aaa;font-size:.84rem;margin:12px 0;">Vous pouvez envoyer au salarié la confirmation de signature par mail.</div>'
