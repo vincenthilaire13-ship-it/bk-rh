@@ -1194,13 +1194,39 @@ html,body{overflow-x:hidden;}
       <span id="app-version-badge" style="background:#1A1A1A;border:1px solid #444;color:var(--orange);padding:5px 14px;border-radius:20px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px;"></span>
     </div>
     <div class="card param-card" id="pc-dbximport" style="display:none;">
-      <div class="sec-title">🗂️ Importer les dossiers Dropbox</div>
-      <p style="font-size:.83rem;color:#aaa;margin-bottom:12px;">Intègre dans l'application les dossiers déjà présents dans Dropbox (salariés créés à la main, jamais passés par le QR code). Indiquez le dossier Dropbox à scanner, vérifiez l'association de chaque dossier à un salarié (proposée automatiquement par le nom), puis importez. Les fichiers deviennent des documents dans la fiche du salarié — rien n'est déplacé ni supprimé.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">
-        <div style="flex:1;min-width:200px;"><div class="flabel">Dossier Dropbox à scanner (vide = racine)</div><input type="text" id="dbximp-path" class="fi" placeholder="/ ou /BK_500/Equipe" value=""></div>
-        <button class="btn btn-gray btn-sm" onclick="dbxImportScan()">🔍 Scanner</button>
+      <div class="sec-title">🗂️ Importer des dossiers dans l'application</div>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">Glissez ici des <strong>dossiers de salariés</strong> depuis votre ordinateur (un dossier par personne, nommé au nom du salarié). L'application range chaque dossier dans Dropbox par nom, l'associe au salarié — <strong>qu'il existe déjà ou pas</strong> (elle peut créer la fiche) — et ajoute les fichiers à sa fiche. Ensuite, tout ce que vous ajoutez au fil de l'eau se range automatiquement dans ce même dossier. Vous pouvez aussi déposer des fichiers seuls.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+        <div style="flex:1;min-width:160px;"><div class="flabel">Type de document</div><select id="dbxdrop-cat" class="fi"></select></div>
+        <div style="flex:1;min-width:160px;"><div class="flabel">Restaurant (pour les fiches à créer)</div><select id="dbxdrop-resto" class="fi"></select></div>
       </div>
-      <div id="dbximp-results"></div>
+      <div id="dbxdrop-zone" ondragover="dbxDropOver(event)" ondragleave="dbxDropLeave(event)" ondrop="dbxDropFiles(event)" onclick="var i=document.getElementById('dbxdrop-input');if(i)i.click();"
+           style="border:2px dashed #4a5a72;border-radius:12px;padding:26px 16px;text-align:center;color:#8fa4c0;cursor:pointer;background:#12161c;transition:.15s;">
+        <div style="font-size:2rem;line-height:1;margin-bottom:8px;">📥</div>
+        <div style="font-weight:600;">Glissez vos dossiers (ou fichiers) ici</div>
+        <div style="font-size:.78rem;color:#667;margin-top:4px;">ou cliquez pour choisir des fichiers sur votre ordinateur</div>
+      </div>
+      <input type="file" id="dbxdrop-input" multiple style="display:none;" onchange="dbxDropPick(event)">
+      <div id="dbxdrop-list"></div>
+      <div id="dbxdrop-actions"></div>
+      <details style="margin-top:18px;border-top:1px solid #222;padding-top:12px;">
+        <summary style="cursor:pointer;color:#8fa4c0;font-size:.85rem;">Autre option : rattacher des dossiers déjà présents dans Dropbox</summary>
+        <p style="font-size:.8rem;color:#888;margin:10px 0 12px;">Utile pour les salariés créés à la main dont le dossier existe déjà dans Dropbox. Indiquez le dossier à scanner, vérifiez l'association proposée par le nom, puis importez. Rien n'est déplacé ni supprimé.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">
+          <div style="flex:1;min-width:200px;"><div class="flabel">Dossier Dropbox à scanner (vide = racine)</div><input type="text" id="dbximp-path" class="fi" placeholder="/ ou /BK_500/Equipe" value=""></div>
+          <button class="btn btn-gray btn-sm" onclick="dbxImportScan()">🔍 Scanner</button>
+        </div>
+        <div id="dbximp-results"></div>
+      </details>
+    </div>
+    <div class="card param-card" id="pc-baremes" style="display:none;">
+      <div class="sec-title">⚖️ Barèmes de sanction</div>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:12px;">Définissez à partir de combien d'incidents, sur quelle période, l'application doit <strong>proposer</strong> un document à préparer. Exemple : <em>3 absences injustifiées sur 2 mois → avertissement</em>. Rien n'est créé automatiquement : les propositions apparaissent dans <strong>Alertes → À sanctionner</strong>, et c'est vous qui validez.</p>
+      <div id="baremes-list"></div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:12px;">
+        <button class="btn btn-gray btn-sm" onclick="baremeAdd()">➕ Ajouter une règle</button>
+        <button class="btn btn-red btn-sm" onclick="baremesSave()">💾 Enregistrer les barèmes</button>
+      </div>
     </div>
     <div class="card param-card" id="pc-qr" style="display:none;">
       <div class="sec-title">📲 QR code de candidature</div>
@@ -3012,7 +3038,8 @@ var PARAM_TILES=[
   {ico:'👁️', titre:'Aperçu fiche',  sub:'Vue candidat',                 type:'card', card:'rec-apercu-card',accent:'#7f8c8d'},
   {ico:'📧', titre:'Adresses mail', sub:'Expédition RH',                type:'card', card:'pc-adresses',    accent:'#2c3e50'},
   {ico:'✉️', titre:'Modèles mails', sub:'Mails aux candidats',          type:'card', card:'pc-mails',       accent:'#27ae60'},
-  {ico:'🗂️', titre:'Import Dropbox', sub:'Rattacher les dossiers',       type:'card', card:'pc-dbximport',   accent:'#5BA3F5'}
+  {ico:'🗂️', titre:'Ranger des documents', sub:'Glisser-déposer dans une fiche', type:'card', card:'pc-dbximport',   accent:'#5BA3F5'},
+  {ico:'⚖️', titre:'Barèmes',       sub:'Seuils de sanction',           type:'card', card:'pc-baremes',     accent:'#b23a3a'}
 ];
 function renderParamTiles(){
   var page=document.getElementById('page-parametres'); if(page) page.classList.add('bk-tiles-mode');
@@ -3041,6 +3068,8 @@ function paramOuvrir(type, ref){
   var card=document.getElementById(ref);
   if(card){
     card.style.display=(ref==='pc-version')?'flex':'block';
+    if(ref==='pc-baremes'){ try{ _baremesDraft=null; renderBaremes(); }catch(_){} }
+    if(ref==='pc-dbximport'){ try{ dbxDropInit(); }catch(_){} }
     // bouton retour en tête de page
     var back=document.getElementById('param-back');
     if(!back){
@@ -3118,6 +3147,265 @@ async function dbxImportRun(){
   dbxImportScan();
 }
 window.dbxImportRun=dbxImportRun;
+
+// ── IMPORT DE DOSSIERS PAR GLISSER-DÉPOSER (Paramètres) ──────────────────────
+// _dbxDrop : liste de { file, folder }  (folder = nom du dossier de 1er niveau, '' si fichier isolé)
+// _dbxAssign : { cléGroupe -> empId | '__new__' | '' }   (association choisie par groupe)
+var _dbxDrop=[]; var _dbxAssign={};
+function dbxDropInit(){
+  _dbxDrop=[]; _dbxAssign={};
+  var cs=document.getElementById('dbxdrop-cat');
+  if(cs){ cs.innerHTML=EMPDOC_CATS.map(function(c){return '<option value="'+c.id+'">'+c.icon+' '+c.label+'</option>';}).join(''); cs.value='autre'; }
+  var rs=document.getElementById('dbxdrop-resto');
+  if(rs){
+    var keys=Object.keys(RESTOS||{});
+    rs.innerHTML=keys.map(function(k){return '<option value="'+k+'">'+(RESTOS[k]?RESTOS[k].label:k)+'</option>';}).join('');
+    var cur=(window.ACTIVE_RESTO&&window.ACTIVE_RESTO!=='ALL')?window.ACTIVE_RESTO:keys[0];
+    if(cur) rs.value=cur;
+  }
+  dbxDropRender();
+}
+window.dbxDropInit=dbxDropInit;
+function dbxDropOver(ev){ ev.preventDefault(); var z=document.getElementById('dbxdrop-zone'); if(z){z.style.borderColor='#F5A623';z.style.background='#1a1f27';} }
+function dbxDropLeave(ev){ if(ev&&ev.preventDefault)ev.preventDefault(); var z=document.getElementById('dbxdrop-zone'); if(z){z.style.borderColor='#4a5a72';z.style.background='#12161c';} }
+function dbxDropFiles(ev){
+  ev.preventDefault(); dbxDropLeave(ev);
+  var dt=ev.dataTransfer; if(!dt) return;
+  var items=dt.items&&dt.items.length?dt.items:null;
+  var canEntry=items&&items[0]&&(items[0].webkitGetAsEntry||items[0].getAsEntry);
+  if(canEntry){
+    var entries=[];
+    for(var i=0;i<items.length;i++){ var en=items[i].webkitGetAsEntry?items[i].webkitGetAsEntry():items[i].getAsEntry(); if(en) entries.push(en); }
+    if(entries.length){ _dbxReadEntries(entries); return; }
+  }
+  dbxDropAddFiles(dt.files||[]);
+}
+function dbxDropPick(ev){ var fl=(ev.target&&ev.target.files)?ev.target.files:[]; dbxDropAddFiles(fl); try{ev.target.value='';}catch(_){} }
+window.dbxDropOver=dbxDropOver; window.dbxDropLeave=dbxDropLeave; window.dbxDropFiles=dbxDropFiles; window.dbxDropPick=dbxDropPick;
+// fichiers « simples » (input ou drop sans arborescence) → groupe isolé
+function dbxDropAddFiles(fileList){ for(var i=0;i<fileList.length;i++){ if(fileList[i]) _dbxDrop.push({file:fileList[i],folder:''}); } dbxDropRender(); }
+// lecture récursive des entrées glissées (fichiers + dossiers)
+function _dbxReadEntries(entries){
+  var pending=entries.length; if(!pending){ dbxDropRender(); return; }
+  var fin=function(){ pending--; if(pending<=0) dbxDropRender(); };
+  entries.forEach(function(en){ _dbxWalk(en, '', fin); });
+}
+function _dbxWalk(entry, topName, done){
+  if(!entry){ done(); return; }
+  if(entry.isFile){
+    entry.file(function(f){ _dbxDrop.push({file:f, folder:topName}); done(); }, function(){ done(); });
+  } else if(entry.isDirectory){
+    var top=topName||entry.name; // le 1er dossier rencontré fixe le nom du groupe
+    var reader=entry.createReader(); var kids=[];
+    var readBatch=function(){
+      reader.readEntries(function(res){
+        if(!res||!res.length){
+          if(!kids.length){ done(); return; }
+          var p=kids.length;
+          kids.forEach(function(ch){ _dbxWalk(ch, top, function(){ p--; if(p<=0) done(); }); });
+        } else { kids=kids.concat(Array.prototype.slice.call(res)); readBatch(); }
+      }, function(){ done(); });
+    };
+    readBatch();
+  } else { done(); }
+}
+function dbxDropRemoveGroup(key){ _dbxDrop=_dbxDrop.filter(function(x){return (x.folder||'__loose__')!==key;}); delete _dbxAssign[key]; dbxDropRender(); }
+window.dbxDropRemoveGroup=dbxDropRemoveGroup;
+function _humanSize(n){ if(n==null)return''; if(n<1024)return n+' o'; if(n<1048576)return (n/1024).toFixed(0)+' Ko'; return (n/1048576).toFixed(1)+' Mo'; }
+function _dbxGroups(){
+  var g={};
+  _dbxDrop.forEach(function(x){ var k=x.folder||'__loose__'; (g[k]=g[k]||[]).push(x); });
+  return g;
+}
+function _dbxEmpOptions(sel){
+  var actifs=(DB.employees||[]).slice().filter(function(e){return !e.archived;}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+  var arch=(DB.employees||[]).slice().filter(function(e){return e.archived;}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+  var opt=function(e){return '<option value="'+e.id+'"'+(e.id===sel?' selected':'')+'>'+e.name+' ('+(RESTOS[e.restoId]?RESTOS[e.restoId].label:e.restoId)+')'+(e.archived?' [archivé]':'')+'</option>';};
+  return '<option value=""'+(sel===''?' selected':'')+'>— choisir / ne pas importer —</option>'
+    +'<option value="__new__"'+(sel==='__new__'?' selected':'')+'>➕ Créer une nouvelle fiche</option>'
+    +actifs.map(opt).join('')
+    +(arch.length?('<optgroup label="Archivés">'+arch.map(opt).join('')+'</optgroup>'):'');
+}
+function dbxDropSetAssign(key,val){ _dbxAssign[key]=val; }
+window.dbxDropSetAssign=dbxDropSetAssign;
+function dbxDropRender(){
+  var box=document.getElementById('dbxdrop-list'); var act=document.getElementById('dbxdrop-actions');
+  if(!box) return;
+  var groups=_dbxGroups(); var keys=Object.keys(groups);
+  if(!keys.length){ box.innerHTML=''; if(act) act.innerHTML=''; return; }
+  // pré-associer par le nom (une seule fois par groupe)
+  keys.forEach(function(k){
+    if(_dbxAssign[k]!==undefined) return;
+    if(k==='__loose__'){ _dbxAssign[k]=''; return; }
+    var key=_nomKey(k);
+    var match=(DB.employees||[]).find(function(e){return _nomKey(e.name)===key;});
+    _dbxAssign[k]=match?match.id:'__new__';
+  });
+  var nFiles=_dbxDrop.length, nFolders=keys.filter(function(k){return k!=='__loose__';}).length;
+  var h='<div style="margin-top:14px;font-size:.82rem;color:#aaa;margin-bottom:6px;">'+nFolders+' dossier(s) · '+nFiles+' fichier(s) au total. Vérifiez l\'association, puis importez :</div>';
+  keys.forEach(function(k){
+    var files=groups[k]; var isLoose=(k==='__loose__');
+    var titre=isLoose?('📎 '+files.length+' fichier(s) isolé(s)'):('📁 '+k+' <span style="color:#667;">· '+files.length+' fichier(s)</span>');
+    var badge='';
+    if(!isLoose){
+      var matched=(_dbxAssign[k]&&_dbxAssign[k]!=='__new__'&&_dbxAssign[k]!=='');
+      badge=matched?'<span style="font-size:.7rem;color:#4CAF50;">salarié reconnu</span>':(_dbxAssign[k]==='__new__'?'<span style="font-size:.7rem;color:#F5A623;">fiche à créer</span>':'');
+    }
+    h+='<div style="padding:9px 0;border-bottom:1px solid #222;">'
+      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+      +'<span style="flex:1;min-width:140px;font-size:.85rem;color:#ddd;word-break:break-all;">'+titre+' '+badge+'</span>'
+      +'<select class="fi" style="min-width:220px;max-width:100%;font-size:.8rem;padding:5px 6px;" onchange="dbxDropSetAssign(\''+k.replace(/'/g,"\\'")+'\',this.value)">'+_dbxEmpOptions(_dbxAssign[k])+'</select>'
+      +'<button class="btn btn-gray btn-sm" onclick="dbxDropRemoveGroup(\''+k.replace(/'/g,"\\'")+'\')">✕</button>'
+      +'</div></div>';
+  });
+  box.innerHTML=h;
+  if(act) act.innerHTML='<button class="btn btn-red btn-sm" style="margin-top:12px;" onclick="dbxDropRun()">📥 Importer dans l\'application</button>';
+}
+window.dbxDropRender=dbxDropRender;
+// créer une fiche minimale à partir d'un nom de dossier (retourne l'employé créé)
+async function _dbxCreerFiche(nom, restoId){
+  var id='e'+Date.now()+Math.floor(Math.random()*1000);
+  var e={id:id,name:nom,role:'equipier',restoId:restoId,archived:false,email:'',phone:'',infos:{}};
+  await sb.insert('bks_employees',{id:id,name:nom,role:'equipier',resto_id:restoId,archived:false,email:'',phone:''});
+  return e;
+}
+async function dbxDropRun(){
+  if(typeof dbxEstPret!=='function' || !dbxEstPret()){ toast('Dropbox n\'est pas configuré dans cette application.','error'); return; }
+  var groups=_dbxGroups(); var keys=Object.keys(groups);
+  if(!keys.length){ toast('Glissez d\'abord des dossiers ou des fichiers.','error'); return; }
+  var jobs=keys.filter(function(k){ var a=_dbxAssign[k]; return a&&a!==''; });
+  if(!jobs.length){ toast('Associez au moins un dossier à un salarié (ou « Créer une fiche »).','error'); return; }
+  if(window._dbxDropBusy) return; window._dbxDropBusy=true;
+  var cat=((document.getElementById('dbxdrop-cat')||{}).value||'autre');
+  var restoNew=((document.getElementById('dbxdrop-resto')||{}).value||Object.keys(RESTOS)[0]);
+  var act=document.getElementById('dbxdrop-actions');
+  if(act) act.innerHTML='<div style="margin-top:12px;font-size:.85rem;color:#8fc3f5;" id="dbxdrop-prog">Import en cours…</div>';
+  var prog=document.getElementById('dbxdrop-prog');
+  var ds=new Date().toLocaleDateString('fr-FR').replace(/\//g,'-');
+  var okDocs=0, koDocs=0, nEmp=0, nNew=0, nb=0, total=0;
+  jobs.forEach(function(k){ total+=groups[k].length; });
+  var counter=0;
+  for(var g=0; g<jobs.length; g++){
+    var k=jobs[g]; var files=groups[k]; var assign=_dbxAssign[k];
+    var e=null;
+    try{
+      if(assign==='__new__'){
+        var nom=(k==='__loose__')?('Import '+ds):k;
+        e=await _dbxCreerFiche(nom, restoNew); nNew++;
+      } else {
+        e=(DB.employees||[]).find(function(x){return x.id===assign;});
+      }
+    }catch(err){ console.error('création fiche',k,err); }
+    if(!e){ koDocs+=files.length; counter+=files.length; continue; }
+    try{ if(typeof dbxMigrerEquipe==='function'){ await dbxMigrerEquipe(e); } }catch(_){}
+    var folder=dbxEmpFolder(e); var addedForEmp=0;
+    for(var i=0;i<files.length;i++){
+      counter++;
+      var f=files[i].file;
+      if(prog) prog.textContent='Import '+counter+'/'+total+' : '+(f&&f.name||'')+' …';
+      try{
+        var base=dbxClean((f.name||'document').replace(/\.[^.]+$/,''))||'document';
+        var m=(f.name||'').match(/\.([^.]+)$/); var ext=m?m[1]:'';
+        var dest=folder+'/'+base+'_'+ds+(ext?('.'+ext):'');
+        var link=await dbxUpload(dest, f);
+        await sb.insert('bks_emp_docs',{id:'dd'+Date.now()+'_'+g+'_'+i,emp_id:e.id,categorie:cat,label:_empDocCatLbl(cat)+' — '+f.name,link:link,name:f.name,dbx_path:dest});
+        okDocs++; addedForEmp++;
+      }catch(err){ console.error('dbxDropRun',(f&&f.name),err); koDocs++; }
+    }
+    if(addedForEmp) nEmp++;
+  }
+  window._dbxDropBusy=false;
+  _dbxDrop=[]; _dbxAssign={};
+  try{ await loadAll(); }catch(_){}
+  try{ dbxDropInit(); }catch(_){}
+  try{ if(typeof renderEquipe==='function') renderEquipe(); }catch(_){}
+  toast(okDocs+' document(s) importé(s) · '+nEmp+' salarié(s)'+(nNew?(' · '+nNew+' fiche(s) créée(s)'):'')+(koDocs?(' · '+koDocs+' échec(s)'):'')+'.', koDocs?'error':'success');
+}
+window.dbxDropRun=dbxDropRun;
+
+// ══ BARÈMES DE SANCTION ══════════════════════════════════════════════════════
+var _baremesDraft=null;
+var BAREME_DOCS=[['ecrit','Observation écrite'],['avert','Avertissement'],['mise','Mise en demeure']];
+function _baremesGet(){ return (DB.mailSettings&&Array.isArray(DB.mailSettings.baremes))?DB.mailSettings.baremes:[]; }
+function renderBaremes(){
+  var box=document.getElementById('baremes-list'); if(!box) return;
+  if(_baremesDraft===null){ _baremesDraft=JSON.parse(JSON.stringify(_baremesGet())); }
+  if(!_baremesDraft.length){ box.innerHTML='<p style="font-size:.82rem;color:#888;">Aucune règle pour l\'instant. Cliquez sur « ➕ Ajouter une règle ».</p>'; return; }
+  var probOpts=PROBS.map(function(p){return {id:p.id,label:p.icon+' '+p.label};});
+  box.innerHTML=_baremesDraft.map(function(r,i){
+    var selType='<select class="fi bareme-f" data-i="'+i+'" data-k="type" style="min-width:150px;">'+probOpts.map(function(o){return '<option value="'+o.id+'"'+(o.id===r.type?' selected':'')+'>'+o.label+'</option>';}).join('')+'</select>';
+    var selDoc='<select class="fi bareme-f" data-i="'+i+'" data-k="doc" style="min-width:150px;">'+BAREME_DOCS.map(function(d){return '<option value="'+d[0]+'"'+(d[0]===r.doc?' selected':'')+'>'+d[1]+'</option>';}).join('')+'</select>';
+    return '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:9px 0;border-bottom:1px solid #222;">'
+      +'<span style="font-size:.82rem;color:#aaa;">À partir de</span>'
+      +'<input type="number" min="1" class="fi bareme-f" data-i="'+i+'" data-k="seuil" value="'+(r.seuil||3)+'" style="width:60px;">'
+      +selType
+      +'<span style="font-size:.82rem;color:#aaa;">sur</span>'
+      +'<input type="number" min="1" class="fi bareme-f" data-i="'+i+'" data-k="mois" value="'+(r.mois||2)+'" style="width:55px;">'
+      +'<span style="font-size:.82rem;color:#aaa;">mois →</span>'
+      +selDoc
+      +'<button class="btn-danger" style="padding:4px 9px;" onclick="baremeDel('+i+')">🗑️</button>'
+      +'</div>';
+  }).join('');
+}
+function _baremesSync(){
+  document.querySelectorAll('.bareme-f').forEach(function(el){
+    var i=+el.getAttribute('data-i'), k=el.getAttribute('data-k');
+    if(_baremesDraft && _baremesDraft[i]){ _baremesDraft[i][k]=(k==='seuil'||k==='mois')?(parseInt(el.value)||1):el.value; }
+  });
+}
+function baremeAdd(){ if(_baremesDraft===null)_baremesDraft=[]; _baremesSync(); _baremesDraft.push({type:'absence',seuil:3,mois:2,doc:'avert'}); renderBaremes(); }
+function baremeDel(i){ _baremesSync(); _baremesDraft.splice(i,1); renderBaremes(); }
+async function baremesSave(){
+  _baremesSync();
+  if(!DB.mailSettings) DB.mailSettings={};
+  DB.mailSettings.baremes=(_baremesDraft||[]).slice();
+  try{ await saveDB(); toast('Barèmes enregistrés ✔','success'); }catch(e){ toast('Erreur','error'); }
+  try{ if(typeof updateAlBadge==='function') updateAlBadge(); }catch(_){}
+}
+window.renderBaremes=renderBaremes; window.baremeAdd=baremeAdd; window.baremeDel=baremeDel; window.baremesSave=baremesSave;
+
+// Propositions de sanction d'après les barèmes (incidents pas encore sanctionnés).
+function suggestionsBaremes(restoFiltre){
+  var rules=_baremesGet(); if(!rules.length) return [];
+  var out=[]; var now=new Date();
+  var br=restoFiltre?(''+restoFiltre).toLowerCase():null;
+  (DB.employees||[]).filter(function(e){return !e.archived && (!br||(''+(e.restoId||'')).toLowerCase()===br);}).forEach(function(e){
+    rules.forEach(function(r){
+      var seuil=parseInt(r.seuil)||0, mois=parseInt(r.mois)||1; if(!r.type||seuil<1) return;
+      var lim=new Date(now.getTime()); lim.setMonth(lim.getMonth()-mois);
+      var incs=(DB.incidents||[]).filter(function(i){
+        return i.empId===e.id && (!i.sanctionType||i.sanctionType==='verbal')
+          && (i.problems||[]).indexOf(r.type)>=0
+          && new Date(i.datetime||i.createdAt)>=lim;
+      });
+      if(incs.length>=seuil){ out.push({empId:e.id,empName:e.name,restoId:e.restoId,type:r.type,doc:r.doc||'avert',incs:incs,seuil:seuil,mois:mois}); }
+    });
+  });
+  return out;
+}
+window.suggestionsBaremes=suggestionsBaremes;
+// Valide une proposition : prépare le document (il va dans « à faire signer »).
+async function preparerDocDepuisSuggestion(empId,type,doc){
+  if(!(curUser&&(curUser.role==='franchise'||curUser.role==='directeur'))){ toast('Réservé à la direction.','error'); return; }
+  var e=DB.employees.find(function(x){return x.id===empId;}); if(!e) return;
+  var incs=(DB.incidents||[]).filter(function(i){ return i.empId===empId && (!i.sanctionType||i.sanctionType==='verbal') && (i.problems||[]).indexOf(type)>=0; })
+    .sort(function(a,b){return new Date(a.datetime||a.createdAt)-new Date(b.datetime||b.createdAt);});
+  if(!incs.length){ toast('Plus d\'incidents à sanctionner pour '+e.name+'.','error'); return; }
+  var lib={ecrit:'observation écrite',avert:'avertissement',mise:'mise en demeure'}[doc]||'document';
+  if(!confirm('Préparer une '+lib+' pour '+e.name+' regroupant '+incs.length+' incident'+(incs.length>1?'s':'')+' ?\n\nLe document ira dans « à faire signer » (rien n\'est envoyé automatiquement).')) return;
+  var body=_docBodyMulti(e,incs,doc);
+  var reporter=(curUser.role==='directeur')?('Directeur — '+(curUser.name||'')):(curUser.name||'Direction');
+  var lid='letM_'+Date.now();
+  try{
+    await sb.insert('bks_letters',{id:lid,incident_id:incs.map(function(i){return i.id;}).join(','),emp_id:empId,emp_name:e.name,emp_email:e.email||'',sanction_type:doc,type:doc,status:'pending',sig_status:'pending',body:body,created_by:reporter,created_at:new Date().toISOString()});
+    for(var q=0;q<incs.length;q++){ try{ await sb.patch('bks_incidents','id=eq.'+incs[q].id,{sanction_type:doc}); }catch(_){} }
+    await loadAll(); try{updateVBadge();updateAlBadge();}catch(_){}
+    try{ avertPdf(e, body, ({ecrit:'OBSERVATION ÉCRITE',avert:'AVERTISSEMENT',mise:'MISE EN DEMEURE'}[doc]||'DOCUMENT'), lib); }catch(_){}
+    toast(lib.charAt(0).toUpperCase()+lib.slice(1)+' préparée pour '+e.name+' — à faire signer.','success');
+    try{ renderAlertes(); }catch(_){}
+  }catch(err){ toast('Erreur','error'); console.error('preparerDocDepuisSuggestion',err); }
+}
+window.preparerDocDepuisSuggestion=preparerDocDepuisSuggestion;
 
 // ══ COMPTAGE PAR RESTAURANT (pour les pastilles sur les tuiles) ═══════════════
 // Renvoie le nombre d'éléments à signaler pour un restaurant donné, selon le type
@@ -3632,6 +3920,7 @@ var RPT_TILES=[
   {id:'planhebdo', em:'🗓️', tt:'Planning de la semaine', ds:'Qui travaille quand (planning fait)', color:'#00897b'},
   {id:'suivipointage', em:'⏱️', tt:'Suivi pointage', ds:'Heures pointées par les équipiers', color:'#6d4aad'},
   {id:'planpartage', em:'📅', tt:'Plannings transférés', ds:'Semaines transférées aux employés (imprimables)', color:'#0277bd'},
+  {id:'turnover',  em:'🔄', tt:'Entrées / Sorties', ds:'Turnover par mois et par an', color:'#c2185b'},
 ];
 var _rptCurrent=null;
 function renderRptTiles(){
@@ -3679,6 +3968,7 @@ function rptRefresh(){
   else if(_rptCurrent==='traits'){ genTraitsReport(); }
   else if(_rptCurrent==='planhebdo'){ genPlanHebdoReport(); }
   else if(_rptCurrent==='planpartage'){ genPlanPartageReport(); }
+  else if(_rptCurrent==='turnover'){ genTurnoverReport(); }
 }
 // Rapports : plannings transférés (semaines verrouillées/partagées) + impression
 function genPlanPartageReport(){
@@ -3696,6 +3986,119 @@ function genPlanPartageReport(){
   try{ hrRenderPlanningPartage(resto.toUpperCase(), document.getElementById('rpt-partage-box')); }catch(e){ console.warn('partage',e); }
 }
 window.genPlanPartageReport=genPlanPartageReport;
+
+// ── RAPPORT ENTRÉES / SORTIES (turnover) ─────────────────────────────────────
+var _turnoverYear=null;
+function _tvParse(v){ if(!v)return null; try{ var d=new Date((''+v).slice(0,10)+'T12:00:00'); return isNaN(d.getTime())?null:d; }catch(_){ return null; } }
+function turnoverSetYear(y){ _turnoverYear=+y; genTurnoverReport(); }
+window.turnoverSetYear=turnoverSetYear;
+function _tvCard(titre,val,col,ic){
+  return '<div style="flex:1;min-width:130px;background:#141414;border:1px solid #2a2a2a;border-left:4px solid '+col+';border-radius:10px;padding:12px 14px;">'
+    +'<div style="font-size:.72rem;color:#999;text-transform:uppercase;letter-spacing:.5px;">'+ic+' '+titre+'</div>'
+    +'<div style="font-size:1.7rem;font-weight:800;color:'+col+';line-height:1.2;">'+val+'</div></div>';
+}
+function genTurnoverReport(){
+  var out=document.getElementById('rpt-out'); if(!out) return;
+  var isGlobal=(curUser.role==='franchise');
+  var restoFiltre = isGlobal ? ((typeof rptTab!=='undefined'&&rptTab!=='all')?rptTab:null) : curUser.restoId;
+  var emps=(DB.employees||[]).filter(function(e){ return restoFiltre? (e.restoId===restoFiltre) : true; });
+  var recs=emps.map(function(e){
+    return { name:e.name, resto:e.restoId,
+             entree:_tvParse(e.infos&&e.infos.date_anciennete),
+             sortie:_tvParse(e.exitDate||e.sortieDate) };
+  });
+  var years={};
+  recs.forEach(function(r){ if(r.entree)years[r.entree.getFullYear()]=1; if(r.sortie)years[r.sortie.getFullYear()]=1; });
+  var yList=Object.keys(years).map(Number).sort(function(a,b){return a-b;});
+  var nowY=new Date().getFullYear();
+  if(!yList.length) yList=[nowY];
+  if(_turnoverYear==null || yList.indexOf(_turnoverYear)<0) _turnoverYear=(yList.indexOf(nowY)>=0?nowY:yList[yList.length-1]);
+  var Y=_turnoverYear;
+  var MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  var moisIn=[], moisOut=[];
+  for(var m=0;m<12;m++){ moisIn[m]=[]; moisOut[m]=[]; }
+  recs.forEach(function(r){
+    if(r.entree && r.entree.getFullYear()===Y) moisIn[r.entree.getMonth()].push(r.name);
+    if(r.sortie && r.sortie.getFullYear()===Y) moisOut[r.sortie.getMonth()].push(r.name);
+  });
+  function effectifFin(y,m){
+    var fin=new Date(y,m+1,0,23,59,59);
+    var n=0;
+    recs.forEach(function(r){
+      if(!(r.entree && r.entree<=fin)) return;   // pas encore entré
+      if(r.sortie && r.sortie<=fin) return;      // déjà sorti
+      n++;
+    });
+    return n;
+  }
+  var totIn=0, totOut=0;
+  for(var m=0;m<12;m++){ totIn+=moisIn[m].length; totOut+=moisOut[m].length; }
+  var somme=0; for(var m=0;m<12;m++){ somme+=effectifFin(Y,m); }
+  var effMoyen=somme/12;
+  var tauxTurn = effMoyen>0 ? Math.round(((totIn+totOut)/2)/effMoyen*100) : 0;
+  var restoLbl = restoFiltre ? (RESTOS[restoFiltre]?RESTOS[restoFiltre].label:restoFiltre) : 'Tous les restaurants';
+  var h='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">'
+    +'<span style="color:#888;font-size:.85rem;">🍔 '+restoLbl+'</span>'
+    +'<label class="flabel" style="margin:0;">Année</label>'
+    +'<select class="fi" style="width:auto;min-width:110px;" onchange="turnoverSetYear(this.value)">'
+      +yList.map(function(y){return '<option value="'+y+'"'+(y===Y?' selected':'')+'>'+y+'</option>';}).join('')
+    +'</select>'
+    +'<button class="btn btn-gray btn-sm" onclick="turnoverPrint()">🖨️ Imprimer / PDF</button>'
+    +'</div>';
+  h+='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">'
+    +_tvCard('Entrées '+Y, totIn, '#2e7d32','⬆️')
+    +_tvCard('Sorties '+Y, totOut, '#c62828','⬇️')
+    +_tvCard('Solde net', (totIn-totOut>0?'+':'')+(totIn-totOut), (totIn-totOut>=0?'#2e7d32':'#c62828'),'⚖️')
+    +_tvCard('Taux de turnover', tauxTurn+' %', '#c2185b','🔄')
+    +'</div>';
+  var maxV=1; for(var m=0;m<12;m++){ maxV=Math.max(maxV, moisIn[m].length, moisOut[m].length); }
+  h+='<div id="turnover-print" style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.85rem;">'
+    +'<thead><tr style="text-align:left;color:#aaa;border-bottom:1px solid #333;">'
+    +'<th style="padding:8px 6px;">Mois</th><th style="padding:8px 6px;text-align:center;">Entrées</th>'
+    +'<th style="padding:8px 6px;text-align:center;">Sorties</th><th style="padding:8px 6px;text-align:center;">Solde</th>'
+    +'<th style="padding:8px 6px;text-align:center;">Effectif fin de mois</th></tr></thead><tbody>';
+  for(var m=0;m<12;m++){
+    var ei=moisIn[m].length, so=moisOut[m].length, sd=ei-so, eff=effectifFin(Y,m);
+    var barIn='<span style="display:inline-block;height:8px;background:#2e7d32;border-radius:4px;width:'+Math.round(ei/maxV*54)+'px;vertical-align:middle;margin-left:5px;"></span>';
+    var barOut='<span style="display:inline-block;height:8px;background:#c62828;border-radius:4px;width:'+Math.round(so/maxV*54)+'px;vertical-align:middle;margin-left:5px;"></span>';
+    h+='<tr style="border-bottom:1px solid #222;">'
+      +'<td style="padding:7px 6px;color:#ddd;">'+MOIS[m]+'</td>'
+      +'<td style="padding:7px 6px;text-align:center;color:#4CAF50;font-weight:700;" title="'+moisIn[m].join(', ')+'">'+(ei?ei+barIn:'—')+'</td>'
+      +'<td style="padding:7px 6px;text-align:center;color:#e57373;font-weight:700;" title="'+moisOut[m].join(', ')+'">'+(so?so+barOut:'—')+'</td>'
+      +'<td style="padding:7px 6px;text-align:center;color:'+(sd>0?'#4CAF50':(sd<0?'#e57373':'#888'))+';">'+(sd>0?'+':'')+(sd||0)+'</td>'
+      +'<td style="padding:7px 6px;text-align:center;color:#ccc;">'+eff+'</td></tr>';
+  }
+  h+='<tr style="border-top:2px solid #444;font-weight:700;color:#eee;">'
+    +'<td style="padding:8px 6px;">TOTAL '+Y+'</td>'
+    +'<td style="padding:8px 6px;text-align:center;color:#4CAF50;">'+totIn+'</td>'
+    +'<td style="padding:8px 6px;text-align:center;color:#e57373;">'+totOut+'</td>'
+    +'<td style="padding:8px 6px;text-align:center;">'+(totIn-totOut>0?'+':'')+(totIn-totOut)+'</td>'
+    +'<td style="padding:8px 6px;text-align:center;">'+effectifFin(Y,11)+'</td></tr>';
+  h+='</tbody></table></div>';
+  var detail='';
+  for(var m=0;m<12;m++){
+    if(!moisIn[m].length && !moisOut[m].length) continue;
+    detail+='<div style="padding:8px 0;border-bottom:1px solid #1f1f1f;">'
+      +'<div style="font-weight:700;color:#ddd;font-size:.82rem;margin-bottom:3px;">'+MOIS[m]+' '+Y+'</div>';
+    if(moisIn[m].length) detail+='<div style="font-size:.8rem;color:#4CAF50;">⬆️ Entrées : '+moisIn[m].join(', ')+'</div>';
+    if(moisOut[m].length) detail+='<div style="font-size:.8rem;color:#e57373;">⬇️ Sorties : '+moisOut[m].join(', ')+'</div>';
+    detail+='</div>';
+  }
+  if(detail) h+='<div style="margin-top:18px;"><div class="sec-title" style="font-size:.9rem;">📋 Détail par mois</div>'+detail+'</div>';
+  var sansAnc=recs.filter(function(r){return !r.entree;}).length;
+  if(sansAnc) h+='<div style="margin-top:14px;font-size:.78rem;color:#888;">ℹ️ '+sansAnc+' salarié(s) sans « date d\'ancienneté » renseignée ne sont pas comptés dans les entrées. Renseignez-la depuis la fiche (Équipe → ✏️ → Emploi &amp; contrat) pour un suivi complet.</div>';
+  out.innerHTML=h;
+}
+window.genTurnoverReport=genTurnoverReport;
+function turnoverPrint(){
+  var el=document.getElementById('rpt-out'); if(!el) return;
+  var w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-ups pour imprimer.','error'); return; }
+  w.document.write('<html><head><title>Entrées / Sorties</title><style>body{font-family:Arial,sans-serif;padding:20px;color:#111;}table{width:100%;border-collapse:collapse;margin-top:12px;}th,td{border:1px solid #ccc;padding:6px 8px;text-align:center;}th:first-child,td:first-child{text-align:left;}span{display:none!important;}button,select,label{display:none!important;}</style></head><body>');
+  w.document.write('<h2>Entrées / Sorties — turnover</h2>'+el.innerHTML);
+  w.document.write('</body></html>'); w.document.close(); setTimeout(function(){try{w.print();}catch(_){}} ,300);
+}
+window.turnoverPrint=turnoverPrint;
+
 // PDF d'une seule semaine transférée (celle affichée dans le rapport)
 function rptPdfPartageSemaine(){
   try{
@@ -6654,6 +7057,39 @@ function collectAlertes(restoFiltre){
     }
   });
 
+  // ── 1quater) BARÈMES : documents à préparer (propositions à valider) ──
+  try{
+    (suggestionsBaremes(restoFiltre)||[]).forEach(function(s){
+      var pl=((PROBS.find(function(p){return p.id===s.type;})||{}).label||s.type);
+      var dl={ecrit:'observation écrite',avert:'avertissement',mise:'mise en demeure'}[s.doc]||'document';
+      alerts.push({prio:1,cat:'À sanctionner',icon:'⚖️',col:'#e8623a',
+        titre:s.empName+' — '+s.incs.length+' '+(''+pl).toLowerCase()+' → '+dl+' à préparer',
+        sub:'Barème atteint ('+s.seuil+' sur '+s.mois+' mois) · '+rlabel(s.restoId),
+        empId:s.empId,
+        action:"preparerDocDepuisSuggestion('"+s.empId+"','"+s.type+"','"+s.doc+"')"});
+    });
+  }catch(e){}
+  // ── 1quinquies) DOCUMENTS À FAIRE SIGNER (créés, pas encore signés) ──
+  try{
+    var _brS=restoFiltre?(''+restoFiltre).toLowerCase():null;
+    (DB.letters||[]).filter(function(l){ return (l.sigStatus==='pending'||!l.sigStatus) && ['ecrit','avert','mise','mise_a_pied'].indexOf(l.sanctionType)>=0 && (''+(l.id||'')).indexOf('letM_')===0; }).forEach(function(l){
+      var e=(DB.employees||[]).find(function(x){return x.id===l.empId;});
+      if(!e || e.archived) return;
+      if(_brS && (''+(e.restoId||'')).toLowerCase()!==_brS) return;
+      var st=SANCTIONS[l.sanctionType]||{label:l.type||'Document'};
+      var jours=Math.round((new Date()-new Date(l.createdAt))/(24*3600*1000));
+      // Pourquoi ce document ? -> les motifs des incidents qu'il regroupe
+      var incIds=(''+(l.incidentId||'')).split(',').map(function(s){return s.trim();}).filter(Boolean);
+      var covered=incIds.map(function(iid){return (DB.incidents||[]).find(function(x){return x.id===iid;});}).filter(Boolean);
+      var mset={}; covered.forEach(function(i){ (i.problems||[]).forEach(function(pid){ var p=PROBS.find(function(x){return x.id===pid;}); mset[p?p.label:pid]=1; }); });
+      var motifs=Object.keys(mset).join(', ');
+      alerts.push({prio:(jours>7?1:2),cat:'À faire signer',icon:'✍️',col:(jours>7?'#cc5555':'#F5A623'),
+        titre:e.name+' — '+st.label+(covered.length?(' ('+covered.length+' incident'+(covered.length>1?'s':'')+')'):''),
+        sub:(motifs?('Motif : '+motifs+' · '):'')+'créé le '+_frDate((''+(l.createdAt||'')).slice(0,10))+(jours>0?(' · depuis '+jours+' j'):'')+' · '+rlabel(e.restoId),
+        action:"signerSurPlace('"+l.id+"')"});
+    });
+  }catch(e){}
+
   // ── 2) VISITE MÉDICALE D'EMBAUCHE (candidats en période d'essai) ──
   cands.filter(function(c){return (c.statut||'')==='essai';}).forEach(function(c){
     var v=visiteInfo(c); var resto=rlabel(c.restoId);
@@ -6712,10 +7148,12 @@ function collectAlertes(restoFiltre){
     var nom=emp?emp.name:'Salarié';
     var resto=rlabel(i.restoId);
     var grave=(String(i.severity)==='3');
+    var dt=d.toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    var motifs=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});return p?p.label:pid;}).slice(0,3).join(', ')||'Incident signalé';
+    // Suivi par incident (date + heure) — NON cliquable (pas de profil)
     alerts.push({prio:grave?1:3,cat:'Incidents',icon:'⚠️',col:grave?'#cc5555':'#F5A623',
-      titre:nom+' — incident'+(grave?' grave':'')+' il y a '+(jours===0?'aujourd\'hui':jours+' j'),
-      sub:((i.problems&&i.problems.length)?i.problems.slice(0,2).join(', '):'Incident signalé')+' · '+resto,
-      empId:i.empId});
+      titre:nom+' — incident'+(grave?' grave':''),
+      sub:'📅 '+dt+' · '+motifs+' · '+resto});
   });
 
   // (futures catégories : planning, pointage — s'ajouteront ici quand les modules existeront)
@@ -6748,7 +7186,7 @@ function renderAlertes(){
   // grouper par catégorie
   var cats={};alerts.forEach(function(a){(cats[a.cat]=cats[a.cat]||[]).push(a);});
   var catKeys=Object.keys(cats);
-  var accents={'Visite médicale':'#e87722','Mutuelle':'#c0392b','Contrats':'#8e44ad','Visite d\'embauche':'#16a085','Période d\'essai':'#2980b9','Dossiers incomplets':'#d35400','Incidents':'#c0392b'};
+  var accents={'À sanctionner':'#c0392b','À faire signer':'#e8a020','Visite médicale':'#e87722','Mutuelle':'#c0392b','Contrats':'#8e44ad','Visite d\'embauche':'#16a085','Période d\'essai':'#2980b9','Dossiers incomplets':'#d35400','Incidents':'#c0392b'};
   // ── Tuiles par catégorie (fermées au départ, on en ouvre une au clic) ──
   var h='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px;">';
   catKeys.forEach(function(cat){
@@ -6766,8 +7204,8 @@ function renderAlertes(){
     h+='<div id="alrt-sec-'+slug+'" style="display:none;margin-bottom:10px;">'
       +'<div style="font-size:.82rem;color:var(--orange);font-weight:700;margin-bottom:8px;">'+arr[0].icon+' '+cat+' ('+arr.length+')</div>'
       +arr.map(function(a){
-        var onclick=a.empId?'onclick="openEmpFiche(\''+a.empId+'\')"':(a.candId?'onclick="openCand(\''+a.candId+'\')"':'');
-        var clickable=!!(a.empId||a.candId);
+        var onclick=a.action?('onclick="'+a.action+'"'):(a.empId?'onclick="openEmpFiche(\''+a.empId+'\')"':(a.candId?'onclick="openCand(\''+a.candId+'\')"':''));
+        var clickable=!!(a.action||a.empId||a.candId);
         return '<div class="emp-card" style="border-left:4px solid '+a.col+';cursor:'+(clickable?'pointer':'default')+';" '+onclick+'>'
           +'<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:.9rem;">'+a.titre+'</div>'
           +'<div style="font-size:.74rem;color:#888;margin-top:2px;">'+a.sub+'</div></div>'
@@ -10206,7 +10644,8 @@ function _refreshCourriers(){
   try{ if(document.getElementById('empf-histo-content') && typeof _empfId!=='undefined' && _empfId){ renderEmpFicheHisto(_empfId); } }catch(_){}
   try{ var mh=document.getElementById('modal-historique'); if(mh && mh.classList.contains('open') && typeof _histoEmpId!=='undefined' && _histoEmpId){ openHistorique(_histoEmpId); } }catch(_){}
   try{ if(typeof _rptCurrent!=='undefined' && _rptCurrent==='incidents'){ genReport(); } }catch(_){}
-  try{ updateVBadge(); }catch(_){}
+  try{ if(document.getElementById('alertes-list')){ renderAlertes(); } }catch(_){}
+  try{ updateVBadge(); updateAlBadge(); }catch(_){}
 }
 window._refreshCourriers=_refreshCourriers;
 // ── SIGNATURE SUR LA TABLETTE (remise en main propre) ────────────────────────
