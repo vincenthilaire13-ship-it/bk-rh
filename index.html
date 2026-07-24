@@ -174,9 +174,9 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 .prob-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:9px;margin:14px 0;}
 .prob-item{display:flex;flex-direction:column;gap:0;}
 .prob-check{display:flex;align-items:center;gap:7px;background:#1A1A1A;border:1px solid #444;border-radius:var(--r);padding:9px 11px;cursor:pointer;transition:border-color .2s,background .2s;}
-.prob-check .chk{width:17px;height:17px;border:2px solid #555;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;}
+.prob-check .chk{width:17px;height:17px;border:2px solid #555;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;color:transparent;}
 .prob-check.on{border-color:var(--red);background:rgba(214,35,0,.1);}
-.prob-check.on .chk{background:var(--red);border-color:var(--red);}
+.prob-check.on .chk{background:var(--red);border-color:var(--red);color:#fff;}
 .prob-extra{display:none;margin-top:4px;padding:8px;background:#111;border-radius:6px;border:1px solid #333;}
 .prob-extra.show{display:block;}
 .sev-row{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0;}
@@ -934,11 +934,11 @@ html,body{overflow-x:hidden;}
     <div class="card">
       <div class="sec-title">⚠️ Signaler un incident</div>
       <div id="inc-mgr-wrap" style="display:none;margin-bottom:6px;">
-        <label class="flabel">⭐ Manager déclarant</label>
+        <label class="flabel">⭐ Manager déclarant <span style="color:var(--red);font-weight:700;">*</span></label>
         <select id="inc-mgr-sel" class="fi"></select>
       </div>
       <div class="form-row">
-        <div style="grid-column:1/-1"><label class="flabel">Équipier concerné</label>
+        <div style="grid-column:1/-1"><label class="flabel">Équipier concerné <span style="color:var(--red);font-weight:700;">*</span></label>
           <input type="text" id="emp-search" class="fi" placeholder="🔍 Rechercher par nom ou email..." oninput="filterEmpList()" autocomplete="off" style="margin-bottom:5px;">
           <div id="emp-dropdown" style="background:#111;border:1px solid #444;border-radius:8px;max-height:200px;overflow-y:auto;display:none;"></div>
           <div id="sel-emp-display" style="background:#1A2A1A;border:1px solid #3A5A3A;border-radius:8px;padding:9px 13px;display:none;">
@@ -949,7 +949,7 @@ html,body{overflow-x:hidden;}
           <input type="hidden" id="sel-emp">
           <div id="oral-rappel" style="display:none;margin-top:8px;"></div>
         </div>
-        <div><label class="flabel">Date et heure</label><input type="datetime-local" id="inc-dt" class="fi"></div>
+        <div><label class="flabel">Date et heure <span style="color:#888;font-weight:400;font-size:.72rem;">🔒 automatique</span></label><input type="datetime-local" id="inc-dt" class="fi" readonly tabindex="-1" onmousedown="return false" onkeydown="return false" onfocus="this.blur()" style="pointer-events:none;background:#151515;color:#bbb;cursor:not-allowed;"></div>
       </div>
       <label class="flabel">Type(s) d'incident</label>
       <div class="prob-grid" id="prob-grid"></div>
@@ -977,8 +977,9 @@ html,body{overflow-x:hidden;}
         <button class="btn btn-gray" onclick="resetForm()">✕ Réinitialiser</button>
       </div>
     </div>
-    <div class="sec-title" id="hist-title">🕒 Incidents récents</div>
-    <div class="filters" id="hist-filters">
+    <!-- « Incidents récents » déplacé dans Rapports → Incidents (création de documents par salarié) -->
+    <div class="sec-title" id="hist-title" style="display:none;">🕒 Incidents récents</div>
+    <div class="filters" id="hist-filters" style="display:none;">
       <select id="f-who" onchange="renderHistory()"><option value="">Tous</option></select>
       <select id="f-type" onchange="renderHistory()"><option value="">Tous types</option></select>
       <select id="f-sev" onchange="renderHistory()">
@@ -988,7 +989,7 @@ html,body{overflow-x:hidden;}
       </select>
       <input type="date" id="f-date" onchange="renderHistory()">
     </div>
-    <div id="inc-list"></div>
+    <div id="inc-list" style="display:none;"></div>
   </div>
 
   <!-- RAPPORTS -->
@@ -1191,6 +1192,15 @@ html,body{overflow-x:hidden;}
     <div class="card param-card" id="pc-version" style="display:none;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <div class="sec-title" style="margin-bottom:0;">ℹ️ Version de l'application</div>
       <span id="app-version-badge" style="background:#1A1A1A;border:1px solid #444;color:var(--orange);padding:5px 14px;border-radius:20px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px;"></span>
+    </div>
+    <div class="card param-card" id="pc-dbximport" style="display:none;">
+      <div class="sec-title">🗂️ Importer les dossiers Dropbox</div>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:12px;">Intègre dans l'application les dossiers déjà présents dans Dropbox (salariés créés à la main, jamais passés par le QR code). Indiquez le dossier Dropbox à scanner, vérifiez l'association de chaque dossier à un salarié (proposée automatiquement par le nom), puis importez. Les fichiers deviennent des documents dans la fiche du salarié — rien n'est déplacé ni supprimé.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">
+        <div style="flex:1;min-width:200px;"><div class="flabel">Dossier Dropbox à scanner (vide = racine)</div><input type="text" id="dbximp-path" class="fi" placeholder="/ ou /BK_500/Equipe" value=""></div>
+        <button class="btn btn-gray btn-sm" onclick="dbxImportScan()">🔍 Scanner</button>
+      </div>
+      <div id="dbximp-results"></div>
     </div>
     <div class="card param-card" id="pc-qr" style="display:none;">
       <div class="sec-title">📲 QR code de candidature</div>
@@ -1815,6 +1825,47 @@ async function dbxUpload(path,blob){
   }
   return link?link.replace('?dl=0','?raw=1').replace('&dl=0','&raw=1'):'';
 }
+// Liste le contenu d'un dossier Dropbox (fichiers + sous-dossiers), avec pagination.
+async function dbxList(path){
+  var tok=await dbxToken(); var out=[];
+  var r=await fetch('https://api.dropboxapi.com/2/files/list_folder',{
+    method:'POST',headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+    body:JSON.stringify({path:path||'',recursive:false,limit:2000})
+  });
+  if(!r.ok) throw new Error('Dropbox list '+r.status+' '+(await r.text()).slice(0,160));
+  var d=await r.json(); out=out.concat(d.entries||[]);
+  var guard=0;
+  while(d.has_more && guard++<30){
+    var rc=await fetch('https://api.dropboxapi.com/2/files/list_folder/continue',{
+      method:'POST',headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+      body:JSON.stringify({cursor:d.cursor})
+    });
+    if(!rc.ok) break; d=await rc.json(); out=out.concat(d.entries||[]);
+  }
+  return out; // chaque entrée : {'.tag':'folder'|'file', name, path_lower, path_display}
+}
+window.dbxList=dbxList;
+// Lien partagé pour un fichier DÉJÀ présent dans Dropbox (créé ou récupéré).
+async function dbxLien(path){
+  try{
+    var tok=await dbxToken();
+    var sl=await fetch('https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings',{
+      method:'POST',headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+      body:JSON.stringify({path:path})
+    });
+    var link='';
+    if(sl.ok){var sd=await sl.json();link=sd.url||'';}
+    else{
+      var ls=await fetch('https://api.dropboxapi.com/2/sharing/list_shared_links',{
+        method:'POST',headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+        body:JSON.stringify({path:path,direct_only:true})
+      });
+      if(ls.ok){var ld=await ls.json();if(ld.links&&ld.links[0])link=ld.links[0].url;}
+    }
+    return link?link.replace('?dl=0','?raw=1').replace('&dl=0','&raw=1'):'';
+  }catch(e){console.error('dbxLien',e);return'';}
+}
+window.dbxLien=dbxLien;
 // supprimer un fichier dans Dropbox (par chemin)
 async function dbxDelete(path){
   if(!path)return false;
@@ -1996,6 +2047,7 @@ const PROBS = [
   {id:'retard',icon:'⏰',label:'Retard',extra:{type:'retard',label:'Retard'}},
   {id:'absence',icon:'🚫',label:'Absence injustifiée',extra:{type:'multi_date',label:'Absence'}},
   {id:'arret_maladie',icon:'🏥',label:'Arrêt maladie',extra:{type:'date_range',label:'Arrêt maladie'}},
+  {id:'mise_a_pied',icon:'🚷',label:'Mise à pied',extra:{type:'date_range',label:'Mise à pied'}},
   {id:'abandon',icon:'🏃',label:'Abandon de poste',extra:{type:'datetime-local',label:"Date et heure de l'abandon"}},
   {id:'lenteur',icon:'🐢',label:'Travail lent exprès',extra:null},
   {id:'impolitesse',icon:'😤',label:'Impolitesse',extra:null},
@@ -2470,7 +2522,7 @@ function applyRolePermissions(r){
       if (isGlobal) {
         show = true;                                   // Admin/RH : tout
       } else if (isDir) {
-        show = (txt.indexOf('Planning encadrement')>=0 || txt.indexOf('Incidents')>=0); // Directeur : uniquement Planning encadrement + Incidents
+        show = (txt.indexOf('Planning encadrement')>=0 || txt.indexOf('Incidents')>=0 || txt.indexOf('Rapports')>=0); // Directeur : Planning encadrement + Incidents + Rapports
       } else if (isMgr) {
         show = (txt.indexOf('Incidents')>=0);          // Manager : Incidents uniquement
       } else {
@@ -2947,7 +2999,8 @@ var PARAM_TILES=[
   {ico:'⚠️', titre:'Observations',  sub:'Seuil rappel oral',            type:'card', card:'pc-seuil',       accent:'#d35400'},
   {ico:'👁️', titre:'Aperçu fiche',  sub:'Vue candidat',                 type:'card', card:'rec-apercu-card',accent:'#7f8c8d'},
   {ico:'📧', titre:'Adresses mail', sub:'Expédition RH',                type:'card', card:'pc-adresses',    accent:'#2c3e50'},
-  {ico:'✉️', titre:'Modèles mails', sub:'Mails aux candidats',          type:'card', card:'pc-mails',       accent:'#27ae60'}
+  {ico:'✉️', titre:'Modèles mails', sub:'Mails aux candidats',          type:'card', card:'pc-mails',       accent:'#27ae60'},
+  {ico:'🗂️', titre:'Import Dropbox', sub:'Rattacher les dossiers',       type:'card', card:'pc-dbximport',   accent:'#5BA3F5'}
 ];
 function renderParamTiles(){
   var page=document.getElementById('page-parametres'); if(page) page.classList.add('bk-tiles-mode');
@@ -2988,6 +3041,71 @@ function paramOuvrir(type, ref){
   }
 }
 window.renderParamTiles=renderParamTiles; window.paramOuvrir=paramOuvrir;
+
+// ── IMPORT DES DOSSIERS DROPBOX EXISTANTS (Paramètres) ───────────────────────
+var _dbxScan=[];
+async function dbxImportScan(){
+  var box=document.getElementById('dbximp-results'); if(!box) return;
+  if(typeof dbxEstPret!=='function' || !dbxEstPret()){ box.innerHTML='<p style="color:#cc5555;">Dropbox n\'est pas configuré dans cette application.</p>'; return; }
+  var path=((document.getElementById('dbximp-path')||{}).value||'').trim();
+  if(path==='/'){ path=''; }
+  box.innerHTML='<p style="color:#888;">Scan en cours…</p>';
+  try{
+    var entries=await dbxList(path);
+    var folders=entries.filter(function(x){return x['.tag']==='folder';});
+    if(!folders.length){ box.innerHTML='<p style="color:#888;">Aucun dossier trouvé ici. Essayez un autre chemin (ex. /BK_500 ou /BK_500/Equipe).</p>'; return; }
+    var emps=(DB.employees||[]).slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+    _dbxScan=folders.map(function(f){
+      var k=_nomKey(f.name);
+      var match=emps.find(function(e){return _nomKey(e.name)===k;});
+      return {name:f.name, path:(f.path_display||f.path_lower), empId:match?match.id:''};
+    });
+    var opts=function(sel){ return '<option value="">— non associé —</option>'+emps.map(function(e){return '<option value="'+e.id+'"'+(e.id===sel?' selected':'')+'>'+e.name+' ('+(RESTOS[e.restoId]?RESTOS[e.restoId].label:e.restoId)+')'+(e.archived?' [archivé]':'')+'</option>';}).join(''); };
+    var nMatch=_dbxScan.filter(function(r){return r.empId;}).length;
+    var h='<div style="font-size:.82rem;color:#aaa;margin-bottom:10px;">'+folders.length+' dossier(s) · '+nMatch+' associé(s) automatiquement. Vérifiez, puis importez :</div>';
+    _dbxScan.forEach(function(row,idx){
+      h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:7px 0;border-bottom:1px solid #222;">'
+        +'<input type="checkbox" class="dbximp-chk" data-idx="'+idx+'"'+(row.empId?' checked':'')+' style="width:15px;height:15px;">'
+        +'<span style="flex:1;min-width:120px;font-size:.82rem;color:#ddd;">📁 '+row.name+'</span>'
+        +'<select class="dbximp-emp" data-idx="'+idx+'" style="background:#1A1A1A;border:1px solid #444;border-radius:6px;color:#eee;font-size:.8rem;padding:4px 6px;min-width:190px;">'+opts(row.empId)+'</select>'
+        +'</div>';
+    });
+    h+='<button class="btn btn-red btn-sm" style="margin-top:12px;" onclick="dbxImportRun()">📥 Importer les dossiers cochés</button>';
+    box.innerHTML=h;
+  }catch(err){ box.innerHTML='<p style="color:#cc5555;">Erreur de scan : '+String((err&&err.message)||err).slice(0,200)+'</p>'; }
+}
+window.dbxImportScan=dbxImportScan;
+
+async function dbxImportRun(){
+  var box=document.getElementById('dbximp-results'); if(!box) return;
+  document.querySelectorAll('.dbximp-emp').forEach(function(s){ var i=+s.getAttribute('data-idx'); if(_dbxScan[i]) _dbxScan[i].empId=s.value; });
+  var checks=Array.prototype.slice.call(document.querySelectorAll('.dbximp-chk:checked'));
+  if(!checks.length){ toast('Cochez au moins un dossier.','error'); return; }
+  var jobs=checks.map(function(c){return _dbxScan[+c.getAttribute('data-idx')];}).filter(function(r){return r&&r.empId;});
+  if(!jobs.length){ toast('Associez les dossiers cochés à un salarié.','error'); return; }
+  var prog=document.createElement('div'); prog.style.cssText='margin-top:12px;font-size:.85rem;color:#8fc3f5;'; box.appendChild(prog);
+  var totalDocs=0, nEmp=0;
+  for(var j=0;j<jobs.length;j++){
+    var row=jobs[j]; var e=DB.employees.find(function(x){return x.id===row.empId;}); if(!e) continue;
+    prog.textContent='Import '+(j+1)+'/'+jobs.length+' : '+row.name+' …';
+    try{
+      var items=await dbxList(row.path);
+      var files=items.filter(function(x){return x['.tag']==='file';});
+      var added=0;
+      for(var k=0;k<files.length;k++){
+        var fp=(files[k].path_display||files[k].path_lower);
+        var link=''; try{ link=await dbxLien(fp); }catch(_){}
+        try{ await sb.insert('bks_emp_docs',{id:'di'+Date.now()+'_'+j+'_'+k,emp_id:e.id,categorie:'autre',label:files[k].name,link:link,name:files[k].name,dbx_path:fp}); totalDocs++; added++; }catch(_){}
+      }
+      if(added) nEmp++;
+    }catch(err){ console.error('import dossier',row.name,err); }
+  }
+  prog.textContent='';
+  try{ await loadAll(); }catch(_){}
+  toast(totalDocs+' document(s) importé(s) pour '+nEmp+' salarié(s).','success');
+  dbxImportScan();
+}
+window.dbxImportRun=dbxImportRun;
 
 // ══ COMPTAGE PAR RESTAURANT (pour les pastilles sur les tuiles) ═══════════════
 // Renvoie le nombre d'éléments à signaler pour un restaurant donné, selon le type
@@ -3055,10 +3173,23 @@ function initForm(){
           +'</div>';
       } else if(p.extra.type==='date_range'){
         // De telle date à telle date
+        var _amDeb=(p.id==='arret_maladie'||p.id==='mise_a_pied')?' <span style="color:var(--red);font-weight:700;">*</span>':'';
+        var _amFin=(p.id==='arret_maladie'||p.id==='mise_a_pied')?' <span style="color:#888;font-weight:400;font-size:.7rem;">(si connue)</span>':'';
         ex.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
-          +'<div><label class="flabel">Du</label><input type="date" class="fi" id="ex-'+p.id+'-from" oninput="updateDateRange(\''+p.id+'\')"></div>'
-          +'<div><label class="flabel">Au</label><input type="date" class="fi" id="ex-'+p.id+'-to" oninput="updateDateRange(\''+p.id+'\')"></div>'
+          +'<div><label class="flabel">Du'+_amDeb+'</label><input type="date" class="fi" id="ex-'+p.id+'-from" oninput="updateDateRange(\''+p.id+'\')"></div>'
+          +'<div><label class="flabel">Au'+_amFin+'</label><input type="date" class="fi" id="ex-'+p.id+'-to" oninput="updateDateRange(\''+p.id+'\')"></div>'
           +'</div><div id="ex-'+p.id+'-result" style="font-size:.82rem;color:var(--orange);font-weight:700;margin-top:4px;min-height:18px;"></div>';
+        if(p.id==='arret_maladie'){
+          ex.innerHTML+='<div style="margin-top:10px;">'
+            +'<label class="flabel">📎 Photo de l\'arrêt maladie <span style="color:var(--red);font-weight:700;">*</span></label>'
+            +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+            +'<span id="inc-maladie-doc-name" style="flex:1;min-width:130px;font-size:.82rem;color:#999;">Aucun fichier</span>'
+            +'<input type="file" id="inc-maladie-doc" accept="application/pdf,image/*" capture="environment" style="display:none;" onchange="incMaladieDocPick(this)">'
+            +'<button type="button" class="btn btn-gray btn-sm" onclick="document.getElementById(\'inc-maladie-doc\').click()">📷 Ajouter la photo</button>'
+            +'</div>'
+            +'<p style="font-size:.72rem;color:#666;margin-top:5px;">La photo sera rangée dans le dossier Dropbox du salarié.</p>'
+            +'</div>';
+        }
       } else if(p.extra.type==='datetime-local'){
         ex.innerHTML='<label class="flabel">'+p.extra.label+'</label><input type="datetime-local" class="fi" data-pid="'+p.id+'" oninput="extraData[\''+p.id+'\']=new Date(this.value).toLocaleString(\'fr-FR\');">';
       } else {
@@ -3088,29 +3219,12 @@ function initForm(){
     }
   }
   var lbl=document.getElementById('sanction-label'),row=document.getElementById('sanction-row'),mgrNote=document.getElementById('sanction-mgr-note');
-  if(isMgr){
-    // On garde le libellé et on n'affiche QUE le bouton "Observation orale", déjà sélectionné
-    if(lbl){lbl.style.display='';lbl.textContent="Type d'observation";}
-    if(row)row.style.display='flex';
-    document.querySelectorAll('.sev-btn[data-sanc]').forEach(function(b){
-      if(b.dataset.sanc==='verbal'){
-        b.style.display='';
-        // état sélectionné (orange plein)
-        b.style.background='#F5A623';b.style.color='#fff';b.style.fontWeight='900';
-        b.style.transform='scale(1.04)';b.style.boxShadow='0 4px 16px #F5A62388';
-        b.style.cursor='default';b.onclick=null; // non modifiable
-      } else {
-        b.style.display='none';
-      }
-    });
-    if(mgrNote)mgrNote.style.display='block';
-    selSanction='verbal';selSev='2';
-  } else {
-    if(lbl){lbl.style.display='';lbl.textContent='Type de sanction';}
-    if(row)row.style.display='flex';
-    if(mgrNote)mgrNote.style.display='none';
-    document.querySelectorAll('.sev-btn[data-sanc]').forEach(function(b){ b.style.display=''; });
-  }
+  // TOUS les rôles : l'incident est toujours une observation orale. Le choix du type
+  // de sanction disparaît ; les documents se créent ensuite depuis la liste, par salarié.
+  if(lbl){lbl.style.display='none';}
+  if(row){row.style.display='none';}
+  if(mgrNote){mgrNote.style.display='block';}
+  selSanction='verbal';selSev='2';
 }
 
 function toggleProb(div,p){
@@ -3147,6 +3261,14 @@ function incSanctionDocPick(input){
   reader.onload=function(ev){_incSanctionDoc={data:ev.target.result,name:f.name};document.getElementById('inc-sanction-doc-name').textContent=f.name;document.getElementById('inc-sanction-doc-name').style.color='#4CAF50';};
   reader.readAsDataURL(f);
 }
+var _incMaladieDoc=null;
+function incMaladieDocPick(input){
+  var f=input.files[0];if(!f){_incMaladieDoc=null;return;}
+  if(f.size>8*1024*1024){alert('Fichier trop volumineux (max 8 Mo).');input.value='';return;}
+  var reader=new FileReader();
+  reader.onload=function(ev){_incMaladieDoc={data:ev.target.result,name:f.name};var el=document.getElementById('inc-maladie-doc-name');if(el){el.textContent=f.name;el.style.color='#4CAF50';}};
+  reader.readAsDataURL(f);
+}
 
 function resetForm(){
   selProbs=new Set();selSev=null;selSanction=null;extraData={};
@@ -3173,9 +3295,12 @@ function resetForm(){
   ['retard-prev','retard-arr','retard-result'].forEach(function(s){var el=document.getElementById('ex-'+s);if(el)el.value!==undefined?el.value='':el.textContent='';});
   var tags=document.getElementById('ex-absence-tags');if(tags)tags.innerHTML='';
   var ainp=document.getElementById('ex-absence-input');if(ainp)ainp.value='';
-  ['arret_maladie-from','arret_maladie-to','arret_maladie-result'].forEach(function(s){var el=document.getElementById('ex-'+s);if(el)el.value!==undefined?el.value='':el.textContent='';});
+  ['arret_maladie-from','arret_maladie-to','arret_maladie-result','mise_a_pied-from','mise_a_pied-to','mise_a_pied-result'].forEach(function(s){var el=document.getElementById('ex-'+s);if(el)el.value!==undefined?el.value='':el.textContent='';});
   document.getElementById('inc-note').value='';clearEmpSel();
   _incSanctionDoc=null;
+  _incMaladieDoc=null;
+  var mdn=document.getElementById('inc-maladie-doc-name');if(mdn){mdn.textContent='Aucun fichier';mdn.style.color='#999';}
+  var mdf=document.getElementById('inc-maladie-doc');if(mdf)mdf.value='';
   var sdw=document.getElementById('inc-sanction-doc-wrap');if(sdw)sdw.style.display='none';
   var sdn=document.getElementById('inc-sanction-doc-name');if(sdn){sdn.textContent='Aucun fichier';sdn.style.color='#999';}
   var sdf=document.getElementById('inc-sanction-doc');if(sdf)sdf.value='';
@@ -3198,8 +3323,27 @@ async function submitInc(){
   var dt=document.getElementById('inc-dt').value;
   if(!empId){toast("Choisissez un équipier",'error');return;}
   if(selProbs.size===0){toast("Sélectionnez un motif",'error');return;}
-  if(curUser&&curUser.role==='manager'){selSanction='verbal';}
-  if(!selSanction){toast("Choisissez un type de sanction",'error');return;}
+  // Dates machine (ISO) pour le pont horaires/pointages (arrêt maladie + mise à pied + abandon)
+  ['arret_maladie','mise_a_pied'].forEach(function(pid){
+    var f=document.getElementById('ex-'+pid+'-from'), t=document.getElementById('ex-'+pid+'-to');
+    if(f){ extraData[pid+'_from']=f.value||extraData[pid+'_from']||''; }
+    if(t){ extraData[pid+'_to']=(t.value||extraData[pid+'_to']||extraData[pid+'_from']||''); }
+  });
+  var _abInp=document.querySelector('input[data-pid="abandon"]');
+  if(_abInp&&_abInp.value){ extraData.abandon_iso=_abInp.value.slice(0,10); extraData.abandon_hm=_abInp.value.slice(11,16); }
+  // Arrêt maladie : date de début + photo obligatoires
+  if(selProbs.has('arret_maladie')){
+    if(!extraData.arret_maladie_from){ toast("Indiquez la date de début de l'arrêt maladie",'error'); return; }
+    if(!_incMaladieDoc){ toast("Ajoutez la photo de l'arrêt maladie",'error'); return; }
+  }
+  // Mise à pied : date de début obligatoire
+  if(selProbs.has('mise_a_pied') && !extraData.mise_a_pied_from){
+    toast("Indiquez la date de début de la mise à pied",'error'); return;
+  }
+  // Tout incident est enregistré comme une observation orale.
+  // Les documents (observation écrite / avertissement / mise en demeure) se créent
+  // ensuite depuis la liste des incidents, par salarié.
+  selSanction='verbal';
   selSev={verbal:'2',ecrit:'2',avert:'3',mise:'4'}[selSanction]||'2';
   var emp=DB.employees.find(function(e){return e.id===empId;});
   var reporterName=pinProf?pinProf.title:curUser.name;
@@ -3257,6 +3401,22 @@ async function submitInc(){
           await sb.insert('bks_emp_docs',{id:'d'+Date.now(),emp_id:emp.id,categorie:'sanction',label:sLbl+' du '+new Date().toLocaleDateString('fr-FR'),link:link,name:_incSanctionDoc.name});
         }catch(docErr){console.error('Doc sanction échec',docErr);}
       }
+      // Photo de l'arrêt maladie -> Dropbox (dossier salarié) + fiche salarié
+      if(_incMaladieDoc&&_incMaladieDoc.data&&emp){
+        try{
+          var dbxReadyM=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
+          var linkM='';var dateStrM=new Date().toISOString().slice(0,10);
+          var extM=(_incMaladieDoc.name&&_incMaladieDoc.name.indexOf('.')>=0)?_incMaladieDoc.name.split('.').pop():'jpg';
+          if(dbxReadyM){
+            await dbxMigrerEquipe(emp);
+            var folderM=dbxEmpFolder(emp);
+            var blobM=_dataUrlToBlob(_incMaladieDoc.data);
+            linkM=await dbxUpload(folderM+'/Arret_maladie_'+dateStrM+'.'+extM,blobM);
+          }
+          await sb.insert('bks_emp_docs',{id:'dm'+Date.now(),emp_id:emp.id,categorie:'arret_maladie',label:'Arrêt maladie du '+new Date().toLocaleDateString('fr-FR'),link:linkM,name:_incMaladieDoc.name});
+        }catch(docErrM){console.error('Doc maladie échec',docErrM);}
+      }
+      _incMaladieDoc=null;
       _incSanctionDoc=null;
       // Notification : marquer cet incident comme déjà vu (pour ne pas re-notifier
       // le déclarant via la synchro), puis prévenir localement (toast + push système).
@@ -3291,24 +3451,106 @@ function renderHistory(){
   if(fd)incs=incs.filter(function(i){return i.datetime&&i.datetime.startsWith(fd);});
   if(!incs.length){list.innerHTML='<div class="empty"><div class="ei">📋</div><p>Aucun incident</p></div>';return;}
   var sLbls=['','🟢 Mineur','🟡 Modéré','🟠 Sérieux','🔴 Grave'];
-  list.innerHTML=incs.slice(0,80).map(function(i){
-    var emp=DB.employees.find(function(e){return e.id===i.empId;});
+  var canAvert=(r==='franchise'||r==='directeur');
+  // Rappel automatique du lundi : proposer le rapport hebdo (une fois par semaine)
+  if(canAvert){ try{
+    var _tj=new Date();
+    if(_tj.getDay()===1){
+      var _wk=_tj.getFullYear()+'-S'+Math.ceil(((_tj-new Date(_tj.getFullYear(),0,1))/86400000+_tj.getDay()+1)/7);
+      if(window.localStorage && localStorage.getItem('bkrh_rptLundi')!==_wk){
+        localStorage.setItem('bkrh_rptLundi',_wk);
+        setTimeout(function(){ try{ toast('📊 C\'est lundi — pensez au rapport hebdo des incidents (bouton en haut de la liste).',''); }catch(_){} },700);
+      }
+    }
+  }catch(_){} }
+  var barHtml=canAvert?'<div style="background:#1A1A1A;border:1px solid #333;border-radius:8px;padding:9px 12px;margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+    +'<button class="btn btn-gray btn-sm" style="background:#12233a;border-color:#2a4a6a;color:#8fc3f5;" onclick="rapportHebdoIncidents()">📊 Rapport hebdo des incidents</button>'
+    +'<span style="font-size:.8rem;color:#888;">Incidents regroupés par salarié — ouvrez un salarié pour créer un document.</span>'
+    +'</div>':'';
+  // ── Regroupement PAR SALARIÉ (menu déroulant par nom) ──
+  var groups={}; incs.forEach(function(i){ (groups[i.empId]=groups[i.empId]||[]).push(i); });
+  var empIds=Object.keys(groups).sort(function(a,b){
+    var ea=DB.employees.find(function(x){return x.id===a;}), eb=DB.employees.find(function(x){return x.id===b;});
+    return (((ea&&ea.name)||'Inconnu')).localeCompare(((eb&&eb.name)||'Inconnu'),'fr',{sensitivity:'base'});
+  });
+  var html=empIds.map(function(eid){
+    var emp=DB.employees.find(function(x){return x.id===eid;});
     var empName=emp?emp.name:'Inconnu';
     var restoLbl=emp&&RESTOS[emp.restoId]&&r==='franchise'?' ['+RESTOS[emp.restoId].label+']':'';
-    var tags=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});if(!p)return'';var xtra=i.extraData&&i.extraData[pid]?Array.isArray(i.extraData[pid])?' ('+i.extraData[pid].length+' jour'+(i.extraData[pid].length>1?'s':'')+')':' ('+i.extraData[pid]+')':'';return'<span class="tag">'+p.icon+' '+p.label+xtra+'</span>';}).join('');
-    var dt=i.datetime?new Date(i.datetime).toLocaleString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
-    var sanc=SANCTIONS[i.sanctionType];
-    var sancTag=sanc?'<span style="border:1px solid '+sanc.color+';color:'+sanc.color+';padding:1px 7px;border-radius:10px;font-size:.7rem;margin-left:5px;">'+sanc.icon+' '+sanc.label+'</span>':'';
-    var sevLbl=sLbls[parseInt(i.severity)]||'';
-    var canCancel=curUser.role==='franchise'||curUser.role==='directeur';
-    return '<div class="inc-item" data-s="'+i.severity+'">'
-      +'<div class="inc-head"><span class="inc-who">👤 '+empName+restoLbl+sancTag+'</span><span class="inc-meta">'+dt+' · '+(i.reporterName||'?')+' · '+sevLbl+'</span></div>'
-      +'<div class="inc-tags">'+tags+'</div>'
-      +(i.note?'<div class="inc-note">💬 '+i.note+'</div>':'')
-      +(canCancel?'<div style="margin-top:8px;"><button onclick="annulerInc(\''+i.id+'\')" style="background:transparent;border:1px solid #663333;color:#cc5555;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:.75rem;">🚫 Annuler cet incident</button></div>':'')
-      +'</div>';
+    var mine=groups[eid].sort(function(a,b){return new Date(b.datetime||b.createdAt)-new Date(a.datetime||a.createdAt);});
+    var canCancel=(r==='franchise'||r==='directeur');
+    var itemsHtml=mine.map(function(i){
+      var tags=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});if(!p)return'';var xtra=i.extraData&&i.extraData[pid]?Array.isArray(i.extraData[pid])?' ('+i.extraData[pid].length+' jour'+(i.extraData[pid].length>1?'s':'')+')':' ('+i.extraData[pid]+')':'';return'<span class="tag">'+p.icon+' '+p.label+xtra+'</span>';}).join('');
+      var dt=i.datetime?new Date(i.datetime).toLocaleString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+      var sevLbl=sLbls[parseInt(i.severity)]||'';
+      return '<div class="inc-item" data-s="'+i.severity+'" style="margin-bottom:6px;">'
+        +'<div class="inc-head">'+(canAvert?'<input type="checkbox" class="hist-inc-chk" value="'+i.id+'" data-emp="'+eid+'" style="width:15px;height:15px;accent-color:#FF8732;margin-right:7px;vertical-align:middle;">':'')+'<span class="inc-meta">'+dt+' · '+(i.reporterName||'?')+' · '+sevLbl+'</span></div>'
+        +'<div class="inc-tags">'+tags+'</div>'
+        +(i.note?'<div class="inc-note">💬 '+i.note+'</div>':'')
+        +(canCancel?'<div style="margin-top:6px;"><button onclick="annulerInc(\''+i.id+'\')" style="background:transparent;border:1px solid #663333;color:#cc5555;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:.72rem;">🚫 Annuler</button></div>':'')
+        +'</div>';
+    }).join('');
+    var actions=canAvert?'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #262626;">'
+      +'<span style="font-size:.76rem;color:#888;">Cochez les incidents puis créez :</span>'
+      +'<button class="btn btn-gray btn-sm" style="border-color:#3a5a8a;color:#8fc3f5;" onclick="creerDocMulti(\''+eid+'\',\'ecrit\')">📝 Observation écrite</button>'
+      +'<button class="btn btn-gray btn-sm" style="border-color:#8a6a2a;color:#F5A623;" onclick="creerDocMulti(\''+eid+'\',\'avert\')">⚠️ Avertissement</button>'
+      +'<button class="btn btn-gray btn-sm" style="border-color:#8a2a2a;color:#e8623a;" onclick="creerDocMulti(\''+eid+'\',\'mise\')">🔴 Mise en demeure</button>'
+      +'</div>':'';
+    return '<details style="background:#141414;border:1px solid #2a2a2a;border-radius:8px;margin-bottom:8px;padding:8px 12px;">'
+      +'<summary style="cursor:pointer;font-weight:600;color:#eee;display:flex;justify-content:space-between;align-items:center;gap:8px;">'
+      +'<span class="inc-who">👤 '+empName+restoLbl+'</span>'
+      +'<span style="font-size:.76rem;color:#F5A623;font-weight:700;background:#2a2000;border:1px solid #5a4420;border-radius:12px;padding:1px 9px;">'+mine.length+' incident'+(mine.length>1?'s':'')+'</span>'
+      +'</summary>'
+      +'<div style="margin-top:10px;">'+itemsHtml+actions+'</div>'
+      +'</details>';
+  }).join('');
+  list.innerHTML=barHtml+html;
+}
+
+// Liste des incidents REGROUPÉS PAR SALARIÉ (menu déroulant), cases à cocher + boutons
+// de création de document. Utilisée dans le RAPPORT « Incidents ».
+function incidentsGroupedHtml(incs, r){
+  var sLbls=['','🟢 Mineur','🟡 Modéré','🟠 Sérieux','🔴 Grave'];
+  var canAvert=(r==='franchise'||r==='directeur');
+  if(!incs||!incs.length) return '<div style="color:#888;font-size:.85rem;padding:10px 4px;">Aucun incident sur cette période.</div>';
+  var groups={}; incs.forEach(function(i){ (groups[i.empId]=groups[i.empId]||[]).push(i); });
+  var empIds=Object.keys(groups).sort(function(a,b){
+    var ea=DB.employees.find(function(x){return x.id===a;}), eb=DB.employees.find(function(x){return x.id===b;});
+    return (((ea&&ea.name)||'Inconnu')).localeCompare(((eb&&eb.name)||'Inconnu'),'fr',{sensitivity:'base'});
+  });
+  return empIds.map(function(eid){
+    var emp=DB.employees.find(function(x){return x.id===eid;});
+    var empName=emp?emp.name:'Inconnu';
+    var restoLbl=emp&&RESTOS[emp.restoId]&&r==='franchise'?' ['+RESTOS[emp.restoId].label+']':'';
+    var mine=groups[eid].sort(function(a,b){return new Date(b.datetime||b.createdAt)-new Date(a.datetime||a.createdAt);});
+    var canCancel=(r==='franchise'||r==='directeur');
+    var itemsHtml=mine.map(function(i){
+      var tags=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});if(!p)return'';var xtra=i.extraData&&i.extraData[pid]?Array.isArray(i.extraData[pid])?' ('+i.extraData[pid].length+' jour'+(i.extraData[pid].length>1?'s':'')+')':' ('+i.extraData[pid]+')':'';return'<span class="tag">'+p.icon+' '+p.label+xtra+'</span>';}).join('');
+      var dt=i.datetime?new Date(i.datetime).toLocaleString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+      var sevLbl=sLbls[parseInt(i.severity)]||'';
+      return '<div class="inc-item" data-s="'+i.severity+'" style="margin-bottom:6px;">'
+        +'<div class="inc-head">'+(canAvert?'<input type="checkbox" class="hist-inc-chk" value="'+i.id+'" data-emp="'+eid+'" style="width:15px;height:15px;accent-color:#FF8732;margin-right:7px;vertical-align:middle;">':'')+'<span class="inc-meta">'+dt+' · '+(i.reporterName||'?')+' · '+sevLbl+'</span></div>'
+        +'<div class="inc-tags">'+tags+'</div>'
+        +(i.note?'<div class="inc-note">💬 '+i.note+'</div>':'')
+        +(canCancel?'<div style="margin-top:6px;"><button onclick="annulerInc(\''+i.id+'\')" style="background:transparent;border:1px solid #663333;color:#cc5555;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:.72rem;">🚫 Annuler</button></div>':'')
+        +'</div>';
+    }).join('');
+    var actions=canAvert?'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #262626;">'
+      +'<span style="font-size:.76rem;color:#888;">Cochez les incidents puis créez :</span>'
+      +'<button class="btn btn-gray btn-sm" style="border-color:#3a5a8a;color:#8fc3f5;" onclick="creerDocMulti(\''+eid+'\',\'ecrit\')">📝 Observation écrite</button>'
+      +'<button class="btn btn-gray btn-sm" style="border-color:#8a6a2a;color:#F5A623;" onclick="creerDocMulti(\''+eid+'\',\'avert\')">⚠️ Avertissement</button>'
+      +'<button class="btn btn-gray btn-sm" style="border-color:#8a2a2a;color:#e8623a;" onclick="creerDocMulti(\''+eid+'\',\'mise\')">🔴 Mise en demeure</button>'
+      +'</div>':'';
+    return '<details style="background:#141414;border:1px solid #2a2a2a;border-radius:8px;margin-bottom:8px;padding:8px 12px;">'
+      +'<summary style="cursor:pointer;font-weight:600;color:#eee;display:flex;justify-content:space-between;align-items:center;gap:8px;">'
+      +'<span class="inc-who">👤 '+empName+restoLbl+'</span>'
+      +'<span style="font-size:.76rem;color:#F5A623;font-weight:700;background:#2a2000;border:1px solid #5a4420;border-radius:12px;padding:1px 9px;">'+mine.length+' incident'+(mine.length>1?'s':'')+'</span>'
+      +'</summary>'
+      +'<div style="margin-top:10px;">'+itemsHtml+actions+'</div>'
+      +'</details>';
   }).join('');
 }
+window.incidentsGroupedHtml=incidentsGroupedHtml;
 
 // ── RAPPORTS ──────────────────────────────────────────────────────────────────
 function _roleRank(role){var o={directeur:0,manager:1,leader:2,equipier:3};return (role in o)?o[role]:9;}
@@ -3919,8 +4161,60 @@ function genReport(){
     h+='</tbody></table></div>';
     if(total>0){h+='<div style="font-size:.78rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px;">Incidents par type</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:8px;">';PROBS.forEach(function(p){var cnt=incs.filter(function(i){return i.problems.indexOf(p.id)>=0;}).length;if(!cnt)return;var pct=Math.round(cnt/total*100);h+='<div style="background:#1A1A1A;border-radius:8px;padding:10px;"><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span style="font-size:.8rem;">'+p.icon+' '+p.label+'</span><strong style="color:var(--orange);">'+cnt+'</strong></div><div class="score-bar"><div class="score-fill" style="width:'+pct+'%;background:var(--orange);"></div></div></div>';});h+='</div>';}
   }
+  // ── DOCUMENTS : liste par salarié pour créer observation écrite / avertissement / mise en demeure ──
+  if(r==='franchise'||r==='directeur'){
+    var _tIds=targets.map(function(x){return x.id;});
+    var _incsList=incs.filter(function(i){return _tIds.indexOf(i.empId)>=0;});
+    h+='<div style="font-size:.82rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin:18px 0 8px;font-weight:700;">📄 Créer un document — observation écrite / avertissement / mise en demeure</div>';
+    h+='<div style="margin-bottom:8px;"><button class="btn btn-gray btn-sm" style="background:#12233a;border-color:#2a4a6a;color:#8fc3f5;" onclick="rapportHebdoIncidents()">📊 Rapport hebdo des incidents (PDF)</button></div>';
+    h+='<div style="font-size:.8rem;color:#888;margin-bottom:10px;">Ouvrez un salarié (menu déroulant), cochez ses observations orales, puis créez le document : PDF téléchargé + envoi par mail proposé.</div>';
+    h+=incidentsGroupedHtml(_incsList, r);
+  }
   out.innerHTML=h;
 }
+
+// RAPPORT HEBDO DES INCIDENTS (7 derniers jours) en PDF, par restaurant et par salarié.
+// Accessible en un clic depuis la page Incidents (direction). Rappel automatique le lundi.
+function rapportHebdoIncidents(){
+  var JS=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF; if(!JS){ try{toast('PDF indisponible','error');}catch(_){} return; }
+  var r=curUser.role;
+  var incs=filterIncsByPeriod('week');
+  var restos;
+  if(r==='franchise'){ restos=(rptTab&&rptTab!=='all')?[rptTab]:Object.keys(RESTOS); }
+  else { restos=[curUser.restoId]; incs=incs.filter(function(i){var e=DB.employees.find(function(x){return x.id===i.empId;});return e&&e.restoId===curUser.restoId;}); }
+  var doc=new JS({unit:'mm',format:'a4'}); var M=15,W=210,y=18;
+  doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.text('RAPPORT HEBDOMADAIRE DES INCIDENTS',M,y); y+=7;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(120);
+  doc.text('7 derniers jours · généré le '+new Date().toLocaleString('fr-FR'),M,y); y+=8; doc.setTextColor(0);
+  var grand=0;
+  restos.forEach(function(rid){
+    var rIncs=incs.filter(function(i){var e=DB.employees.find(function(x){return x.id===i.empId;});return e&&e.restoId===rid;});
+    if(y>270){doc.addPage();y=18;}
+    doc.setFont('helvetica','bold'); doc.setFontSize(12);
+    doc.text((RESTOS[rid]?RESTOS[rid].label:rid)+'  —  '+rIncs.length+' incident'+(rIncs.length>1?'s':''),M,y); y+=6;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+    if(!rIncs.length){ doc.setTextColor(120); doc.text('Aucun incident cette semaine.',M+2,y); y+=7; doc.setTextColor(0); return; }
+    var byEmp={}; rIncs.forEach(function(i){ (byEmp[i.empId]=byEmp[i.empId]||[]).push(i); });
+    Object.keys(byEmp).forEach(function(eid){
+      var e=DB.employees.find(function(x){return x.id===eid;}); var nm=e?e.name:'Inconnu';
+      var list=byEmp[eid].sort(function(a,b){return new Date(a.datetime||a.createdAt)-new Date(b.datetime||b.createdAt);});
+      if(y>275){doc.addPage();y=18;}
+      doc.setFont('helvetica','bold'); doc.text('• '+nm+' ('+list.length+')',M+2,y); y+=5; doc.setFont('helvetica','normal');
+      list.forEach(function(i){
+        var dt=i.datetime?new Date(i.datetime).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}):'';
+        var mot=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});return p?p.label:pid;}).join(', ');
+        var sanc=SANCTIONS[i.sanctionType]; var st=sanc?sanc.label:'';
+        var wrapped=doc.splitTextToSize('   '+dt+' — '+mot+(st?(' ['+st+']'):'')+(i.note?(' · '+i.note):''),W-2*M-4);
+        wrapped.forEach(function(wl){ if(y>286){doc.addPage();y=18;} doc.text(wl,M+4,y); y+=4.6; });
+      });
+      y+=1.5;
+    });
+    grand+=rIncs.length; y+=3;
+  });
+  doc.save('Rapport_incidents_'+new Date().toISOString().slice(0,10)+'.pdf');
+  try{ toast('Rapport généré ('+grand+' incident'+(grand>1?'s':'')+'). PDF téléchargé.','success'); }catch(_){}
+}
+window.rapportHebdoIncidents=rapportHebdoIncidents;
 
 // ── ÉQUIPE ────────────────────────────────────────────────────────────────────
 function empCardHtml(e,ro,canView,canManage){
@@ -3943,6 +4237,7 @@ function empCardHtml(e,ro,canView,canManage){
     +(canManage&&arch?'<button class="btn btn-gray btn-sm" onclick="openEdit(\''+e.id+'\')">✏️</button>':'')
     +(canManage&&arch?'<button class="btn btn-gray btn-sm" onclick="openHistorique(\''+e.id+'\')">📋 Historique</button>':'')
     +(canManage&&arch?'<button class="btn btn-gray btn-sm" style="background:#1A3A1A;border-color:#3A7A3A;color:#4CAF50;" onclick="reactivateEmp(\''+e.id+'\')">♻️ Réactiver</button>':'')
+    +((curUser&&curUser.role==='franchise')?'<button class="btn-danger" title="Supprimer définitivement (erreur / doublon)" onclick="supprimerFicheDefinitif(\''+e.id+'\')">🗑️</button>':'')
     +'</div></div>';
 }
 function renderEquipe(){
@@ -4056,6 +4351,14 @@ function renderEquipe(){
   list.innerHTML=h||'<div class="empty"><div class="ei">👥</div><p>Aucun membre</p></div>';
 }
 
+// Clé de comparaison d'un nom, INSENSIBLE à l'ordre (Prénom Nom / Nom Prénom),
+// aux accents et à la casse : "Julia HEMLED" et "HEMLED JULIA" -> même clé.
+function _nomKey(full){
+  return String(full||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()
+    .replace(/[^a-z0-9\s]/g,' ').trim().split(/\s+/).filter(Boolean).sort().join(' ');
+}
+window._nomKey=_nomKey;
+
 async function addEmp(){
   var r=curUser.role;if(r!=='directeur'&&r!=='franchise')return;
   var name=document.getElementById('new-name').value.trim();
@@ -4065,6 +4368,25 @@ async function addEmp(){
   if(!name){toast('Entrez un nom','error');return;}
   if(!email||email.indexOf('@')<0){toast('Entrez un email valide','error');return;}
   var restoId=r==='franchise'?(document.getElementById('new-resto').value||'bk500'):curUser.restoId;
+  // ── Anti-doublon : même nom+prénom (ordre indifférent), actif ou archivé ──
+  var _key=_nomKey(name);
+  var _dupes=(DB.employees||[]).filter(function(x){return _nomKey(x.name)===_key;});
+  var _actif=_dupes.find(function(x){return !x.archived;});
+  var _arch=_dupes.find(function(x){return !!x.archived;});
+  if(_actif){
+    var _rl=RESTOS[_actif.restoId]?RESTOS[_actif.restoId].label:_actif.restoId;
+    toast('⛔ '+name+' existe déjà ('+_rl+') — impossible de créer un doublon.','error');
+    return;
+  }
+  if(_arch){
+    if(confirm(name+' a déjà été salarié(e) et sa fiche est archivée.\n\nOn ne recrée pas un doublon.\n\nOK = RESTAURER son ancienne fiche (avec tout son historique et ses documents)\nAnnuler = ne rien faire')){
+      document.getElementById('new-name').value='';
+      document.getElementById('new-email').value='';
+      document.getElementById('new-phone').value='';
+      reactivateEmp(_arch.id, true);
+    }
+    return;
+  }
   var id='u'+Date.now();
   try {
     await sb.insert('bks_employees',{id:id,name:name,role:role,resto_id:restoId,archived:false,email:email,phone:phone});
@@ -4077,9 +4399,9 @@ async function addEmp(){
   } catch(e){toast('Erreur','error');console.error(e);}
 }
 
-async function reactivateEmp(id){
+async function reactivateEmp(id, skipConfirm){
   var e=DB.employees.find(function(x){return x.id===id;});
-  if(!e||!confirm('Réactiver '+e.name+' ?'))return;
+  if(!e||(!skipConfirm && !confirm('Réactiver '+e.name+' ?')))return;
   try{
     await sb.patch('bks_employees','id=eq.'+id,{archived:false,exit_date:'',exit_motif:'',exit_note:''});
     // Ramener le dossier Dropbox des Archives vers son emplacement actif
@@ -4093,10 +4415,46 @@ async function reactivateEmp(id){
 }
 
 async function delEmp(id){
-  // Suppression de salarié désactivée : on archive uniquement (on garde tout l'historique et les documents).
-  toast('Les salariés ne se suppriment pas — utilisez l\'archivage (📤).','');
+  // Suppression normale désactivée : on archive (📤). La suppression DÉFINITIVE
+  // (erreur/doublon) passe par supprimerFicheDefinitif, réservée à l'administrateur.
+  toast('Les salariés s\'archivent (📤). Suppression définitive réservée à l\'administrateur (🗑️).','');
   return;
 }
+
+// SUPPRESSION DÉFINITIVE d'une fiche (erreur / doublon). Réservée à l'admin (franchise).
+// Efface la fiche + ses incidents + ses documents + ses courriers. IRRÉVERSIBLE.
+async function supprimerFicheDefinitif(id){
+  if(!curUser || curUser.role!=='franchise'){ toast('Suppression définitive réservée à l\'administrateur.','error'); return; }
+  var e=DB.employees.find(function(x){return x.id===id;}); if(!e) return;
+  var rl=RESTOS[e.restoId]?RESTOS[e.restoId].label:e.restoId;
+  if(!confirm('⚠️ SUPPRESSION DÉFINITIVE\n\nSupprimer complètement la fiche de '+e.name+' ('+rl+') ?\n\nCela efface DÉFINITIVEMENT sa fiche, ses incidents et ses courriers dans l\'application. IRRÉVERSIBLE.\n\nLes documents, eux, restent CONSERVÉS dans Dropbox (déplacés dans Archives).\n\nÀ n\'utiliser que pour une ERREUR ou un DOUBLON.')) return;
+  // Motif OBLIGATOIRE : on ne supprime définitivement que pour une vraie raison
+  var motif=prompt('Motif de la suppression définitive de '+e.name+' (OBLIGATOIRE) :\n\nEx. : Doublon · Erreur de saisie · Fiche créée par erreur\n\nSans motif, la suppression est annulée.','Doublon');
+  if(motif===null) return;
+  motif=(motif||'').trim();
+  if(!motif){ toast('Suppression annulée : un motif est obligatoire.','error'); return; }
+  if(!confirm('Dernière confirmation.\n\nSupprimer définitivement '+e.name+' ?\nMotif : '+motif+'\n\nIl n\'y a AUCUN retour en arrière.')) return;
+  try{
+    try{ console.warn('[Suppression fiche]', e.name, '· resto', rl, '· motif:', motif, '· par', (curUser&&curUser.name)||'admin'); }catch(_){}
+    var incs=(DB.incidents||[]).filter(function(i){return i.empId===id;});
+    for(var i=0;i<incs.length;i++){ try{ await sb.del('bks_incidents','id=eq.'+incs[i].id); }catch(_){} }
+    var lets=(DB.letters||[]).filter(function(l){return l.empId===id;});
+    for(var j=0;j<lets.length;j++){ try{ await sb.del('bks_letters','id=eq.'+lets[j].id); }catch(_){} }
+    // Documents : on NE supprime PAS les fichiers Dropbox — on déplace le dossier dans Archives
+    try{
+      if(typeof dbxEstPret==='function' && dbxEstPret()){
+        await dbxMoveFirst([dbxEmpFolder(e), dbxEmpFolderLegacy(e)], dbxEmpFolderArchive(e));
+      }
+    }catch(mvErr){ console.error('Dropbox archive (suppression)',mvErr); }
+    var docs=(DB.empDocs||[]).filter(function(d){return d.empId===id;});
+    for(var k=0;k<docs.length;k++){ try{ await sb.del('bks_emp_docs','id=eq.'+docs[k].id); }catch(_){} }
+    await sb.del('bks_employees','id=eq.'+id);
+    toast(e.name+' supprimé(e). Documents conservés dans Dropbox → Archives.','success');
+    try{ var mf=document.getElementById('modal-fiche'); if(mf) mf.classList.remove('open'); }catch(_){}
+    await loadAll(); renderEquipe(); try{ fillFilters&&fillFilters(); fillRptPersons&&fillRptPersons(); }catch(_){}
+  }catch(err){ toast('Erreur suppression','error'); console.error('supprimerFicheDefinitif',err); }
+}
+window.supprimerFicheDefinitif=supprimerFicheDefinitif;
 
 function openEdit(id){
   var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
@@ -4170,6 +4528,7 @@ var EMPDOC_CATS=[
   {id:'dpae',label:'DPAE',icon:'🧾'},
   {id:'avenant',label:'Avenant',icon:'📝'},
   {id:'sanction',label:'Sanction',icon:'⚠️'},
+  {id:'arret_maladie',label:'Arrêt maladie',icon:'🏥'},
   {id:'visite_medicale',label:'Avis médical',icon:'🩺'},
   {id:'autre',label:'Autre document',icon:'📎'}
 ];
@@ -4866,6 +5225,11 @@ var EMPF_SECTIONS=[
   {title:'Emploi & contrat',icon:'💼',fields:[
     ['_role','Rôle'],['poste','Poste'],['contrat_hebdo','Contrat hebdo (h)'],
     ['date_anciennete','Date d\'ancienneté','date'],
+    ['contrat_type','Type de contrat (apprentissage / cdi / cdd / saisonnier)'],
+    ['apprentissage_fin','Fin d\'apprentissage','date'],
+    ['contrat_apres','Heures après apprentissage (vide = pas de suite)'],
+    ['contrat_futur_hebdo','Nouveau contrat — heures (ex. saisonnier)'],
+    ['contrat_futur_date','Nouveau contrat — à partir du','date'],
   ]},
 ];
 
@@ -5635,6 +5999,80 @@ async function createLetterNew(inc){
   return lid;
 }
 
+// DOCUMENT REGROUPANT PLUSIEURS OBSERVATIONS ORALES (direction : franchise / directeur).
+// type = 'ecrit' (observation écrite) | 'avert' (avertissement) | 'mise' (mise en demeure).
+// Coche des incidents d'UN salarié -> un seul document, PDF téléchargé + envoi mail proposé.
+function _docBodyMulti(e, incs, type){
+  var restoLabel=RESTOS[e.restoId]?RESTOS[e.restoId].label:'Burger King';
+  var reporter=(curUser.role==='directeur')?('Directeur — '+(curUser.name||'')):(curUser.name||'Direction');
+  var titre={ecrit:'OBSERVATION ÉCRITE',avert:'AVERTISSEMENT ÉCRIT',mise:'MISE EN DEMEURE'}[type]||'OBSERVATION';
+  var intro={ecrit:'Nous avons constaté les faits suivants :',
+             avert:'Nous avons constaté à votre encontre les manquements suivants :',
+             mise:'Nous avons constaté les manquements graves suivants :'}[type];
+  var concl={ecrit:'Par la présente OBSERVATION ÉCRITE, nous vous demandons de corriger ces comportements sans délai.',
+             avert:'Ces faits, pris dans leur ensemble, constituent une violation de vos obligations. Par la présente, nous vous notifions un AVERTISSEMENT ÉCRIT.\n\nTout nouveau manquement pourra entraîner des sanctions plus graves.',
+             mise:'Par la présente MISE EN DEMEURE, nous vous enjoignons de cesser immédiatement tout manquement, sous peine de sanctions pouvant aller jusqu\'au licenciement.'}[type];
+  var body=restoLabel+'\nDate : '+new Date().toLocaleDateString('fr-FR')+'\n\nObjet : '+titre+'\n────────────────────────────────────\n\n';
+  body+='Madame, Monsieur '+e.name+',\n\n'+intro+'\n\n';
+  incs.forEach(function(i){
+    var dt=i.datetime?new Date(i.datetime).toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}):'';
+    var pList=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});var l=p?p.label:pid;if(i.extraData&&i.extraData[pid]){var xd=i.extraData[pid];l+=' ('+(Array.isArray(xd)?xd.join(', '):xd)+')';}return '     • '+l;}).join('\n');
+    body+='➤ Le '+dt+' :\n'+pList+(i.note?('\n        Précisions : '+i.note):'')+'\n\n';
+  });
+  body+=concl+'\n\n';
+  body+='────────────────────────────────────\nRédigé par : '+reporter+'\n\nSignature de l\'employé(e) : ___________________________\n☐ Pris connaissance   ☐ Refuse de signer';
+  return body;
+}
+async function creerDocMulti(empId, type){
+  if(!(curUser&&(curUser.role==='franchise'||curUser.role==='directeur'))){ toast('Réservé à la direction.','error'); return; }
+  var e=DB.employees.find(function(x){return x.id===empId;}); if(!e){ toast('Salarié introuvable.','error'); return; }
+  var boxes=Array.prototype.slice.call(document.querySelectorAll('.hist-inc-chk:checked')).filter(function(b){return b.getAttribute('data-emp')===empId;});
+  if(!boxes.length){ toast('Cochez au moins un incident de '+e.name+'.','error'); return; }
+  var ids=boxes.map(function(b){return b.value;});
+  var incs=DB.incidents.filter(function(i){return ids.indexOf(i.id)>=0;})
+    .sort(function(a,b){return new Date(a.datetime||a.createdAt)-new Date(b.datetime||b.createdAt);});
+  if(!incs.length) return;
+  var lib={ecrit:'observation écrite',avert:'avertissement',mise:'mise en demeure'}[type]||'document';
+  if(!confirm('Créer une '+lib+' pour '+e.name+' regroupant '+incs.length+' incident'+(incs.length>1?'s':'')+' ?')) return;
+  var body=_docBodyMulti(e, incs, type);
+  var reporter=(curUser.role==='directeur')?('Directeur — '+(curUser.name||'')):(curUser.name||'Direction');
+  var lid='letM_'+Date.now();
+  try{
+    await sb.insert('bks_letters',{id:lid,incident_id:(incs[0]?incs[0].id:''),emp_id:empId,emp_name:e.name,emp_email:e.email||'',sanction_type:type,type:type,status:'pending',sig_status:'pending',body:body,created_by:reporter,created_at:new Date().toISOString()});
+    await loadAll(); try{ updateVBadge(); }catch(_){}
+    var titre={ecrit:'OBSERVATION ÉCRITE',avert:'AVERTISSEMENT',mise:'MISE EN DEMEURE'}[type]||'DOCUMENT';
+    try{ avertPdf(e, body, titre, lib); }catch(pe){ console.error('avertPdf',pe); }
+    toast(lib.charAt(0).toUpperCase()+lib.slice(1)+' créée pour '+e.name+'. PDF téléchargé.','success');
+    if(e.email && confirm('Envoyer aussi ce document par mail à '+e.email+' ?\n(le mail inclut le lien de signature)')){
+      try{ sendLetterEmail(lid); }catch(_){}
+    }
+    try{ if(typeof _rptCurrent!=='undefined' && _rptCurrent==='incidents'){ genReport(); } else { renderHistory(); } }catch(_){}
+  }catch(err){ toast('Erreur création du document','error'); console.error('creerDocMulti',err); }
+}
+window.creerDocMulti=creerDocMulti;
+// Rétro-compat : ancien bouton avertissement -> nouveau flux
+async function creerAvertMulti(){
+  var b=document.querySelector('.hist-inc-chk:checked'); if(!b){ toast('Cochez au moins un incident.','error'); return; }
+  return creerDocMulti(b.getAttribute('data-emp'),'avert');
+}
+window.creerAvertMulti=creerAvertMulti;
+
+// Génère le PDF d'un document disciplinaire à partir de son texte.
+function avertPdf(emp, body, titre, fnLabel){
+  try{
+    var JS=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF; if(!JS){ return; }
+    var doc=new JS({unit:'mm',format:'a4'});
+    var M=18, W=210, y=22;
+    doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.text(String(titre||'DOCUMENT'), M, y); y+=10;
+    doc.setFont('helvetica','normal'); doc.setFontSize(10.5);
+    var lines=doc.splitTextToSize(body, W-2*M);
+    for(var i=0;i<lines.length;i++){ if(y>282){ doc.addPage(); y=20; } doc.text(lines[i], M, y); y+=5.6; }
+    var pre=(fnLabel?fnLabel.replace(/\s+/g,'_'):'Document');
+    doc.save(pre+'_'+dbxClean(emp.name)+'_'+new Date().toISOString().slice(0,10)+'.pdf');
+  }catch(e){ console.error('avertPdf',e); }
+}
+window.avertPdf=avertPdf;
+
 function updateVBadge(){
   var n=(DB.letters||[]).filter(function(l){return l.sigStatus==='pending'||l.status==='pending';}).length;
   var b=document.getElementById('vbadge');if(!b)return;
@@ -6085,6 +6523,50 @@ function collectAlertes(restoFiltre){
       alerts.push({prio:2,cat:'Mutuelle',icon:'❤️',col:'#F5A623',
         titre:e.name+' — mutuelle expire dans '+jours+' j',
         sub:'Avant le '+_frDate(fin)+' · '+resto,empId:e.id});
+    }
+  });
+
+  // ── 1ter) CONTRATS : fin d'apprentissage (1 mois / 1 semaine) + nouveau contrat programmé ──
+  emps.forEach(function(e){
+    var inf=e.infos||{}; var resto=rlabel(e.restoId);
+    if(inf.apprentissage_fin){
+      var da=new Date(inf.apprentissage_fin+'T12:00:00');
+      if(!isNaN(da.getTime())){
+        var ja=Math.round((da-new Date())/(24*3600*1000));
+        var suite=(inf.contrat_apres!=null&&inf.contrat_apres!=='');
+        if(suite){
+          if(ja>=0 && ja<=30){
+            alerts.push({prio:2,cat:'Contrats',icon:'🎓',col:'#F5A623',
+              titre:e.name+' — fin d\'apprentissage dans '+ja+' j',
+              sub:'Le '+_frDate(inf.apprentissage_fin)+' → repasse à '+inf.contrat_apres+'h · '+resto,empId:e.id});
+          }
+        } else {
+          if(ja<0){
+            alerts.push({prio:0,cat:'Contrats',icon:'🎓',col:'#cc5555',
+              titre:e.name+' — apprentissage terminé',
+              sub:'Depuis le '+_frDate(inf.apprentissage_fin)+' · plus d\'horaires possible · '+resto,empId:e.id});
+          } else if(ja<=7){
+            alerts.push({prio:1,cat:'Contrats',icon:'🎓',col:'#cc5555',
+              titre:e.name+' — fin d\'apprentissage dans '+ja+' j (pas de suite)',
+              sub:'Le '+_frDate(inf.apprentissage_fin)+' · prévoir l\'arrêt · '+resto,empId:e.id});
+          } else if(ja<=30){
+            alerts.push({prio:2,cat:'Contrats',icon:'🎓',col:'#F5A623',
+              titre:e.name+' — fin d\'apprentissage dans '+ja+' j (pas de suite)',
+              sub:'Le '+_frDate(inf.apprentissage_fin)+' · '+resto,empId:e.id});
+          }
+        }
+      }
+    }
+    if(inf.contrat_futur_date && inf.contrat_futur_hebdo){
+      var df=new Date(inf.contrat_futur_date+'T12:00:00');
+      if(!isNaN(df.getTime())){
+        var jf=Math.round((df-new Date())/(24*3600*1000));
+        if(jf>=0 && jf<=30){
+          alerts.push({prio:2,cat:'Contrats',icon:'📄',col:'#5BA3F5',
+            titre:e.name+' — nouveau contrat dans '+jf+' j',
+            sub:'À partir du '+_frDate(inf.contrat_futur_date)+' → '+inf.contrat_futur_hebdo+'h · '+resto,empId:e.id});
+        }
+      }
     }
   });
 
@@ -6710,7 +7192,10 @@ function ptgShowActions(){
   if(ht!=null) h+='<div class="rline" style="border-top:1px solid #2a2a2a;margin-top:4px;padding-top:6px;"><span>Total</span><b>'+(Math.round(ht*100)/100)+' h</b></div>';
   h+='</div>';
   // boutons
-  if(!rec.arrivee){
+  var _blk=(typeof ptgBlocageRaison==='function')?ptgBlocageRaison(e.id,dateISO):null;
+  if(!rec.arrivee && _blk){
+    h+='<div class="ptg-done" style="background:#3a1616;border:1px solid #6a2a2a;color:#e8623a;line-height:1.5;">⛔ Pointage impossible.<br><b>'+e.name+'</b>, vous êtes '+_blk.label+' aujourd\'hui.</div>';
+  } else if(!rec.arrivee){
     h+='<button class="ptg-bigbtn go" onclick="ptgAction(\'arrivee\')">🟢 Pointer mon ARRIVÉE — '+ptgNowHM()+'</button>';
   } else if(!rec.depart){
     if(estEncadrant){
@@ -6767,7 +7252,14 @@ function ptgAction(type){
   var e=_ptgSel; if(!e) return;
   var dateISO=ptgTodayISO(); var now=ptgNowHM();
   var ctx=ptgRec(e.id,dateISO); var rec=ctx.rec;
-  if(type==='arrivee'){ rec.arrivee=now; }
+  if(type==='arrivee'){
+    var _blk=(typeof ptgBlocageRaison==='function')?ptgBlocageRaison(e.id,dateISO):null;
+    if(_blk){
+      try{ toast('Pointage bloqué : '+e.name+' est '+_blk.label+'.','error'); }catch(_){}
+      return;
+    }
+    rec.arrivee=now;
+  }
   else if(type==='depart'){
     if(rec.pauses && rec.pauses.length && !rec.pauses[rec.pauses.length-1].fin) rec.pauses[rec.pauses.length-1].fin=now;
     rec.depart=now;
@@ -6871,17 +7363,32 @@ function ptgRenderSuivi(){
     var arr=rec&&rec.arrivee?rec.arrivee:'—';
     var dep=rec&&rec.depart?rec.depart:'—';
     var h=rec?ptgHeuresTravaillees(rec):null;
-    // état global de la ligne
+    // état global de la ligne (avec pont incidents : maladie / injustifiée / abandon)
+    var _incEtat=(typeof incEtatJour==='function')?incEtatJour(e.id,dateISO):null;
+    var _absJour=(typeof hrAbsenceDuJour==='function')?hrAbsenceDuJour(e.id,dateISO):null;
+    if(_absJour && (_absJour.statut==='attente'||_absJour.statut==='refuse')) _absJour=null;
     var etat='—', etatCoul='#666';
-    if(!rec||!rec.arrivee){ etat = prevu?'⚠️ Pas pointé':'—'; etatCoul=prevu?'#e8623a':'#666'; if(prevu) nAbsPointage++; }
+    if(!rec||!rec.arrivee){
+      if(_incEtat && _incEtat.type==='maladie'){ etat='🏥 Arrêt maladie'; etatCoul='#5aa9e6'; }
+      else if(_incEtat && _incEtat.type==='misepied'){ etat='🚷 Mise à pied'; etatCoul='#e8623a'; }
+      else if(_incEtat && _incEtat.type==='injustifiee'){ etat='🚫 Absence injustifiée'; etatCoul='#e8623a'; if(prevu) nAbsPointage++; }
+      else if(_incEtat && _incEtat.type==='abandon'){ etat='🚪 Abandon de poste'+(_incEtat.at?(' '+_incEtat.at):''); etatCoul='#e8623a'; }
+      else if(_absJour){ var _mi=(typeof _etatMotifInfo==='function')?_etatMotifInfo(_absJour.motif):null; etat=((_mi&&_mi.icon)||'🗓️')+' '+((_mi&&_mi.court)||'Absence'); etatCoul=(_mi&&_mi.col)||'#5aa9e6'; }
+      else { etat = prevu?'⚠️ Pas pointé':'—'; etatCoul=prevu?'#e8623a':'#666'; if(prevu) nAbsPointage++; }
+    }
     else {
       nPointes++;
-      var grave=(stA.code==='grave'||stD.code==='grave');
-      var leger=(stA.code==='leger'||stD.code==='leger');
-      if(grave){ etat='🔴 Écart important'; etatCoul='#e8623a'; nEcart++; }
-      else if(leger){ etat='🟠 Petit écart'; etatCoul='#e8a020'; nEcart++; }
-      else if(!rec.depart){ etat='🟢 Présent'; etatCoul='#3ecf8e'; nOk++; }
-      else { etat='✅ Conforme'; etatCoul='#3ecf8e'; nOk++; }
+      if(_incEtat && _incEtat.type==='abandon' && !rec.depart){
+        // A pointé son arrivée puis abandonné : on ne compte pas le départ manquant comme oubli
+        etat='🚪 Abandon de poste'+(_incEtat.at?(' à '+_incEtat.at):''); etatCoul='#e8a020'; nOk++;
+      } else {
+        var grave=(stA.code==='grave'||stD.code==='grave');
+        var leger=(stA.code==='leger'||stD.code==='leger');
+        if(grave){ etat='🔴 Écart important'; etatCoul='#e8623a'; nEcart++; }
+        else if(leger){ etat='🟠 Petit écart'; etatCoul='#e8a020'; nEcart++; }
+        else if(!rec.depart){ etat='🟢 Présent'; etatCoul='#3ecf8e'; nOk++; }
+        else { etat='✅ Conforme'; etatCoul='#3ecf8e'; nOk++; }
+      }
     }
     function _ec(ec,st){ return (ec!=null&&Math.abs(ec)>PTG_TOLERANCE)?(' <span style="font-size:.72rem;color:'+st.coul+';">('+(ec>0?'+':'−')+Math.abs(ec)+')</span>'):''; }
     var note=((rec&&rec.note)||'').replace(/"/g,'&quot;');
@@ -7358,7 +7865,25 @@ function openCand(id){
     return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #2A2A2A;opacity:.4;"><span>'+j[1]+'</span><span style="color:#666;">indisponible</span></div>';
   }).join('');
   var photoHtml=c.photo?'<img src="'+c.photo+'" onclick="candPhotoZoom(this.src)" title="Cliquer pour agrandir" style="width:64px;height:64px;border-radius:10px;object-fit:cover;border:2px solid var(--orange);cursor:zoom-in;">':'<div style="width:64px;height:64px;border-radius:10px;background:#1A1A1A;border:2px solid #444;display:flex;align-items:center;justify-content:center;font-size:1.6rem;color:#555;">👤</div>';
-  document.getElementById('cand-detail').innerHTML=
+  // ── Bannière interne : déjà salarié / ancien salarié / a déjà postulé ──
+  var _dupBanner='';
+  try{
+    var _ck=_nomKey((c.prenom||'')+' '+(c.nom||''));
+    var _emp=(DB.employees||[]).filter(function(x){return _nomKey(x.name)===_ck;});
+    var _autresCand=(DB.candidatures||[]).filter(function(x){return x.id!==c.id && _nomKey((x.prenom||'')+' '+(x.nom||''))===_ck;});
+    var _actifs=_emp.filter(function(x){return !x.archived;});
+    var _archs=_emp.filter(function(x){return !!x.archived;});
+    if(_actifs.length||_archs.length||_autresCand.length){
+      var msgs=[];
+      if(_actifs.length) msgs.push('déjà salarié(e) actuellement ('+(RESTOS[_actifs[0].restoId]?RESTOS[_actifs[0].restoId].label:_actifs[0].restoId)+')');
+      if(_archs.length) msgs.push('ancien(ne) salarié(e) — fiche archivée');
+      if(_autresCand.length) msgs.push('a déjà postulé ('+_autresCand.length+' autre'+(_autresCand.length>1?'s':'')+')');
+      var _restoreBtn=_archs.length?'<button class="btn btn-gray btn-sm" style="margin-top:8px;background:#1A3A1A;border-color:#3A7A3A;color:#4CAF50;" onclick="reactivateEmp(\''+_archs[0].id+'\')">♻️ Reprendre : restaurer sa fiche archivée</button>':'';
+      _dupBanner='<div style="background:#3a2a10;border:1px solid #7a5a1a;border-radius:8px;padding:10px 12px;margin-bottom:12px;color:#e8c468;font-size:.85rem;line-height:1.45;">'
+        +'⚠️ <b>Personne déjà connue :</b> '+msgs.join(' · ')+'.<br>Vérifiez son historique avant de recréer un dossier.'+_restoreBtn+'</div>';
+    }
+  }catch(_dbErr){}
+  document.getElementById('cand-detail').innerHTML= _dupBanner+
     '<div style="display:flex;gap:14px;align-items:center;margin-bottom:14px;">'+photoHtml
     +'<div style="flex:1;"><div style="font-weight:700;font-size:1.05rem;color:#fff;">'+c.prenom+' '+c.nom+'</div>'
     +'<div style="font-size:.8rem;color:#888;">'+(ageTxt||'Date de naissance non renseignée')+(c.etudiant?' · 🎓 Étudiant(e)':'')+(c.rqth==='oui'?' · ♿ RQTH':'')+'</div></div></div>'
@@ -7536,11 +8061,18 @@ function renderCandActions(c){
     var onVisitePage=document.getElementById('page-visite')&&document.getElementById('page-visite').classList.contains('active');
     h=onVisitePage?candVisiteActionsHtml(c):candEssaiActionsHtml(c);
   }else if(st==='refuse'){
+    var _estIA=(c.refusMotif==='Intégration annulée');
     h='<div style="background:#1A1A1A;border-radius:8px;padding:12px;">'
-      +'<div style="font-size:.85rem;color:#cc5555;margin-bottom:8px;">❌ Candidature refusée'+(c.refusMotif?' — '+c.refusMotif:'')+'</div>'
-      +'<button class="btn btn-gray btn-sm" onclick="mailRefus()">✉️ Renvoyer le mail de refus</button>'
+      +'<div style="font-size:.85rem;color:'+(_estIA?'#e8a020':'#cc5555')+';margin-bottom:8px;">'+(_estIA?'🚫 Intégration annulée — dossier conservé':('❌ Candidature refusée'+(c.refusMotif?' — '+c.refusMotif:'')))+'</div>'
+      +(_estIA?'<div style="font-size:.78rem;color:#999;margin-bottom:8px;">On garde tout son dossier et une trace : s\'il repostule, il apparaîtra comme « a déjà postulé ». Marqué « Intégration annulée » dans Dropbox.</div>':'<button class="btn btn-gray btn-sm" onclick="mailRefus()">✉️ Renvoyer le mail de refus</button>')
       +'<button class="btn btn-gray btn-sm" style="margin-left:6px;" onclick="candRemettreNouveau()">↩️ Remettre en Nouveau</button>'
       +'</div>';
+  }
+  // Intégration annulée : candidat retenu / en essai qui n'est pas venu ou n'a pas signé
+  if(st==='retenu'||st==='essai'){
+    h+='<div style="border-top:1px solid #2A2A2A;margin-top:14px;padding-top:12px;">'
+      +'<button class="btn btn-gray btn-sm" style="color:#e8a020;border-color:#5a4420;width:100%;" onclick="candAnnulerIntegration()">🚫 Intégration annulée (pas venu / contrat non signé)</button>'
+      +'<p style="font-size:.72rem;color:#666;margin-top:6px;text-align:center;">On conserve tout son dossier et une trace. Marqué « Intégration annulée » dans Dropbox.</p></div>';
   }
   // Bouton suppression — réservé à l'admin (utile pour retirer des tests)
   if(curUser&&curUser.role==='franchise'){
@@ -7564,6 +8096,33 @@ async function candSupprimer(){
 }
 
 function curCand(){return DB.candidatures.find(function(x){return x.id===_candId;});}
+
+// INTÉGRATION ANNULÉE : candidat retenu/en essai qui n'est pas venu ou n'a pas signé.
+// On conserve tout son dossier (données + documents) et on laisse une trace :
+//  - statut « refusé » avec motif « Intégration annulée » (repérable, et « a déjà postulé » s'il revient)
+//  - dossier Dropbox déplacé dans Recrutement/Integration_annulee + fichier repère.
+async function candAnnulerIntegration(){
+  var c=curCand(); if(!c) return;
+  if(!confirm('Marquer l\'intégration de '+c.prenom+' '+c.nom+' comme ANNULÉE ?\n\nOn conserve tout son dossier et ses documents, et on garde une trace (utile s\'il repostule).')) return;
+  _candUpdate({statut:'refuse',refus_motif:'Intégration annulée'},'Intégration annulée — dossier conservé.',function(){
+    (async function(){
+      try{
+        if(typeof dbxEstPret==='function' && dbxEstPret()){
+          var dest=dbxRecrutFolder(c.restoId,c.nom,c.prenom,'Integration_annulee');
+          var srcs=[
+            dbxRecrutFolder(c.restoId,c.nom,c.prenom,'Refuse'),
+            dbxRecrutFolder(c.restoId,c.nom,c.prenom,'Nouveau'),
+            dbxRecrutFolderLegacy(c.restoId,c.nom,c.prenom),
+            dbxEmpFolder({restoId:c.restoId,name:((c.prenom||'')+' '+(c.nom||'')).trim()})
+          ];
+          try{ await dbxMoveFirst(srcs, dest); }catch(_){}
+          try{ await dbxUpload(dest+'/INTEGRATION_ANNULEE.txt', new Blob(['Intégration annulée le '+new Date().toLocaleString('fr-FR')],{type:'text/plain'})); }catch(_){}
+        }
+      }catch(mvErr){ console.error('Dropbox intégration annulée',mvErr); }
+    })();
+  });
+}
+window.candAnnulerIntegration=candAnnulerIntegration;
 
 function candConvoquer(){
   var dv=document.getElementById('cand-ent-date').value;
@@ -8031,6 +8590,15 @@ async function candContratSigne(){
   var nom=((c.prenom||'')+' '+(c.nom||'')).trim();
   try{
     var deja=DB.employees.find(function(e){return e.fromCandId===c.id;});
+    if(!deja){
+      // Anti-doublon par nom (ordre indifférent) : ne pas recréer une fiche existante
+      var _k=_nomKey(nom);
+      var _match=(DB.employees||[]).filter(function(e){return _nomKey(e.name)===_k;});
+      var _actif=_match.find(function(e){return !e.archived;});
+      var _arch=_match.find(function(e){return !!e.archived;});
+      if(_actif){ deja=_actif; try{ await sb.patch('bks_employees','id=eq.'+_actif.id,{from_cand_id:c.id}); }catch(_){} }
+      else if(_arch){ deja=_arch; try{ await reactivateEmp(_arch.id, true); await sb.patch('bks_employees','id=eq.'+_arch.id,{from_cand_id:c.id}); }catch(_){} }
+    }
     if(!deja){
       var eid='u'+Date.now();
       var _infosEmb={};
@@ -9880,13 +10448,20 @@ function updateDateRange(pid){
   var from=document.getElementById('ex-'+pid+'-from');
   var to=document.getElementById('ex-'+pid+'-to');
   var res=document.getElementById('ex-'+pid+'-result');
-  if(!from||!to)return;
-  if(from.value&&to.value){
+  if(!from)return;
+  // Dates machine (ISO) mémorisées pour le pont incidents → horaires/pointages
+  extraData[pid+'_from']=from.value||'';
+  extraData[pid+'_to']=(to&&to.value)?to.value:(from.value||'');
+  if(from.value&&to&&to.value){
     var df=new Date(from.value+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
     var dt=new Date(to.value+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
     var days=Math.round((new Date(to.value)-new Date(from.value))/(1000*60*60*24))+1;
     if(res)res.textContent='📅 Du '+df+' au '+dt+' ('+days+' jour'+(days>1?'s':'')+')';
     extraData[pid]='du '+df+' au '+dt+' ('+days+' jour'+(days>1?'s':'')+')';
+  } else if(from.value){
+    var df2=new Date(from.value+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+    if(res)res.textContent='📅 À partir du '+df2+' (fin non renseignée)';
+    extraData[pid]='à partir du '+df2;
   } else {
     if(res)res.textContent='';
   }
@@ -11139,22 +11714,39 @@ function _dispoMin(hhmm){
 function hrContratHebdo(emp){
   // lit le contrat hebdo où qu'il soit stocké : infos.contrat_hebdo, contratHeures, ou contrat_heures
   if(!emp) return null;
-  var cand=[
-    emp.infos&&emp.infos.contrat_hebdo,
-    emp.infos&&emp.infos.contratHeures,
-    emp.infos&&emp.infos.contrat_heures,
-    emp.contratHeures,
-    emp.contrat_heures
-  ];
+  var inf=emp.infos||{};
+  var cand=[ inf.contrat_hebdo, inf.contratHeures, inf.contrat_heures, emp.contratHeures, emp.contrat_heures ];
+  var base=null;
   for(var i=0;i<cand.length;i++){
     if(cand[i]!=null&&cand[i]!==''){
       var h=parseFloat(cand[i]);
-      if(!isNaN(h)&&h>0) return h;
+      if(!isNaN(h)&&h>0){ base=h; break; }
     }
   }
-  return null;
+  // ── Bascules de contrat AUTOMATIQUES à la date d'effet (reflète tout le planning) ──
+  try{
+    var _t=new Date();
+    var today=_t.getFullYear()+'-'+String(_t.getMonth()+1).padStart(2,'0')+'-'+String(_t.getDate()).padStart(2,'0');
+    // 1) Nouveau contrat programmé (ex. saisonnier -> nouveau contrat au 1er septembre)
+    if(inf.contrat_futur_date && today>=inf.contrat_futur_date){
+      var hf=parseFloat(inf.contrat_futur_hebdo); if(!isNaN(hf)&&hf>0) return hf;
+    }
+    // 2) Fin d'apprentissage -> heures du contrat « après » (CDI / continuation, ex. 35h ou 24h)
+    if(inf.apprentissage_fin && today>=inf.apprentissage_fin && inf.contrat_apres!=null && inf.contrat_apres!==''){
+      var ha=parseFloat(inf.contrat_apres); if(!isNaN(ha)&&ha>0) return ha;
+    }
+  }catch(e){}
+  return base;
 }
 window.hrContratHebdo = hrContratHebdo;
+// Apprentissage TERMINÉ sans contrat « après » prévu -> on ne peut plus planifier ce salarié.
+function finContratBloque(emp, isoDate){
+  if(!emp||!emp.infos||!isoDate) return false;
+  var inf=emp.infos;
+  if(inf.apprentissage_fin && (inf.contrat_apres==null||inf.contrat_apres==='') && isoDate>=inf.apprentissage_fin) return true;
+  return false;
+}
+window.finContratBloque=finContratBloque;
 // Catégorie/rôle lisible d'un salarié (mêmes règles que l'accordéon Équipe) :
 // Directeur / Manager / Leader / Apprenti (équipier contrat >=35h) / Équipier (<35h)
 function hrRoleInfo(e){
@@ -13093,6 +13685,80 @@ function hrAbsenceDuJour(empId, isoDate){
   return null;
 }
 window.hrAbsenceDuJour=hrAbsenceDuJour;
+// ── PONT INCIDENTS → HORAIRES / POINTAGES ────────────────────────────────────
+// Un incident « arrêt maladie », « absence injustifiée » ou « abandon de poste »
+// agit directement sur le planning et les pointages. Source unique = DB.incidents
+// (donc l'annulation d'un incident retire automatiquement l'effet).
+function _incIso(d){
+  if(!d) return '';
+  if(typeof d==='string'){
+    if(/^\d{4}-\d{2}-\d{2}/.test(d)) return d.slice(0,10);
+    var m=d.match(/(\d{2})\/(\d{2})\/(\d{4})/); if(m) return m[3]+'-'+m[2]+'-'+m[1];
+  }
+  try{ var x=new Date(d); if(!isNaN(x)) return x.toISOString().slice(0,10); }catch(e){}
+  return '';
+}
+// Renvoie l'état « terrain » d'un salarié pour une date donnée d'après les incidents,
+// ou null. type = 'maladie' | 'injustifiee' | 'abandon'. La maladie est prioritaire.
+function incEtatJour(empId, isoDate){
+  if(!empId||!isoDate) return null;
+  var res=null;
+  (DB.incidents||[]).forEach(function(i){
+    if((i.empId||i.emp_id)!==empId) return;
+    if(i.annule||i.cancelled) return;
+    var pr=i.problems||[]; var ex=i.extraData||i.extra||{};
+    // Arrêt maladie : plage de dates (from/to ISO ; sinon on lit la chaîne "du .. au ..")
+    if(pr.indexOf('arret_maladie')>=0){
+      var f=_incIso(ex.arret_maladie_from), t=_incIso(ex.arret_maladie_to);
+      if(!f){ var s=String(ex.arret_maladie||''); var mm=s.match(/(\d{2}\/\d{2}\/\d{4})/g);
+              if(mm&&mm[0]) f=_incIso(mm[0]); if(mm&&mm[1]) t=_incIso(mm[1]); }
+      if(f){ if(!t) t=f; if(isoDate>=f && isoDate<=t){ res={type:'maladie',from:f,to:t,inc:i}; } }
+    }
+    // Mise à pied : plage de dates (bloque pointage + planning, non payée)
+    if(pr.indexOf('mise_a_pied')>=0){
+      var mf=_incIso(ex.mise_a_pied_from), mt=_incIso(ex.mise_a_pied_to);
+      if(!mf){ var s2=String(ex.mise_a_pied||''); var m2=s2.match(/(\d{2}\/\d{2}\/\d{4})/g);
+               if(m2&&m2[0]) mf=_incIso(m2[0]); if(m2&&m2[1]) mt=_incIso(m2[1]); }
+      if(mf){ if(!mt) mt=mf; if(isoDate>=mf && isoDate<=mt){ if(!res||res.type!=='maladie') res={type:'misepied',from:mf,to:mt,inc:i}; } }
+    }
+    // Absence injustifiée : liste de jours ISO
+    if(pr.indexOf('absence')>=0){
+      var days=ex.absence;
+      if(Array.isArray(days) && days.indexOf(isoDate)>=0){ if(!res||(res.type!=='maladie'&&res.type!=='misepied')) res={type:'injustifiee',inc:i}; }
+    }
+    // Abandon de poste : date + heure
+    if(pr.indexOf('abandon')>=0){
+      var ad=_incIso(ex.abandon_iso||ex.abandon);
+      if(ad===isoDate){ if(!res) res={type:'abandon',at:(ex.abandon_hm||''),inc:i}; }
+    }
+  });
+  return res;
+}
+window.incEtatJour=incEtatJour;
+// Raison pour laquelle un salarié NE PEUT PAS pointer un jour donné (ou null s'il le peut).
+// Couvre : congés/vacances (CP), congé sans solde, arrêt maladie, absence autorisée,
+// indispo (absences RH) + arrêt maladie / mise à pied / absence injustifiée (incidents).
+function ptgBlocageRaison(empId, isoDate){
+  if(!empId||!isoDate) return null;
+  // 1) Absences déclarées côté RH (État équipe) — congés/vacances inclus
+  try{
+    var a=(typeof hrAbsenceDuJour==='function')?hrAbsenceDuJour(empId,isoDate):null;
+    if(a && a.motif && a.statut!=='attente' && a.statut!=='refuse'){
+      var lab={cp:'en congés (vacances)',css:'en congé sans solde',maladie:'en arrêt maladie',absence:'en absence',indispo:'indisponible'};
+      var info=(typeof _etatMotifInfo==='function')?_etatMotifInfo(a.motif):null;
+      return {label:(lab[a.motif]||('en '+((info&&info.court)||'absence'))), motif:a.motif, info:info, src:'abs'};
+    }
+  }catch(e){}
+  // 2) Incidents : arrêt maladie / mise à pied / absence injustifiée
+  try{
+    var ie=(typeof incEtatJour==='function')?incEtatJour(empId,isoDate):null;
+    if(ie && ie.type==='maladie')     return {label:'en arrêt maladie',        motif:'maladie',    src:'inc'};
+    if(ie && ie.type==='misepied')    return {label:'en mise à pied',           motif:'misepied',   src:'inc'};
+    if(ie && ie.type==='injustifiee') return {label:'en absence injustifiée',   motif:'injustifiee',src:'inc'};
+  }catch(e){}
+  return null;
+}
+window.ptgBlocageRaison=ptgBlocageRaison;
 // Fenêtre de saisie des absences
 function hrOuvrirAbsences(){
   var resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'').toLowerCase();
@@ -15878,6 +16544,23 @@ function _hrEtatJour(empId, isoDate){
       return {motif:a.motif, info:info, compteHeures:compte};
     }
   }
+  // Pont : arrêt maladie / absence injustifiée saisis comme INCIDENT (hors HR_ABSENCES)
+  try{
+    var _ie=(typeof incEtatJour==='function')?incEtatJour(empId,isoDate):null;
+    if(_ie && (_ie.type==='maladie'||_ie.type==='injustifiee'||_ie.type==='misepied')){
+      var _inf=(_ie.type==='maladie')?_etatMotifInfo('maladie')
+              :(_ie.type==='misepied')?{label:'Mise à pied',court:'Mise à pied',icon:'🚷',col:'#a11'}
+              :{label:'Absence injustifiée',court:'Abs. injust.',icon:'🚫',col:'#cc3333'};
+      return {motif:_ie.type, info:_inf, compteHeures:false};
+    }
+  }catch(e){}
+  // Apprentissage terminé sans suite : marqué sur les horaires
+  try{
+    var _empF=(DB.employees||[]).find(function(x){return x.id===empId;});
+    if(_empF && typeof finContratBloque==='function' && finContratBloque(_empF,isoDate)){
+      return {motif:'finappr', info:{label:'Fin apprentissage',court:'Fin appr.',icon:'🎓',col:'#a8863a'}, compteHeures:false};
+    }
+  }catch(e){}
   return null;
 }
 // Heures (en minutes) qu'un jour de CP rapporte au contrat d'un salarié :
@@ -17273,6 +17956,22 @@ function hrTraitChoisir(empId){
   var row=ROWS_BY_DAY[c.day] && ROWS_BY_DAY[c.day][c.rowIdx];
   var b=row && row.bars && row.bars[c.barIdx]; if(!b) return;
   var emp=(DB.employees||[]).find(function(x){return x.id===empId;}); if(!emp) return;
+  // Blocage : salarié en arrêt maladie / absence injustifiée ce jour-là -> pas d'horaire
+  var _isoJour=(typeof DAY_DATES!=='undefined'&&DAY_DATES[c.day])?DAY_DATES[c.day]:null;
+  if(_isoJour && typeof incEtatJour==='function'){
+    var _etJ=incEtatJour(emp.id,_isoJour);
+    if(_etJ && (_etJ.type==='maladie'||_etJ.type==='injustifiee'||_etJ.type==='misepied')){
+      var _libJ=(_etJ.type==='maladie')?'en arrêt maladie':(_etJ.type==='misepied')?'en mise à pied':'en absence injustifiée';
+      try{ toast(emp.name+' est '+_libJ+' ce jour-là — impossible de le planifier.','error'); }
+      catch(_){ alert(emp.name+' est '+_libJ+' ce jour-là — impossible de le planifier.'); }
+      return;
+    }
+  }
+  if(_isoJour && typeof finContratBloque==='function' && finContratBloque(emp,_isoJour)){
+    try{ toast(emp.name+' : apprentissage terminé (pas de contrat après) — impossible de le planifier.','error'); }
+    catch(_){ alert(emp.name+' : apprentissage terminé — impossible de le planifier.'); }
+    return;
+  }
   var s=b.s, e=b.e||b.s+60;
   // si l'équipier est déjà sur un AUTRE trait qui chevauche ce créneau, on l'en retire
   (ROWS_BY_DAY[c.day]||[]).forEach(function(r){
