@@ -1330,6 +1330,7 @@ html,body{overflow-x:hidden;}
           <button class="rtab" onclick="setMailTab(this,'mise_en_demeure')">🔴 Mise en demeure</button>
           <button class="rtab" onclick="setMailTab(this,'mise_a_pied')">🚷 Mise à pied</button>
           <button class="rtab" onclick="setMailTab(this,'refus_signature')">✍️ Refus de signature</button>
+          <button class="rtab" onclick="setMailTab(this,'signature_ok')">✅ Signature confirmée</button>
         </div>
         <label class="flabel">Objet</label>
         <input type="text" id="mt-sujet" class="fi" style="margin-bottom:10px;">
@@ -2656,6 +2657,11 @@ function changerRestoActif(resto){
   try{ goPage(id); }catch(e){ console.warn('changerResto goPage',e); }
   // remettre le bouton de nav actif en surbrillance
   try{ majBadgeRestoActif(); }catch(e){}
+  // pastilles du menu : recalculées pour le NOUVEAU restaurant
+  try{ window.__alertResto = window.ACTIVE_RESTO; }catch(e){}
+  try{ updateRBadge(); }catch(e){}
+  try{ updateAlBadge(); }catch(e){}
+  try{ updateIncBadge(); }catch(e){}
 }
 window.changerRestoActif=changerRestoActif;
 
@@ -5860,12 +5866,7 @@ function renderEmpFicheHisto(id){
     }
     if(lets.length){
       h+='<div style="font-size:.78rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;font-weight:700;">📄 Courriers</div>';
-      h+=lets.map(function(l){
-        var st=SANCTIONS[l.sanctionType]||{label:l.type,icon:'📄',color:'#FF8732'};
-        var ss=l.sigStatus==='signed'?'✍️ Signé':l.sigStatus==='refused'?'❌ Refusé':'⏳ En attente';
-        var dt=new Date(l.createdAt).toLocaleDateString('fr-FR');
-        return '<div style="background:#1A1A1A;border-left:3px solid '+st.color+';border-radius:0 6px 6px 0;padding:9px 12px;margin-bottom:6px;"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:.82rem;font-weight:700;">'+st.icon+' '+st.label+'</span><span style="font-size:.72rem;color:#888;">'+dt+'</span></div><div style="font-size:.75rem;color:#888;margin-top:3px;">'+ss+'</div></div>';
-      }).join('');
+      h+=lets.map(_courrierCardHtml).join('');
     }
   }
   h+='</div>';
@@ -5984,17 +5985,7 @@ function openHistorique(id){
     // Courriers
     if(lets.length){
       h+='<div style="font-size:.78rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;font-weight:700;">📄 Courriers</div>';
-      h+=lets.map(function(l){
-        var st=SANCTIONS[l.sanctionType]||{label:l.type,icon:'📄',color:'#FF8732'};
-        var ss=l.sigStatus==='signed'?'✍️ Signé':l.sigStatus==='refused'?'❌ Refusé':'⏳ En attente';
-        var dt=new Date(l.createdAt).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
-        return '<div style="background:#1A1A1A;border-left:3px solid '+st.color+';border-radius:0 6px 6px 0;padding:9px 12px;margin-bottom:6px;">'
-          +'<div style="display:flex;justify-content:space-between;align-items:center;">'
-          +'<span style="font-size:.82rem;font-weight:700;">'+st.icon+' '+st.label+'</span>'
-          +'<span style="font-size:.72rem;color:#888;">'+dt+'</span></div>'
-          +'<div style="font-size:.75rem;color:#888;margin-top:3px;">'+ss+' · Rédigé par '+l.createdBy+'</div>'
-          +'</div>';
-      }).join('');
+      h+=lets.map(_courrierCardHtml).join('');
     }
   }
   document.getElementById('histo-content').innerHTML=h;
@@ -6087,14 +6078,19 @@ async function creerDocMulti(empId, type){
   var ids=boxes.map(function(b){return b.value;});
   var incs=DB.incidents.filter(function(i){return ids.indexOf(i.id)>=0;})
     .sort(function(a,b){return new Date(a.datetime||a.createdAt)-new Date(b.datetime||b.createdAt);});
-  if(!incs.length) return;
+  // Anti-doublon : on écarte les incidents DÉJÀ sanctionnés (impossible de resanctionner la même chose)
+  incs=incs.filter(function(i){ return !(i.sanctionType && i.sanctionType!=='verbal'); });
+  if(!incs.length){ toast('Ces incidents ont déjà été sanctionnés — pas de doublon possible.','error'); return; }
+  if(window._docEnCours){ return; } // verrou anti double-clic (évite 40 documents identiques)
   var lib={ecrit:'observation écrite',avert:'avertissement',mise:'mise en demeure'}[type]||'document';
   if(!confirm('Créer une '+lib+' pour '+e.name+' regroupant '+incs.length+' incident'+(incs.length>1?'s':'')+' ?')) return;
+  window._docEnCours=true;
   var body=_docBodyMulti(e, incs, type);
   var reporter=(curUser.role==='directeur')?('Directeur — '+(curUser.name||'')):(curUser.name||'Direction');
   var lid='letM_'+Date.now();
   try{
-    await sb.insert('bks_letters',{id:lid,incident_id:(incs[0]?incs[0].id:''),emp_id:empId,emp_name:e.name,emp_email:e.email||'',sanction_type:type,type:type,status:'pending',sig_status:'pending',body:body,created_by:reporter,created_at:new Date().toISOString()});
+    // incident_id contient TOUS les incidents couverts (séparés par des virgules) -> le courrier les relie
+    await sb.insert('bks_letters',{id:lid,incident_id:incs.map(function(i){return i.id;}).join(','),emp_id:empId,emp_name:e.name,emp_email:e.email||'',sanction_type:type,type:type,status:'pending',sig_status:'pending',body:body,created_by:reporter,created_at:new Date().toISOString()});
     // Anti double-sanction : les incidents utilisés sont marqués « sanctionnés » (ne peuvent plus servir à un autre document)
     for(var q=0;q<incs.length;q++){ try{ await sb.patch('bks_incidents','id=eq.'+incs[q].id,{sanction_type:type}); }catch(_){} }
     await loadAll(); try{ updateVBadge(); }catch(_){}
@@ -6109,6 +6105,7 @@ async function creerDocMulti(empId, type){
     }
     try{ if(typeof _rptCurrent!=='undefined' && _rptCurrent==='incidents'){ genReport(); } else { renderHistory(); } }catch(_){}
   }catch(err){ toast('Erreur création du document','error'); console.error('creerDocMulti',err); }
+  finally{ window._docEnCours=false; }
 }
 window.creerDocMulti=creerDocMulti;
 // Rétro-compat : ancien bouton avertissement -> nouveau flux
@@ -6331,8 +6328,12 @@ function downloadAffichePdf(){
   },350);
 }
 
+// Restaurant actif pour les pastilles du menu (null = tous les restaurants).
+function _badgeResto(){ return (window.ACTIVE_RESTO && window.ACTIVE_RESTO!=='ALL') ? (''+window.ACTIVE_RESTO).toLowerCase() : null; }
+window._badgeResto=_badgeResto;
 function updateRBadge(){
-  var cands=DB.candidatures||[];
+  var _br=_badgeResto();
+  var cands=(DB.candidatures||[]).filter(function(c){ return !_br || (''+(c.restoId||'')).toLowerCase()===_br; });
   var nNouveau=cands.filter(function(c){return c.statut==='nouveau';}).length;
   // candidats retenus avec tous les papiers déposés mais vidéos non encore validées
   var nPapiers=cands.filter(function(c){return c.statut==='retenu'&&c.docsSoumis&&docsComplets(c)&&!c.videosFaites;}).length;
@@ -6349,10 +6350,10 @@ function updateRBadge(){
   }
   // badge visites médicales : embauches urgentes/dépassées + périodiques bientôt/dépassées
   var vn=0;
-  (DB.candidatures||[]).filter(function(c){return (c.statut||'')==='essai';}).forEach(function(c){
+  cands.filter(function(c){return (c.statut||'')==='essai';}).forEach(function(c){
     var et=visiteInfo(c).etat;if(et==='rouge'||et==='depasse')vn++;
   });
-  (DB.employees||[]).filter(function(e){return !e.archived;}).forEach(function(e){
+  (DB.employees||[]).filter(function(e){return !e.archived && (!_br || (''+(e.restoId||'')).toLowerCase()===_br);}).forEach(function(e){
     var et=visiteEmpInfo(e).etat;if(et==='bientot'||et==='depasse')vn++;
   });
   var vb=document.getElementById('vbadge');if(vb){if(vn>0){vb.textContent=vn;vb.style.display='inline-flex';}else{vb.style.display='none';}}
@@ -6716,7 +6717,7 @@ function collectAlertes(restoFiltre){
   return alerts;
 }
 function updateAlBadge(){
-  var n=collectAlertes().length;
+  var n=collectAlertes(_badgeResto()).length;
   var b=document.getElementById('albadge');if(!b)return;
   b.textContent=n;b.style.display=n>0?'inline-flex':'none';
   // badge demandes en attente (État équipe) — toutes restos confondues
@@ -6727,28 +6728,48 @@ function updateAlBadge(){
     if(be){ be.textContent=na; be.style.display=na>0?'inline-flex':'none'; }
   }catch(e){}
 }
+function _alrtSlug(s){ return (''+s).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]/g,'').toLowerCase(); }
+function _alertesApply(v){
+  document.querySelectorAll('[id^="alrt-sec-"]').forEach(function(s){ s.style.display=(s.id==='alrt-sec-'+v)?'block':'none'; });
+  document.querySelectorAll('[id^="alrt-tile-"]').forEach(function(t){ t.style.boxShadow=(t.id==='alrt-tile-'+v)?'0 0 0 2px var(--orange)':''; });
+}
+function alertesTab(v){ if(window._alertesView===v) v=''; window._alertesView=v; _alertesApply(v); if(v){ try{ var s=document.getElementById('alrt-sec-'+v); if(s) s.scrollIntoView({behavior:'smooth',block:'nearest'}); }catch(_){} } }
+window._alertesApply=_alertesApply; window.alertesTab=alertesTab;
 function renderAlertes(){
   var box=document.getElementById('alertes-list');if(!box)return;
   var alerts=collectAlertes(window.__alertResto);
   if(!alerts.length){box.innerHTML='<div class="empty"><div class="ei">✅</div><p>Aucune alerte en cours</p></div>';return;}
   // grouper par catégorie
   var cats={};alerts.forEach(function(a){(cats[a.cat]=cats[a.cat]||[]).push(a);});
-  var h='';
-  Object.keys(cats).forEach(function(cat){
-    var arr=cats[cat];
-    h+='<details open style="margin-bottom:8px;border:1px solid #2A2A2A;border-radius:10px;overflow:hidden;">'
-      +'<summary style="cursor:pointer;padding:11px 14px;background:#1A1A1A;font-weight:700;font-size:.9rem;color:var(--orange);list-style:none;display:flex;justify-content:space-between;align-items:center;">'
-      +'<span>'+arr[0].icon+' '+cat+'</span><span style="background:var(--red);color:#fff;border-radius:12px;padding:1px 10px;font-size:.8rem;">'+arr.length+'</span></summary>'
-      +'<div style="padding:10px;">'+arr.map(function(a){
+  var catKeys=Object.keys(cats);
+  var accents={'Visite médicale':'#e87722','Mutuelle':'#c0392b','Contrats':'#8e44ad','Visite d\'embauche':'#16a085','Période d\'essai':'#2980b9','Dossiers incomplets':'#d35400','Incidents':'#c0392b'};
+  // ── Tuiles par catégorie (fermées au départ, on en ouvre une au clic) ──
+  var h='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px;">';
+  catKeys.forEach(function(cat){
+    var arr=cats[cat]; var slug=_alrtSlug(cat); var accent=accents[cat]||'#e87722';
+    h+='<div class="dash-tile" id="alrt-tile-'+slug+'" onclick="alertesTab(\''+slug+'\')" style="cursor:pointer;position:relative;">'
+      +'<div class="dt-accent" style="background:'+accent+';"></div>'
+      +'<div class="dt-em">'+arr[0].icon+'</div>'
+      +'<div><div class="dt-tt">'+cat+'</div><div class="dt-ds">'+arr.length+' alerte'+(arr.length>1?'s':'')+' · 👆 cliquer pour voir</div></div>'
+      +'<div style="position:absolute;top:10px;right:12px;color:#888;font-size:1.3rem;">›</div></div>';
+  });
+  h+='</div>';
+  // ── Sections (une par catégorie), cachées par défaut ──
+  catKeys.forEach(function(cat){
+    var arr=cats[cat]; var slug=_alrtSlug(cat);
+    h+='<div id="alrt-sec-'+slug+'" style="display:none;margin-bottom:10px;">'
+      +'<div style="font-size:.82rem;color:var(--orange);font-weight:700;margin-bottom:8px;">'+arr[0].icon+' '+cat+' ('+arr.length+')</div>'
+      +arr.map(function(a){
         var onclick=a.empId?'onclick="openEmpFiche(\''+a.empId+'\')"':(a.candId?'onclick="openCand(\''+a.candId+'\')"':'');
         var clickable=!!(a.empId||a.candId);
         return '<div class="emp-card" style="border-left:4px solid '+a.col+';cursor:'+(clickable?'pointer':'default')+';" '+onclick+'>'
           +'<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:.9rem;">'+a.titre+'</div>'
           +'<div style="font-size:.74rem;color:#888;margin-top:2px;">'+a.sub+'</div></div>'
           +(clickable?'<span style="color:'+a.col+';font-size:1.3rem;">›</span>':'')+'</div>';
-      }).join('')+'</div></details>';
+      }).join('')+'</div>';
   });
   box.innerHTML=h;
+  try{ _alertesApply(window._alertesView||''); }catch(_){}
 }
 // ══ GRILLE DES SALAIRES ═══════════════════════════════════════════════════════
 var SMIC_HORAIRE=12.31; // au 01/06/2026
@@ -8326,6 +8347,10 @@ var MAIL_DEFAULTS={
   refus_signature:{
     sujet:'Refus de signature — {resto}',
     corps:'Bonjour {nom},\n\nLe {date}, nous vous avons présenté en main propre, via notre application, le document suivant : {type_document}.\n\nVous avez refusé de le signer. Nous vous le transmettons donc par le présent courriel. Nous vous précisons que ce document est bien pris en compte et versé à votre dossier, malgré votre refus de signature.\n\n{document}\n\nCordialement,\nL\'équipe {resto}'
+  },
+  signature_ok:{
+    sujet:'Confirmation de signature — {resto}',
+    corps:'Bonjour {nom},\n\nNous vous confirmons que vous avez signé le {date}, via notre application, le document suivant : {type_document}.\n\nVous en trouverez une copie ci-dessous.\n\n{document}\n\nCordialement,\nL\'équipe {resto}'
   }
 };
 // Modèles de mails — PAR RESTAURANT si défini, sinon modèle commun, sinon défaut.
@@ -8350,7 +8375,8 @@ function getMailTpl(restoId){
     avertissement:pick('avertissement'),
     mise_en_demeure:pick('mise_en_demeure'),
     mise_a_pied:pick('mise_a_pied'),
-    refus_signature:pick('refus_signature')
+    refus_signature:pick('refus_signature'),
+    signature_ok:pick('signature_ok')
   };
 }
 function _restoLabel(c){return RESTOS[c.restoId]?RESTOS[c.restoId].label:'Burger King';}
@@ -10157,6 +10183,14 @@ async function doRefuse(lid){
   catch(e){alert('Erreur');}
 }
 
+// Rafraîchit l'affichage des courriers après une signature / un refus (met à jour le statut).
+function _refreshCourriers(){
+  try{ if(document.getElementById('empf-histo-content') && typeof _empfId!=='undefined' && _empfId){ renderEmpFicheHisto(_empfId); } }catch(_){}
+  try{ var mh=document.getElementById('modal-historique'); if(mh && mh.classList.contains('open') && typeof _histoEmpId!=='undefined' && _histoEmpId){ openHistorique(_histoEmpId); } }catch(_){}
+  try{ if(typeof _rptCurrent!=='undefined' && _rptCurrent==='incidents'){ genReport(); } }catch(_){}
+  try{ updateVBadge(); }catch(_){}
+}
+window._refreshCourriers=_refreshCourriers;
 // ── SIGNATURE SUR LA TABLETTE (remise en main propre) ────────────────────────
 // Le directeur présente le document au salarié sur la tablette : il signe, ou il
 // refuse. En cas de refus, on propose d'envoyer l'attestation de refus par mail.
@@ -10182,14 +10216,19 @@ function signerSurPlace(lid){
 window.signerSurPlace=signerSurPlace;
 async function signPlaceSign(lid){
   try{ await sb.patch('bks_letters','id=eq.'+lid,{sig_status:'signed',signed_at:new Date().toISOString()}); await loadAll(); }catch(e){}
+  try{ _refreshCourriers(); }catch(_){}
   var inner=document.getElementById('signplace-inner');
-  if(inner) inner.innerHTML='<div style="text-align:center;padding:24px;"><div style="font-size:2.6rem;">✅</div><div style="color:#4CAF50;font-weight:700;margin-top:8px;">Signature enregistrée. Merci !</div><button onclick="document.getElementById(\'signplace-ov\').remove()" style="margin-top:16px;background:#333;color:#ccc;border:1px solid #555;padding:9px 20px;border-radius:8px;cursor:pointer;">Fermer</button></div>';
+  if(inner) inner.innerHTML='<div style="text-align:center;padding:22px;"><div style="font-size:2.6rem;">✅</div><div style="color:#4CAF50;font-weight:700;margin-top:8px;">Signature enregistrée le '+new Date().toLocaleDateString('fr-FR')+'. Merci !</div>'
+    +'<div style="color:#aaa;font-size:.84rem;margin:12px 0;">Vous pouvez envoyer au salarié la confirmation de signature par mail.</div>'
+    +'<button onclick="sendSignedEmail(\''+lid+'\')" style="background:linear-gradient(135deg,#2E7D32,#1B5E20);color:#fff;border:none;padding:11px 22px;border-radius:8px;font-weight:700;cursor:pointer;">✉️ Envoyer la confirmation de signature</button>'
+    +'<div style="margin-top:12px;"><button onclick="document.getElementById(\'signplace-ov\').remove()" style="background:none;border:none;color:#888;cursor:pointer;">Fermer</button></div></div>';
   toast('Document signé ✔','success');
 }
 window.signPlaceSign=signPlaceSign;
 async function signPlaceRefuse(lid){
   if(!confirm('Le salarié refuse de signer ?\n\nLe refus sera daté à maintenant. Le document reste valable et versé au dossier.')) return;
   try{ await sb.patch('bks_letters','id=eq.'+lid,{sig_status:'refused',refused_at:new Date().toISOString()}); await loadAll(); }catch(e){}
+  try{ _refreshCourriers(); }catch(_){}
   var inner=document.getElementById('signplace-inner');
   if(inner) inner.innerHTML='<div style="text-align:center;padding:18px;"><div style="font-size:2.6rem;">❌</div><div style="color:#cc5555;font-weight:700;margin-top:8px;">Refus de signer enregistré le '+new Date().toLocaleDateString('fr-FR')+'.</div>'
     +'<div style="color:#aaa;font-size:.84rem;margin:12px 0;">Le document reste valable et versé au dossier. Vous pouvez envoyer au salarié l\'attestation de refus par mail (elle atteste qu\'il a été présenté et refusé).</div>'
@@ -10209,8 +10248,8 @@ async function sendRefusEmail(lid){
   var typeDoc={ecrit:'l\'observation écrite',avert:'l\'avertissement écrit',mise:'la mise en demeure',mise_a_pied:'la mise à pied'}[l.sanctionType]||'le document';
   var nomComplet=l.empName||(emp&&emp.name)||''; var prenom=(nomComplet.split(' ')[0]||'');
   var restoLbl=RESTOS[restoId]?RESTOS[restoId].label:'Burger King';
-  var dRefus=l.refusedAt?new Date(l.refusedAt).toLocaleDateString('fr-FR'):new Date().toLocaleDateString('fr-FR');
-  function fill(s){ return (s||'').replace(/{prenom}/g,prenom).replace(/{nom}/g,nomComplet).replace(/{resto}/g,restoLbl).replace(/{date}/g,dRefus).replace(/{type_document}/g,typeDoc).replace(/{document}/g,l.text||''); }
+  var dRefus=l.refusedAt?new Date(l.refusedAt).toLocaleString('fr-FR'):new Date().toLocaleString('fr-FR');
+  function fill(s){ return (s||'').replace(/{prenom}/g,prenom).replace(/{nom}/g,nomComplet).replace(/{resto}/g,restoLbl).replace(/{date}/g,dRefus).replace(/{type_document}/g,typeDoc).replace(/{document}/g,_docTexteAvecStatut(l)); }
   var subj=fill(t.sujet), body=fill(t.corps);
   var ms=DB.mailSettings||{}; var cc=(ms.ccRecipients||[]).concat((ms.recipients||[]).map(function(r){return r.email;})).filter(Boolean).join(',');
   var mode=(ms.mailMode)||'gmail';
@@ -10220,6 +10259,96 @@ async function sendRefusEmail(lid){
   toast('Attestation de refus prête (brouillon à valider avant envoi).','success');
 }
 window.sendRefusEmail=sendRefusEmail;
+// Mail de CONFIRMATION DE SIGNATURE (brouillon à valider). Direction/admin uniquement.
+async function sendSignedEmail(lid){
+  if(!(curUser&&(curUser.role==='franchise'||curUser.role==='directeur'))){ toast('Réservé à la direction.','error'); return; }
+  var l=DB.letters.find(function(x){return x.id===lid;}); if(!l){ toast('Document introuvable','error'); return; }
+  if(!l.empEmail){ toast('Ce salarié n\'a pas d\'email renseigné.','error'); return; }
+  var emp=DB.employees.find(function(x){return x.id===l.empId;});
+  var restoId=emp?emp.restoId:'';
+  var tpl=getMailTpl(restoId);
+  var t=tpl.signature_ok||{sujet:'Confirmation de signature — {resto}',corps:'{document}'};
+  var typeDoc={ecrit:'l\'observation écrite',avert:'l\'avertissement écrit',mise:'la mise en demeure',mise_a_pied:'la mise à pied'}[l.sanctionType]||'le document';
+  var nomComplet=l.empName||(emp&&emp.name)||''; var prenom=(nomComplet.split(' ')[0]||'');
+  var restoLbl=RESTOS[restoId]?RESTOS[restoId].label:'Burger King';
+  var dSign=l.signedAt?new Date(l.signedAt).toLocaleString('fr-FR'):new Date().toLocaleString('fr-FR');
+  function fill(s){ return (s||'').replace(/{prenom}/g,prenom).replace(/{nom}/g,nomComplet).replace(/{resto}/g,restoLbl).replace(/{date}/g,dSign).replace(/{type_document}/g,typeDoc).replace(/{document}/g,_docTexteAvecStatut(l)); }
+  var subj=fill(t.sujet), body=fill(t.corps);
+  var ms=DB.mailSettings||{}; var cc=(ms.ccRecipients||[]).concat((ms.recipients||[]).map(function(r){return r.email;})).filter(Boolean).join(',');
+  var mode=(ms.mailMode)||'gmail';
+  if(mode==='gmail'){ window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
+  else { window.open('mailto:'+l.empEmail+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
+  toast('Confirmation de signature prête (brouillon à valider avant envoi).','success');
+}
+window.sendSignedEmail=sendSignedEmail;
+// Renvoie le texte du document avec la ligne de signature remplacée par le VRAI statut daté
+// (signé / refusé le JJ/MM/AAAA à HH:MM), pour l'inclure dans les mails.
+function _docTexteAvecStatut(l){
+  var txt=l.text||'';
+  var idx=txt.indexOf("Signature de l'employé");
+  if(idx<0) return txt;
+  var head=txt.slice(0,idx);
+  if(l.sigStatus==='signed'){
+    return head+'✍️ Document SIGNÉ le '+(l.signedAt?new Date(l.signedAt).toLocaleString('fr-FR'):new Date().toLocaleString('fr-FR'))+' (via l\'application).';
+  }
+  if(l.sigStatus==='refused'){
+    return head+'❌ Le salarié a REFUSÉ DE SIGNER le '+(l.refusedAt?new Date(l.refusedAt).toLocaleString('fr-FR'):new Date().toLocaleString('fr-FR'))+'. Le document reste valable et versé au dossier.';
+  }
+  return txt;
+}
+window._docTexteAvecStatut=_docTexteAvecStatut;
+// Carte d'un courrier : type + date + statut signature + INCIDENTS RELIÉS (dates) + actions.
+function _courrierCardHtml(l){
+  var st=SANCTIONS[l.sanctionType]||{label:l.type||'Document',icon:'📄',color:'#FF8732'};
+  var dt=new Date(l.createdAt).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  var ss=l.sigStatus==='signed'?('<span style="color:#4CAF50;font-weight:700;">✍️ Signé'+(l.signedAt?(' le '+new Date(l.signedAt).toLocaleString('fr-FR')):'')+'</span>')
+        :l.sigStatus==='refused'?('<span style="color:#cc5555;font-weight:700;">❌ A refusé de signer'+(l.refusedAt?(' le '+new Date(l.refusedAt).toLocaleString('fr-FR')):'')+'</span>')
+        :'<span style="color:#F5A623;">⏳ En attente de signature</span>';
+  var incIds=(''+(l.incidentId||'')).split(',').map(function(s){return s.trim();}).filter(Boolean);
+  var covered=incIds.map(function(iid){ return (DB.incidents||[]).find(function(x){return x.id===iid;}); }).filter(Boolean);
+  var incHtml='';
+  if(covered.length){
+    incHtml='<div style="margin-top:7px;padding-top:7px;border-top:1px dashed #333;"><div style="font-size:.72rem;color:#aaa;margin-bottom:3px;">📌 Motivé par '+covered.length+' incident'+(covered.length>1?'s':'')+' :</div>';
+    incHtml+=covered.map(function(i){
+      var idt=i.datetime?new Date(i.datetime).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+      var mot=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});return p?(p.icon+' '+p.label):pid;}).join(', ');
+      return '<div style="font-size:.74rem;color:#cfcfcf;padding-left:6px;">• '+idt+' — '+mot+'</div>';
+    }).join('')+'</div>';
+  }
+  var canMail=(curUser&&(curUser.role==='franchise'||curUser.role==='directeur'));
+  var btns='<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">'
+    +'<button class="btn btn-gray btn-sm" onclick="voirCourrier(\''+l.id+'\')">👁️ Voir le document</button>';
+  if(canMail){
+    if(l.sigStatus==='signed'){
+      btns+='<button class="btn btn-gray btn-sm" style="color:#4CAF50;border-color:#2e5e33;" onclick="sendSignedEmail(\''+l.id+'\')">✉️ Mail « a signé »</button>';
+    } else if(l.sigStatus==='refused'){
+      btns+='<button class="btn btn-gray btn-sm" style="color:#e8623a;border-color:#6a2a2a;" onclick="sendRefusEmail(\''+l.id+'\')">✉️ Mail « refus »</button>';
+    } else {
+      btns+='<button class="btn btn-gray btn-sm" onclick="signerSurPlace(\''+l.id+'\')">✍️ Faire signer</button>';
+      btns+='<button class="btn btn-gray btn-sm" onclick="sendLetterEmail(\''+l.id+'\')">✉️ Envoyer par mail</button>';
+    }
+  }
+  btns+='</div>';
+  return '<div style="background:#1A1A1A;border-left:3px solid '+st.color+';border-radius:0 6px 6px 0;padding:10px 12px;margin-bottom:8px;">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:.85rem;font-weight:700;">'+st.icon+' '+st.label+' — '+dt+'</span></div>'
+    +'<div style="font-size:.76rem;margin-top:3px;">'+ss+'</div>'
+    +incHtml+btns+'</div>';
+}
+window._courrierCardHtml=_courrierCardHtml;
+// Consultation en lecture seule d'un courrier (le texte complet : incidents, dates, etc.)
+function voirCourrier(lid){
+  var l=DB.letters.find(function(x){return x.id===lid;}); if(!l) return;
+  var st=SANCTIONS[l.sanctionType]||{label:'Document'};
+  var old=document.getElementById('voircourrier-ov'); if(old) old.remove();
+  var ov=document.createElement('div'); ov.id='voircourrier-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  ov.innerHTML='<div style="background:#1A1A1A;border:1px solid #444;border-radius:12px;max-width:640px;width:100%;max-height:92vh;overflow:auto;">'
+    +'<div style="background:linear-gradient(135deg,#C01E00,#8B1500);padding:12px 18px;text-align:center;border-radius:12px 12px 0 0;color:#F5A623;font-weight:700;font-family:\'Barlow Condensed\',sans-serif;letter-spacing:2px;text-transform:uppercase;">'+st.label+'</div>'
+    +'<div style="padding:18px;"><div style="background:#fafafa;color:#111;border-radius:8px;padding:22px;font-family:Georgia,serif;line-height:1.7;white-space:pre-wrap;font-size:.85rem;">'+l.text+'</div>'
+    +'<div style="text-align:center;margin-top:14px;"><button onclick="document.getElementById(\'voircourrier-ov\').remove()" style="background:#333;color:#ccc;border:1px solid #555;padding:9px 20px;border-radius:8px;cursor:pointer;">Fermer</button></div></div></div>';
+  document.body.appendChild(ov);
+}
+window.voirCourrier=voirCourrier;
 
 // ── PARAMÈTRES ────────────────────────────────────────────────────────────────
 function renderPinSettings(){
@@ -10726,6 +10855,9 @@ var _incSeen = null;   // Set des ids d'incidents déjà connus (null = pas enco
 function _incPerimetre(i){
   // limite au périmètre du directeur (son resto) ; franchise/RH voient tout
   if(curUser && curUser.role==='directeur' && i.restoId!==curUser.restoId) return false;
+  // pastille par RESTAURANT ACTIF (franchise : le resto choisi en haut)
+  var _br=(typeof _badgeResto==='function')?_badgeResto():null;
+  if(_br && (''+(i.restoId||'')).toLowerCase()!==_br) return false;
   return true;
 }
 function _incRecents(){
