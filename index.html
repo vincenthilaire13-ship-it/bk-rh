@@ -4441,11 +4441,17 @@ async function addEmp(){
     return;
   }
   if(_arch){
-    if(confirm(name+' a déjà été salarié(e) et sa fiche est archivée.\n\nOn ne recrée pas un doublon.\n\nOK = RESTAURER son ancienne fiche (avec tout son historique et ses documents)\nAnnuler = ne rien faire')){
+    var _rl=RESTOS[_arch.restoId]?RESTOS[_arch.restoId].label:_arch.restoId;
+    var _mot=_arch.sortieMotif?_motifLbl(_arch.sortieMotif):(_arch.exitMotif||'');
+    var _dso=_arch.sortieDate||_arch.exitDate||'';
+    var _detTxt=(_mot?('\nMotif de départ : '+_mot):'')+(_dso?('\nParti(e) le : '+(function(){try{return new Date(_dso+'T12:00:00').toLocaleDateString('fr-FR');}catch(e){return _dso;}})()):'');
+    if(confirm('⛔ '+name+' a DÉJÀ ÉTÉ salarié(e) chez nous — sa fiche est ARCHIVÉE ('+_rl+').'+_detTxt+'\n\nOn ne crée pas de doublon.\n\nOK = RESTAURER son ancienne fiche (avec tout son historique et ses documents)\nAnnuler = ne rien faire')){
       document.getElementById('new-name').value='';
       document.getElementById('new-email').value='';
       document.getElementById('new-phone').value='';
       reactivateEmp(_arch.id, true);
+    } else {
+      toast(name+' est archivé(e) : création bloquée. Restaurez sa fiche pour le/la reprendre.','');
     }
     return;
   }
@@ -7973,9 +7979,21 @@ function openCand(id){
     var _archs=_emp.filter(function(x){return !!x.archived;});
     if(_actifs.length||_archs.length||_autresCand.length){
       var msgs=[];
-      if(_actifs.length) msgs.push('déjà salarié(e) actuellement ('+(RESTOS[_actifs[0].restoId]?RESTOS[_actifs[0].restoId].label:_actifs[0].restoId)+')');
-      if(_archs.length) msgs.push('ancien(ne) salarié(e) — fiche archivée');
-      if(_autresCand.length) msgs.push('a déjà postulé ('+_autresCand.length+' autre'+(_autresCand.length>1?'s':'')+')');
+      if(_actifs.length) msgs.push('⛔ déjà salarié(e) actuellement chez nous ('+(RESTOS[_actifs[0].restoId]?RESTOS[_actifs[0].restoId].label:_actifs[0].restoId)+')');
+      if(_archs.length){
+        var _a0=_archs[0];
+        var _mot=_a0.sortieMotif?_motifLbl(_a0.sortieMotif):(_a0.exitMotif||'');
+        var _dso=_a0.sortieDate||_a0.exitDate||'';
+        var _det=(_mot?(' — motif de départ : '+_mot):'')+(_dso?(' le '+(function(){try{return new Date(_dso+'T12:00:00').toLocaleDateString('fr-FR');}catch(e){return _dso;}})()):'');
+        msgs.push('🔁 a déjà travaillé chez nous (fiche archivée)'+_det);
+      }
+      if(_autresCand.length){
+        var _stLbl={nouveau:'nouvelle candidature',entretien:'entretien programmé',retenu:'retenu(e)',essai:'embauché(e) / en essai',refuse:'refusé(e)'};
+        var _der=_autresCand.slice().sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);})[0];
+        var _s=_der.statut||'nouveau';
+        var _slbl=(_s==='refuse'&&_der.refusMotif==='Intégration annulée')?'intégration annulée (pas venu / non signé)':(_s==='refuse'&&_der.refusMotif)?('refusé(e) — '+_der.refusMotif):(_stLbl[_s]||_s);
+        msgs.push('📄 a déjà postulé ('+_autresCand.length+' fois) — dernier statut : '+_slbl);
+      }
       var _restoreBtn=_archs.length?'<button class="btn btn-gray btn-sm" style="margin-top:8px;background:#1A3A1A;border-color:#3A7A3A;color:#4CAF50;" onclick="reactivateEmp(\''+_archs[0].id+'\')">♻️ Reprendre : restaurer sa fiche archivée</button>':'';
       _dupBanner='<div style="background:#3a2a10;border:1px solid #7a5a1a;border-radius:8px;padding:10px 12px;margin-bottom:12px;color:#e8c468;font-size:.85rem;line-height:1.45;">'
         +'⚠️ <b>Personne déjà connue :</b> '+msgs.join(' · ')+'.<br>Vérifiez son historique avant de recréer un dossier.'+_restoreBtn+'</div>';
