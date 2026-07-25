@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-25 · v342';
+  var EMBEDDED_VERSION = '2026-07-25 · v351';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -411,7 +411,6 @@ body.tv-mode #eye-viewas{display:none!important;}
 .eq-search{width:100%;box-sizing:border-box;background:#0e0e0e;border:1px solid #444;border-radius:12px;color:#fff;font-size:.95rem;padding:11px 14px;margin-bottom:14px;font-family:inherit;}
 .eq-fld{width:100%;box-sizing:border-box;background:#0e0e0e;border:1px solid #444;border-radius:12px;color:#fff;font-size:1rem;padding:13px 14px;margin-bottom:11px;font-family:inherit;text-align:center;}
 .eq-fld:focus{outline:none;border-color:#F5A623;}
-#eq-list{max-height:360px;overflow:auto;}
 .eq-pin{width:170px;margin:4px auto 0;display:block;background:#0e0e0e;border:1px solid #444;border-radius:12px;color:#fff;font-size:1.7rem;text-align:center;letter-spacing:10px;padding:12px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:800;}
 .eq-msg{font-size:.82rem;min-height:18px;margin-top:10px;}
 .eq-hint{font-size:.74rem;color:#777;margin-top:8px;line-height:1.4;}
@@ -464,6 +463,12 @@ body.tv-mode #eye-viewas{display:none!important;}
 html,body{overflow-x:hidden;}
 #page-parametres, #page-parametres *{max-width:100%;}
 #page-parametres .bk-tiles-grid{max-width:100%;}
+/* Paramètres : sur grand écran, la page remplit toute la largeur et les tuiles
+   s'étalent (grille auto-fit) comme Rapports / Alertes, au lieu d'être bridées. */
+@media(min-width:1100px){
+  #page-parametres.bk-tiles-mode{max-width:none!important;padding-left:24px!important;padding-right:24px!important;}
+  #page-parametres .bk-tiles-grid{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))!important;}
+}
 @media(max-width:600px){
   /* Paramètres : la page et les tuiles ne débordent jamais de l'écran */
   #page-parametres{max-width:100vw!important;overflow-x:hidden!important;padding:12px!important;box-sizing:border-box;}
@@ -636,13 +641,8 @@ html,body{overflow-x:hidden;}
       <option value="">— Ma vue (Admin/RH) —</option>
       <option value="directeur">👔 Directeur</option>
       <option value="manager">⭐ Manager</option>
-      <option value="leader">🔶 Leader</option>
-      <option value="equipier">🧑‍🍳 Équipier</option>
-    </select>
-    <select id="preview-resto" onchange="onPreviewChange()" style="background:#1A1A1A;color:#fff;border:1px solid #555;border-radius:6px;padding:7px 10px;font-size:.82rem;">
-      <option value="bk500">BK 500</option>
-      <option value="bk509">BK 509</option>
-      <option value="bk526">BK 526</option>
+      <option value="__ecran">📺 Vue écran télé</option>
+      <option value="__telephone">📱 Vue téléphone équipe</option>
     </select>
     <span id="preview-status" style="font-size:.76rem;color:#aaa;"></span>
     <button id="preview-back" onclick="stopPreview()" style="display:none;background:#F5A623;color:#1A1A1A;border:none;border-radius:6px;padding:6px 12px;font-size:.8rem;font-weight:700;cursor:pointer;">↩ Revenir à ma vue</button>
@@ -671,11 +671,10 @@ html,body{overflow-x:hidden;}
   <nav id="main-nav">
     <button onclick="goPage('dashboard',this)">📺 Écran télé</button>
     <button class="desktop-only" onclick="goPage('telephone',this)">📱 Téléphone équipe</button>
+    <button onclick="goPage('recrutement',this)">🎯 Recrutement <span id="rbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
     <button class="desktop-only" onclick="goPage('equipe',this)">👥 Équipe</button>
     <button onclick="goPage('etatequipe',this)">🧑‍🤝‍🧑 État équipe <span id="eebadge" style="background:var(--orange);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
     <button onclick="goPage('horaires',this)">🕐 Horaires</button>
-    <button onclick="goPage('docsplanning',this)">📄 Documents planning</button>
-    <button onclick="goPage('recrutement',this)">🎯 Recrutement <span id="rbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
     <button class="desktop-only" onclick="goPage('visite',this)">🩺 Visite médicale <span id="vbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
     <button onclick="goPage('incidents',this)">📋 Incidents <span id="incbadge" style="background:var(--red);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
     <button class="desktop-only" onclick="goPage('rapports',this)">📊 Rapports</button>
@@ -1013,13 +1012,7 @@ html,body{overflow-x:hidden;}
         <button class="rtab rf" onclick="setRestoFilter(this,'bk509')">BK 509</button>
         <button class="rtab rf" onclick="setRestoFilter(this,'bk526')">BK 526</button>
       </div>
-      <div id="rec-stat-tabs" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
-        <button class="rtab on" id="cst-nouveau" onclick="setCandFilter('nouveau')">🆕 Nouveau</button>
-        <button class="rtab" id="cst-entretien" onclick="setCandFilter('entretien')">📅 Entretien</button>
-        <button class="rtab" id="cst-retenu" onclick="setCandFilter('retenu')">✅ Retenu</button>
-        <button class="rtab" id="cst-essai" onclick="setCandFilter('essai')">⏳ Période d'essai</button>
-        <button class="rtab" id="cst-refuse" onclick="setCandFilter('refuse')">❌ Refusé</button>
-      </div>
+      <div id="rec-stat-tiles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:14px;"></div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
         <button class="btn btn-gray btn-sm" onclick="dbxRangerToutMaintenant()" title="Range d'un coup TOUS les dossiers Dropbox existants (candidats + salariés) dans le bon sous-dossier selon leur statut actuel. Rien n'est supprimé, les dossiers sont seulement déplacés.">🗂️ Ranger tout mon Dropbox</button>
         <span id="dbx-ranger-status" style="font-size:.76rem;color:#888;"></span>
@@ -1057,12 +1050,7 @@ html,body{overflow-x:hidden;}
         <button class="rtab rf" onclick="setVisiteResto(this,'bk509')">BK 509</button>
         <button class="rtab rf" onclick="setVisiteResto(this,'bk526')">BK 526</button>
       </div>
-      <div id="visite-statut-filter" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
-        <button class="rtab sf on" onclick="setVisiteStatut(this,'all')">Tous les statuts</button>
-        <button class="rtab sf" onclick="setVisiteStatut(this,'depasse')">🔴 Dépassé</button>
-        <button class="rtab sf" onclick="setVisiteStatut(this,'bientot')">🟠 Bientôt (&lt; 1 mois)</button>
-        <button class="rtab sf" onclick="setVisiteStatut(this,'ok')">🟢 Planifié</button>
-      </div>
+      <div id="visite-statut-tiles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:14px;"></div>
       <div id="visite-list"></div>
     </div>
   </div>
@@ -2760,8 +2748,28 @@ function toggleViewasBar(){
 window.toggleViewasBar=toggleViewasBar;
 function onPreviewChange(){
   var role = document.getElementById('preview-role').value;
-  var resto = document.getElementById('preview-resto').value;
+  // Le restaurant de l'aperçu = le restaurant ACTIF (choisi en haut), plus de sélecteur.
+  var resto = (window.ACTIVE_RESTO && window.ACTIVE_RESTO!=='ALL') ? window.ACTIVE_RESTO : ((curUser&&curUser.restoId)||'bk500');
   if(!role){ stopPreview(); return; }
+  // Vue TÉLÉPHONE ÉQUIPE : on ouvre le vrai portail salarié (écran de connexion),
+  // exactement comme sur son téléphone. On ne touche pas au rôle.
+  if(role==='__telephone'){
+    var pr0=document.getElementById('preview-role'); if(pr0) pr0.value='';
+    try{ _eqKiosk=false; equipierPortail(); }catch(e){ console.warn('preview téléphone',e); }
+    return;
+  }
+  // Vue ÉCRAN TÉLÉ : on affiche le tableau EN DIRECT du restaurant (comme la télé),
+  // via un aperçu en rôle « tv ».
+  if(role==='__ecran'){
+    if(!_realUser) _realUser = Object.assign({}, curUser);
+    var rid = resto || 'bk500';
+    curUser = { id:'preview', name:_realUser.name, role:'tv', restoId:rid };
+    try{ if(typeof DASH_RESTO!=='undefined') DASH_RESTO=rid; localStorage.setItem('dash_resto',rid); }catch(e){}
+    var st0=document.getElementById('preview-status'); if(st0) st0.textContent='— Vue Écran télé · '+((RESTOS[rid]&&RESTOS[rid].label)||rid)+' (comme la télé du restaurant)';
+    var bk0=document.getElementById('preview-back'); if(bk0) bk0.style.display='inline-block';
+    try{ goPage('dashboard'); }catch(e){ console.warn('preview écran',e); }
+    return;
+  }
   previewAs(role, resto);
 }
 function previewAs(role, resto){
@@ -2776,7 +2784,6 @@ function previewAs(role, resto){
   var rlabel = (RESTOS[simRestoId] && RESTOS[simRestoId].label) || simRestoId || '';
   var st=document.getElementById('preview-status'); if(st) st.textContent = '— Vue '+(roleLabels[role]||role)+(rlabel?(' · '+rlabel):'')+' (lecture seule de la mise en page)';
   var bk=document.getElementById('preview-back'); if(bk) bk.style.display='inline-block';
-  document.getElementById('preview-resto').style.display = (role==='franchise')?'none':'';
   // Revenir à une page visible pour ce rôle et rafraîchir
   var _pvStart = (role==='directeur') ? 'planning' : (role==='manager' ? 'incidents' : (role==='leader'||role==='equipier') ? 'noaccess' : 'equipe');
   try{ goPage(_pvStart); }catch(e){}
@@ -4087,14 +4094,17 @@ function buildRestoBlock(restoId,incs,targets){
   h+='</div>';return h;
 }
 /* ════════ RAPPORTS — TUILES (style dashboard) ════════ */
+// Ordre LOGIQUE : d'abord les ingrédients du planning (dispos, compétences),
+// puis les documents du planning dans l'ordre du process (à couvrir → planning fait
+// → transféré → pointage réel), puis le suivi RH (incidents, turnover).
 var RPT_TILES=[
-  {id:'incidents', em:'⚠️', tt:'Incidents',       ds:'Suivi disciplinaire', color:'#D62300'},
   {id:'dispos',    em:'📅', tt:'Disponibilités',  ds:'Créneaux par équipier', color:'#1565c0'},
   {id:'competences',em:'🎯',tt:'Compétences',     ds:'Qui sait faire quoi', color:'#2e7d32'},
   {id:'traits',    em:'📋', tt:'Traits de la semaine', ds:'Tous les créneaux à couvrir, jour par jour', color:'#8e24aa'},
   {id:'planhebdo', em:'🗓️', tt:'Planning de la semaine', ds:'Qui travaille quand (planning fait)', color:'#00897b'},
+  {id:'planpartage', em:'📤', tt:'Plannings transférés', ds:'Semaines transférées aux employés (imprimables)', color:'#0277bd'},
   {id:'suivipointage', em:'⏱️', tt:'Suivi pointage', ds:'Heures pointées par les équipiers', color:'#6d4aad'},
-  {id:'planpartage', em:'📅', tt:'Plannings transférés', ds:'Semaines transférées aux employés (imprimables)', color:'#0277bd'},
+  {id:'incidents', em:'⚠️', tt:'Incidents',       ds:'Suivi disciplinaire', color:'#D62300'},
   {id:'turnover',  em:'🔄', tt:'Entrées / Sorties', ds:'Turnover par mois et par an', color:'#c2185b'},
 ];
 var _rptCurrent=null;
@@ -4958,20 +4968,18 @@ function renderEquipe(){
     var catColors={directeur:'#e53935',manager:'#F5A623',leader:'#5b9bd5',apprenti:'#3ecf8e',equipier:'#16a085'};
     var visibles=CATS.map(function(cat){return {cat:cat,grp:emps.filter(cat.test)};}).filter(function(o){return o.grp.length;});
     if(visibles.length){
-      h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:6px 0 2px;">';
+      h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin:6px 0 2px;">';
       visibles.forEach(function(o){
         var cat=o.cat, grp=o.grp, open=!!eqOpenCats[cat.key], col=catColors[cat.key]||'#3ecf8e';
-        h+='<button onclick="eqToggleCat(\''+cat.key+'\')" title="'+cat.label+'" '
-          +'style="position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:1px;'
-          +'background:'+(open?col:'#161616')+';color:'+(open?'#111':'#eee')+';'
-          +'border:1px solid '+col+';border-radius:14px;padding:13px 16px 12px;cursor:pointer;text-align:left;'
-          +'box-shadow:'+(open?('0 6px 18px '+col+'55'):'none')+';transition:all .12s;overflow:hidden;">'
-          +'<span style="position:absolute;top:0;left:0;bottom:0;width:5px;background:'+col+';"></span>'
-          +'<span style="font-size:1.4rem;line-height:1.1;">'+cat.ico+'</span>'
-          +'<span style="font-size:1.75rem;font-weight:900;font-family:\'Barlow Condensed\',sans-serif;line-height:1.05;">'+grp.length+'</span>'
-          +'<span style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;opacity:'+(open?'.9':'.72')+';">'+cat.label+'</span>'
-          +'<span style="position:absolute;top:11px;right:13px;font-size:.85rem;opacity:.65;display:inline-block;'+(open?'transform:rotate(180deg);':'')+'">▾</span>'
-          +'</button>';
+        // Grosses tuiles façon Rapports / Alertes (accent + icône + libellé + pastille chiffrée)
+        h+='<div class="dash-tile" onclick="eqToggleCat(\''+cat.key+'\')" title="'+cat.label+'" '
+          +'style="cursor:pointer;position:relative;'+(open?('box-shadow:0 0 0 2px '+col+';border-color:'+col+';'):'')+'">'
+          +'<div class="dt-accent" style="background:'+col+';"></div>'
+          +'<div class="dt-em">'+cat.ico+'</div>'
+          +'<div><div class="dt-tt">'+cat.label+'</div>'
+            +'<div class="dt-ds" style="color:'+(open?'#F5A623':'#bbb')+';font-weight:'+(open?'700':'400')+';">'+(open?'👆 Ouvert · cliquer pour replier':'👆 Cliquer pour voir la liste')+'</div></div>'
+          +'<span style="position:absolute;top:10px;right:12px;background:'+col+';color:#fff;min-width:22px;height:22px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;padding:0 6px;box-shadow:0 1px 4px rgba(0,0,0,.4);">'+grp.length+'</span>'
+          +'</div>';
       });
       h+='</div>';
       // Membres des catégories ouvertes, affichés sous la rangée de tuiles.
@@ -7147,15 +7155,39 @@ var visiteStatutFilter='all';
 function setVisiteResto(btn,r){
   visiteRestoFilter=r;
   document.querySelectorAll('#visite-resto-filter .rf').forEach(function(b){b.classList.remove('on');});
-  btn.classList.add('on');
+  if(btn)btn.classList.add('on');
   renderVisiteList();
 }
 function setVisiteStatut(btn,s){
   visiteStatutFilter=s;
-  document.querySelectorAll('#visite-statut-filter .sf').forEach(function(b){b.classList.remove('on');});
-  btn.classList.add('on');
   renderVisiteList();
 }
+// Tuiles de statut visite médicale (façon Rapports / Alertes) avec pastille chiffrée.
+var VISITE_STATS=[
+  {k:'all',    ico:'📋', lb:'Tous les statuts',    ds:'Toute l\'équipe',      col:'#8a8a8a'},
+  {k:'depasse',ico:'🔴', lb:'Dépassé',             ds:'Visites dépassées',    col:'#cc5555'},
+  {k:'bientot',ico:'🟠', lb:'Bientôt (< 1 mois)',  ds:'À planifier vite',     col:'#F5A623'},
+  {k:'ok',     ico:'🟢', lb:'Planifié',            ds:'Visites planifiées',   col:'#4CAF50'}
+];
+function renderVisiteStatTiles(){
+  var box=document.getElementById('visite-statut-tiles'); if(!box) return;
+  var isDir=(curUser&&curUser.role==='directeur');
+  var emps=(DB.employees||[]).filter(function(e){return !e.archived;});
+  if(isDir)emps=emps.filter(function(e){return e.restoId===curUser.restoId;});
+  if(!isDir&&visiteRestoFilter!=='all')emps=emps.filter(function(e){return e.restoId===visiteRestoFilter;});
+  var cnt={all:emps.length,depasse:0,bientot:0,ok:0};
+  emps.forEach(function(e){ var et=visiteEmpInfo(e).etat; if(cnt[et]!=null)cnt[et]++; });
+  box.innerHTML=VISITE_STATS.map(function(s){
+    var n=cnt[s.k]; var active=(visiteStatutFilter===s.k);
+    return '<div class="dash-tile" onclick="setVisiteStatut(null,\''+s.k+'\')" style="cursor:pointer;position:relative;'+(active?('box-shadow:0 0 0 2px '+s.col+';border-color:'+s.col+';'):'')+'">'
+      +'<div class="dt-accent" style="background:'+s.col+';"></div>'
+      +'<div class="dt-em">'+s.ico+'</div>'
+      +'<div><div class="dt-tt">'+s.lb+'</div><div class="dt-ds" style="color:'+(active?'#F5A623':'#bbb')+';font-weight:'+(active?'700':'400')+';">'+s.ds+'</div></div>'
+      +'<span style="position:absolute;top:10px;right:12px;background:'+(n?s.col:'#444')+';color:#fff;min-width:22px;height:22px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;padding:0 6px;box-shadow:0 1px 4px rgba(0,0,0,.4);">'+n+'</span>'
+      +'</div>';
+  }).join('');
+}
+window.renderVisiteStatTiles=renderVisiteStatTiles;
 // ══ ALERTES (centralisées) ═══════════════════════════════════════════════════
 function collectAlertes(restoFiltre){
   var alerts=[];
@@ -8793,6 +8825,7 @@ window._archiveContrat=_archiveContrat;
 
 function renderVisiteList(){
   var list=document.getElementById('visite-list');if(!list)return;
+  try{ renderVisiteStatTiles(); }catch(_){}
   var isDir=(curUser&&curUser.role==='directeur');
   document.getElementById('visite-resto-filter').style.display=_restoVerrouille()?'none':'flex';
   // ── SECTION 1 : visite d'embauche (candidats en période d'essai) ──
@@ -8880,11 +8913,34 @@ function openApercuLive(){
   window.open(publicFormUrl(resto),'_blank');
 }
 
+var CAND_STATS=[
+  {k:'nouveau',  ico:'🆕', lb:'Nouveau',         ds:'Nouvelles candidatures',        col:'#5BA3F5'},
+  {k:'entretien',ico:'📅', lb:'Entretien',        ds:'Entretiens programmés',         col:'#F5A623'},
+  {k:'retenu',   ico:'✅', lb:'Retenu',           ds:'Candidats retenus',             col:'#4CAF50'},
+  {k:'essai',    ico:'⏳', lb:'Période d\'essai', ds:'Salariés en période d\'essai',  col:'#B57EDC'},
+  {k:'refuse',   ico:'❌', lb:'Refusé',           ds:'Candidatures refusées',         col:'#cc5555'}
+];
+// Tuiles de statut (façon Rapports / Alertes) avec pastille chiffrée.
+function renderCandStatTiles(){
+  var box=document.getElementById('rec-stat-tiles'); if(!box) return;
+  var cands=(DB.candidatures||[]).slice();
+  if(curUser&&curUser.role==='directeur')cands=cands.filter(function(c){return c.restoId===curUser.restoId;});
+  if(restoFilter!=='all')cands=cands.filter(function(c){return c.restoId===restoFilter;});
+  box.innerHTML=CAND_STATS.map(function(s){
+    var n=cands.filter(function(c){return (c.statut||'nouveau')===s.k;}).length;
+    var active=(candFilter===s.k);
+    return '<div class="dash-tile" onclick="setCandFilter(\''+s.k+'\')" style="cursor:pointer;position:relative;'+(active?('box-shadow:0 0 0 2px '+s.col+';border-color:'+s.col+';'):'')+'">'
+      +'<div class="dt-accent" style="background:'+s.col+';"></div>'
+      +'<div class="dt-em">'+s.ico+'</div>'
+      +'<div><div class="dt-tt">'+s.lb+'</div><div class="dt-ds" style="color:'+(active?'#F5A623':'#bbb')+';font-weight:'+(active?'700':'400')+';">'+s.ds+'</div></div>'
+      +'<span style="position:absolute;top:10px;right:12px;background:'+(n?s.col:'#444')+';color:#fff;min-width:22px;height:22px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;padding:0 6px;box-shadow:0 1px 4px rgba(0,0,0,.4);">'+n+'</span>'
+      +'</div>';
+  }).join('');
+}
+window.renderCandStatTiles=renderCandStatTiles;
 function setCandFilter(f){
   candFilter=f;
-  ['nouveau','entretien','retenu','essai','refuse'].forEach(function(s){
-    var b=document.getElementById('cst-'+s);if(b)b.classList.toggle('on',s===f);
-  });
+  try{ renderCandStatTiles(); }catch(_){}
   // filtre resto visible seulement si NON verrouillé sur un restaurant
   document.getElementById('rec-resto-filter').style.display=_restoVerrouille()?'none':'flex';
   // agenda visible seulement en Entretien
@@ -8898,6 +8954,7 @@ function setRestoFilter(btn,r){
   restoFilter=r;
   document.querySelectorAll('#rec-resto-filter .rf').forEach(function(b){b.classList.remove('on');});
   btn.classList.add('on');
+  try{ renderCandStatTiles(); }catch(_){}
   renderCandidatures();
 }
 
@@ -12087,19 +12144,20 @@ function dashShowBoard(){
 function dashRenderTiles(){
   var g=document.getElementById('dash-grid');if(!g)return;
   var cfg=getDashConfig();
+  var codeTile=(cfg.changecode!==false)?('<div class="dash-tile" onclick="dashOpenChangeCode()"><div class="dt-accent" style="background:#8e8e8e"></div><div class="dt-em">🔑</div><div><div class="dt-tt">Changer mon code</div><div class="dt-ds">Modifier mon code PIN</div></div></div>'):'';
   g.innerHTML=DASH_TILES.filter(function(t){ return cfg[t.id]!==false; }).map(function(t){
     var soon=!t.action;
     return '<div class="dash-tile'+(soon?' dt-soon':'')+'" '+(t.action?('onclick="'+t.action+'()"'):'')+'>'
       +'<div class="dt-accent" style="background:'+t.color+'"></div><div class="dt-em">'+t.em+'</div>'
       +'<div><div class="dt-tt">'+t.tt+'</div><div class="dt-ds">'+t.ds+'</div></div></div>';
-  }).join('');
+  }).join('')+codeTile;
 }
 // ══ ÉCRAN TÉLÉ — pièces configurables (même système que le Téléphone équipe) ══
 // L'Écran télé garde TOUTES ses pièces (Pointer inclus) ; la direction choisit
 // lesquelles s'affichent. Config partagée via app_config (clé 'bkrh_dashboard')
 // + miroir localStorage. Indépendante de la config du Téléphone équipe.
 var DASH_CONFIG=null;
-function dashDefaultConfig(){ var o={}; DASH_TILES.forEach(function(t){ o[t.id]=true; }); return o; }
+function dashDefaultConfig(){ var o={}; DASH_TILES.forEach(function(t){ o[t.id]=true; }); o.changecode=true; return o; }
 function getDashConfig(){
   if(DASH_CONFIG) return DASH_CONFIG;
   try{ var raw=localStorage.getItem('bkrh_dashboard'); if(raw){ DASH_CONFIG=Object.assign(dashDefaultConfig(),JSON.parse(raw)); return DASH_CONFIG; } }catch(e){}
@@ -12144,8 +12202,8 @@ function dashRenderConfig(){
   }catch(e){}
   var tg=document.getElementById('dash-cfg-toggles');
   if(tg){
-    tg.innerHTML=DASH_TILES.map(function(t){
-      var on=cfg[t.id]!==false;
+    tg.innerHTML=DASH_TILES.concat([CODE_TILE]).map(function(t){
+      var on=(t.id==='changecode')?(cfg.changecode!==false):(cfg[t.id]!==false);
       return '<div class="tel-tog'+(on?' on':'')+'" onclick="dashToggleTile(\''+t.id+'\')">'
         +'<div class="tt-em">'+t.em+'</div>'
         +'<div class="tt-txt"><div class="tt-tt">'+t.tt+'</div><div class="tt-ds">'+t.ds+'</div></div>'
@@ -12153,6 +12211,7 @@ function dashRenderConfig(){
     }).join('');
   }
   var actives=DASH_TILES.filter(function(t){ return cfg[t.id]!==false; });
+  var codeMini=(cfg.changecode!==false)?('<div class="tel-mini" onclick="dashOpenChangeCode()" style="cursor:pointer;"><div class="tm-accent" style="background:#8e8e8e"></div><div class="tm-em">🔑</div><div><div class="tm-tt">Changer mon code</div><div class="tm-ds">Modifier mon code PIN</div></div></div>'):'';
   var grid=document.getElementById('dash-cfg-grid');
   if(grid){
     // Tuiles CLIQUABLES (vraies actions) : vrai écran télé de test — on ouvre
@@ -12162,18 +12221,39 @@ function dashRenderConfig(){
       return '<div class="tel-mini'+(soon?' tm-soon':'')+'" '+(t.action?('onclick="'+t.action+'()"'):'')+' style="cursor:'+(t.action?'pointer':'default')+';">'
         +'<div class="tm-accent" style="background:'+t.color+'"></div><div class="tm-em">'+t.em+'</div>'
         +'<div><div class="tm-tt">'+t.tt+'</div><div class="tm-ds">'+t.ds+'</div></div></div>';
-    }).join('');
+    }).join('')+codeMini;
   }
-  var emp=document.getElementById('dash-cfg-empty'); if(emp) emp.style.display=actives.length?'none':'block';
+  var emp=document.getElementById('dash-cfg-empty'); if(emp) emp.style.display=(actives.length||cfg.changecode!==false)?'none':'block';
 }
+// Écran télé : « Changer mon code » → on choisit le salarié (comme Mes horaires),
+// puis on ouvre le formulaire ancien → nouveau code.
+function dashOpenChangeCode(){
+  var resto=DASH_RESTO;
+  if(!resto){ if(typeof toast==='function') toast('Choisis d\'abord un restaurant','error'); return; }
+  var lbl=(dashRestoList().find(function(x){return x.id===resto;})||{}).label||'';
+  var body=dashOpenPanel('Changer mon code — '+lbl);
+  _dashRenderTuiles(body, resto, 'dashChangeCodeOpen');
+}
+function dashChangeCodeOpen(empId){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  _eqSel=e; _eqResto=e.restoId||e.resto_id||null; _eqKiosk=false;
+  var ov=document.getElementById('equipier-portail');
+  if(!ov){ ov=document.createElement('div'); ov.id='equipier-portail'; document.body.appendChild(ov); }
+  ov.style.display='block';
+  try{ eqChangeCode(); }catch(err){ console.warn('dashChangeCodeOpen',err); }
+}
+window.dashOpenChangeCode=dashOpenChangeCode; window.dashChangeCodeOpen=dashChangeCodeOpen;
 window.dashOpenConfig=dashOpenConfig; window.dashCloseConfig=dashCloseConfig; window.dashToggleTile=dashToggleTile;
 // ══ TÉLÉPHONE ÉQUIPE — miroir de l'Écran télé, SANS pointage, pièces configurables ══
 // Reprend DASH_TILES en retirant la tuile « pointer » (on ne pointe jamais depuis la
 // maison). Chaque pièce peut être activée/désactivée ; la config est partagée via
 // app_config (clé 'bkrh_telephone') + miroir localStorage, comme la Société.
 var TEL_TILES = DASH_TILES.filter(function(t){ return t.id!=='pointer'; });
+// Pièce spéciale « Changer mon code » : présente sur le téléphone ET l'écran télé,
+// configurable (activable/masquable) comme les autres, listée en DERNIER.
+var CODE_TILE={id:'changecode', em:'🔑', tt:'Changer mon code', ds:'Modifier mon code PIN', color:'#8e8e8e'};
 var TEL_CONFIG = null;
-function telDefaultConfig(){ var o={}; TEL_TILES.forEach(function(t){ o[t.id]=true; }); return o; }
+function telDefaultConfig(){ var o={}; TEL_TILES.forEach(function(t){ o[t.id]=true; }); o.changecode=true; return o; }
 function getTelConfig(){
   if(TEL_CONFIG) return TEL_CONFIG;
   try{ var raw=localStorage.getItem('bkrh_telephone'); if(raw){ TEL_CONFIG=Object.assign(telDefaultConfig(),JSON.parse(raw)); return TEL_CONFIG; } }catch(e){}
@@ -12208,8 +12288,8 @@ function renderTelephone(){
   // Interrupteurs : choix des pièces à afficher
   var tg=document.getElementById('tel-toggles');
   if(tg){
-    tg.innerHTML=TEL_TILES.map(function(t){
-      var on=!!cfg[t.id];
+    tg.innerHTML=TEL_TILES.concat([CODE_TILE]).map(function(t){
+      var on=(t.id==='changecode')?(cfg.changecode!==false):!!cfg[t.id];
       return '<div class="tel-tog'+(on?' on':'')+'" onclick="telToggle(\''+t.id+'\')">'
         +'<div class="tt-em">'+t.em+'</div>'
         +'<div class="tt-txt"><div class="tt-tt">'+t.tt+'</div><div class="tt-ds">'+t.ds+'</div></div>'
@@ -12222,14 +12302,17 @@ function renderTelephone(){
   if(grid){
     // Tuiles CLIQUABLES pour tester (comme l'Écran télé) : on choisit un salarié
     // pour prévisualiser Mes horaires / Mes congés / Indisponibilités.
+    var codeTile='<div class="tel-mini" onclick="telPreviewChangeCode()" style="cursor:pointer;">'
+      +'<div class="tm-accent" style="background:#8e8e8e"></div><div class="tm-em">🔑</div>'
+      +'<div><div class="tm-tt">Changer mon code</div><div class="tm-ds">Modifier mon code PIN</div></div></div>';
     grid.innerHTML=actives.map(function(t){
       var soon=!t.action;
       return '<div class="tel-mini'+(soon?' tm-soon':'')+'" '+(t.action?('onclick="telPreviewTile(\''+t.id+'\')"'):'')+' style="cursor:'+(t.action?'pointer':'default')+';">'
         +'<div class="tm-accent" style="background:'+t.color+'"></div><div class="tm-em">'+t.em+'</div>'
         +'<div><div class="tm-tt">'+t.tt+'</div><div class="tm-ds">'+t.ds+'</div></div></div>';
-    }).join('');
+    }).join('')+((cfg.changecode!==false)?codeTile:'');   // « Changer mon code » selon la config
   }
-  var emp=document.getElementById('tel-phone-empty'); if(emp) emp.style.display=actives.length?'none':'block';
+  var emp=document.getElementById('tel-phone-empty'); if(emp) emp.style.display=(actives.length||cfg.changecode!==false)?'none':'block';
   telFillPreviewEmp();
 }
 // Sélecteur « Aperçu en tant que… » : on prévisualise l'écran d'UN salarié.
@@ -12253,7 +12336,21 @@ function telPreviewTile(kind){
   if(kind==='horaires'){ try{dashHorairesOpen(empId,true);}catch(e){console.warn(e);} var o=document.getElementById('dash-hor-ov'); if(o)o.style.zIndex='11800'; }
   else { _dashDemType=kind; try{dashDemOpen(empId,true);}catch(e){console.warn(e);} var o2=document.getElementById('dash-dem-ov'); if(o2)o2.style.zIndex='11800'; }
 }
-window.renderTelephone=renderTelephone; window.telToggle=telToggle; window.telPreviewTile=telPreviewTile; window.telFillPreviewEmp=telFillPreviewEmp;
+// Aperçu : « Changer mon code » ouvre le formulaire (ancien → nouveau) pour le
+// salarié sélectionné dans « Aperçu en tant que… ». Hors kiosque → fermeture = retour admin.
+function telPreviewChangeCode(){
+  var resto=telPreviewResto(); try{ DASH_RESTO=resto; }catch(_){}
+  var sel=document.getElementById('tel-preview-emp');
+  var empId=(sel&&sel.value)?sel.value:((_dashEmployesResto(resto)[0]||{}).id);
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
+  if(!e){ if(typeof toast==='function') toast('Aucun salarié pour ce restaurant','error'); return; }
+  _eqSel=e; _eqResto=e.restoId||e.resto_id||null; _eqKiosk=false;
+  var ov=document.getElementById('equipier-portail');
+  if(!ov){ ov=document.createElement('div'); ov.id='equipier-portail'; document.body.appendChild(ov); }
+  ov.style.display='block';
+  try{ eqChangeCode(); }catch(err){ console.warn('telPreviewChangeCode',err); }
+}
+window.renderTelephone=renderTelephone; window.telToggle=telToggle; window.telPreviewTile=telPreviewTile; window.telFillPreviewEmp=telFillPreviewEmp; window.telPreviewChangeCode=telPreviewChangeCode;
 // ══ CODE PIN ÉQUIPIER — accès au Téléphone équipe ═══════════════════════════════
 // Par défaut = date de naissance JJMM (ex. 09/01 → 0901), via la logique existante
 // ptgCodeAttendu(). Le salarié peut le changer ; le code choisi est stocké dans la
@@ -12348,36 +12445,59 @@ function eqHome(){
   var lbl=(RESTOS[_eqResto]&&RESTOS[_eqResto].label)||_eqResto||'';
   var cfg=(typeof getTelConfig==='function')?getTelConfig():{};
   var tiles=(typeof TEL_TILES!=='undefined'?TEL_TILES:[]).filter(function(t){return cfg[t.id]!==false;});
-  var grid=tiles.length?('<div class="eq-tiles">'+tiles.map(function(t){
+  var codeTile='<div class="tel-mini" onclick="eqChangeCode()" style="cursor:pointer;">'
+    +'<div class="tm-accent" style="background:#8e8e8e"></div><div class="tm-em">🔑</div>'
+    +'<div><div class="tm-tt">Changer mon code</div><div class="tm-ds">Modifier mon code PIN</div></div></div>';
+  var cfgTiles=tiles.map(function(t){
       var soon=!t.action;
       // Tuiles CLIQUABLES pour le salarié connecté : Mes horaires / Mes congés /
       // Indisponibilités s'ouvrent directement sur SES infos (comme l'Écran télé).
       return '<div class="tel-mini'+(soon?' tm-soon':'')+'" '+(t.action?('onclick="eqOpenTile(\''+t.id+'\')"'):'')+' style="cursor:'+(t.action?'pointer':'default')+';">'
         +'<div class="tm-accent" style="background:'+t.color+'"></div><div class="tm-em">'+t.em+'</div><div><div class="tm-tt">'+t.tt+'</div><div class="tm-ds">'+t.ds+'</div></div></div>';
-    }).join('')+'</div>'):'<div class="eq-empty">Aucune rubrique activée pour l\'instant.</div>';
+    }).join('');
+  var grid='<div class="eq-tiles">'+cfgTiles+((cfg.changecode!==false)?codeTile:'')+'</div>';   // « Changer mon code » selon la config
   var hh=new Date().getHours();
   ov.innerHTML=_eqShell('<div class="eq-home-top"><div class="eq-hello">'+(hh<12?'Bonjour':(hh<18?'Bon après-midi':'Bonsoir'))+' 👋</div><div class="eq-home-nm">'+e.name+' · '+lbl+'</div></div>'+grid
-    +'<div class="eq-actions"><button class="eq-lnk" onclick="eqChangeCode()">🔑 Changer mon code</button><button class="eq-lnk" onclick="equipierFermer()">Déconnexion</button></div>');
+    +'<div class="eq-actions"><button class="eq-lnk" onclick="equipierFermer()">Déconnexion</button></div>');
 }
 function eqChangeCode(){
   var e=_eqSel; if(!e)return; var ov=document.getElementById('equipier-portail'); if(!ov)return;
-  ov.innerHTML=_eqShell('<button class="eq-lnk" onclick="eqHome()">← Retour</button><div class="eq-h">🔑 Changer mon code</div><div class="eq-sub">Nouveau code à 4 chiffres</div>'
+  ov.innerHTML=_eqShell('<button class="eq-lnk" onclick="eqHome()">← Retour</button>'
+    +'<div class="eq-h">🔑 Changer mon code</div>'
+    +'<div class="eq-sub">Saisis ton ancien code, puis choisis ton nouveau code (2 fois par sécurité).</div>'
+    +'<input id="eq-old" class="eq-pin" type="tel" inputmode="numeric" maxlength="4" placeholder="Ancien code" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');">'
     +'<input id="eq-np1" class="eq-pin" type="tel" inputmode="numeric" maxlength="4" placeholder="Nouveau code" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');">'
-    +'<input id="eq-np2" class="eq-pin" type="tel" inputmode="numeric" maxlength="4" placeholder="Confirme le code" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');">'
-    +'<div id="eq-msg" class="eq-msg"></div><button class="eq-bigbtn" onclick="eqSaveCode()">Enregistrer mon code</button>');
+    +'<input id="eq-np2" class="eq-pin" type="tel" inputmode="numeric" maxlength="4" placeholder="Confirme le nouveau code" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');">'
+    +'<div id="eq-msg" class="eq-msg"></div>'
+    +'<button class="eq-bigbtn" onclick="eqSaveCode()">Enregistrer mon code</button>'
+    +'<button class="eq-lnk" style="margin-top:12px;" onclick="eqForgotCode()">J\'ai oublié mon code</button>');
 }
 async function eqSaveCode(){
   var e=_eqSel; if(!e)return;
+  var old=((document.getElementById('eq-old')||{}).value||'').trim();
   var a=((document.getElementById('eq-np1')||{}).value||'').trim();
   var b=((document.getElementById('eq-np2')||{}).value||'').trim();
   var msg=document.getElementById('eq-msg');
-  if(!/^\d{4}$/.test(a)){ if(msg){msg.style.color='#e8623a';msg.textContent='Le code doit faire 4 chiffres.';} return; }
-  if(a!==b){ if(msg){msg.style.color='#e8623a';msg.textContent='Les deux codes ne correspondent pas.';} return; }
+  function ko(t){ if(msg){msg.style.color='#e8623a';msg.textContent=t;} }
+  if(old!==empPin(e)){ ko('Ancien code incorrect.'); var o=document.getElementById('eq-old'); if(o){o.value='';o.focus();} return; }
+  if(!/^\d{4}$/.test(a)){ ko('Le nouveau code doit faire 4 chiffres.'); return; }
+  if(a!==b){ ko('Les deux nouveaux codes ne correspondent pas.'); return; }
   if(msg){msg.style.color='#F5A623';msg.textContent='⏳ Enregistrement…';}
   var ok=await empPinSave(e,a);
-  if(ok){ if(msg){msg.style.color='#3ecf8e';msg.textContent='✅ Code enregistré.';} setTimeout(eqHome,900); }
-  else { if(msg){msg.style.color='#e8623a';msg.textContent='❌ Erreur, réessaie.';} }
+  if(ok){ if(msg){msg.style.color='#3ecf8e';msg.textContent='✅ Nouveau code enregistré.';} setTimeout(eqHome,900); }
+  else { ko('Erreur, réessaie.'); }
 }
+// Code oublié : renvoie vers le directeur/manager qui réinitialise depuis la fiche
+// (bouton « Réinitialiser » → code remis à la date de naissance). Solution unique
+// et cohérente avec le reste de l'app.
+function eqForgotCode(){
+  var ov=document.getElementById('equipier-portail'); if(!ov)return;
+  ov.innerHTML=_eqShell('<button class="eq-lnk" onclick="eqChangeCode()">← Retour</button>'
+    +'<div class="eq-h">Code oublié ?</div>'
+    +'<div class="eq-sub" style="line-height:1.55;">Pas de souci. Rapproche-toi de ton <b>directeur</b> ou de ton <b>manager</b> : il peut remettre ton code à ta <b>date de naissance</b> (jour + mois, ex. 0209 pour le 2 septembre). Tu pourras ensuite en choisir un nouveau.</div>'
+    +'<button class="eq-bigbtn" onclick="eqHome()">Compris</button>');
+}
+window.eqForgotCode=eqForgotCode;
 // Ouvre une rubrique du téléphone pour le salarié DÉJÀ connecté (Mes horaires,
 // Mes congés, Indisponibilités) via les surcouches existantes, sur SON restaurant.
 // On remonte le z-index de la surcouche pour qu'elle passe au-dessus du portail.
