@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-25 · v360';
+  var EMBEDDED_VERSION = '2026-07-25 · v361';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1356,9 +1356,9 @@ html,body{overflow-x:hidden;}
     </div>
     <div class="card param-card" id="pc-societe" style="display:none;">
       <div class="sec-title">🏢 Société / employeur</div>
-      <p style="font-size:.83rem;color:#aaa;margin-bottom:12px;">Informations de l'entreprise employeur, utilisées pour <strong>remplir automatiquement les contrats</strong> (champs {societe}, {societe_details}, {urssaf}). <strong>Une société par restaurant</strong> : choisissez le restaurant, renseignez sa société, puis enregistrez.</p>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:12px;">Informations de l'entreprise employeur, utilisées pour <strong>remplir automatiquement les contrats</strong> (champs {societe}, {societe_details}, {urssaf}). <strong>Une société par restaurant</strong> : cette fiche correspond au restaurant sélectionné en haut (le bandeau). Pour éditer une autre société, changez de restaurant en haut.</p>
       <div style="display:flex;flex-direction:column;gap:10px;max-width:640px;">
-        <div><div class="flabel">Restaurant</div><select id="soc-resto" class="fi" style="max-width:320px;" onchange="renderSocieteForm()"></select></div>
+        <div id="soc-resto-label" style="font-size:.9rem;color:#F5A623;font-weight:700;margin-bottom:4px;"></div>
         <div><div class="flabel">Raison sociale (nom de la société)</div><input type="text" id="soc-nom" class="fi" placeholder="Ex : SARL BK RESTAURATION"></div>
         <div><div class="flabel">Coordonnées / détails (adresse, SIRET, forme, capital…)</div><textarea id="soc-details" class="fi" style="min-height:80px;" placeholder="Ex : SARL au capital de 10 000 € — 12 rue des Arènes, 34000 Montpellier — SIRET 123 456 789 00012 — Code APE 5610C"></textarea></div>
         <div><div class="flabel">N° URSSAF</div><input type="text" id="soc-urssaf" class="fi" placeholder="Ex : 337 1234567890"></div>
@@ -8590,20 +8590,24 @@ function _socRestoList(){
   var ids=Object.keys((typeof RESTOS!=='undefined'&&RESTOS)||{}).filter(function(r){return r&&r.indexOf('bk')===0 && r!=='bktest';});
   return ids.length?ids:['bk500','bk509','bk526'];
 }
+function _socRid(){
+  var list=_socRestoList();
+  var r=(typeof window!=='undefined')?window.ACTIVE_RESTO:null;
+  if(r && r!=='ALL' && list.indexOf(r)>=0) return r;
+  if(typeof curUser!=='undefined' && curUser && curUser.restoId && list.indexOf(curUser.restoId)>=0) return curUser.restoId;
+  return list[0];
+}
 function renderSocieteForm(){
-  var sel=document.getElementById('soc-resto');
-  if(sel && !sel.options.length){
-    sel.innerHTML=_socRestoList().map(function(r){var lb=(typeof RESTOS!=='undefined'&&RESTOS[r]&&RESTOS[r].label)||r;return '<option value="'+r+'">'+lb+'</option>';}).join('');
-    if(_socRestoSel) sel.value=_socRestoSel;
-  }
-  var rid=sel?sel.value:(_socRestoSel||_socRestoList()[0]); _socRestoSel=rid;
+  var rid=_socRid(); _socRestoSel=rid;
+  var lb=(typeof RESTOS!=='undefined'&&RESTOS[rid]&&RESTOS[rid].label)||rid;
+  var lbEl=document.getElementById('soc-resto-label'); if(lbEl) lbEl.textContent='🍔 Société de '+lb+' — restaurant sélectionné en haut';
   var s=getSociete(rid);
   var n=document.getElementById('soc-nom'); if(n)n.value=s.nom||'';
   var d=document.getElementById('soc-details'); if(d)d.value=s.details||'';
   var u=document.getElementById('soc-urssaf'); if(u)u.value=s.urssaf||'';
 }
 function saveSociete(){
-  var rid=(document.getElementById('soc-resto')||{}).value||_socRestoSel||_socRestoList()[0];
+  var rid=_socRid();
   var s={nom:((document.getElementById('soc-nom')||{}).value||'').trim(),
          details:((document.getElementById('soc-details')||{}).value||'').trim(),
          urssaf:((document.getElementById('soc-urssaf')||{}).value||'').trim()};
