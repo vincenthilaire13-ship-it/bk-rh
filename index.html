@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-25 · v351';
+  var EMBEDDED_VERSION = '2026-07-25 · v358';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1410,6 +1410,37 @@ html,body{overflow-x:hidden;}
         <button class="btn btn-red" onclick="saveSeuilOral()">💾 Enregistrer le seuil</button>
       </div>
     </div>
+    <div class="card param-card" id="pc-visite" style="display:none;">
+      <div class="sec-title">🩺 Visite médicale — délais et rappels</div>
+      <p style="font-size:.82rem;color:#aaa;margin-bottom:16px;">Réglez ici <strong>quand</strong> les visites médicales doivent avoir lieu et <strong>à partir de quand</strong> l'application affiche une alerte. Ces réglages s'appliquent partout (tuiles de suivi, fiches salariés, alertes).</p>
+
+      <div style="background:#141414;border-radius:10px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:.82rem;color:#F5A623;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">🆕 Visite d'embauche</div>
+        <p style="font-size:.78rem;color:#999;margin-bottom:12px;">Pour un nouveau salarié, la visite doit être passée dans un certain délai après son entrée.</p>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+          <div><label class="flabel">Délai maximum après l'entrée</label>
+            <div style="display:flex;align-items:center;gap:6px;"><input type="number" id="vc-emb-limite" class="fi" min="1" max="36" style="width:80px;" value="6"><span style="font-size:.8rem;color:#aaa;">mois</span></div></div>
+          <div><label class="flabel">Alerte « à planifier » 🟠</label>
+            <div style="display:flex;align-items:center;gap:6px;"><input type="number" id="vc-emb-alerte" class="fi" min="1" max="36" style="width:80px;" value="4"><span style="font-size:.8rem;color:#aaa;">mois avant l'échéance</span></div></div>
+          <div><label class="flabel">Alerte « urgent » 🔴</label>
+            <div style="display:flex;align-items:center;gap:6px;"><input type="number" id="vc-emb-urgent" class="fi" min="1" max="36" style="width:80px;" value="2"><span style="font-size:.8rem;color:#aaa;">mois avant l'échéance</span></div></div>
+        </div>
+      </div>
+
+      <div style="background:#141414;border-radius:10px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:.82rem;color:#4CAF50;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">🔁 Visite périodique</div>
+        <p style="font-size:.78rem;color:#999;margin-bottom:12px;">Pour un salarié déjà en poste, le rappel se base sur la date de la <strong>prochaine visite</strong>.</p>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+          <div><label class="flabel">Périodicité par défaut</label>
+            <div style="display:flex;align-items:center;gap:6px;"><input type="number" id="vc-per-defaut" class="fi" min="1" max="10" style="width:80px;" value="2"><span style="font-size:.8rem;color:#aaa;">ans</span></div>
+            <div style="font-size:.7rem;color:#777;margin-top:3px;">Utilisée pour le bouton « + défaut » lors de la validation.</div></div>
+          <div><label class="flabel">Alerte « bientôt » 🟠</label>
+            <div style="display:flex;align-items:center;gap:6px;"><input type="number" id="vc-per-alerte" class="fi" min="1" max="365" style="width:80px;" value="30"><span style="font-size:.8rem;color:#aaa;">jours avant</span></div></div>
+        </div>
+      </div>
+
+      <button class="btn btn-red" onclick="saveVisiteConfig()">💾 Enregistrer les réglages</button>
+    </div>
     <div class="card param-card" id="rec-apercu-card" style="display:none;">
       <div class="sec-title">👁️ Aperçu de la fiche de recrutement</div>
       <p style="font-size:.83rem;color:#aaa;margin-bottom:12px;">Voici exactement ce que le candidat voit et remplit quand il scanne le QR code. Cet aperçu est en lecture seule.</p>
@@ -1500,29 +1531,6 @@ html,body{overflow-x:hidden;}
         <textarea id="mt-corps" class="fi" style="min-height:200px;font-size:.85rem;"></textarea>
         <p style="font-size:.72rem;color:#666;margin-top:6px;">Variables : {prenom} {nom} {resto} {date} · Documents disciplinaires : <strong>{document}</strong> (texte du document), <strong>{lien_signature}</strong> (lien de signature en ligne) · Refus de signature : <strong>{type_document}</strong> (type du document refusé).</p>
         <button class="btn btn-red" style="margin-top:12px;" onclick="saveMailTplResto()">💾 Enregistrer les modèles de ce restaurant</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- DOCUMENTS PLANNING -->
-<div class="page" id="page-docsplanning">
-  <div class="card">
-    <div class="sec-title">📄 Documents planning</div>
-    <p style="font-size:.82rem;color:#aaa;margin-bottom:16px;">Les deux documents de la <strong>semaine actuellement affichée dans Horaires</strong>, prêts à imprimer ou exporter en PDF. Si rien n'apparaît, va d'abord dans <strong>Horaires</strong>, choisis la semaine et lance « Placer le mois / l'année ».</p>
-    <div id="docs-planning-status" style="font-size:.8rem;color:#888;margin-bottom:14px;"></div>
-    <div style="display:flex;gap:18px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:260px;background:#1A1A1A;border:1px solid #2A2A2A;border-radius:14px;padding:20px;display:flex;flex-direction:column;">
-        <div style="font-size:2.2rem;margin-bottom:8px;">📋</div>
-        <div style="font-weight:800;font-size:1.05rem;color:#fff;margin-bottom:4px;">Planning détaillé (traits)</div>
-        <div style="font-size:.82rem;color:#aaa;flex:1;margin-bottom:16px;">Le détail par poste et par créneau, jour par jour (CUISINE, FRITES, DRIVE, OPEN/CLOSE…), tel qu'affiché dans Horaires.</div>
-        <button onclick="docsPlanningPdf('traits')" style="background:#8e24aa;border:none;color:#fff;font-weight:700;border-radius:8px;padding:11px 16px;cursor:pointer;font-size:.9rem;">🖨️ Imprimer / PDF</button>
-      </div>
-      <div style="flex:1;min-width:260px;background:#1A1A1A;border:1px solid #2A2A2A;border-radius:14px;padding:20px;display:flex;flex-direction:column;">
-        <div style="font-size:2.2rem;margin-bottom:8px;">🗓️</div>
-        <div style="font-weight:800;font-size:1.05rem;color:#fff;margin-bottom:4px;">Emploi du temps (par salarié)</div>
-        <div style="font-size:.82rem;color:#aaa;flex:1;margin-bottom:16px;">Les horaires de chaque salarié sur la semaine, avec PLAN/CONTRAT et le suivi du mois — la vue condensée à afficher / distribuer.</div>
-        <button onclick="docsPlanningPdf('planhebdo')" style="background:#00897b;border:none;color:#fff;font-weight:700;border-radius:8px;padding:11px 16px;cursor:pointer;font-size:.9rem;">🖨️ Imprimer / PDF</button>
       </div>
     </div>
   </div>
@@ -1779,6 +1787,7 @@ html,body{overflow-x:hidden;}
     <input type="date" id="visite-proch-input" class="fi" style="margin-bottom:6px;">
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
       <span style="font-size:.72rem;color:#888;align-self:center;">Calcul rapide :</span>
+      <button type="button" class="btn btn-red btn-sm" id="visite-delai-defaut" style="padding:3px 9px;" onclick="setVisiteDelai(0)">+ défaut</button>
       <button type="button" class="btn btn-gray btn-sm" style="padding:3px 9px;" onclick="setVisiteDelai(1)">+1 an</button>
       <button type="button" class="btn btn-gray btn-sm" style="padding:3px 9px;" onclick="setVisiteDelai(2)">+2 ans</button>
       <button type="button" class="btn btn-gray btn-sm" style="padding:3px 9px;" onclick="setVisiteDelai(3)">+3 ans</button>
@@ -2444,9 +2453,6 @@ function hrRefreshPageActive(){
         if(typeof hrRenderPlanningHebdo==='function') hrRenderPlanningHebdo();
         if(typeof hrRenderEmploiSemaine==='function') hrRenderEmploiSemaine();
         break;
-      case 'docsplanning':
-        if(typeof docsPlanningStatus==='function') docsPlanningStatus();
-        break;
       // 'parametres', 'reglementation', 'emp-fiche', 'noaccess' : pages de
       // configuration/consultation, pas de redessin auto nécessaire.
     }
@@ -3043,7 +3049,7 @@ function goPage(id, btn) {
   if (btn) { btn.classList.add('active'); }
   else {
     // Pas de bouton passé (navigation programmée) : on retrouve celui de la page pour le surligner.
-    var _labels={dashboard:'Écran télé',telephone:'Téléphone équipe',equipe:'👥 Équipe',etatequipe:'État équipe',horaires:'Horaires',docsplanning:'Documents planning',recrutement:'Recrutement',visite:'Visite',incidents:'Incidents',rapports:'Rapports',planning:'Planning',parametres:'Paramètres',alertes:'Alertes'};
+    var _labels={dashboard:'Écran télé',telephone:'Téléphone équipe',equipe:'👥 Équipe',etatequipe:'État équipe',horaires:'Horaires',recrutement:'Recrutement',visite:'Visite',incidents:'Incidents',rapports:'Rapports',planning:'Planning',parametres:'Paramètres',alertes:'Alertes'};
     var _lbl=_labels[id];
     if(_lbl){ document.querySelectorAll('#main-nav button').forEach(function(b){ if(b.textContent.indexOf(_lbl)>=0) b.classList.add('active'); }); }
   }
@@ -3080,7 +3086,6 @@ function goPage(id, btn) {
     if(_hrSel) _hrSel.style.display='none';
     try{ if(typeof hrOuvrirResto==='function') hrOuvrirResto(ra.toUpperCase()); }catch(e){ console.warn('hrOuvrirResto',e); }
   }catch(e){console.warn('init horaires',e);} }
-  if (id==='docsplanning'){ try{ if(!window.__hrDone && window.__hrInit){ window.__hrInit(); } }catch(e){} try{ docsPlanningStatus&&docsPlanningStatus(); }catch(e){} }
   if (id==='recrutement'){ if(curUser.role==='franchise'){ bkEntrerPage('recrutement'); } else { setCandFilter(candFilter||'nouveau'); } }
   if (id==='visite'){ if(curUser.role==='franchise'){ bkEntrerPage('visite'); } else { renderVisiteList(); } }
   if (id==='alertes'){ if(curUser.role==='franchise'){ bkEntrerPage('alertes'); } else { window.__alertResto=curUser.restoId; renderAlertes(); } }
@@ -3215,6 +3220,7 @@ var PARAM_TILES=[
   {ico:'🔑', titre:'Codes PIN',     sub:'Accès par profil',             type:'card', card:'pc-pin',         accent:'#c0392b'},
   {ico:'🕐', titre:'Amplitude',     sub:'Plage horaire dispos',         type:'card', card:'pc-amplitude',   accent:'#2980b9'},
   {ico:'⚠️', titre:'Observations',  sub:'Seuil rappel oral',            type:'card', card:'pc-seuil',       accent:'#d35400'},
+  {ico:'🩺', titre:'Visite médicale',sub:'Délais et rappels',            type:'card', card:'pc-visite',      accent:'#c0392b'},
   {ico:'👁️', titre:'Aperçu fiche',  sub:'Vue candidat',                 type:'card', card:'rec-apercu-card',accent:'#7f8c8d'},
   {ico:'📧', titre:'Adresses mail', sub:'Expédition RH',                type:'card', card:'pc-adresses',    accent:'#2c3e50'},
   {ico:'✉️', titre:'Modèles mails', sub:'Mails aux candidats',          type:'card', card:'pc-mails',       accent:'#27ae60'},
@@ -3252,6 +3258,7 @@ function paramOuvrir(type, ref){
     if(ref==='pc-baremes'){ try{ _baremesDraft=null; renderBaremes(); }catch(_){} }
     if(ref==='pc-dbximport'){ try{ dbxDropInit(); }catch(_){} }
     if(ref==='pc-societe'){ try{ renderSocieteForm(); }catch(_){} }
+    if(ref==='pc-visite'){ try{ loadVisiteConfig(); }catch(_){} }
     // bouton retour en tête de page
     var back=document.getElementById('param-back');
     if(!back){
@@ -4495,7 +4502,7 @@ function genTraitsReport(){
 function genPlanHebdoReport(){
   var out=document.getElementById('rpt-out');
   if(typeof HR_MONTH_RESULT==='undefined' || !HR_MONTH_RESULT || !HR_MONTH_RESULT.semaines || !HR_MONTH_RESULT.semaines.length){
-    out.innerHTML='<div style="color:#aaa;padding:14px;">Aucun planning calculé. Va dans Horaires, clique « 🗓️ Placer le mois », puis reviens ici.</div>';
+    out.innerHTML='<div style="color:#aaa;padding:14px;">Aucun planning calculé. Va dans Horaires, clique « 🧠 Placement intelligent », puis reviens ici.</div>';
     return;
   }
   // hrRenderPlanningHebdo écrit dans #hrx-emploi-semaine : on le génère puis on copie son contenu
@@ -4646,39 +4653,6 @@ function rptPdfPlanHebdo(){
 window.genTraitsReport=genTraitsReport;
 window.genPlanHebdoReport=genPlanHebdoReport;
 window.rptPdf=rptPdf;
-
-// — Onglet « Documents planning » : réutilise les générateurs PDF existants —
-function docsPlanningStatus(){
-  var st=document.getElementById('docs-planning-status'); if(!st) return;
-  var dts=(typeof _rptSemaineDates==='function')?_rptSemaineDates():[];
-  var pret=(typeof window.ROWS_BY_DAY!=='undefined' && window.ROWS_BY_DAY && window.ROWS_BY_DAY.length);
-  if(pret && dts && dts[0]){
-    st.innerHTML='Semaine affichée : <b style="color:#ccc;">du '+dts[0]+' au '+(dts[6]||'?')+'</b>.';
-  } else {
-    st.innerHTML='<span style="color:#E08600;">Aucun planning chargé pour l\'instant — ouvre Horaires et lance le placement, puis reviens ici.</span>';
-  }
-}
-window.docsPlanningStatus=docsPlanningStatus;
-function docsPlanningPdf(type){
-  // s'assurer que le moteur Horaires est initialisé (au cas où on n'y est pas allé)
-  try{ if(!window.__hrDone && window.__hrInit){ window.__hrInit(); } }catch(e){}
-  if(typeof window.ROWS_BY_DAY==='undefined' || !window.ROWS_BY_DAY || !window.ROWS_BY_DAY.length){
-    if(typeof toast==='function') toast('Ouvre d\'abord Horaires et lance le placement','error');
-    return;
-  }
-  if(type==='traits'){
-    if(typeof rptPdfTraits==='function') rptPdfTraits();
-    else if(typeof toast==='function') toast('Générateur indisponible','error');
-  } else if(type==='planhebdo'){
-    if(typeof HR_MONTH_RESULT==='undefined' || !HR_MONTH_RESULT || !HR_MONTH_RESULT.semaines || !HR_MONTH_RESULT.semaines.length){
-      if(typeof toast==='function') toast('Lance d\'abord « Placer le mois » dans Horaires','error');
-      return;
-    }
-    if(typeof rptPdfPlanHebdo==='function') rptPdfPlanHebdo();
-    else if(typeof toast==='function') toast('Générateur indisponible','error');
-  }
-}
-window.docsPlanningPdf=docsPlanningPdf;
 
 /* — EXPORT EXCEL du rapport ouvert — */
 function rptExportExcel(){
@@ -4892,6 +4866,12 @@ function empCardHtml(e,ro,canView,canManage){
 }
 function renderEquipe(){
   var list=document.getElementById('eq-list');if(!list)return;
+  // Synchroniser le surlignage des onglets Actifs/Archivés avec l'état réel (B5).
+  try{
+    var _ba=document.getElementById('ef-actif'), _br=document.getElementById('ef-archive');
+    if(_ba) _ba.classList.toggle('on', empFilter==='actif');
+    if(_br) _br.classList.toggle('on', empFilter==='archive');
+  }catch(_){}
   var r=curUser.role;var isGlobal=(r==='franchise');
   var canManage=(r==='franchise'||r==='directeur')&&!window.__readOnly; // écriture
   var canView=(r==='franchise'||r==='directeur');                       // consultation fiche
@@ -5104,7 +5084,7 @@ async function supprimerFicheDefinitif(id){
     for(var k=0;k<docs.length;k++){ try{ await sb.del('bks_emp_docs','id=eq.'+docs[k].id); }catch(_){} }
     await sb.del('bks_employees','id=eq.'+id);
     toast(e.name+' supprimé(e). Documents conservés dans Dropbox → Archives.','success');
-    try{ var mf=document.getElementById('modal-fiche'); if(mf) mf.classList.remove('open'); }catch(_){}
+    try{ var mf=document.getElementById('modal-fiche-salarie'); if(mf) mf.classList.remove('open'); }catch(_){}
     await loadAll(); renderEquipe(); try{ fillFilters&&fillFilters(); fillRptPersons&&fillRptPersons(); }catch(_){}
   }catch(err){ toast('Erreur suppression','error'); console.error('supprimerFicheDefinitif',err); }
 }
@@ -5184,6 +5164,8 @@ var EMPDOC_CATS=[
   {id:'sanction',label:'Sanction',icon:'⚠️'},
   {id:'arret_maladie',label:'Arrêt maladie',icon:'🏥'},
   {id:'visite_medicale',label:'Avis médical',icon:'🩺'},
+  {id:'titre_sejour',label:'Titre de séjour',icon:'🛂'},
+  {id:'mutuelle',label:'Mutuelle',icon:'❤️'},
   {id:'autre',label:'Autre document',icon:'📎'}
 ];
 function _empDocCatLbl(id){var c=EMPDOC_CATS.find(function(x){return x.id===id;});return c?c.label:id;}
@@ -5447,6 +5429,7 @@ function openValiderVisite(empId){
   document.getElementById('visite-file-name').textContent='';
   document.getElementById('visite-file-input').value='';
   document.getElementById('visite-status').textContent='';
+  try{ var bd=document.getElementById('visite-delai-defaut'); if(bd){ var pd=visiteCfg().periodiqueDefautAns; bd.textContent='+ '+pd+' an'+(pd>1?'s':'')+' (défaut)'; } }catch(_){}
   document.getElementById('modal-visite-valider').classList.add('open');
 }
 function handleVisiteFile(input){
@@ -5460,6 +5443,7 @@ function handleVisiteFile(input){
 function setVisiteDelai(ans){
   var di=document.getElementById('visite-date-input').value;
   if(!di){alert('Indiquez d\'abord la date de la visite.');return;}
+  if(!ans){ ans=visiteCfg().periodiqueDefautAns; } // 0 = périodicité par défaut paramétrée
   var base=new Date(di+'T12:00:00');
   base.setFullYear(base.getFullYear()+ans);
   base.setMinutes(base.getMinutes()-base.getTimezoneOffset());
@@ -5868,25 +5852,43 @@ var EMPF_SECTIONS=[
     ['code_postal','Code postal'],['ville','Ville'],
   ]},
   {title:'Titre de séjour',icon:'🛂',fields:[
+    ['etranger_hors_ue','Étranger hors UE (oui / non)'],
+    ['statut_etudiant','Statut étudiant (oui / non)'],
     ['titre_sejour_num','N° de titre de séjour / permis'],
+    ['sejour_delivrance','Date de délivrance du titre de séjour','date'],
     ['fin_carte_sejour','Fin de validité du titre de séjour','date'],
+    ['sejour_alerte','Alerte avant expiration du séjour','date'],
   ]},
   {title:'Informations bancaires',icon:'🏦',fields:[
     ['iban','IBAN'],['bic','BIC'],['banque','Nom de la banque'],
   ]},
   {title:'Santé & mutuelle',icon:'❤️',fields:[
     ['num_secu','N° de sécurité sociale'],
-    ['mutuelle','Mutuelle'],['mutuelle_fin','Fin de validité mutuelle','date'],
+    ['inscrit_sante','Inscrit en santé (mutuelle obligatoire)'],
+    ['mutuelle','Mutuelle (statut)'],
+    ['mutuelle_adhesion','Adhésion à notre mutuelle (oui / non)'],
+    ['mutuelle_fin','Fin de droit / de validité mutuelle','date'],
+    ['mutuelle_affiliation','Date d\'affiliation à notre mutuelle','date'],
+    ['rqth_jusquau','RQTH valable jusqu\'au'],
     ['urgence_nom','Personne à contacter en cas d\'urgence'],['urgence_tel','N° en cas d\'urgence'],
   ]},
   {title:'Emploi & contrat',icon:'💼',fields:[
-    ['_role','Rôle'],['poste','Poste'],['contrat_hebdo','Contrat hebdo (h)'],
+    ['_role','Rôle'],['poste','Poste'],['emploi_libelle','Emploi (libellé complet)'],
+    ['contrat_hebdo','Contrat hebdo (h)'],
+    ['date_entree','Date d\'entrée','date'],
     ['date_anciennete','Date d\'ancienneté','date'],
+    ['cdi_cdd','CDI / CDD'],
     ['contrat_type','Type de contrat (apprentissage / cdi / cdd / saisonnier)'],
+    ['date_fin_cdd','Date de fin de CDD','date'],
+    ['date_sortie','Date de sortie (départ prévu / effectif)','date'],
+    ['apprentissage_debut','Début d\'apprentissage','date'],
     ['apprentissage_fin','Fin d\'apprentissage','date'],
     ['contrat_apres','Heures après apprentissage (vide = pas de suite)'],
     ['contrat_futur_hebdo','Nouveau contrat — heures (ex. saisonnier)'],
     ['contrat_futur_date','Nouveau contrat — à partir du','date'],
+  ]},
+  {title:'Suivi administratif / paie',icon:'🗂️',fields:[
+    ['silae','Inscrit dans SILAE (paie) (oui / non)'],
   ]},
 ];
 
@@ -6113,33 +6115,6 @@ function impMatchEmp(nomBrut,resto){
   return {introuvable:true};
 }
 var _impResult=null;
-function impQualifAnalyse(){
-  var resto=document.getElementById('imp-qualif-resto').value;
-  var rows=impParse(document.getElementById('imp-qualif-text').value);
-  var report='', okCount=0, problems=0;
-  _impResult=[];
-  rows.forEach(function(r){
-    if(r.erreur){ report+='<div style="color:#e57373;">⚠️ '+r.nom+' — '+r.erreur+'</div>'; problems++; return; }
-    // postes
-    var postesOk=[], postesKO=[];
-    r.postes.forEach(function(p){
-      var key=impNorm(p);
-      if(IMP_POSTE_MAP[key])postesOk.push(IMP_POSTE_MAP[key]);
-      else postesKO.push(p);
-    });
-    var m=impMatchEmp(r.nom,resto);
-    if(m.introuvable){ report+='<div style="color:#e57373;">❌ <b>'+r.nom+'</b> — salarié introuvable dans '+resto.toUpperCase()+'</div>'; problems++; return; }
-    if(m.ambigu){ report+='<div style="color:#e57373;">❓ <b>'+r.nom+'</b> — plusieurs correspondances ('+m.ambigu.map(function(e){return e.name;}).join(', ')+'). Précisez.</div>'; problems++; return; }
-    _impResult.push({empId:m.emp.id, empName:m.emp.name, postes:postesOk});
-    okCount++;
-    report+='<div style="color:#81c784;">✅ <b>'+m.emp.name+'</b> → '+(postesOk.join(', ')||'(aucun poste)')
-      +(postesKO.length?(' <span style="color:#e57373;">— postes non reconnus : '+postesKO.join(', ')+'</span>'):'')+'</div>';
-    if(postesKO.length)problems++;
-  });
-  report='<div style="margin-bottom:8px;font-weight:700;color:#fff;">'+okCount+' salarié(s) prêt(s)'+(problems?(' · '+problems+' point(s) à vérifier'):'')+'</div>'+report;
-  document.getElementById('imp-qualif-report').innerHTML=report;
-  document.getElementById('imp-qualif-apply').style.display=(okCount>0)?'inline-block':'none';
-}
 async function impQualifApply(){
   if(!_impResult||!_impResult.length){toast('Analysez d\'abord','error');return;}
   if(!confirm('Importer les compétences pour '+_impResult.length+' salarié(s) ? Cela REMPLACE leurs compétences actuelles.'))return;
@@ -6158,7 +6133,7 @@ async function impQualifApply(){
   toast('Compétences importées ('+done+')','success');
   try{ await loadAll(); }catch(e){}
 }
-window.impQualifAnalyse=impQualifAnalyse;window.impQualifApply=impQualifApply;
+window.impQualifApply=impQualifApply;
 
 /* ════════ IMPORT DES DISPONIBILITÉS (coller depuis Excel) ════════ */
 var IMP_JOURS=['lun','mar','mer','jeu','ven','sam','dim'];  // ordre des colonnes Lundi→Dimanche
@@ -6205,31 +6180,6 @@ function impMatchEmpNomPrenom(nom,prenom,resto){
   return {introuvable:true};
 }
 var _impDispoResult=null;
-function impDispoAnalyse(){
-  var resto=document.getElementById('imp-dispo-resto').value;
-  var rows=impDispoParse(document.getElementById('imp-dispo-text').value);
-  var report='', ok=0, problems=0;
-  _impDispoResult=[];
-  if(!rows.length){ document.getElementById('imp-dispo-report').innerHTML='<div style="color:#e57373;">Aucune ligne exploitable. Collez bien depuis Excel (colonnes séparées).</div>'; return; }
-  rows.forEach(function(r){
-    var m=impMatchEmpNomPrenom(r.nom,r.prenom,resto);
-    var nbJours=r.jours.filter(Boolean).length;
-    if(m.introuvable){ report+='<div style="color:#e57373;">❌ <b>'+r.nom+' '+r.prenom+'</b> — introuvable dans '+resto.toUpperCase()+'</div>'; problems++; return; }
-    if(m.ambigu){ report+='<div style="color:#e57373;">❓ <b>'+r.nom+' '+r.prenom+'</b> — plusieurs correspondances ('+m.ambigu.map(function(e){return e.name;}).join(', ')+')</div>'; problems++; return; }
-    var dispos={};
-    IMP_JOURS.forEach(function(jk,i){
-      var h=r.jours[i];
-      if(h) dispos[jk]={on:true,from:h.from,to:h.to,creneaux:[{from:h.from,to:h.to}]};
-      else  dispos[jk]={on:false};
-    });
-    _impDispoResult.push({empId:m.emp.id,empName:m.emp.name,dispos:dispos});
-    ok++;
-    report+='<div style="color:#81c784;">✅ <b>'+m.emp.name+'</b> → '+nbJours+' jour(s) dispo</div>';
-  });
-  report='<div style="margin-bottom:8px;font-weight:700;color:#fff;">'+ok+' salarié(s) prêt(s)'+(problems?(' · '+problems+' à vérifier'):'')+'</div>'+report;
-  document.getElementById('imp-dispo-report').innerHTML=report;
-  document.getElementById('imp-dispo-apply').style.display=(ok>0)?'inline-block':'none';
-}
 async function impDispoApply(){
   if(!_impDispoResult||!_impDispoResult.length){toast('Analysez d\'abord','error');return;}
   if(!confirm('Importer les disponibilités pour '+_impDispoResult.length+' salarié(s) ? Cela REMPLACE leurs disponibilités actuelles.'))return;
@@ -6248,7 +6198,7 @@ async function impDispoApply(){
   toast('Disponibilités importées ('+done+')','success');
   try{ await loadAll(); }catch(e){}
 }
-window.impDispoAnalyse=impDispoAnalyse;window.impDispoApply=impDispoApply;
+window.impDispoApply=impDispoApply;
 
 /* ════════ IMPORT PAR FICHIER EXCEL (glisser-déposer) ════════
    Les fichiers exportés depuis les Rapports contiennent une colonne « Restaurant »
@@ -6379,6 +6329,76 @@ function bkDropDispo(ev,el){ ev.preventDefault(); bkDragLeave(el); var f=ev.data
 window.bkFileQualif=bkFileQualif;window.bkFileDispo=bkFileDispo;
 window.bkDragOver=bkDragOver;window.bkDragLeave=bkDragLeave;window.bkDropQualif=bkDropQualif;window.bkDropDispo=bkDropDispo;
 
+// ── Frise de suivi des contrats d'un salarié (fiche de poste) ──
+// Regroupe : le contrat en cours (déduit des infos) + les contrats/avenants générés
+// (DB.letters type 'contrat') + les documents de contrat chargés (DB.empDocs).
+function _contratIcone(type){
+  var t=String(type||'').toLowerCase();
+  if(t.indexOf('apprent')>=0) return '🎓';
+  if(t.indexOf('saison')>=0) return '☀️';
+  if(t.indexOf('cdd')>=0) return '📃';
+  if(t.indexOf('cdi')>=0) return '📄';
+  return '📄';
+}
+function _ficheContratsHtml(e){
+  var inf=e.infos||{};
+  var items=[];
+  // 1) Contrat en cours (déduit des infos importées)
+  var typ=inf.contrat_type||inf.cdi_cdd||'';
+  var estAppr=String(typ).toLowerCase().indexOf('apprent')>=0;
+  var ligneCour='';
+  if(typ||inf.contrat_hebdo||inf.date_entree){
+    var bits=[];
+    if(typ) bits.push('<b style="color:#eee;">'+(estAppr?'Apprentissage':String(typ).toUpperCase())+'</b>');
+    if(inf.contrat_hebdo) bits.push(inf.contrat_hebdo+'h/sem');
+    var periode='';
+    if(estAppr && (inf.apprentissage_debut||inf.apprentissage_fin)){
+      periode='du '+(inf.apprentissage_debut?_frDate(inf.apprentissage_debut):'?')+' au '+(inf.apprentissage_fin?_frDate(inf.apprentissage_fin):'?');
+    } else if(inf.date_fin_cdd){
+      periode='jusqu\'au '+_frDate(inf.date_fin_cdd);
+    } else if(inf.date_entree){
+      periode='depuis le '+_frDate(inf.date_entree);
+    }
+    if(periode) bits.push('<span style="color:#aaa;">'+periode+'</span>');
+    ligneCour='<div style="display:flex;align-items:center;gap:10px;background:#12211a;border:1px solid #234a34;border-radius:8px;padding:9px 12px;margin-bottom:8px;">'
+      +'<div style="font-size:1.25rem;">'+_contratIcone(typ)+'</div>'
+      +'<div style="flex:1;min-width:0;"><div style="font-size:.72rem;color:#4CAF50;text-transform:uppercase;letter-spacing:.5px;font-weight:700;">Contrat en cours</div>'
+      +'<div style="font-size:.86rem;">'+bits.join(' · ')+'</div>'
+      +(inf.emploi_libelle?'<div style="font-size:.72rem;color:#777;">'+inf.emploi_libelle+'</div>':'')+'</div></div>';
+  }
+  // 2) Contrats/avenants générés (courriers) + documents chargés
+  var lets=(DB.letters||[]).filter(function(l){return l.empId===e.id && (l.type==='contrat'||l.sanctionType==='contrat');})
+    .map(function(l){ return {kind:'letter', date:l.createdAt, nom:'Contrat', statut:l.sigStatus||'pending', id:l.id, obj:l}; });
+  var docs=(DB.empDocs||[]).filter(function(d){return d.empId===e.id && (d.categorie==='contrat'||d.categorie==='avenant'||d.categorie==='dpae');})
+    .map(function(d){ return {kind:'doc', date:d.createdAt, nom:(_empDocCatLbl(d.categorie)), label:(d.label||d.name||''), id:d.id, cat:d.categorie, link:d.link}; });
+  var hist=lets.concat(docs).sort(function(a,b){return new Date(b.date||0)-new Date(a.date||0);});
+  var histHtml='';
+  hist.forEach(function(it){
+    var dt=it.date?new Date(it.date).toLocaleDateString('fr-FR'):'';
+    var ic=(it.kind==='doc')?_empDocCatIcon(it.cat):'📄';
+    var right='';
+    if(it.kind==='letter'){
+      var ss=it.statut;
+      right=ss==='signed'?'<span style="color:#4CAF50;font-weight:700;font-size:.74rem;">✍️ Signé</span>'
+        :ss==='refused'?'<span style="color:#cc5555;font-weight:700;font-size:.74rem;">❌ Refus</span>'
+        :'<span style="color:#F5A623;font-weight:700;font-size:.74rem;">⏳ À signer</span>';
+      right+=' <button class="btn btn-gray btn-sm" style="padding:2px 8px;" onclick="voirCourrier(\''+it.id+'\')">👁️</button>';
+    } else if(it.link){
+      right='<button class="btn btn-gray btn-sm" style="padding:2px 8px;" onclick="viewDoc(\''+it.id+'\')">👁️ Lire</button>';
+    }
+    histHtml+='<div style="display:flex;align-items:center;gap:9px;border-top:1px solid #222;padding:7px 0;">'
+      +'<div style="font-size:1.1rem;">'+ic+'</div>'
+      +'<div style="flex:1;min-width:0;font-size:.83rem;color:#ddd;">'+(it.nom||'Document')+(it.label?' <span style="color:#888;">— '+it.label+'</span>':'')
+      +(dt?' <span style="color:#666;font-size:.72rem;">· '+dt+'</span>':'')+'</div>'
+      +'<div style="white-space:nowrap;">'+right+'</div></div>';
+  });
+  if(!ligneCour && !histHtml) return '';
+  return '<div class="card" style="margin-bottom:12px;"><div class="sec-title">📄 Suivi des contrats</div>'
+    +ligneCour
+    +(histHtml||'<div style="font-size:.8rem;color:#666;padding:4px 0;">Aucun contrat ou avenant enregistré pour l\'instant.</div>')
+    +'</div>';
+}
+
 function renderEmpFicheInfos(id){
   var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
   var inf=e.infos||{};
@@ -6416,6 +6436,8 @@ function renderEmpFicheInfos(id){
     });
     h+='</div></div>';
   });
+  // ── Suivi des contrats (frise) ──
+  h+=_ficheContratsHtml(e);
   // ── Accès Téléphone équipe (code PIN) ──
   var _pin=empPin(e), _def=empPinEstDefaut(e);
   h+='<div class="card" style="margin-bottom:12px;"><div class="sec-title">🔐 Accès Téléphone équipe</div>';
@@ -6746,43 +6768,6 @@ function updateVBadge(){
   b.textContent=n;b.style.display=n>0?'inline-flex':'none';
 }
 
-function renderLetters(){
-  var c=document.getElementById('letters-list');if(!c)return;
-  var letters=DB.letters.slice().sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);});
-  var r=curUser.role;
-  if(r!=='franchise'){var ids=DB.employees.filter(function(e){return e.restoId===curUser.restoId;}).map(function(e){return e.id;});letters=letters.filter(function(l){return ids.indexOf(l.empId)>=0;});}
-  // les contrats ont leur propre suivi (page Contrats) : on les exclut des courriers disciplinaires
-  letters=letters.filter(function(l){return l.type!=='contrat' && l.sanctionType!=='contrat';});
-  if(!letters.length){c.innerHTML='<div class="empty"><div class="ei">✉️</div><p>Aucun courrier</p></div>';return;}
-  var canVal=r==='directeur'||r==='franchise';
-  c.innerHTML=letters.map(function(l){
-    var st=SANCTIONS[l.sanctionType]||{label:l.type==='avertissement'?'Avertissement':'Observation',icon:'📄',color:'#FF8732'};
-    var ss=l.sigStatus||'pending';
-    var sigB=ss==='signed'?'<span style="background:#1A2A1A;color:#4CAF50;padding:2px 9px;border-radius:10px;font-size:.7rem;font-weight:700;">✍️ Signé le '+new Date(l.signedAt).toLocaleDateString('fr-FR')+'</span>'
-      :ss==='refused'?'<span style="background:#2A1A1A;color:#cc5555;padding:2px 9px;border-radius:10px;font-size:.7rem;font-weight:700;">❌ Refus signature</span>'
-      :'<span style="background:#2A2000;color:#F5A623;padding:2px 9px;border-radius:10px;font-size:.7rem;font-weight:700;">⏳ En attente signature</span>';
-    var sigUrl=window.location.origin+window.location.pathname+'#sign/'+l.id;
-    var editable=canVal&&ss!=='signed';
-    var h='<div class="letter-card" style="border-left:4px solid '+st.color+';">'
-      +'<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:7px;margin-bottom:10px;">'
-      +'<div><strong style="color:var(--orange);">👤 '+l.empName+'</strong><span style="background:'+st.color+'22;border:1px solid '+st.color+';color:'+st.color+';padding:2px 9px;border-radius:10px;font-size:.7rem;font-weight:700;margin-left:8px;">'+st.icon+' '+st.label+'</span></div>'
-      +'<div style="font-size:.74rem;color:#888;">'+l.createdBy+' · '+new Date(l.createdAt).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})+'</div></div>'
-      +'<div style="margin-bottom:10px;">'+sigB+'</div>';
-    if(editable)h+='<label class="flabel">📧 Email employé</label><input type="email" id="ml-'+l.id+'" class="fi" value="'+(l.empEmail||'')+'" placeholder="email@exemple.com" style="max-width:300px;margin-bottom:10px;">';
-    h+='<label class="flabel">📄 Courrier</label><textarea id="lt-'+l.id+'" class="fi" style="min-height:160px;font-size:.84rem;line-height:1.6;"'+(editable?'':' readonly')+'>'+l.text+'</textarea>';
-    h+='<div style="background:#111;border-radius:8px;border:1px solid #2A2A2A;padding:9px;margin-top:9px;">'
-      +'<div style="font-size:.73rem;color:#888;margin-bottom:5px;">🔗 Lien de signature :</div>'
-      +'<div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;">'
-      +'<input type="text" value="'+sigUrl+'" readonly class="fi" style="flex:1;font-size:.72rem;color:#4CAF50;cursor:pointer;" onclick="this.select();">'
-      +'<button onclick="navigator.clipboard.writeText(\''+sigUrl+'\').then(function(){toast(\'Lien copié ✔\',\'success\');})" style="background:#333;border:1px solid #555;color:#ccc;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:.78rem;">📋 Copier</button>'
-      +(editable?'<button onclick="sendLetterManual(\''+l.id+'\')" style="background:linear-gradient(135deg,#FF8732,#CC6600);color:#fff;border:none;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:.78rem;font-family:\'Barlow Condensed\',sans-serif;font-weight:700;">📧 Envoyer</button>':'')
-      +'</div></div>';
-    if(editable)h+='<div style="display:flex;gap:9px;margin-top:10px;"><button class="btn btn-red" onclick="valLetter(\''+l.id+'\')">✅ Valider</button><button class="btn btn-gray" onclick="delLetter(\''+l.id+'\')">🗑️</button></div>';
-    h+='</div>';
-    return h;
-  }).join('');
-}
-
 async function sendLetterEmail(lid){
   var l=DB.letters.find(function(x){return x.id===lid;});if(!l||!l.empEmail)return;
   var emp=DB.employees.find(function(x){return x.id===l.empId;});
@@ -6811,34 +6796,6 @@ async function sendLetterEmail(lid){
   try{await sb.patch('bks_letters','id=eq.'+lid,{sent_at:new Date().toISOString()});await loadAll();}catch(e){}
 }
 
-function sendLetterManual(lid){
-  var l=DB.letters.find(function(x){return x.id===lid;});if(!l)return;
-  var mi=document.getElementById('ml-'+lid);var ta=document.getElementById('lt-'+lid);
-  var email=mi?mi.value.trim():l.empEmail;
-  if(!email||email.indexOf('@')<0){toast("Entrez l'email de l'employé",'error');return;}
-  if(ta)l.text=ta.value;l.empEmail=email;
-  var st=SANCTIONS[l.sanctionType]||{label:'Courrier'};
-  var ms=DB.mailSettings||{};
-  var cc=(ms.ccRecipients||[]).concat((ms.recipients||[]).map(function(r){return r.email;})).filter(Boolean).join(',');
-  var sigUrl=window.location.origin+window.location.pathname+'#sign/'+lid;
-  var subj='[BK] '+st.label+' - '+l.empName;
-  var body=l.text+'\n\n────────────────────────────────────\n🔗 Lien pour signer :\n'+sigUrl;
-  window.open('mailto:'+email+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank');
-  sb.patch('bks_letters','id=eq.'+lid,{sent_at:new Date().toISOString(),emp_email:email,body:l.text}).catch(function(){});
-  renderLetters();toast('Email ouvert ✔','success');
-}
-
-async function valLetter(lid){
-  var l=DB.letters.find(function(x){return x.id===lid;});if(!l)return;
-  var ta=document.getElementById('lt-'+lid);if(ta)l.text=ta.value;
-  try{await sb.patch('bks_letters','id=eq.'+lid,{status:'sent',body:l.text});await loadAll();updateVBadge();renderLetters();toast('Validé ✔','success');}
-  catch(e){toast('Erreur','error');}
-}
-async function delLetter(lid){
-  if(!confirm('Supprimer ce courrier ?'))return;
-  try{await sb.del('bks_letters','id=eq.'+lid);await loadAll();updateVBadge();renderLetters();toast('Supprimé','');}
-  catch(e){toast('Erreur','error');}
-}
 
 // ── PAGE SIGNATURE ────────────────────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════════
@@ -7109,8 +7066,23 @@ function essaiInfo(c){
   return {jours:jours,fin:fin,joursRestants:joursRestants,label:label,alert:alert,alertCol:alertCol,apprenti:estApprenti,niveau:niveau};
 }
 
+// ── Réglages VISITE MÉDICALE (configurables dans Paramètres › Visite médicale) ──
+// Délais paramétrables ; valeurs par défaut = comportement historique.
+var VISITE_CFG_DEFAUT={embaucheLimiteMois:6, embaucheAlerteMois:4, embaucheUrgentMois:2, periodiqueAlerteJours:30, periodiqueDefautAns:2};
+function visiteCfg(){
+  var c=(DB&&DB.mailSettings&&DB.mailSettings.visiteConfig)||{};
+  function n(v,d){ v=parseInt(v); return (isNaN(v)||v<0)?d:v; }
+  return {
+    embaucheLimiteMois : n(c.embaucheLimiteMois, VISITE_CFG_DEFAUT.embaucheLimiteMois),
+    embaucheAlerteMois : n(c.embaucheAlerteMois, VISITE_CFG_DEFAUT.embaucheAlerteMois),
+    embaucheUrgentMois : n(c.embaucheUrgentMois, VISITE_CFG_DEFAUT.embaucheUrgentMois),
+    periodiqueAlerteJours : n(c.periodiqueAlerteJours, VISITE_CFG_DEFAUT.periodiqueAlerteJours),
+    periodiqueDefautAns : n(c.periodiqueDefautAns, VISITE_CFG_DEFAUT.periodiqueDefautAns)
+  };
+}
+
 // Visite médicale périodique d'un SALARIÉ (basée sur la date de prochaine visite saisie)
-// 🟢 OK · 🟠 à planifier (< 2 mois) · 🔴 dépassé
+// 🟢 OK · 🟠 à planifier · 🔴 dépassé
 function visiteEmpInfo(e){
   if(!e.visiteProchaine){
     if(e.visiteDate){
@@ -7125,8 +7097,9 @@ function visiteEmpInfo(e){
   var prochStr=proch.toLocaleDateString('fr-FR');
   var sub=(e.visiteDate?'Dernière le '+new Date(e.visiteDate+'T12:00:00').toLocaleDateString('fr-FR')+' · ':'')+'Prochaine le '+prochStr;
   var col,badge,etat;
+  var seuilJ=visiteCfg().periodiqueAlerteJours;
   if(jours<0){col='#cc5555';badge='🔴 Visite dépassée ('+prochStr+')';etat='depasse';}
-  else if(jours<=30){col='#F5A623';badge='🟠 Bientôt — dans '+jours+' j (avant le '+prochStr+')';etat='bientot';}
+  else if(jours<=seuilJ){col='#F5A623';badge='🟠 Bientôt — dans '+jours+' j (avant le '+prochStr+')';etat='bientot';}
   else{col='#4CAF50';badge='🟢 Planifié — prochaine le '+prochStr;etat='ok';}
   return {col:col,badge:badge,etat:etat,sub:sub,jours:jours,prochStr:prochStr};
 }
@@ -7137,16 +7110,18 @@ function visiteInfo(c){
     return {fait:true,col:'#4CAF50',badge:'✅ Visite faite'+(c.visiteDate?' le '+new Date(c.visiteDate+'T12:00:00').toLocaleDateString('fr-FR'):''),etat:'fait'};
   }
   if(!c.dateDebut)return {fait:false,col:'#888',badge:'🩺 À planifier (date d\'entrée manquante)',etat:'inconnu'};
+  var cfg=visiteCfg();
   var entree=new Date(c.dateDebut+'T12:00:00');
   var now=new Date();
   var mois=(now-entree)/(30.44*24*3600*1000);
-  var limite=new Date(entree);limite.setMonth(limite.getMonth()+6); // au plus tard 6 mois
+  var limite=new Date(entree);limite.setMonth(limite.getMonth()+cfg.embaucheLimiteMois); // au plus tard N mois (paramétrable)
   var limiteStr=limite.toLocaleDateString('fr-FR');
+  var reste=cfg.embaucheLimiteMois-mois; // mois restants avant l'échéance
   var col,badge,etat;
-  if(mois<2){col='#4CAF50';badge='🟢 OK — à prévoir (avant le '+limiteStr+')';etat='ok';}
-  else if(mois<4){col='#F5A623';badge='🟠 À planifier (avant le '+limiteStr+')';etat='orange';}
-  else if(mois<6){col='#cc5555';badge='🔴 Urgent — avant le '+limiteStr+' !';etat='rouge';}
-  else{col='#cc5555';badge='⛔ DÉPASSÉ (limite '+limiteStr+')';etat='depasse';}
+  if(reste<0){col='#cc5555';badge='⛔ DÉPASSÉ (limite '+limiteStr+')';etat='depasse';}
+  else if(reste<=cfg.embaucheUrgentMois){col='#cc5555';badge='🔴 Urgent — avant le '+limiteStr+' !';etat='rouge';}
+  else if(reste<=cfg.embaucheAlerteMois){col='#F5A623';badge='🟠 À planifier (avant le '+limiteStr+')';etat='orange';}
+  else{col='#4CAF50';badge='🟢 OK — à prévoir (avant le '+limiteStr+')';etat='ok';}
   return {fait:false,col:col,badge:badge,etat:etat,entree:entree,limite:limite,limiteStr:limiteStr};
 }
 
@@ -7164,10 +7139,10 @@ function setVisiteStatut(btn,s){
 }
 // Tuiles de statut visite médicale (façon Rapports / Alertes) avec pastille chiffrée.
 var VISITE_STATS=[
-  {k:'all',    ico:'📋', lb:'Tous les statuts',    ds:'Toute l\'équipe',      col:'#8a8a8a'},
-  {k:'depasse',ico:'🔴', lb:'Dépassé',             ds:'Visites dépassées',    col:'#cc5555'},
-  {k:'bientot',ico:'🟠', lb:'Bientôt (< 1 mois)',  ds:'À planifier vite',     col:'#F5A623'},
-  {k:'ok',     ico:'🟢', lb:'Planifié',            ds:'Visites planifiées',   col:'#4CAF50'}
+  {k:'all',    ico:'📋', lb:'Tous les statuts',    ds:'Toute l\'équipe',        col:'#8a8a8a'},
+  {k:'depasse',ico:'🔴', lb:'Urgent / dépassé',    ds:'À traiter en priorité',  col:'#cc5555'},
+  {k:'bientot',ico:'🟠', lb:'À planifier',         ds:'Échéance proche',        col:'#F5A623'},
+  {k:'ok',     ico:'🟢', lb:'Planifié',            ds:'À jour',                 col:'#4CAF50'}
 ];
 function renderVisiteStatTiles(){
   var box=document.getElementById('visite-statut-tiles'); if(!box) return;
@@ -7175,8 +7150,18 @@ function renderVisiteStatTiles(){
   var emps=(DB.employees||[]).filter(function(e){return !e.archived;});
   if(isDir)emps=emps.filter(function(e){return e.restoId===curUser.restoId;});
   if(!isDir&&visiteRestoFilter!=='all')emps=emps.filter(function(e){return e.restoId===visiteRestoFilter;});
-  var cnt={all:emps.length,depasse:0,bientot:0,ok:0};
+  // Candidats en période d'essai (visite d'embauche) — même périmètre que la liste.
+  var cands=(DB.candidatures||[]).filter(function(c){return (c.statut||'')==='essai';});
+  if(isDir)cands=cands.filter(function(c){return c.restoId===curUser.restoId;});
+  if(!isDir&&visiteRestoFilter!=='all')cands=cands.filter(function(c){return c.restoId===visiteRestoFilter;});
+  var cnt={all:emps.length+cands.length,depasse:0,bientot:0,ok:0};
   emps.forEach(function(e){ var et=visiteEmpInfo(e).etat; if(cnt[et]!=null)cnt[et]++; });
+  // Mapper les états « embauche » sur les 3 filtres (comme dans renderVisiteList).
+  cands.forEach(function(c){ var et=visiteInfo(c).etat;
+    if(et==='depasse'||et==='rouge')cnt.depasse++;
+    else if(et==='orange')cnt.bientot++;
+    else if(et==='ok')cnt.ok++;
+  });
   box.innerHTML=VISITE_STATS.map(function(s){
     var n=cnt[s.k]; var active=(visiteStatutFilter===s.k);
     return '<div class="dash-tile" onclick="setVisiteStatut(null,\''+s.k+'\')" style="cursor:pointer;position:relative;'+(active?('box-shadow:0 0 0 2px '+s.col+';border-color:'+s.col+';'):'')+'">'
@@ -7235,6 +7220,33 @@ function collectAlertes(restoFiltre){
     }else if(jours<=30){
       alerts.push({prio:2,cat:'Mutuelle',icon:'❤️',col:'#F5A623',
         titre:e.name+' — mutuelle expire dans '+jours+' j',
+        sub:'Avant le '+_frDate(fin)+' · '+resto,empId:e.id});
+    }
+  });
+
+  // ── 1quater) TITRE DE SÉJOUR (salariés étrangers) : expiration + rappel anticipé ──
+  emps.forEach(function(e){
+    var inf=e.infos||{};
+    var fin=inf.fin_carte_sejour||'';
+    if(!fin) return;
+    var d=new Date(fin+'T12:00:00');
+    if(isNaN(d.getTime())) return;
+    var jours=Math.round((d-new Date())/(24*3600*1000));
+    var resto=rlabel(e.restoId);
+    // Date d'alerte anticipée saisie (colonne « ALERTE ») : si atteinte, on remonte l'alerte.
+    var alerteAtteinte=false;
+    if(inf.sejour_alerte){ var da=new Date(inf.sejour_alerte+'T12:00:00'); if(!isNaN(da.getTime()) && new Date()>=da) alerteAtteinte=true; }
+    if(jours<0){
+      alerts.push({prio:0,cat:'Titre de séjour',icon:'🛂',col:'#cc5555',
+        titre:e.name+' — titre de séjour expiré',
+        sub:'Échéance le '+_frDate(fin)+' · '+resto,empId:e.id});
+    }else if(jours<=30 || alerteAtteinte){
+      alerts.push({prio:1,cat:'Titre de séjour',icon:'🛂',col:'#cc5555',
+        titre:e.name+' — titre de séjour expire dans '+jours+' j',
+        sub:'Avant le '+_frDate(fin)+' · '+resto,empId:e.id});
+    }else if(jours<=90){
+      alerts.push({prio:2,cat:'Titre de séjour',icon:'🛂',col:'#F5A623',
+        titre:e.name+' — titre de séjour à renouveler ('+jours+' j)',
         sub:'Avant le '+_frDate(fin)+' · '+resto,empId:e.id});
     }
   });
@@ -7368,7 +7380,7 @@ function collectAlertes(restoFiltre){
     var manque=[];
     if(!docsOk) manque.push('documents');
     if(!vidsOk) manque.push('vidéos');
-    alerts.push({prio:3,cat:'Recrutement',icon:'📋',col:'#F5A623',
+    alerts.push({prio:3,cat:'Dossiers incomplets',icon:'📋',col:'#F5A623',
       titre:(c.prenom+' '+c.nom)+' — dossier à compléter',
       sub:'En attente : '+manque.join(' + ')+' · '+resto,candId:c.id});
   });
@@ -7467,6 +7479,7 @@ var ALERT_CATS=[
   // ── 3) Suivi santé & administratif ─────────────────────
   {cat:'Visite médicale',icon:'🩺',desc:'Visites médicales périodiques à planifier'},
   {cat:'Mutuelle',icon:'❤️',desc:'Mutuelles arrivant à expiration'},
+  {cat:'Titre de séjour',icon:'🛂',desc:'Titres de séjour à renouveler / expirés'},
   // ── 4) Discipline ──────────────────────────────────────
   {cat:'Incidents',icon:'⚠️',desc:'Suivi des incidents signalés'},
   {cat:'À sanctionner',icon:'⚖️',desc:'Salariés à sanctionner (selon barèmes)'},
@@ -7476,7 +7489,7 @@ function renderAlertes(){
   var box=document.getElementById('alertes-list');if(!box)return;
   var alerts=collectAlertes(window.__alertResto);
   var cats={};alerts.forEach(function(a){(cats[a.cat]=cats[a.cat]||[]).push(a);});
-  var accents={'Recrutement':'#2e7d32','À sanctionner':'#c0392b','À faire signer':'#e8a020','Contrats à signer':'#c2185b','Visite médicale':'#e87722','Mutuelle':'#c0392b','Contrats':'#8e44ad','Visite d\'embauche':'#16a085','Période d\'essai':'#2980b9','Dossiers incomplets':'#d35400','Incidents':'#c0392b','Congés & indispos':'#1565c0'};
+  var accents={'Recrutement':'#2e7d32','À sanctionner':'#c0392b','À faire signer':'#e8a020','Contrats à signer':'#c2185b','Visite médicale':'#e87722','Mutuelle':'#c0392b','Titre de séjour':'#8e44ad','Contrats':'#8e44ad','Visite d\'embauche':'#16a085','Période d\'essai':'#2980b9','Dossiers incomplets':'#d35400','Incidents':'#c0392b','Congés & indispos':'#1565c0'};
   // ordre canonique (toutes les tuiles) + catégories imprévues éventuelles ajoutées à la fin
   var order=ALERT_CATS.map(function(c){return c.cat;});
   Object.keys(cats).forEach(function(c){ if(order.indexOf(c)<0) order.push(c); });
@@ -8012,10 +8025,9 @@ function ptgCheckPin(){
   var e=_ptgSel; if(!e) return;
   var pin=((document.getElementById('ptg-pin')||{}).value||'').trim();
   var msg=document.getElementById('ptg-pin-msg');
-  var attendu=ptgCodeAttendu(e);
-  if(!attendu){ msg.style.color='#F5A623'; msg.textContent="Date de naissance non renseignée : prévenez le RH."; return; }
+  if(!empPin(e)){ msg.style.color='#F5A623'; msg.textContent="Aucun code (date de naissance non renseignée) : prévenez le RH."; return; }
   if(pin.length<4){ return; }
-  if(pin!==attendu){ msg.style.color='#e8623a'; msg.textContent='Code incorrect, réessayez.'; return; }
+  if(!empCodeMatch(e,pin)){ msg.style.color='#e8623a'; msg.textContent='Code incorrect, réessayez.'; return; }
   ptgShowActions();
 }
 
@@ -8070,7 +8082,7 @@ function _ptgMesDemandes(empId){
   // On masque les demandes dont la date de FIN est passée (congé terminé).
   var ajd=new Date(); var ajdISO=ajd.getFullYear()+'-'+String(ajd.getMonth()+1).padStart(2,'0')+'-'+String(ajd.getDate()).padStart(2,'0');
   var dem=abs.filter(function(a){
-    if(!a || (a.motif!=='cp'&&a.motif!=='css')) return false;
+    if(!a || (a.motif!=='cp'&&a.motif!=='css'&&a.motif!=='indispo')) return false;
     var fin=a.to||a.from||''; // date de fin (ou début si pas de fin)
     return !fin || fin>=ajdISO; // garder si pas encore terminée
   });
@@ -8080,7 +8092,7 @@ function _ptgMesDemandes(empId){
   // tri par date de début décroissante
   dem.sort(function(a,b){ return (b.from||'').localeCompare(a.from||''); });
   var lignes=dem.map(function(a){
-    var typeTxt = a.motif==='cp' ? '🟦 Congé payé' : '🟪 Congé sans solde';
+    var typeTxt = a.motif==='cp' ? '🟦 Congé payé' : (a.motif==='indispo' ? '🟨 Indisponibilité' : '🟪 Congé sans solde');
     var per=fr(a.from)+(a.to&&a.to!==a.from?(' → '+fr(a.to)):'');
     var st=a.statut, badge;
     if(st==='valide'){ badge='<span style="color:#3ecf8e;font-weight:700;">✅ Validé</span>'; }
@@ -8890,7 +8902,7 @@ function renderVisiteList(){
   }
   var periodiqueHtml='';
   periodiqueHtml+=bloc('🔴 Dépassé','depasse','#cc5555',true);
-  periodiqueHtml+=bloc('🟠 Bientôt (moins d\'1 mois)','bientot','#F5A623',true);
+  periodiqueHtml+=bloc('🟠 À planifier (échéance proche)','bientot','#F5A623',true);
   periodiqueHtml+=bloc('🟢 Planifié','ok','#4CAF50',false);
   periodiqueHtml+=bloc('⚪ Prochaine visite à définir','adefinir','#888',false);
   periodiqueHtml+=bloc('⚪ Aucune visite enregistrée','aucune','#888',false);
@@ -11545,6 +11557,31 @@ async function saveSeuilOral(){
   await saveDB();toast('Seuil enregistré ✔','success');
 }
 
+// ── Réglages visite médicale ─────────────────────────────────────────────────
+function loadVisiteConfig(){
+  var c=visiteCfg();
+  var set=function(id,v){var el=document.getElementById(id);if(el)el.value=v;};
+  set('vc-emb-limite',c.embaucheLimiteMois);
+  set('vc-emb-alerte',c.embaucheAlerteMois);
+  set('vc-emb-urgent',c.embaucheUrgentMois);
+  set('vc-per-defaut',c.periodiqueDefautAns);
+  set('vc-per-alerte',c.periodiqueAlerteJours);
+}
+async function saveVisiteConfig(){
+  var num=function(id){var el=document.getElementById(id);return el?parseInt(el.value):NaN;};
+  var lim=num('vc-emb-limite'), al=num('vc-emb-alerte'), ur=num('vc-emb-urgent'),
+      pd=num('vc-per-defaut'), pa=num('vc-per-alerte');
+  if(!(lim>0)||!(al>0)||!(ur>0)||!(pd>0)||!(pa>0)){toast('Renseignez des valeurs valides (supérieures à 0).','error');return;}
+  if(ur>al){toast('Le seuil « urgent » doit être inférieur ou égal au seuil « à planifier ».','error');return;}
+  if(al>lim){toast('Le seuil « à planifier » ne peut pas dépasser le délai maximum.','error');return;}
+  if(!DB.mailSettings)DB.mailSettings={};
+  DB.mailSettings.visiteConfig={embaucheLimiteMois:lim,embaucheAlerteMois:al,embaucheUrgentMois:ur,periodiqueDefautAns:pd,periodiqueAlerteJours:pa};
+  await saveDB();
+  toast('Réglages de visite médicale enregistrés ✔','success');
+  try{ if(typeof renderVisiteStatTiles==='function')renderVisiteStatTiles(); if(typeof renderVisiteList==='function')renderVisiteList(); }catch(_){}
+}
+window.saveVisiteConfig=saveVisiteConfig;
+
 var _mailTab='entretien';
 var _mailResto=null;   // restaurant dont on édite les modèles (écran tuiles)
 function loadMailTpl(){
@@ -12175,22 +12212,6 @@ async function hrChargerDashboardSupabase(){
   }catch(e){ console.warn('Écran télé : lecture Supabase impossible', e&&e.message||e); }
 }
 window.hrChargerDashboardSupabase=hrChargerDashboardSupabase;
-function dashOpenConfig(){
-  var board=document.getElementById('dash-board'),panel=document.getElementById('dash-panel'),cfg=document.getElementById('dash-config');
-  if(board)board.style.display='none'; if(panel)panel.style.display='none'; if(cfg)cfg.style.display='block';
-  // en-tête aperçu
-  try{
-    var r=dashRestoList().find(function(x){return x.id===DASH_RESTO;})||{label:'Mon restaurant'};
-    var nm=document.getElementById('dash-cfg-resto'); if(nm) nm.textContent=r.label||'Mon restaurant';
-    var h=new Date().getHours(); var hel=document.getElementById('dash-cfg-hello'); if(hel) hel.textContent=(h<12?'Bonjour':(h<18?'Bon après-midi':'Bonsoir'))+' 👋';
-  }catch(e){}
-  dashRenderConfig();
-}
-function dashCloseConfig(){
-  var board=document.getElementById('dash-board'),cfg=document.getElementById('dash-config');
-  if(cfg)cfg.style.display='none'; if(board)board.style.display='block';
-  dashRenderTiles();
-}
 function dashToggleTile(id){ var c=getDashConfig(); c[id]=(c[id]===false)?true:false; saveDashConfig(); dashRenderConfig(); }
 function dashRenderConfig(){
   var cfg=getDashConfig();
@@ -12236,14 +12257,14 @@ function dashOpenChangeCode(){
 }
 function dashChangeCodeOpen(empId){
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
-  _eqSel=e; _eqResto=e.restoId||e.resto_id||null; _eqKiosk=false;
+  _eqSel=e; _eqResto=e.restoId||e.resto_id||null; _eqKiosk=false; _eqCodeCtx='admin';
   var ov=document.getElementById('equipier-portail');
   if(!ov){ ov=document.createElement('div'); ov.id='equipier-portail'; document.body.appendChild(ov); }
   ov.style.display='block';
   try{ eqChangeCode(); }catch(err){ console.warn('dashChangeCodeOpen',err); }
 }
 window.dashOpenChangeCode=dashOpenChangeCode; window.dashChangeCodeOpen=dashChangeCodeOpen;
-window.dashOpenConfig=dashOpenConfig; window.dashCloseConfig=dashCloseConfig; window.dashToggleTile=dashToggleTile;
+window.dashToggleTile=dashToggleTile;
 // ══ TÉLÉPHONE ÉQUIPE — miroir de l'Écran télé, SANS pointage, pièces configurables ══
 // Reprend DASH_TILES en retirant la tuile « pointer » (on ne pointe jamais depuis la
 // maison). Chaque pièce peut être activée/désactivée ; la config est partagée via
@@ -12344,7 +12365,7 @@ function telPreviewChangeCode(){
   var empId=(sel&&sel.value)?sel.value:((_dashEmployesResto(resto)[0]||{}).id);
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
   if(!e){ if(typeof toast==='function') toast('Aucun salarié pour ce restaurant','error'); return; }
-  _eqSel=e; _eqResto=e.restoId||e.resto_id||null; _eqKiosk=false;
+  _eqSel=e; _eqResto=e.restoId||e.resto_id||null; _eqKiosk=false; _eqCodeCtx='admin';
   var ov=document.getElementById('equipier-portail');
   if(!ov){ ov=document.createElement('div'); ov.id='equipier-portail'; document.body.appendChild(ov); }
   ov.style.display='block';
@@ -12361,6 +12382,17 @@ function empPin(e){
   if(/^\d{4}$/.test(p)) return p;
   return empPinDefaut(e);
 }
+// Règle UNIQUE de vérification de code, utilisée PARTOUT (portail, pointage, écran télé) :
+// on accepte le code personnalisé OU la date de naissance (JJMM). Ainsi un salarié n'est
+// jamais bloqué (notamment au pointage) et le comportement est cohérent partout.
+function empCodeMatch(e, pin){
+  pin=String(pin||'').trim();
+  if(!/^\d{4}$/.test(pin)) return false;
+  var custom=(e && e.infos && /^\d{4}$/.test(String(e.infos.pin!=null?e.infos.pin:'')))?String(e.infos.pin):null;
+  var naiss=empPinDefaut(e);
+  return (custom!=null && pin===custom) || (naiss!=null && pin===naiss);
+}
+window.empCodeMatch=empCodeMatch;
 function empPinEstDefaut(e){ return !(e && e.infos && /^\d{4}$/.test(String((e.infos.pin!=null?e.infos.pin:'')))); }
 async function empPinSave(e, pin){
   if(!e || !/^\d{4}$/.test(String(pin))) return false;
@@ -12390,6 +12422,11 @@ window.empPin=empPin; window.empPinResetUI=empPinResetUI;
 // Overlay autonome : restaurant → nom → code → accueil (les tuiles du Téléphone
 // équipe). Ne touche pas au menu admin ni aux rôles.
 var _eqSel=null, _eqResto=null, _eqKiosk=false;
+// Contexte du formulaire "Changer mon code" : 'portail' (vraie session salarié →
+// retour vers son accueil) ou 'admin' (écran télé / aperçu → on FERME, jamais
+// d'accès à l'accueil privé sans code).
+var _eqCodeCtx='portail';
+function _eqCodeBack(){ return (_eqCodeCtx==='admin') ? 'equipierFermer()' : 'eqHome()'; }
 function equipierPortail(){
   _eqSel=null; _eqResto=null;
   var ov=document.getElementById('equipier-portail');
@@ -12435,9 +12472,9 @@ function eqLogin(){
   var cands=_eqAllEmployes().filter(function(e){ var n=_eqNorm(e.name); return tn && tp && n.indexOf(tn)>=0 && n.indexOf(tp)>=0; });
   if(!cands.length){ ko('Nom introuvable. Vérifie l\'orthographe ou préviens le RH.'); return; }
   var e=null;
-  for(var i=0;i<cands.length;i++){ if(empPin(cands[i])===pin){ e=cands[i]; break; } }
+  for(var i=0;i<cands.length;i++){ if(empCodeMatch(cands[i],pin)){ e=cands[i]; break; } }
   if(!e){ ko('Code incorrect.'); var p=document.getElementById('eq-pin'); if(p){p.value='';p.focus();} return; }
-  _eqSel=e; _eqResto=e.restoId||e.resto_id||null;
+  _eqSel=e; _eqResto=e.restoId||e.resto_id||null; _eqCodeCtx='portail';
   eqHome();
 }
 function eqHome(){
@@ -12445,7 +12482,7 @@ function eqHome(){
   var lbl=(RESTOS[_eqResto]&&RESTOS[_eqResto].label)||_eqResto||'';
   var cfg=(typeof getTelConfig==='function')?getTelConfig():{};
   var tiles=(typeof TEL_TILES!=='undefined'?TEL_TILES:[]).filter(function(t){return cfg[t.id]!==false;});
-  var codeTile='<div class="tel-mini" onclick="eqChangeCode()" style="cursor:pointer;">'
+  var codeTile='<div class="tel-mini" onclick="_eqCodeCtx=\'portail\';eqChangeCode()" style="cursor:pointer;">'
     +'<div class="tm-accent" style="background:#8e8e8e"></div><div class="tm-em">🔑</div>'
     +'<div><div class="tm-tt">Changer mon code</div><div class="tm-ds">Modifier mon code PIN</div></div></div>';
   var cfgTiles=tiles.map(function(t){
@@ -12462,7 +12499,7 @@ function eqHome(){
 }
 function eqChangeCode(){
   var e=_eqSel; if(!e)return; var ov=document.getElementById('equipier-portail'); if(!ov)return;
-  ov.innerHTML=_eqShell('<button class="eq-lnk" onclick="eqHome()">← Retour</button>'
+  ov.innerHTML=_eqShell('<button class="eq-lnk" onclick="'+_eqCodeBack()+'">← Retour</button>'
     +'<div class="eq-h">🔑 Changer mon code</div>'
     +'<div class="eq-sub">Saisis ton ancien code, puis choisis ton nouveau code (2 fois par sécurité).</div>'
     +'<input id="eq-old" class="eq-pin" type="tel" inputmode="numeric" maxlength="4" placeholder="Ancien code" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');">'
@@ -12479,12 +12516,12 @@ async function eqSaveCode(){
   var b=((document.getElementById('eq-np2')||{}).value||'').trim();
   var msg=document.getElementById('eq-msg');
   function ko(t){ if(msg){msg.style.color='#e8623a';msg.textContent=t;} }
-  if(old!==empPin(e)){ ko('Ancien code incorrect.'); var o=document.getElementById('eq-old'); if(o){o.value='';o.focus();} return; }
+  if(!empCodeMatch(e,old)){ ko('Ancien code incorrect.'); var o=document.getElementById('eq-old'); if(o){o.value='';o.focus();} return; }
   if(!/^\d{4}$/.test(a)){ ko('Le nouveau code doit faire 4 chiffres.'); return; }
   if(a!==b){ ko('Les deux nouveaux codes ne correspondent pas.'); return; }
   if(msg){msg.style.color='#F5A623';msg.textContent='⏳ Enregistrement…';}
   var ok=await empPinSave(e,a);
-  if(ok){ if(msg){msg.style.color='#3ecf8e';msg.textContent='✅ Nouveau code enregistré.';} setTimeout(eqHome,900); }
+  if(ok){ if(msg){msg.style.color='#3ecf8e';msg.textContent='✅ Nouveau code enregistré.';} setTimeout((_eqCodeCtx==='admin')?equipierFermer:eqHome,900); }
   else { ko('Erreur, réessaie.'); }
 }
 // Code oublié : renvoie vers le directeur/manager qui réinitialise depuis la fiche
@@ -12495,7 +12532,7 @@ function eqForgotCode(){
   ov.innerHTML=_eqShell('<button class="eq-lnk" onclick="eqChangeCode()">← Retour</button>'
     +'<div class="eq-h">Code oublié ?</div>'
     +'<div class="eq-sub" style="line-height:1.55;">Pas de souci. Rapproche-toi de ton <b>directeur</b> ou de ton <b>manager</b> : il peut remettre ton code à ta <b>date de naissance</b> (jour + mois, ex. 0209 pour le 2 septembre). Tu pourras ensuite en choisir un nouveau.</div>'
-    +'<button class="eq-bigbtn" onclick="eqHome()">Compris</button>');
+    +'<button class="eq-bigbtn" onclick="'+_eqCodeBack()+'">Compris</button>');
 }
 window.eqForgotCode=eqForgotCode;
 // Ouvre une rubrique du téléphone pour le salarié DÉJÀ connecté (Mes horaires,
@@ -12597,10 +12634,9 @@ function dashHorairesCheckPin(empId){
   var msg=document.getElementById('dash-hor-msg');
   var cal=document.getElementById('dash-hor-cal');
   var pin=((document.getElementById('dash-hor-pin')||{}).value||'').trim();
-  var attendu=_dashCodeNaissance(e);
-  if(!attendu){ msg.style.color='#F5A623'; msg.textContent='Date de naissance non renseignée : préviens le RH.'; return; }
+  if(!empPin(e)){ msg.style.color='#F5A623'; msg.textContent='Aucun code (date de naissance non renseignée) : préviens le RH.'; return; }
   if(pin.length<4){ msg.textContent=''; cal.style.display='none'; return; }
-  if(pin!==attendu){ msg.style.color='#e8623a'; msg.textContent='Code incorrect, réessaie.'; cal.style.display='none'; _dashHorEmp=null; return; }
+  if(!empCodeMatch(e,pin)){ msg.style.color='#e8623a'; msg.textContent='Code incorrect, réessaie.'; cal.style.display='none'; _dashHorEmp=null; return; }
   _dashHorEmp=e;
   msg.style.color='#3ecf8e'; msg.textContent='✓ Code validé.';
   cal.style.display='block';
@@ -12847,10 +12883,9 @@ function dashDemCheckPin(empId){
   var msg=document.getElementById('dash-dem-msg');
   var form=document.getElementById('dash-dem-form');
   var pin=((document.getElementById('dash-dem-pin')||{}).value||'').trim();
-  var attendu=_dashCodeNaissance(e);
-  if(!attendu){ msg.style.color='#F5A623'; msg.textContent='Date de naissance non renseignée : préviens le RH.'; return; }
+  if(!empPin(e)){ msg.style.color='#F5A623'; msg.textContent='Aucun code (date de naissance non renseignée) : préviens le RH.'; return; }
   if(pin.length<4){ msg.textContent=''; form.style.display='none'; return; }
-  if(pin!==attendu){ msg.style.color='#e8623a'; msg.textContent='Code incorrect, réessaie.'; form.style.display='none'; _dashDemEmp=null; return; }
+  if(!empCodeMatch(e,pin)){ msg.style.color='#e8623a'; msg.textContent='Code incorrect, réessaie.'; form.style.display='none'; _dashDemEmp=null; return; }
   _dashDemEmp=e;
   msg.style.color='#3ecf8e'; msg.textContent='✓ Code validé.';
   form.style.display='block';
@@ -12944,7 +12979,7 @@ function dashDemEnvoyer(){
   if(!a){ if(typeof toast==='function') toast('Choisis au moins une date sur le calendrier','error'); return; }
   var from=a, to=b;
   if(to<from){ var tmp=from; from=to; to=tmp; }
-  var motif = _dashDemType==='conges' ? 'cp' : 'css';
+  var motif = _dashDemType==='conges' ? 'cp' : 'indispo';
   // Toujours travailler sur l'objet GLOBAL partagé (le même que lit État équipe).
   if(!window.HR_ABSENCES || typeof window.HR_ABSENCES!=='object'){ window.HR_ABSENCES={}; }
   // Repartir du contenu le plus à jour présent dans le navigateur, pour ne rien perdre.
@@ -15538,7 +15573,7 @@ function hrAbsenceDuJour(empId, isoDate){
   if(!empId||!isoDate) return null;
   var lst=HR_ABSENCES[empId]; if(!lst||!lst.length) return null;
   for(var i=0;i<lst.length;i++){
-    var a=lst[i]; if(!a||a.statut==='attente') continue;
+    var a=lst[i]; if(!a||a.statut==='attente'||a.statut==='refuse') continue;
     var f=a.from||'', t=a.to||a.from||''; if(!f) continue; if(!t) t=f;
     if(isoDate>=f && isoDate<=t) return a;
   }
@@ -15650,7 +15685,7 @@ function hrOuvrirAbsences(){
       +'<div style="font-size:1.1rem;font-weight:800;color:#fff;">🌴 Absences — congés / maladie</div>'
       +'<button onclick="document.getElementById(\'hr-abs-ov\').remove()" style="background:none;border:none;color:#aaa;font-size:1.4rem;cursor:pointer;">×</button>'
     +'</div>'
-    +'<div style="font-size:.84rem;color:#aaa;margin-bottom:14px;">Choisis la période (un jour = mets la même date des deux côtés ; toute la semaine = laisse lundi→dimanche) puis « + Absent ». Les personnes absentes ne seront pas placées sur ces dates au prochain « Placer le mois ».</div>'
+    +'<div style="font-size:.84rem;color:#aaa;margin-bottom:14px;">Choisis la période (un jour = mets la même date des deux côtés ; toute la semaine = laisse lundi→dimanche) puis « + Absent ». Les personnes absentes ne seront pas placées sur ces dates au prochain « 🧠 Placement intelligent ».</div>'
     +'<table style="width:100%;border-collapse:collapse;"><thead><tr style="border-bottom:2px solid #555;">'
       +'<th style="text-align:left;padding:6px 8px;color:#fff;font-size:.8rem;">Équipier</th>'
       +'<th style="text-align:left;padding:6px 8px;color:#fff;font-size:.8rem;">Absences enregistrées</th>'
@@ -15867,7 +15902,7 @@ function _hrEtatRenderAbsences(){
   var legende=Object.keys(HR_ETAT_MOTIFS).map(function(k){var m=HR_ETAT_MOTIFS[k];return '<span style="margin-right:12px;font-size:.78rem;color:#bbb;">'+m.icon+' '+m.label+'</span>';}).join('');
   box.innerHTML=
     _hrEEHeader('État / Absences','avant de lancer le placement')
-    +'<div style="font-size:.84rem;color:#aaa;margin-bottom:10px;">Déclare ici l\'état de chaque salarié <b>avant de lancer le placement</b>. Les états validés (CP, maladie, absence, indispo) sont automatiquement respectés par « Placer le mois / l\'année » : le salarié n\'est pas placé sur ces dates. Une <b>demande</b> reste en attente et ne bloque rien tant que tu ne l\'as pas validée (✓).</div>'
+    +'<div style="font-size:.84rem;color:#aaa;margin-bottom:10px;">Déclare ici l\'état de chaque salarié <b>avant de lancer le placement</b>. Les états validés (CP, maladie, absence, indispo) sont automatiquement respectés par le « 🧠 Placement intelligent » : le salarié n\'est pas placé sur ces dates. Une <b>demande</b> reste en attente et ne bloque rien tant que tu ne l\'as pas validée (✓).</div>'
     +'<div style="margin-bottom:12px;">'+legende+'</div>'
     +_hrBlocDemandesEnAttente()
     +'<table style="width:100%;border-collapse:collapse;"><thead><tr style="border-bottom:2px solid #444;">'
@@ -18045,27 +18080,6 @@ function hrPlacerMoisAffiche(){
 }
 window.hrPlacerMoisAffiche=hrPlacerMoisAffiche;
 
-// Menu déroulant de choix du mois à placer
-function hrToggleMoisMenu(){
-  var menu=document.getElementById('hrx-mois-menu'); if(!menu) return;
-  if(menu.style.display==='block'){ menu.style.display='none'; return; }
-  var moisNoms=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-  // année de la semaine affichée (par défaut), on propose les 12 mois de cette année
-  var an=(typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?DAY_DATES[0].slice(0,4):String(new Date().getFullYear());
-  var html='';
-  for(var m=0;m<12;m++){
-    var mm=String(m+1).padStart(2,'0');
-    html+='<div onclick="hrPlacerMoisChoisi(\''+an+'-'+mm+'-15\')" style="padding:8px 12px;cursor:pointer;border-radius:7px;color:#eee;font-size:.86rem;" onmouseover="this.style.background=\'#2e6fc2\'" onmouseout="this.style.background=\'transparent\'">'+moisNoms[m].charAt(0).toUpperCase()+moisNoms[m].slice(1)+' '+an+'</div>';
-  }
-  menu.innerHTML=html; menu.style.display='block';
-}
-window.hrToggleMoisMenu=hrToggleMoisMenu;
-function hrPlacerMoisChoisi(isoRef){
-  var menu=document.getElementById('hrx-mois-menu'); if(menu) menu.style.display='none';
-  hrAutoAssignMonth(isoRef, false);
-}
-window.hrPlacerMoisChoisi=hrPlacerMoisChoisi;
-
 // Verrou de la SEMAINE affichée
 function hrToggleVerrouSemaine(){
   var lundi=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?hrLundiDe(DAY_DATES[0]):null);
@@ -18395,7 +18409,7 @@ function _hrEtatJour(empId, isoDate){
   var estDimanche=false;
   try{ estDimanche=(new Date(isoDate+'T12:00:00').getDay()===0); }catch(e){}
   for(var i=0;i<lst.length;i++){
-    var a=lst[i]; if(!a||a.statut==='attente') continue;
+    var a=lst[i]; if(!a||a.statut==='attente'||a.statut==='refuse') continue;
     var from=a.from, to=a.to||a.from;
     if(isoDate>=from && isoDate<=to){
       if(estDimanche && a.motif==='cp') return null; // CP le dimanche → repos
@@ -19103,7 +19117,7 @@ function hrRenderPlanningHebdo(){
   // noms — qu'elle soit dans HR_MONTH_RESULT ou non. Évite que « ça marche puis
   // ça ne marche plus » selon la semaine.
   if(_hebdoFallback()) return;
-  if(!HR_MONTH_RESULT||!HR_MONTH_RESULT.semaines.length){ box.innerHTML='<div style="color:var(--mu);font-size:13px;padding:12px;">Cliquez sur « 📆 Placer la semaine » pour générer le planning et le suivi.</div>'; return; }
+  if(!HR_MONTH_RESULT||!HR_MONTH_RESULT.semaines.length){ box.innerHTML='<div style="color:var(--mu);font-size:13px;padding:12px;">Cliquez sur « 🧠 Placement intelligent » pour générer le planning et le suivi.</div>'; return; }
   var R=HR_MONTH_RESULT;
   // Synchroniser sur la semaine affichée en haut (les traits) si elle fait partie du mois calculé
   if(typeof HR_WEEK_LUNDI!=='undefined' && HR_WEEK_LUNDI){
@@ -19112,7 +19126,7 @@ function hrRenderPlanningHebdo(){
     else {
       // semaine affichée hors du mois calculé : on tente le fallback (noms mémorisés)
       if(_hebdoFallback()) return;
-      box.innerHTML='<div style="background:#fff;color:#333;border-radius:10px;padding:18px;text-align:center;font-size:13px;">La semaine affichée en haut n\'a pas encore été placée.<br>Cliquez sur « 📆 Placer la semaine » pour générer le planning et le suivi.</div>';
+      box.innerHTML='<div style="background:#fff;color:#333;border-radius:10px;padding:18px;text-align:center;font-size:13px;">La semaine affichée en haut n\'a pas encore été placée.<br>Cliquez sur « 🧠 Placement intelligent » pour générer le planning et le suivi.</div>';
       return;
     }
   }
@@ -19451,7 +19465,7 @@ function hrRenderEmploiSemaine(){
   }
   var emps=Object.keys(parEmp).map(function(id){return Object.assign({id:id},parEmp[id]);});
   emps.sort(function(a,b){return a.name.localeCompare(b.name);});
-  if(!emps.length){ box.innerHTML='<div style="color:var(--mu);font-size:13px;padding:12px;">Cliquez sur « Placer la semaine » pour générer l\'emploi du temps des équipiers.</div>'; return; }
+  if(!emps.length){ box.innerHTML='<div style="color:var(--mu);font-size:13px;padding:12px;">Cliquez sur « 🧠 Placement intelligent » pour générer l\'emploi du temps des équipiers.</div>'; return; }
 
   // contrat hebdo (lecture robuste, tous champs) pour comparer aux heures placées
   function contratDe(id){
