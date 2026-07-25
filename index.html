@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-24 · v340';
+  var EMBEDDED_VERSION = '2026-07-25 · v341';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -2584,6 +2584,25 @@ function startRealtime(){
     // Vérifier page signature
     if (hash.indexOf('#sign/') === 0) {
       showSignPage(hash.slice(6));
+      return;
+    }
+    // Lien direct ÉQUIPIER : ouvre directement l'écran nom + prénom + code,
+    // sans montrer les restaurants ni les accès admin.
+    if (hash.indexOf('#equipier') === 0) {
+      document.getElementById('loading-screen').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'block';
+      _eqKiosk = true;
+      try { equipierPortail(); } catch(e){ console.warn('lien équipier', e); }
+      return;
+    }
+    // Lien direct ÉCRAN TV d'un restaurant : #ecran/bk500 → tableau du resto, sans code.
+    if (hash.indexOf('#ecran/') === 0) {
+      var _er = (hash.split('/')[1] || '').toLowerCase();
+      document.getElementById('loading-screen').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'block';
+      if (typeof RESTOS !== 'undefined' && RESTOS[_er]) {
+        try { pickTV(_er); pinVal = '0000'; checkPin(); } catch(e){ console.warn('lien écran', e); }
+      }
       return;
     }
     document.getElementById('loading-screen').style.display = 'none';
@@ -12271,7 +12290,7 @@ window.empPin=empPin; window.empPinResetUI=empPinResetUI;
 // ══ ESPACE ÉQUIPIER — accès sécurisé par code PIN (sur le téléphone du salarié) ══
 // Overlay autonome : restaurant → nom → code → accueil (les tuiles du Téléphone
 // équipe). Ne touche pas au menu admin ni aux rôles.
-var _eqSel=null, _eqResto=null;
+var _eqSel=null, _eqResto=null, _eqKiosk=false;
 function equipierPortail(){
   _eqSel=null; _eqResto=null;
   var ov=document.getElementById('equipier-portail');
@@ -12288,7 +12307,13 @@ function equipierPortail(){
     +'<div class="eq-hint">Ton code par défaut : jour + mois de naissance (ex. 0901 pour le 9 janvier).</div>');
   setTimeout(function(){var s=document.getElementById('eq-nom');if(s)s.focus();},120);
 }
-function equipierFermer(){ var ov=document.getElementById('equipier-portail'); if(ov) ov.style.display='none'; _eqSel=null; _eqResto=null; }
+function equipierFermer(){
+  _eqSel=null; _eqResto=null;
+  // Mode kiosque (lien direct #equipier) : la déconnexion ramène au formulaire de
+  // connexion équipier (et JAMAIS aux tuiles restaurants / admin).
+  if(_eqKiosk){ try{ equipierPortail(); }catch(e){} return; }
+  var ov=document.getElementById('equipier-portail'); if(ov) ov.style.display='none';
+}
 function _eqShell(inner){
   return '<div class="eq-back"><div class="eq-card"><button class="eq-close" onclick="equipierFermer()">×</button>'+inner+'</div></div>';
 }
