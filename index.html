@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-25 · v361';
+  var EMBEDDED_VERSION = '2026-07-25 · v378';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -741,6 +741,7 @@ html,body{overflow-x:hidden;}
             </div>
             <div class="tel-tv-stand"></div>
             <div class="tel-preview-cap">Aperçu — Écran télé du restaurant</div>
+            <div class="tel-preview-as">Aperçu en tant que : <select id="dash-cfg-emp" class="tel-as-sel"></select></div>
           </div>
         </div>
       </div>
@@ -1442,6 +1443,11 @@ html,body{overflow-x:hidden;}
 
       <button class="btn btn-red" onclick="saveVisiteConfig()">💾 Enregistrer les réglages</button>
     </div>
+    <div class="card param-card" id="pc-pointer" style="display:none;">
+      <div class="sec-title">📍 Pointer — messages du pointage</div>
+      <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Réglez ici ce que le salarié voit <strong>en plus</strong> quand il pointe. Vous pouvez envoyer un message à <strong>tout le monde</strong>, seulement aux salariés d'un <strong>poste précis</strong> (ex. Première cabine) ou <strong>à une personne</strong> en particulier. Ajoutez une photo, une période (du…au…) et, pour les fiches produit / LTO, un accusé de lecture obligatoire. Les messages sont propres au restaurant actif (sélecteur en haut).</p>
+      <div id="ptg-msg-admin"></div>
+    </div>
     <div class="card param-card" id="rec-apercu-card" style="display:none;">
       <div class="sec-title">👁️ Aperçu de la fiche de recrutement</div>
       <p style="font-size:.83rem;color:#aaa;margin-bottom:12px;">Voici exactement ce que le candidat voit et remplit quand il scanne le QR code. Cet aperçu est en lecture seule.</p>
@@ -1655,7 +1661,7 @@ html,body{overflow-x:hidden;}
 
 <!-- SUIVI POINTAGE (réservé RH / direction) -->
 <div class="page" id="page-suivipointage">
-  <div class="card" id="ptg-msg-admin" style="margin-bottom:14px;"></div>
+  <!-- L'éditeur de messages du pointage est désormais dans Paramètres › Pointer (#ptg-msg-admin). -->
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
       <div class="sec-title" style="margin:0;">📋 Suivi des pointages</div>
@@ -2320,6 +2326,7 @@ async function loadAll(light) {
   try{ if(typeof hrChargerSocieteSupabase==='function'){ await hrChargerSocieteSupabase(); } }catch(e){}
   try{ if(typeof hrChargerTelephoneSupabase==='function'){ await hrChargerTelephoneSupabase(); } }catch(e){}
   try{ if(typeof hrChargerDashboardSupabase==='function'){ await hrChargerDashboardSupabase(); } }catch(e){}
+  try{ if(typeof hrChargerVisibiliteSupabase==='function'){ await hrChargerVisibiliteSupabase(); } }catch(e){}
 }
 
 async function saveDB() {
@@ -3211,6 +3218,103 @@ function setRestoFilterDirect(r){
 // ══ PARAMÈTRES EN TUILES ══════════════════════════════════════════════════════
 // Liste des tuiles de la page Paramètres. type 'card' = affiche une carte interne ;
 // type 'page' = va vers une page existante (salaires/contrats/réglementation).
+// ══ VISIBILITÉ DES TUILES PAR RÔLE (Directeur / Manager) ═══════════════════════
+// L'admin (franchise/RH) décide, tuile par tuile, dans Paramètres, Alertes et
+// Rapports, si le Directeur et/ou le Manager peuvent la voir. Stocké dans
+// app_config (clé 'bkrh_visibilite'), partagé sur tous les appareils + miroir
+// localStorage. Par défaut : tout est visible. L'admin voit toujours tout.
+var VIS_CONFIG=null;
+function visDefault(){ return {parametres:{},alertes:{},rapports:{}}; }
+function getVisConfig(){
+  if(VIS_CONFIG) return VIS_CONFIG;
+  try{ var raw=localStorage.getItem('bkrh_visibilite'); if(raw){ VIS_CONFIG=Object.assign(visDefault(),JSON.parse(raw)); return VIS_CONFIG; } }catch(e){}
+  VIS_CONFIG=visDefault(); return VIS_CONFIG;
+}
+function saveVisConfig(){
+  try{ localStorage.setItem('bkrh_visibilite',JSON.stringify(VIS_CONFIG)); }catch(e){}
+  try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:'bkrh_visibilite',valeur:VIS_CONFIG},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
+}
+async function hrChargerVisibiliteSupabase(){
+  try{
+    if(typeof SB==='undefined' || !SB) return;
+    var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_visibilite').maybeSingle();
+    if(r && r.data && r.data.valeur){ VIS_CONFIG=Object.assign(visDefault(),r.data.valeur); try{localStorage.setItem('bkrh_visibilite',JSON.stringify(VIS_CONFIG));}catch(e){} }
+  }catch(e){ console.warn('Visibilité : lecture Supabase impossible', e&&e.message||e); }
+}
+window.hrChargerVisibiliteSupabase=hrChargerVisibiliteSupabase;
+// rôle simplifié : directeur -> 'dir', manager -> 'mgr' ; admin/autres -> null (tout voir)
+function _visRoleActuel(){ var r=(curUser&&curUser.role)||''; if(r==='directeur') return 'dir'; if(r==='manager') return 'mgr'; return null; }
+// admin = celui qui CONFIGURE la visibilité (franchise/RH)
+function _visAdmin(){ return !!(curUser && curUser.role==='franchise'); }
+// une tuile est-elle visible pour le rôle courant ?
+function visTuileVisible(section, id){
+  var role=_visRoleActuel();
+  if(!role) return true;                 // admin & autres : tout voir
+  var conf=((getVisConfig()[section]||{})[id]);
+  if(!conf) return true;                  // par défaut : visible
+  if(conf.hidden===true) return false;    // interrupteur OFF = tuile masquée (Directeur & Manager)
+  if(conf.dir===false && conf.mgr===false) return false; // compat ancien format
+  return true;
+}
+window.visTuileVisible=visTuileVisible;
+function _visRerender(section){
+  try{ if(section==='parametres') renderParamTiles(); else if(section==='alertes') renderAlertes(); else if(section==='rapports') renderRptTiles(); }catch(e){}
+}
+// L'admin masque / affiche une tuile pour l'équipe (Directeur + Manager),
+// avec un seul interrupteur ON/OFF — EXACTEMENT le composant du Téléphone équipe.
+function visToggleTile(section, id){
+  var cfg=getVisConfig(); cfg[section]=cfg[section]||{};
+  cfg[section][id]=cfg[section][id]||{};
+  cfg[section][id].hidden=!cfg[section][id].hidden;
+  if('dir' in cfg[section][id]) delete cfg[section][id].dir;   // nettoyage ancien format
+  if('mgr' in cfg[section][id]) delete cfg[section][id].mgr;
+  saveVisConfig(); _visRerender(section);
+  try{ toast(cfg[section][id].hidden?'Tuile masquée':'Tuile affichée','success'); }catch(e){}
+}
+window.visToggleTile=visToggleTile;
+// Liste d'interrupteurs ON/OFF (un par tuile), même composant .tel-tog que le
+// Téléphone équipe.
+function visToggleList(section, tiles){
+  return tiles.map(function(t){
+    var conf=((getVisConfig()[section]||{})[t.id])||{};
+    var on=(conf.hidden!==true);
+    return '<div class="tel-tog'+(on?' on':'')+'" onclick="visToggleTile(\''+section+'\',\''+t.id+'\')">'
+      +'<div class="tt-em">'+(t.ico||'▫️')+'</div>'
+      +'<div class="tt-txt"><div class="tt-tt">'+t.titre+'</div>'+(t.sub?('<div class="tt-ds">'+t.sub+'</div>'):'')+'</div>'
+      +'<div class="tt-sw"></div></div>';
+  }).join('');
+}
+// Mise en page DEUX COLONNES identique à Écran télé / Téléphone équipe :
+// à gauche les interrupteurs, à droite l'aperçu (les tuiles réelles).
+// Non-admin : renvoie juste les tuiles (pas d'interrupteurs).
+function visLayout(section, tiles, tilesHtml, titre){
+  if(!_visAdmin()) return tilesHtml;
+  return '<div class="tel-wrap">'
+    +'<div class="tel-config">'
+      +'<div class="sec-title" style="margin-bottom:6px;">Afficher / masquer les tuiles</div>'
+      +'<p class="tel-intro">Interrupteur vert = tuile visible par le <b>Directeur</b> et le <b>Manager</b>. Éteins-le pour la masquer. Toi (Admin) vois toujours tout.</p>'
+      +'<div class="tel-toggles">'+visToggleList(section,tiles)+'</div>'
+    +'</div>'
+    +'<div class="tel-preview" style="flex:1 1 540px;min-width:0;align-items:stretch;">'
+      +'<div class="tel-preview-cap" style="text-align:left;margin:0 0 10px;">Aperçu — '+(titre||'')+'</div>'
+      +tilesHtml
+    +'</div>'
+  +'</div>';
+}
+window.visLayout=visLayout; window.visToggleList=visToggleList;
+// Une tuile est-elle éteinte (masquée pour Directeur/Manager) ?
+function _visMasquee(section,id){ return ((((getVisConfig()[section]||{})[id])||{}).hidden===true); }
+// Côté ADMIN uniquement : grise la tuile masquée + affiche une étiquette « 🚫 Masquée ».
+function visDim(section,id){ return (_visAdmin() && _visMasquee(section,id)) ? 'opacity:.5;filter:grayscale(.45);' : ''; }
+function visMark(section,id,corner){
+  if(!(_visAdmin() && _visMasquee(section,id))) return '';
+  var pos=(corner==='left')?'top:8px;left:10px;':'top:8px;right:10px;';
+  return '<span style="position:absolute;'+pos+'z-index:4;background:#7a2020;color:#ffd6d6;border:1px solid #cc5555;border-radius:7px;padding:1px 7px;font-size:.6rem;font-weight:800;letter-spacing:.2px;box-shadow:0 1px 3px rgba(0,0,0,.5);white-space:nowrap;">🚫 Masquée</span>';
+}
+window.visDim=visDim; window.visMark=visMark;
+function visPanel(){ return ''; }  // ancien panneau : désactivé (remplacé par visLayout)
+function visBadge(){ return ''; }  // ancien affichage par tuile : désactivé
+
 var PARAM_TILES=[
   {ico:'🎯', titre:'Compétences',   sub:'Importer la grille BK',        type:'card', card:'pc-competences', accent:'#e53935'},
   {ico:'📅', titre:'Disponibilités',sub:'Importer depuis Excel',        type:'card', card:'pc-dispos',      accent:'#1565c0'},
@@ -3222,6 +3326,7 @@ var PARAM_TILES=[
   {ico:'🕐', titre:'Amplitude',     sub:'Plage horaire dispos',         type:'card', card:'pc-amplitude',   accent:'#2980b9'},
   {ico:'⚠️', titre:'Observations',  sub:'Seuil rappel oral',            type:'card', card:'pc-seuil',       accent:'#d35400'},
   {ico:'🩺', titre:'Visite médicale',sub:'Délais et rappels',            type:'card', card:'pc-visite',      accent:'#c0392b'},
+  {ico:'📍', titre:'Pointer',       sub:'Messages du pointage',         type:'card', card:'pc-pointer',     accent:'#D62300'},
   {ico:'👁️', titre:'Aperçu fiche',  sub:'Vue candidat',                 type:'card', card:'rec-apercu-card',accent:'#7f8c8d'},
   {ico:'📧', titre:'Adresses mail', sub:'Expédition RH',                type:'card', card:'pc-adresses',    accent:'#2c3e50'},
   {ico:'✉️', titre:'Modèles mails', sub:'Mails aux candidats',          type:'card', card:'pc-mails',       accent:'#27ae60'},
@@ -3235,16 +3340,21 @@ function renderParamTiles(){
   // cacher toutes les cartes + bouton retour éventuel
   document.querySelectorAll('#page-parametres .param-card').forEach(function(c){ c.style.display='none'; });
   var back=document.getElementById('param-back'); if(back) back.remove();
-  var h='<div class="bk-page-tiles"><div class="sec-title" style="margin-bottom:14px;">⚙️ Réglages</div><div class="bk-tiles-grid">';
+  var meta=PARAM_TILES.map(function(t){return {id:(t.card||t.page), ico:t.ico, titre:t.titre, sub:t.sub};});
+  var grid='<div class="bk-tiles-grid">';
   PARAM_TILES.forEach(function(t,i){
+    var tid=t.card||t.page;
+    if(!visTuileVisible('parametres',tid)) return;
     var arg=t.type==='card'?("'card','"+t.card+"'"):("'page','"+t.page+"'");
-    h+='<div class="dash-tile" onclick="paramOuvrir('+arg+')">'
+    grid+='<div class="dash-tile" onclick="paramOuvrir('+arg+')" style="position:relative;'+visDim('parametres',tid)+'">'
       +'<div class="dt-accent" style="background:'+t.accent+';"></div>'
       +'<div class="dt-em">'+t.ico+'</div>'
       +'<div><div class="dt-tt">'+t.titre+'</div><div class="dt-ds">'+t.sub+'</div></div>'
+      +visMark('parametres',tid,'right')
       +'</div>';
   });
-  h+='</div></div>';
+  grid+='</div>';
+  var h='<div class="bk-page-tiles"><div class="sec-title" style="margin-bottom:14px;">⚙️ Réglages</div>'+visLayout('parametres',meta,grid,'Réglages')+'</div>';
   box.innerHTML=h;
   box.style.display='block';
 }
@@ -3260,6 +3370,7 @@ function paramOuvrir(type, ref){
     if(ref==='pc-dbximport'){ try{ dbxDropInit(); }catch(_){} }
     if(ref==='pc-societe'){ try{ renderSocieteForm(); }catch(_){} }
     if(ref==='pc-visite'){ try{ loadVisiteConfig(); }catch(_){} }
+    if(ref==='pc-pointer'){ try{ ptgMsgCharger('suivi'); }catch(_){} try{ ptgRenderMsgAdmin(); }catch(_){} }
     // bouton retour en tête de page
     var back=document.getElementById('param-back');
     if(!back){
@@ -3801,7 +3912,7 @@ function resetForm(){
 function fillFilters(){
   var fw=document.getElementById('f-who');fw.innerHTML='<option value="">Tous</option>';
   var r=curUser.role;var emps;
-  if(r==='franchise') emps=DB.employees.filter(function(e){return e.role==='equipier'||e.role==='leader'||e.role==='manager';});
+  if(r==='franchise'){ var _brF=(window.__incResto&&window.__incResto!=='all')?window.__incResto:null; emps=DB.employees.filter(function(e){return (e.role==='equipier'||e.role==='leader'||e.role==='manager')&&(!_brF||e.restoId===_brF);}); }
   else emps=DB.employees.filter(function(e){return (e.role==='equipier'||e.role==='leader'||e.role==='manager')&&e.restoId===curUser.restoId;});
   emps.forEach(function(e){var o=document.createElement('option');o.value=e.id;var rLbl=r==='franchise'&&RESTOS[e.restoId]?' ['+RESTOS[e.restoId].label+']':'';o.textContent=e.name+rLbl;fw.appendChild(o);});
   var ft=document.getElementById('f-type');ft.innerHTML='<option value="">Tous types</option>';
@@ -4117,12 +4228,15 @@ var RPT_TILES=[
 ];
 var _rptCurrent=null;
 function renderRptTiles(){
-  var g=document.getElementById('rpt-grid');if(!g)return;
-  g.innerHTML=RPT_TILES.map(function(t){
-    return '<div class="dash-tile" onclick="rptOpen(\''+t.id+'\')">'
+  var pick=document.getElementById('rpt-pick'); if(!pick) return;
+  var meta=RPT_TILES.map(function(t){return {id:t.id, ico:t.em, titre:t.tt, sub:t.ds};});
+  var grid='<div class="dash-grid" id="rpt-grid">'+RPT_TILES.filter(function(t){return visTuileVisible('rapports',t.id);}).map(function(t){
+    return '<div class="dash-tile" onclick="rptOpen(\''+t.id+'\')" style="position:relative;'+visDim('rapports',t.id)+'">'
       +'<div class="dt-accent" style="background:'+t.color+'"></div><div class="dt-em">'+t.em+'</div>'
-      +'<div><div class="dt-tt">'+t.tt+'</div><div class="dt-ds">'+t.ds+'</div></div></div>';
-  }).join('');
+      +'<div><div class="dt-tt">'+t.tt+'</div><div class="dt-ds">'+t.ds+'</div></div>'
+      +visMark('rapports',t.id,'right')+'</div>';
+  }).join('')+'</div>';
+  pick.innerHTML=visLayout('rapports', meta, grid, 'Rapports');
 }
 function rptOpen(type){
   if(type==='suivipointage'){
@@ -4720,7 +4834,7 @@ function genReport(){
   var pl={today:"Aujourd'hui",week:'7 derniers jours',month:'30 derniers jours',all:'Tout'};
   var r=curUser.role;var incs=filterIncsByPeriod(period);var targets;
   if(personId!=='all'){targets=DB.employees.filter(function(e){return e.id===personId;});}
-  else if(r==='franchise'){var rf=rptTab==='all'?null:rptTab;targets=DB.employees.filter(function(e){return e.role!=='franchise'&&!e.archived&&(rf?e.restoId===rf:true);});}
+  else if(r==='franchise'){var rf=rptTab==='all'?null:rptTab;targets=DB.employees.filter(function(e){return e.role!=='franchise'&&!e.archived&&(rf?e.restoId===rf:true);});if(rf){incs=incs.filter(function(i){return i.restoId===rf;});}}
   else if(r==='directeur'){targets=DB.employees.filter(function(e){return e.restoId===curUser.restoId&&e.role!=='directeur'&&!e.archived;});var ids=targets.map(function(e){return e.id;});incs=incs.filter(function(i){return ids.indexOf(i.empId)>=0;});}
   else{targets=DB.employees.filter(function(e){return e.restoId===curUser.restoId&&(e.role==='equipier'||e.role==='leader')&&!e.archived;});var ids=targets.map(function(e){return e.id;});incs=incs.filter(function(i){return ids.indexOf(i.empId)>=0;});}
   var out=document.getElementById('rpt-out');var now=new Date();var total=incs.length;var grave=incs.filter(function(i){return i.severity==='4';}).length;var ser=incs.filter(function(i){return i.severity==='3';}).length;
@@ -4732,6 +4846,7 @@ function genReport(){
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0 16px;">';
   h+=_incRptTile('apercu','📋','Vue par salarié','Tableau + scores','#e87722');
   h+=_incRptTile('cat','🏷️','Par catégorie','Ce qui ressort le plus','#8e44ad');
+  h+=_incRptTile('decl','🧑‍💼','Par déclarant','Qui a signalé les incidents','#2980b9');
   if(canDoc) h+=_incRptTile('doc','📄','Créer un document','Observation / avertissement…','#c0392b');
   h+='</div>';
   // ── SECTION 1 : vue par salarié ──
@@ -4766,6 +4881,23 @@ function genReport(){
     }).join('');
   } else { catHtml='<div style="color:#888;padding:12px;">Aucun incident sur cette période.</div>'; }
   h+='<div id="incrpt-cat" style="display:none;">'+catHtml+'</div>';
+  // ── SECTION 2bis : par déclarant (qui a signalé les incidents) ──
+  var declMap={};
+  incs.forEach(function(i){ var rn=(i.reporterName||'—'); if(!declMap[rn]) declMap[rn]={n:0,grave:0}; declMap[rn].n++; if(String(i.severity)==='3'||String(i.severity)==='4') declMap[rn].grave++; });
+  var declArr=Object.keys(declMap).map(function(k){return {nom:k,n:declMap[k].n,grave:declMap[k].grave};}).sort(function(a,b){return b.n-a.n;});
+  var maxD=declArr.length?declArr[0].n:0;
+  var declHtml='';
+  if(declArr.length){
+    declHtml+='<div style="background:#0f1e2e;border:1px solid #2a4a6a;border-radius:8px;padding:12px;margin-bottom:12px;color:#8fc3f5;font-size:.9rem;">🧑‍💼 A le plus signalé : <strong>'+declArr[0].nom+'</strong> — '+declArr[0].n+' incident'+(declArr[0].n>1?'s':'')+'</div>';
+    declHtml+=declArr.map(function(x){
+      var pct=total?Math.round(x.n/total*100):0; var barPct=maxD?Math.round(x.n/maxD*100):0;
+      return '<div style="background:#1A1A1A;border-radius:8px;padding:12px;margin-bottom:8px;">'
+        +'<div style="display:flex;justify-content:space-between;margin-bottom:6px;gap:8px;flex-wrap:wrap;"><span style="font-size:.92rem;font-weight:600;">👤 '+x.nom+(x.grave?(' <span style="color:#cc5555;font-size:.75rem;font-weight:700;">· '+x.grave+' grave'+(x.grave>1?'s':'')+'</span>'):'')+'</span><strong style="color:#5b9bd5;white-space:nowrap;">'+x.n+' <span style="color:#888;font-weight:400;font-size:.8rem;">('+pct+'%)</span></strong></div>'
+        +'<div class="score-bar"><div class="score-fill" style="width:'+barPct+'%;background:#2980b9;"></div></div>'
+        +'</div>';
+    }).join('');
+  } else { declHtml='<div style="color:#888;padding:12px;">Aucun incident sur cette période.</div>'; }
+  h+='<div id="incrpt-decl" style="display:none;">'+declHtml+'</div>';
   // ── SECTION 3 : créer un document ──
   if(canDoc){
     var _tIds=targets.map(function(x){return x.id;});
@@ -4787,7 +4919,7 @@ function _incRptTile(id,ico,tt,ds,accent){
     +'<div><div class="dt-tt">'+tt+'</div><div class="dt-ds">'+ds+'</div></div></div>';
 }
 function _incRptApply(v){
-  ['apercu','cat','doc'].forEach(function(k){
+  ['apercu','cat','decl','doc'].forEach(function(k){
     var sec=document.getElementById('incrpt-'+k); if(sec) sec.style.display=(k===v)?'block':'none';
     var t=document.getElementById('incrpt-tile-'+k); if(t) t.style.boxShadow=(k===v)?'0 0 0 2px var(--orange)':'';
   });
@@ -7449,10 +7581,13 @@ function updateAlBadge(){
   var n=collectAlertes(_badgeResto()).length;
   var b=document.getElementById('albadge');if(!b)return;
   b.textContent=n;b.style.display=n>0?'inline-flex':'none';
-  // badge demandes en attente (État équipe) — toutes restos confondues
+  // badge demandes en attente (État équipe) — SEULEMENT le restaurant actif
   try{
-    var na=0;
-    Object.keys(HR_ABSENCES||{}).forEach(function(id){ (HR_ABSENCES[id]||[]).forEach(function(a){ if(a&&a.statut==='attente') na++; }); });
+    var na=0; var _brEE=_badgeResto();
+    Object.keys(HR_ABSENCES||{}).forEach(function(id){
+      if(_brEE){ var _eEE=(DB.employees||[]).find(function(x){return String(x.id)===String(id);}); if(!_eEE || (''+(_eEE.restoId||'')).toLowerCase()!==_brEE) return; }
+      (HR_ABSENCES[id]||[]).forEach(function(a){ if(a&&a.statut==='attente') na++; });
+    });
     var be=document.getElementById('eebadge');
     if(be){ be.textContent=na; be.style.display=na>0?'inline-flex':'none'; }
   }catch(e){}
@@ -7468,24 +7603,89 @@ window._alertesApply=_alertesApply; window.alertesTab=alertesTab;
 // dans un ORDRE LOGIQUE (parcours du salarié) — affichées MÊME si vides, IDENTIQUES
 // sur tous les restaurants. desc = à quoi sert la tuile (affiché en permanence).
 // ── 1) Recrutement & intégration ─────────────────────────
+// ORDRE LOGIQUE (parcours du salarié) demandé par la direction :
+// Recrutement → Dossiers incomplets → Contrats à signer → Période d'essai →
+// Contrats (échéances) → Visite médicale → Mutuelle → Titre de séjour →
+// Congés & indispos → Incidents → À sanctionner → À faire signer.
 var ALERT_CATS=[
+  // ── 1) Recrutement & intégration ───────────────────────
   {cat:'Recrutement',icon:'🎯',desc:'Candidatures, visites d\'embauche, dossiers candidats'},
-  {cat:'Période d\'essai',icon:'⏳',desc:'Fins de période d\'essai à valider'},
   {cat:'Dossiers incomplets',icon:'📋',desc:'Pièces manquantes au dossier salarié'},
-  // ── 1ter) Demandes des équipiers ───────────────────────
-  {cat:'Congés & indispos',icon:'🏖️',desc:'Demandes de congés / indisponibilités des équipiers à valider (✓ valider · ✕ refuser)'},
-  // ── 2) Contrats ────────────────────────────────────────
+  // ── 2) Contrats & période d'essai ──────────────────────
   {cat:'Contrats à signer',icon:'📄',desc:'Contrats en attente de signature'},
+  {cat:'Période d\'essai',icon:'⏳',desc:'Fins de période d\'essai à valider'},
   {cat:'Contrats',icon:'🎓',desc:'Échéances de contrat (apprentissage, DPAE…)'},
   // ── 3) Suivi santé & administratif ─────────────────────
   {cat:'Visite médicale',icon:'🩺',desc:'Visites médicales périodiques à planifier'},
   {cat:'Mutuelle',icon:'❤️',desc:'Mutuelles arrivant à expiration'},
   {cat:'Titre de séjour',icon:'🛂',desc:'Titres de séjour à renouveler / expirés'},
-  // ── 4) Discipline ──────────────────────────────────────
+  // ── 4) Demandes des équipiers ──────────────────────────
+  {cat:'Congés & indispos',icon:'🏖️',desc:'Demandes de congés / indisponibilités des équipiers à valider (✓ valider · ✕ refuser)'},
+  // ── 5) Discipline ──────────────────────────────────────
   {cat:'Incidents',icon:'⚠️',desc:'Suivi des incidents signalés'},
   {cat:'À sanctionner',icon:'⚖️',desc:'Salariés à sanctionner (selon barèmes)'},
   {cat:'À faire signer',icon:'✍️',desc:'Avertissements / sanctions à faire signer'}
 ];
+// Incidents REGROUPÉS PAR JOUR (repliables) — pour construire une remontée :
+// combien d'incidents ce jour-là, et quel manager / leader les a déclarés.
+function _alrtIncidentsParJour(){
+  var isDir=(curUser&&curUser.role==='directeur');
+  var restoFiltre=window.__alertResto;
+  var now=new Date();
+  var incs=(DB.incidents||[]).filter(function(i){
+    if(isDir && i.restoId!==curUser.restoId) return false;
+    if(restoFiltre && restoFiltre!=='all' && i.restoId!==restoFiltre) return false;
+    var d=new Date(i.datetime); var j=Math.floor((now-d)/(24*3600*1000));
+    return !(isNaN(j)||j<0||j>30);
+  });
+  if(!incs.length) return '<div style="font-size:.82rem;color:#666;padding:10px 2px;background:#141414;border-radius:8px;">Aucun incident sur les 30 derniers jours. ✅</div>';
+  var byDay={};
+  incs.forEach(function(i){ var d=new Date(i.datetime); if(isNaN(d.getTime()))return; var k=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); (byDay[k]=byDay[k]||[]).push(i); });
+  var jours=Object.keys(byDay).sort().reverse();
+  var MN=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var JN=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+  var totGrave=incs.filter(function(i){return String(i.severity)==='3'||String(i.severity)==='4';}).length;
+  var declGlob={}; incs.forEach(function(i){ var r=i.reporterName||'?'; declGlob[r]=(declGlob[r]||0)+1; });
+  var declGlobTxt=Object.keys(declGlob).sort(function(a,b){return declGlob[b]-declGlob[a];}).map(function(r){return r+' ('+declGlob[r]+')';}).join(' · ');
+  // Bandeau « remontée » : total, graves, jours concernés, déclarants.
+  var head='<div style="background:#141414;border:1px solid #2A2A2A;border-radius:10px;padding:12px 14px;margin-bottom:12px;">'
+    +'<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;">'
+    +'<span style="font-size:1.3rem;font-weight:900;color:#F5A623;">'+incs.length+'</span><span style="color:#ddd;font-size:.85rem;">incident'+(incs.length>1?'s':'')+' sur 30 jours</span>'
+    +(totGrave?'<span style="background:#cc5555;color:#fff;border-radius:10px;padding:1px 9px;font-size:.75rem;font-weight:700;">'+totGrave+' grave'+(totGrave>1?'s':'')+'</span>':'')
+    +'<span style="color:#888;font-size:.8rem;">'+jours.length+' jour'+(jours.length>1?'s':'')+' concerné'+(jours.length>1?'s':'')+'</span>'
+    +'</div>'
+    +'<div style="font-size:.76rem;color:#999;margin-top:6px;">👤 Déclarés par : '+declGlobTxt+'</div></div>';
+  var corps=jours.map(function(k,idx){
+    var arr=byDay[k].sort(function(a,b){return new Date(b.datetime)-new Date(a.datetime);});
+    var d=new Date(k+'T12:00:00');
+    var titreJour=JN[d.getDay()]+' '+d.getDate()+' '+MN[d.getMonth()]+' '+d.getFullYear();
+    var nGrave=arr.filter(function(i){return String(i.severity)==='3'||String(i.severity)==='4';}).length;
+    var decl={}; arr.forEach(function(i){ var r=i.reporterName||'?'; decl[r]=(decl[r]||0)+1; });
+    var declTxt=Object.keys(decl).map(function(r){return r+' ('+decl[r]+')';}).join(', ');
+    var lignes=arr.map(function(i){
+      var e=(DB.employees||[]).find(function(x){return x.id===i.empId;});
+      var nom=e?e.name:'Salarié';
+      var t=new Date(i.datetime).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      var motifs=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});return p?p.label:pid;}).slice(0,3).join(', ')||'Incident';
+      var grave=(String(i.severity)==='3'||String(i.severity)==='4');
+      var col=grave?'#cc5555':'#F5A623';
+      return '<div class="emp-card" style="border-left:4px solid '+col+';cursor:'+(e?'pointer':'default')+';" '+(e?('onclick="openEmpFiche(\''+i.empId+'\')"'):'')+'>'
+        +'<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:.88rem;">'+nom+(grave?' <span style="color:#cc5555;">— grave</span>':'')+'</div>'
+        +'<div style="font-size:.74rem;color:#999;margin-top:2px;">🕐 '+t+' · '+motifs+' · 👤 '+(i.reporterName||'?')+'</div></div>'
+        +(e?('<span style="color:'+col+';font-size:1.2rem;">›</span>'):'')+'</div>';
+    }).join('');
+    var open=(idx===0)?' open':'';
+    return '<details'+open+' style="margin-bottom:8px;border:1px solid #2A2A2A;border-radius:10px;overflow:hidden;">'
+      +'<summary style="cursor:pointer;padding:11px 14px;background:#1A1A1A;font-weight:700;font-size:.9rem;color:#fff;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">'
+      +'<span style="text-transform:capitalize;">📅 '+titreJour+'</span>'
+      +'<span style="display:flex;gap:6px;align-items:center;">'
+      +(nGrave?('<span style="background:#cc5555;color:#fff;border-radius:10px;padding:1px 8px;font-size:.72rem;">'+nGrave+' grave'+(nGrave>1?'s':'')+'</span>'):'')
+      +'<span style="background:#D62300;color:#fff;border-radius:12px;padding:1px 10px;font-size:.8rem;">'+arr.length+' incident'+(arr.length>1?'s':'')+'</span></span>'
+      +'</summary>'
+      +'<div style="padding:8px 10px;"><div style="font-size:.72rem;color:#888;margin-bottom:6px;">👤 Déclarés par : '+declTxt+'</div>'+lignes+'</div></details>';
+  }).join('');
+  return head+corps;
+}
 function renderAlertes(){
   var box=document.getElementById('alertes-list');if(!box)return;
   var alerts=collectAlertes(window.__alertResto);
@@ -7497,13 +7697,17 @@ function renderAlertes(){
   var iconOf=function(cat){ var f=ALERT_CATS.find(function(x){return x.cat===cat;}); if(f) return f.icon; if(cats[cat]&&cats[cat][0]) return cats[cat][0].icon; return '🔔'; };
   var descOf=function(cat){ var f=ALERT_CATS.find(function(x){return x.cat===cat;}); return f?f.desc:''; };
   var total=alerts.length;
-  var h='<div style="font-size:.8rem;color:#888;margin-bottom:12px;">'+(total?(total+' alerte'+(total>1?'s':'')+' en cours'):'✅ Rien à traiter pour le moment')+' — toutes les catégories sont affichées, même vides.</div>';
-  // ── Tuiles par catégorie (toutes affichées ; les vides sont grisées) ──
-  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px;">';
+  var intro='<div style="font-size:.8rem;color:#888;margin-bottom:12px;">'+(total?(total+' alerte'+(total>1?'s':'')+' en cours'):'✅ Rien à traiter pour le moment')+' — toutes les catégories sont affichées, même vides.</div>';
+  var meta=ALERT_CATS.map(function(c){return {id:_alrtSlug(c.cat), ico:c.icon, titre:c.cat, sub:c.desc};});
+  // ── Tuiles par catégorie (toutes affichées ; les vides sont grisées) ── (colonne de droite = aperçu)
+  var h='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px;">';
   order.forEach(function(cat){
+    var slug=_alrtSlug(cat);
+    if(!visTuileVisible('alertes',slug)) return;   // masquée pour ce rôle
     var arr=cats[cat]||[]; var n=arr.length; var vide=(n===0);
-    var slug=_alrtSlug(cat); var accent=accents[cat]||'#e87722';
-    h+='<div class="dash-tile" id="alrt-tile-'+slug+'" onclick="alertesTab(\''+slug+'\')" style="cursor:pointer;position:relative;'+(vide?'opacity:.45;':'')+'">'
+    var accent=accents[cat]||'#e87722';
+    h+='<div class="dash-tile" id="alrt-tile-'+slug+'" onclick="alertesTab(\''+slug+'\')" style="cursor:pointer;position:relative;'+(vide?'opacity:.45;':'')+visDim('alertes',slug)+'">'
+      +visMark('alertes',slug,'left')
       +'<div class="dt-accent" style="background:'+accent+';"></div>'
       +'<div class="dt-em">'+iconOf(cat)+'</div>'
       +'<div><div class="dt-tt">'+cat+'</div>'
@@ -7517,10 +7721,14 @@ function renderAlertes(){
   // ── Sections (une par catégorie), cachées par défaut ──
   order.forEach(function(cat){
     var arr=cats[cat]||[]; var slug=_alrtSlug(cat);
+    if(!visTuileVisible('alertes',slug)) return;   // section non rendue si tuile masquée
     h+='<div id="alrt-sec-'+slug+'" style="display:none;margin-bottom:10px;">'
       +'<div style="font-size:.82rem;color:var(--orange);font-weight:700;margin-bottom:2px;">'+iconOf(cat)+' '+cat+' ('+arr.length+')</div>'
       +'<div style="font-size:.74rem;color:#888;margin-bottom:8px;">'+descOf(cat)+'</div>';
-    if(!arr.length){
+    if(cat==='Incidents'){
+      // Incidents : vue REGROUPÉE PAR JOUR (repliable). Le reste des catégories garde l'affichage classique.
+      h+=_alrtIncidentsParJour();
+    } else if(!arr.length){
       h+='<div style="font-size:.82rem;color:#666;padding:10px 2px;background:#141414;border-radius:8px;">Rien à signaler dans cette catégorie pour le moment. ✅</div>';
     } else {
       h+=arr.map(function(a){
@@ -7534,7 +7742,7 @@ function renderAlertes(){
     }
     h+='</div>';
   });
-  box.innerHTML=h;
+  box.innerHTML=intro+visLayout('alertes',meta,h,'Alertes');
   try{ _alertesApply(window._alertesView||''); }catch(_){}
 }
 // ══ GRILLE DES SALAIRES ═══════════════════════════════════════════════════════
@@ -7939,6 +8147,7 @@ function ptgRoleLabel(r){
 function ptgInit(){
   try{ ptgChargerPartage('badgeuse'); }catch(e){}   // pointages partagés (autres tablettes)
   try{ ptgMsgCharger('badgeuse'); }catch(e){}        // messages/infos partagés
+  try{ ptgVusCharger(); }catch(e){}                 // accusés de lecture fiches produit
   var vis=ptgRestosVisibles();
   if(!PTG_RESTO || vis.indexOf(PTG_RESTO)<0) PTG_RESTO=vis[0];
   var hr=document.getElementById('ptg-hero-resto');
@@ -8040,6 +8249,9 @@ function ptgShowActions(){
   var h='<div class="ptg-modal-name" style="font-size:1.2rem;">'+e.name+'</div>';
   // Linéaire du jour : postes + créneaux où le salarié travaille aujourd'hui.
   try{ h+=_ptgLineaireBoard(e, dateISO); }catch(err){ console.warn('lineaire',err); }
+  var _postesJour=[]; try{ (ptgLineaireDe(e,dateISO)||[]).forEach(function(s){ _postesJour.push(_ptgPosteLabel(s.l)); }); }catch(_pj){}
+  var _prod={html:'',bloquant:false}; try{ _prod=_ptgProduitsBoard(e,_postesJour); }catch(_pe){}
+  h+=_prod.html;
   // Créneau prévu (planning) + écarts, pour le retour immédiat au salarié.
   var _prevu=ptgPrevuDe(e, dateISO);
   function _stBadge(ec,sens){ if(ec==null) return ''; var s=ptgStatut(ec,sens); return ' <span style="font-size:.72rem;font-weight:700;color:'+s.coul+';">'+(s.code==='ok'?'✓ à l\'heure':s.txt)+'</span>'; }
@@ -8051,6 +8263,7 @@ function ptgShowActions(){
     rec.pauses.forEach(function(p){ h+='<div class="rline"><span>Pause</span><b>'+(p.debut||'?')+' → '+(p.fin||'…')+'</b></div>'; });
   }
   h+='<div class="rline"><span>Départ</span><b>'+(rec.depart||'—')+_stBadge(rec.ecartDep,'dep')+'</b></div>';
+  if(rec.departRaison) h+='<div class="rline" style="color:#e8a020;font-size:.76rem;align-items:flex-start;"><span>Motif</span><b style="text-align:right;max-width:64%;white-space:normal;">'+_ptgEsc(rec.departRaison)+'</b></div>';
   var ht=ptgHeuresTravaillees(rec);
   if(ht!=null) h+='<div class="rline" style="border-top:1px solid #2a2a2a;margin-top:4px;padding-top:6px;"><span>Total</span><b>'+(Math.round(ht*100)/100)+' h</b></div>';
   h+='</div>';
@@ -8059,7 +8272,11 @@ function ptgShowActions(){
   if(!rec.arrivee && _blk){
     h+='<div class="ptg-done" style="background:#3a1616;border:1px solid #6a2a2a;color:#e8623a;line-height:1.5;">⛔ Pointage impossible.<br><b>'+e.name+'</b>, vous êtes '+_blk.label+' aujourd\'hui.</div>';
   } else if(!rec.arrivee){
-    h+='<button class="ptg-bigbtn go" onclick="ptgAction(\'arrivee\')">🟢 Pointer mon ARRIVÉE — '+ptgNowHM()+'</button>';
+    if(_prod.bloquant){
+      h+='<div class="ptg-done" style="background:#3a2e12;border:1px solid #5a4a1e;color:#ffd479;line-height:1.5;">📌 Avant de pointer votre arrivée, merci de lire et valider la fiche ci-dessus (« ✅ J\'ai lu et compris »).</div>';
+    } else {
+      h+='<button class="ptg-bigbtn go" onclick="ptgAction(\'arrivee\')">🟢 Pointer mon ARRIVÉE — '+ptgNowHM()+'</button>';
+    }
   } else if(!rec.depart){
     if(estEncadrant){
       var po = rec.pauses && rec.pauses.length && !rec.pauses[rec.pauses.length-1].fin;
@@ -8069,8 +8286,10 @@ function ptgShowActions(){
   } else {
     h+='<div class="ptg-done">✅ Vous avez bien pointé votre journée. Bonne soirée !</div>';
   }
-  // Zone messages/infos affichée aux salariés (rendez-vous, annonces…).
-  try{ h+=_ptgMsgBoard(e.restoId||PTG_RESTO); }catch(err){ console.warn('_ptgMsgBoard',err); }
+  // Rappels personnels (visite médicale, titre de séjour) au pointage.
+  try{ h+=_ptgRappelsPerso(e); }catch(err){ console.warn('rappels perso',err); }
+  // Zone messages/infos affichée aux salariés (période + ciblage par poste du jour).
+  try{ var _pp=[]; try{ (ptgLineaireDe(e,dateISO)||[]).forEach(function(s){ _pp.push(_ptgPosteLabel(s.l)); }); }catch(_e){} h+=_ptgMsgBoard(e.restoId||PTG_RESTO, _pp, e.id); }catch(err){ console.warn('_ptgMsgBoard',err); }
   // Encadré « Mes demandes » : congés (CP) et indisponibilités (CSS) avec leur statut.
   try{ h+=_ptgMesDemandes(e.id); }catch(err){ console.warn('_ptgMesDemandes',err); }
   body.innerHTML=h;
@@ -8121,9 +8340,18 @@ function ptgAction(type){
       try{ toast('Pointage bloqué : '+e.name+' est '+_blk.label+'.','error'); }catch(_){}
       return;
     }
+    try{ var _pb2=[]; (ptgLineaireDe(e,dateISO)||[]).forEach(function(s){ _pb2.push(_ptgPosteLabel(s.l)); }); var _pbb=_ptgProduitsBoard(e,_pb2); if(_pbb.bloquant){ try{ toast('Validez d\'abord la fiche à lire.','error'); }catch(_){} try{ ptgShowActions(); }catch(_){} return; } }catch(_pg){}
+    // Avance importante sur l'horaire prévu → confirmation (limite les pointages trop en avance).
+    try{ var _pv=ptgPrevuDe(e,dateISO); var _ea=_pv?ptgEcartMin(_pv.arr,now):null;
+      if(_ea!=null && _ea<=-16){ if(!confirm('Vous pointez '+Math.abs(_ea)+' min en avance sur votre horaire prévu ('+_pv.arr+').\nConfirmer votre arrivée maintenant ?')) return; } }catch(_ar){}
     rec.arrivee=now;
   }
   else if(type==='depart'){
+    // Départ qui s'écarte nettement du prévu (parti >5 min avant, ou resté >15 min après) → demander une raison.
+    try{
+      var _pd=ptgPrevuDe(e,dateISO); var _ecd=_pd?ptgEcartMin(_pd.dep,now):null;
+      if(_ecd!=null && !rec._departRaisonOk && (_ecd<=-6 || _ecd>=16)){ _ptgDepartRaison(e, now, _ecd); return; }
+    }catch(_dp){}
     if(rec.pauses && rec.pauses.length && !rec.pauses[rec.pauses.length-1].fin) rec.pauses[rec.pauses.length-1].fin=now;
     rec.depart=now;
   }
@@ -8136,6 +8364,52 @@ function ptgAction(type){
   ptgRenderList();
 }
 
+// ─── DÉPART AVEC RAISON (écart net avec le prévu) ────────────────────────────
+var PTG_DEP_RAISONS=['Le manager m\'a demandé de rester','Il y avait du monde / du rush','Je pars plus tôt (accord du manager)','Fin de service anticipée','Autre raison'];
+var _ptgDepRaisonSel='';
+function _ptgDepartRaison(e, heure, ecart){
+  _ptgDepRaisonSel='';
+  var lib = ecart<0 ? ('Vous partez '+Math.abs(ecart)+' min avant l\'heure prévue') : ('Vous restez '+ecart+' min après l\'heure prévue');
+  var ov=document.getElementById('ptg-dep-ov'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='ptg-dep-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:100003;display:flex;align-items:center;justify-content:center;padding:16px;';
+  var btns=PTG_DEP_RAISONS.map(function(r){ return '<button onclick="_ptgDepChoisir(this)" data-r="'+_ptgEsc(r).replace(/"/g,'&quot;')+'" style="display:block;width:100%;text-align:left;background:#1c1c1f;border:1px solid #444;color:#eee;border-radius:10px;padding:11px 13px;margin-bottom:8px;cursor:pointer;font-size:.9rem;">'+_ptgEsc(r)+'</button>'; }).join('');
+  ov.innerHTML='<div style="background:#141416;border:1px solid #555;border-radius:16px;max-width:430px;width:100%;padding:20px;max-height:92vh;overflow:auto;">'
+    +'<div style="font-weight:800;color:#fff;font-size:1.05rem;margin-bottom:4px;">🔴 Pointer mon départ — '+heure+'</div>'
+    +'<div style="color:#e8a020;font-size:.85rem;margin-bottom:12px;">'+lib+'. Merci d\'indiquer pourquoi :</div>'
+    +btns
+    +'<textarea id="ptg-dep-libre" rows="2" placeholder="Précision (optionnel)…" style="width:100%;box-sizing:border-box;background:#111;border:1px solid #333;border-radius:8px;color:#eee;padding:8px;font-size:.85rem;font-family:inherit;margin-top:2px;"></textarea>'
+    +'<div style="display:flex;gap:8px;margin-top:12px;">'
+      +'<button onclick="document.getElementById(\'ptg-dep-ov\').remove()" style="flex:1;background:#2a2a2a;border:none;color:#ccc;border-radius:10px;padding:11px;font-weight:700;cursor:pointer;">Annuler</button>'
+      +'<button id="ptg-dep-valider" onclick="_ptgDepValider(\''+e.id+'\',\''+heure+'\')" disabled style="flex:2;background:#666;border:none;color:#fff;border-radius:10px;padding:11px;font-weight:800;cursor:pointer;">Valider mon départ</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+}
+function _ptgDepChoisir(btn){
+  _ptgDepRaisonSel=btn.getAttribute('data-r')||'';
+  try{ document.querySelectorAll('#ptg-dep-ov [data-r]').forEach(function(b){ b.style.borderColor='#444'; b.style.background='#1c1c1f'; }); }catch(_){}
+  btn.style.borderColor='#e8623a'; btn.style.background='#2a1a14';
+  var v=document.getElementById('ptg-dep-valider'); if(v){ v.disabled=false; v.style.background='#C01E00'; }
+}
+window._ptgDepChoisir=_ptgDepChoisir;
+function _ptgDepValider(empId, heure){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);})||_ptgSel; if(!e) return;
+  if(!_ptgDepRaisonSel){ try{ toast('Choisissez une raison.','error'); }catch(_){} return; }
+  var libre=((document.getElementById('ptg-dep-libre')||{}).value||'').trim();
+  var raison=_ptgDepRaisonSel+(libre?(' — '+libre):'');
+  var dateISO=ptgTodayISO(); var ctx=ptgRec(e.id,dateISO); var rec=ctx.rec;
+  rec._departRaisonOk=true; rec.departRaison=raison;
+  if(rec.pauses && rec.pauses.length && !rec.pauses[rec.pauses.length-1].fin) rec.pauses[rec.pauses.length-1].fin=heure;
+  rec.depart=heure;
+  try{ ptgMajEcarts(e, rec, dateISO); }catch(_){}
+  try{ ptgSaveAll(ctx.all); }catch(_){}
+  var ov=document.getElementById('ptg-dep-ov'); if(ov) ov.remove();
+  _ptgDepRaisonSel='';
+  try{ ptgShowActions(); }catch(_){}
+  try{ ptgRenderList(); }catch(_){}
+  try{ toast('Départ enregistré ✔','success'); }catch(_){}
+}
+window._ptgDepValider=_ptgDepValider;
 function ptgHeuresTravaillees(rec){
   if(!rec.arrivee || !rec.depart) return null;
   function m(hm){ var p=hm.split(':'); return (+p[0])*60+(+p[1]); }
@@ -8309,6 +8583,30 @@ function ptgLineaireDe(emp, iso){
     return out;
   }catch(e){ return []; }
 }
+// Rappels personnels affichés au salarié quand il pointe :
+// visite médicale à venir / dépassée, titre de séjour qui expire.
+function _ptgRappelsPerso(e){
+  if(!e) return '';
+  var inf=e.infos||{}; var out=[];
+  function jAvant(iso){ if(!iso) return null; try{ var d=new Date(iso+'T12:00:00'); if(isNaN(d.getTime()))return null; return Math.round((d-new Date())/(24*3600*1000)); }catch(_){ return null; } }
+  var jv=jAvant(e.visiteProchaine);
+  if(jv!=null){
+    if(jv<0) out.push({ic:'🩺',c:'#cc5555',t:'Visite médicale dépassée',s:'Elle était prévue le '+_frDate(e.visiteProchaine)+'. Rapprochez-vous du responsable pour la reprogrammer.'});
+    else if(jv<=30) out.push({ic:'🩺',c:'#F5A623',t:'Visite médicale bientôt',s:'Rendez-vous le '+_frDate(e.visiteProchaine)+' (dans '+jv+' j).'});
+  }
+  var js=jAvant(inf.fin_carte_sejour);
+  if(js!=null){
+    if(js<0) out.push({ic:'🛂',c:'#cc5555',t:'Titre de séjour expiré',s:'Il a expiré le '+_frDate(inf.fin_carte_sejour)+'. Merci de fournir le renouvellement au plus vite.'});
+    else if(js<=60) out.push({ic:'🛂',c:'#F5A623',t:'Titre de séjour à renouveler',s:'Il expire le '+_frDate(inf.fin_carte_sejour)+' (dans '+js+' j).'});
+  }
+  if(!out.length) return '';
+  return '<div style="margin:8px 0 4px;">'+out.map(function(r){
+    return '<div style="display:flex;gap:10px;align-items:flex-start;background:#20160c;border:1px solid '+r.c+';border-radius:10px;padding:10px 12px;margin-bottom:6px;">'
+      +'<span style="font-size:1.3rem;line-height:1;">'+r.ic+'</span>'
+      +'<div><div style="color:'+r.c+';font-weight:800;font-size:.9rem;">'+r.t+'</div>'
+      +'<div style="color:#ddd;font-size:.8rem;margin-top:2px;">'+r.s+'</div></div></div>';
+  }).join('')+'</div>';
+}
 function _ptgLineaireBoard(emp, iso){
   var segs=[];
   try{ segs=ptgLineaireDe(emp, iso); }catch(e){}
@@ -8345,54 +8643,173 @@ async function ptgMsgCharger(reRender){
   if(reRender==='suivi'){ try{ ptgRenderMsgAdmin(); }catch(e){} }
 }
 window.ptgMsgCharger=ptgMsgCharger;
-function ptgMessagesPour(resto){
+function ptgMessagesPour(resto, empPostes, empId){
   var all=ptgMsgGetAll();
-  return [].concat(all.ALL||[], all[resto]||[]).filter(function(m){ return m && m.txt; });
+  var d=new Date(); var todayISO=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  var pL=(empPostes||[]).map(function(p){return String(p||'').toUpperCase();});
+  return [].concat(all.ALL||[], all[resto]||[]).filter(function(m){
+    if(!m || (!m.txt && !m.img)) return false;
+    if(m.du && todayISO<m.du) return false;      // pas encore commencé
+    if(m.au && todayISO>m.au) return false;       // période terminée
+    if(m.empId){                                  // ciblé sur UNE personne
+      if(!empId || String(m.empId)!==String(empId)) return false;
+    }
+    if(m.poste){                                  // ciblé sur un poste
+      var pm=String(m.poste).toUpperCase();
+      if(!pL.some(function(p){return p&&(p.indexOf(pm)>=0||pm.indexOf(p)>=0);})) return false;
+    }
+    return true;
+  });
 }
-function _ptgMsgBoard(resto){
-  var list=ptgMessagesPour(resto);
+function _ptgImgFull(src){
+  var ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:100002;display:flex;align-items:center;justify-content:center;padding:16px;cursor:zoom-out;';
+  ov.onclick=function(){ ov.remove(); };
+  ov.innerHTML='<img src="'+src+'" style="max-width:96vw;max-height:92vh;border-radius:10px;">';
+  document.body.appendChild(ov);
+}
+window._ptgImgFull=_ptgImgFull;
+function _ptgMsgBoard(resto, empPostes, empId){
+  var list=ptgMessagesPour(resto, empPostes, empId).filter(function(m){ return m.type!=='produit'; });
   if(!list.length) return '';
   var lignes=list.map(function(m){
-    return '<div style="padding:10px 12px;border-bottom:1px solid #1f3a24;color:#eaffea;font-size:.9rem;white-space:pre-wrap;">'+_ptgEsc(m.txt)+'</div>';
+    var tag=m.poste?('<div style="margin-bottom:5px;"><span style="background:#1f6b3f;color:#d6ffe6;border-radius:6px;padding:1px 8px;font-size:.68rem;font-weight:700;">📍 '+_ptgEsc(m.poste)+'</span></div>'):'';
+    var img=m.img?('<img src="'+m.img+'" onclick="_ptgImgFull(this.src)" style="max-width:100%;max-height:200px;border-radius:8px;margin-top:8px;cursor:zoom-in;display:block;">'):'';
+    return '<div style="padding:10px 12px;border-bottom:1px solid #1f3a24;color:#eaffea;font-size:.9rem;white-space:pre-wrap;">'+tag+_ptgEsc(m.txt||'')+img+'</div>';
   }).join('');
   return '<div style="margin-top:16px;background:#12210f;border:1px solid #2e5e33;border-radius:10px;overflow:hidden;">'
     +'<div style="padding:9px 12px;background:#16321f;color:#8fe6a8;font-weight:700;font-size:.9rem;border-bottom:1px solid #2e5e33;">📣 Infos &amp; messages</div>'
     +lignes+'</div>';
 }
 // Éditeur admin (page Suivi pointage)
+function _ptgPostesOptions(){
+  var L=(typeof POSTES!=='undefined'&&POSTES&&POSTES.length)?POSTES:(typeof POSTES_PRODUCTIFS!=='undefined'?POSTES_PRODUCTIFS:[]);
+  return L.map(function(p){return '<option value="'+_ptgEsc(p)+'">';}).join('');
+}
+// Options « personne précise » pour cibler un message sur un salarié.
+// cle='ALL' → tous les salariés ; sinon → salariés du restaurant.
+function _ptgEmpOptions(cle){
+  var emps=(DB.employees||[]).filter(function(e){ return !e.archived && (cle==='ALL' || (''+(e.restoId||'')).toLowerCase()===(''+cle).toLowerCase()); });
+  emps.sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+  return '<option value="">— Personne précise (optionnel) —</option>'+emps.map(function(e){
+    var rl=(cle==='ALL'&&RESTOS[e.restoId])?(' ['+RESTOS[e.restoId].label+']'):'';
+    return '<option value="'+e.id+'">'+_ptgEsc(e.name||'')+rl+'</option>';
+  }).join('');
+}
+// ─── FICHES PRODUIT / LTO : accusés de lecture par salarié ───────────────────
+function ptgVusKey(){ return 'bkrh_ptg_msg_vus'; }
+function ptgVusGetAll(){ try{ return JSON.parse(localStorage.getItem(ptgVusKey())||'{}'); }catch(e){ return {}; } }
+function ptgVusSaveLocal(o){ try{ localStorage.setItem(ptgVusKey(), JSON.stringify(o)); }catch(e){} }
+function ptgVusSaveAll(o){ ptgVusSaveLocal(o); try{ if(typeof SB!=='undefined'&&SB){ SB.from('app_config').upsert({cle:ptgVusKey(),valeur:o},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){} }
+async function ptgVusCharger(){ try{ if(typeof SB==='undefined'||!SB) return; var r=await SB.from('app_config').select('valeur').eq('cle',ptgVusKey()).maybeSingle(); if(r&&r.data&&r.data.valeur&&typeof r.data.valeur==='object') ptgVusSaveLocal(r.data.valeur); }catch(e){ console.warn('ptg vus charger',e); } }
+window.ptgVusCharger=ptgVusCharger;
+function ptgAVu(msgId, empId){ var v=ptgVusGetAll(); return !!(v[msgId]&&v[msgId][empId]); }
+function ptgValiderVu(msgId, empId){
+  var v=ptgVusGetAll(); if(!v[msgId]) v[msgId]={}; v[msgId][empId]=new Date().toISOString();
+  ptgVusSaveAll(v);
+  try{ ptgShowActions(); }catch(_){}
+  try{ toast('Fiche validée ✔','success'); }catch(_){}
+}
+window.ptgValiderVu=ptgValiderVu;
+function _ptgProduitsBoard(e, empPostes){
+  var list=ptgMessagesPour(e.restoId||PTG_RESTO, empPostes, e.id).filter(function(m){ return m.type==='produit'; });
+  var aValider=list.filter(function(m){ return !ptgAVu(m.id, e.id); });
+  if(!aValider.length) return {html:'', bloquant:false};
+  var bloquant=aValider.some(function(m){ return m.bloquant; });
+  var cards=aValider.map(function(m){
+    var img=m.img?('<img src="'+m.img+'" onclick="_ptgImgFull(this.src)" style="max-width:100%;max-height:220px;border-radius:8px;margin:8px 0;cursor:zoom-in;display:block;">'):'';
+    return '<div style="padding:12px;border-bottom:1px solid #3a2e12;">'
+      +(m.poste?('<span style="background:#5a4a1e;color:#ffe8a8;border-radius:6px;padding:1px 8px;font-size:.68rem;font-weight:700;">📍 '+_ptgEsc(m.poste)+'</span><br>'):'')
+      +'<div style="color:#ffe8a8;font-weight:700;font-size:.92rem;white-space:pre-wrap;margin-top:4px;">'+_ptgEsc(m.txt||'')+'</div>'+img
+      +'<button onclick="ptgValiderVu(\''+m.id+'\',\''+e.id+'\')" style="margin-top:8px;width:100%;background:#C01E00;border:none;color:#fff;border-radius:9px;padding:11px;font-weight:800;cursor:pointer;font-size:.9rem;">✅ J\'ai lu et compris</button>'
+    +'</div>';
+  }).join('');
+  var head='<div style="padding:10px 12px;background:#3a2e12;color:#ffd479;font-weight:800;font-size:.92rem;border-bottom:1px solid #5a4a1e;">📌 À lire avant de commencer'+(bloquant?' — obligatoire':'')+'</div>';
+  return {html:'<div style="margin:8px 0;background:#20180a;border:1px solid #5a4a1e;border-radius:10px;overflow:hidden;">'+head+cards+'</div>', bloquant:bloquant};
+}
 function ptgRenderMsgAdmin(){
   var box=document.getElementById('ptg-msg-admin'); if(!box) return;
-  var resto=PTGS_RESTO||PTG_RESTO||'bk500';
+  var resto=(typeof window!=='undefined'&&window.ACTIVE_RESTO&&window.ACTIVE_RESTO!=='ALL')?window.ACTIVE_RESTO:(PTGS_RESTO||PTG_RESTO||'bk500');
   var all=ptgMsgGetAll();
+  function meta(m){ var a=[]; if(m.type==='produit')a.push('📌 Fiche produit'+(m.bloquant?' (bloquante)':'')); if(m.empId){ var pe=(DB.employees||[]).find(function(x){return String(x.id)===String(m.empId);}); a.push('👤 '+((pe&&pe.name)||'salarié')); } if(m.poste)a.push('📍 '+m.poste); if(m.du||m.au)a.push('🗓️ '+(m.du?('du '+_frDate(m.du)):'')+(m.au?(' au '+_frDate(m.au)):'')); return a.length?('<div style="font-size:.7rem;color:#8fe6a8;margin-top:2px;">'+a.join(' · ')+'</div>'):''; }
   function bloc(cle,titre){
     var list=all[cle]||[];
     var items=list.map(function(m){
       return '<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-bottom:1px solid #232323;">'
-        +'<div style="flex:1;color:#eee;font-size:.85rem;white-space:pre-wrap;">'+_ptgEsc(m.txt)+'</div>'
+        +(m.img?('<img src="'+m.img+'" style="width:44px;height:44px;object-fit:cover;border-radius:6px;flex:none;">'):'')
+        +'<div style="flex:1;color:#eee;font-size:.85rem;white-space:pre-wrap;">'+_ptgEsc(m.txt||'(photo)')+meta(m)+'</div>'
         +'<button onclick="ptgMsgDel(\''+cle+'\',\''+m.id+'\')" title="Supprimer" style="background:none;border:none;color:#e8623a;cursor:pointer;font-size:1rem;line-height:1;">🗑️</button>'
       +'</div>';
     }).join('') || '<div style="padding:10px 12px;color:#777;font-size:.82rem;">Aucun message.</div>';
     return '<div style="background:#161616;border:1px solid #2a2a2a;border-radius:10px;overflow:hidden;margin-bottom:10px;">'
       +'<div style="padding:8px 11px;background:#1d1d1d;color:#fff;font-weight:700;font-size:.85rem;border-bottom:1px solid #2a2a2a;">'+titre+'</div>'
       +items
-      +'<div style="display:flex;gap:8px;padding:10px;">'
-      +'<textarea id="ptg-msg-input-'+cle+'" rows="2" placeholder="Nouveau message (ex : Réunion musicale vendredi 18h)…" style="flex:1;background:#111;border:1px solid #333;border-radius:8px;color:#eee;padding:8px;font-size:.85rem;font-family:inherit;resize:vertical;"></textarea>'
-      +'<button onclick="ptgMsgAdd(\''+cle+'\')" class="btn btn-red btn-sm" style="align-self:flex-end;white-space:nowrap;">➕ Ajouter</button>'
+      +'<div style="padding:10px;display:flex;flex-direction:column;gap:7px;">'
+      +'<textarea id="ptg-msg-input-'+cle+'" rows="2" placeholder="Message (ex : nettoyer son poste avant de partir)…" style="background:#111;border:1px solid #333;border-radius:8px;color:#eee;padding:8px;font-size:.85rem;font-family:inherit;resize:vertical;"></textarea>'
+      +'<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">'
+        +'<label style="font-size:.72rem;color:#888;">Du <input type="date" id="ptg-msg-du-'+cle+'" style="background:#111;border:1px solid #333;border-radius:6px;color:#eee;padding:4px;font-size:.78rem;"></label>'
+        +'<label style="font-size:.72rem;color:#888;">au <input type="date" id="ptg-msg-au-'+cle+'" style="background:#111;border:1px solid #333;border-radius:6px;color:#eee;padding:4px;font-size:.78rem;"></label>'
+        +'<input type="text" id="ptg-msg-poste-'+cle+'" list="ptg-postes-dl" placeholder="Poste ciblé (optionnel)" style="flex:1;min-width:150px;background:#111;border:1px solid #333;border-radius:6px;color:#eee;padding:5px 7px;font-size:.78rem;">'
+      +'</div>'
+      +'<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">'
+        +'<span style="font-size:.72rem;color:#888;">👤 Ou à une personne précise :</span>'
+        +'<select id="ptg-msg-emp-'+cle+'" style="flex:1;min-width:200px;background:#111;border:1px solid #333;border-radius:6px;color:#eee;padding:5px 7px;font-size:.78rem;">'+_ptgEmpOptions(cle)+'</select>'
+      +'</div>'
+      +'<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">'
+        +'<select id="ptg-msg-type-'+cle+'" onchange="var _b=document.getElementById(\'ptg-msg-bloqw-'+cle+'\'); if(_b)_b.style.display=this.value===\'produit\'?\'inline-flex\':\'none\';" style="background:#111;border:1px solid #333;border-radius:6px;color:#eee;padding:5px 7px;font-size:.78rem;">'
+          +'<option value="info">Info simple</option>'
+          +'<option value="produit">📌 Fiche produit / LTO (accusé de lecture)</option>'
+        +'</select>'
+        +'<label id="ptg-msg-bloqw-'+cle+'" style="display:none;font-size:.72rem;color:#ffd479;align-items:center;gap:5px;"><input type="checkbox" id="ptg-msg-bloq-'+cle+'"> bloque le pointage tant que non lu</label>'
+      +'</div>'
+      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+        +'<input type="file" id="ptg-msg-img-'+cle+'" accept="image/*" style="font-size:.75rem;color:#aaa;flex:1;min-width:150px;">'
+        +'<button onclick="ptgMsgAdd(\''+cle+'\')" class="btn btn-red btn-sm" style="white-space:nowrap;">➕ Ajouter</button>'
+      +'</div>'
       +'</div>'
     +'</div>';
   }
   box.innerHTML='<div class="sec-title" style="margin:0 0 8px;">📣 Messages affichés aux salariés (badgeuse)</div>'
-    +'<p style="font-size:.8rem;color:#aaa;margin:0 0 12px;">Ces messages s\'affichent à chaque salarié quand il pointe. « Tous les restaurants » = visible partout ; sinon uniquement pour le restaurant choisi ci-dessus.</p>'
+    +'<p style="font-size:.8rem;color:#aaa;margin:0 0 12px;">S\'affichent quand le salarié pointe. Tu peux ajouter une <b>photo</b>, une <b>période</b> (du…au…) et cibler un <b>poste</b> précis (le message n\'apparaît qu\'aux salariés placés sur ce poste ce jour-là) <b>ou une personne</b> précise. Sans période = toujours visible ; sans poste ni personne = tout le monde.</p>'
+    +'<datalist id="ptg-postes-dl">'+_ptgPostesOptions()+'</datalist>'
     +bloc('ALL','🌐 Tous les restaurants')
     +bloc(resto,'🍔 '+((RESTOS[resto]&&RESTOS[resto].label)||resto));
 }
+function _ptgResizeImage(file, maxW, quality, cb){
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    var img=new Image();
+    img.onload=function(){
+      var w=img.width,h=img.height; if(w>maxW){ h=Math.round(h*maxW/w); w=maxW; }
+      try{ var cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h); cb(cv.toDataURL('image/jpeg',quality)); }
+      catch(e){ cb(ev.target.result); }
+    };
+    img.onerror=function(){ cb(ev.target.result); };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
 function ptgMsgAdd(cle){
-  var ta=document.getElementById('ptg-msg-input-'+cle); if(!ta) return;
-  var txt=(ta.value||'').trim(); if(!txt) return;
-  var all=ptgMsgGetAll(); if(!all[cle]) all[cle]=[];
-  all[cle].push({id:'m'+Date.now()+'_'+Math.floor(Math.random()*1000), txt:txt});
-  ptgMsgSaveAll(all); ta.value=''; ptgRenderMsgAdmin();
-  try{ toast('Message ajouté ✔','success'); }catch(e){}
+  var ta=document.getElementById('ptg-msg-input-'+cle);
+  var txt=ta?(ta.value||'').trim():'';
+  var du=((document.getElementById('ptg-msg-du-'+cle)||{}).value||'');
+  var au=((document.getElementById('ptg-msg-au-'+cle)||{}).value||'');
+  var poste=((document.getElementById('ptg-msg-poste-'+cle)||{}).value||'').trim();
+  var empId=((document.getElementById('ptg-msg-emp-'+cle)||{}).value||'').trim();
+  var type=((document.getElementById('ptg-msg-type-'+cle)||{}).value||'info');
+  var bloquant=!!((document.getElementById('ptg-msg-bloq-'+cle)||{}).checked);
+  var fEl=document.getElementById('ptg-msg-img-'+cle); var file=fEl&&fEl.files&&fEl.files[0];
+  if(!txt && !file){ try{ toast('Écris un message ou ajoute une photo.','error'); }catch(e){} return; }
+  if(au && du && au<du){ try{ toast('La date de fin est avant la date de début.','error'); }catch(e){} return; }
+  function finalize(imgData){
+    var all=ptgMsgGetAll(); if(!all[cle]) all[cle]=[];
+    var m={id:'m'+Date.now()+'_'+Math.floor(Math.random()*1000), txt:txt};
+    if(du)m.du=du; if(au)m.au=au; if(poste)m.poste=poste; if(empId)m.empId=empId; if(imgData)m.img=imgData; if(type==='produit'){ m.type='produit'; if(bloquant)m.bloquant=true; }
+    all[cle].push(m);
+    ptgMsgSaveAll(all); ptgRenderMsgAdmin();
+    try{ toast('Message ajouté ✔','success'); }catch(e){}
+  }
+  if(file){ if(file.size>6*1024*1024){ try{toast('Photo trop lourde (max 6 Mo).','error');}catch(e){} return; } _ptgResizeImage(file, 900, 0.72, finalize); }
+  else finalize(null);
 }
 function ptgMsgDel(cle,id){
   var all=ptgMsgGetAll(); if(!all[cle]) return;
@@ -12095,9 +12512,10 @@ function _incRecents(){
   return out;
 }
 function updateIncBadge(){
+  // Pastille du compteur d'incidents RETIRÉE de l'onglet « Incidents » (tout en haut).
+  // Elle reste présente sur « Alertes » et dans la catégorie Incidents des Alertes.
   var b=document.getElementById('incbadge'); if(!b) return;
-  var n=_incRecents().length;
-  b.textContent=n; b.style.display=n>0?'inline-flex':'none';
+  b.style.display='none';
 }
 function ensureNotifPermission(){
   try{
@@ -12280,20 +12698,46 @@ function dashRenderConfig(){
     }).join('');
   }
   var actives=DASH_TILES.filter(function(t){ return cfg[t.id]!==false; });
-  var codeMini=(cfg.changecode!==false)?('<div class="tel-mini" onclick="dashOpenChangeCode()" style="cursor:pointer;"><div class="tm-accent" style="background:#8e8e8e"></div><div class="tm-em">🔑</div><div><div class="tm-tt">Changer mon code</div><div class="tm-ds">Modifier mon code PIN</div></div></div>'):'';
+  var codeMini=(cfg.changecode!==false)?('<div class="tel-mini" onclick="dashPreviewTile(\'changecode\')" style="cursor:pointer;"><div class="tm-accent" style="background:#8e8e8e"></div><div class="tm-em">🔑</div><div><div class="tm-tt">Changer mon code</div><div class="tm-ds">Modifier mon code PIN</div></div></div>'):'';
   var grid=document.getElementById('dash-cfg-grid');
   if(grid){
-    // Tuiles CLIQUABLES (vraies actions) : vrai écran télé de test — on ouvre
-    // Mes horaires, Pointer, etc. exactement comme au restaurant.
+    // Tuiles CLIQUABLES : on teste DIRECTEMENT l'écran du salarié choisi dans « Aperçu en tant que… »
+    // (comme sur le téléphone) — utile pour voir ce qui se passe quand un salarié pointe.
     grid.innerHTML=actives.map(function(t){
       var soon=!t.action;
-      return '<div class="tel-mini'+(soon?' tm-soon':'')+'" '+(t.action?('onclick="'+t.action+'()"'):'')+' style="cursor:'+(t.action?'pointer':'default')+';">'
+      return '<div class="tel-mini'+(soon?' tm-soon':'')+'" '+(t.action?('onclick="dashPreviewTile(\''+t.id+'\')"'):'')+' style="cursor:'+(t.action?'pointer':'default')+';">'
         +'<div class="tm-accent" style="background:'+t.color+'"></div><div class="tm-em">'+t.em+'</div>'
         +'<div><div class="tm-tt">'+t.tt+'</div><div class="tm-ds">'+t.ds+'</div></div></div>';
     }).join('')+codeMini;
   }
   var emp=document.getElementById('dash-cfg-empty'); if(emp) emp.style.display=(actives.length||cfg.changecode!==false)?'none':'block';
+  try{ dashFillPreviewEmp(); }catch(_){}
 }
+// Remplit le sélecteur « Aperçu en tant que… » de l'Écran télé + ouvre une pièce
+// directement au nom du salarié choisi (test du pointage sans passer par le code).
+function dashFillPreviewEmp(){
+  var sel=document.getElementById('dash-cfg-emp'); if(!sel) return;
+  var list=[]; try{ list=_dashEmployesResto(telPreviewResto())||[]; }catch(_){}
+  var cur=sel.value;
+  sel.innerHTML=list.map(function(e){return '<option value="'+e.id+'">'+e.name+'</option>';}).join('');
+  if(cur) sel.value=cur;
+}
+window.dashFillPreviewEmp=dashFillPreviewEmp;
+function _dashPreviewEmp(){
+  var resto=telPreviewResto(); try{ DASH_RESTO=resto; PTG_RESTO=resto; window.__ptgRestoActif=resto; }catch(_){}
+  var sel=document.getElementById('dash-cfg-emp');
+  var empId=(sel&&sel.value)?sel.value:((_dashEmployesResto(resto)[0]||{}).id);
+  return (DB.employees||[]).find(function(x){return String(x.id)===String(empId);})||null;
+}
+function dashPreviewTile(kind){
+  var e=_dashPreviewEmp();
+  if(!e){ if(typeof toast==='function') toast('Aucun salarié pour ce restaurant','error'); return; }
+  if(kind==='horaires'){ try{ dashHorairesOpen(e.id,true); }catch(err){console.warn(err);} var o=document.getElementById('dash-hor-ov'); if(o)o.style.zIndex='11800'; return; }
+  if(kind==='conges'||kind==='indispo'){ _dashDemType=kind; try{ dashDemOpen(e.id,true); }catch(err){console.warn(err);} var o2=document.getElementById('dash-dem-ov'); if(o2)o2.style.zIndex='11800'; return; }
+  if(kind==='changecode'){ _eqSel=e; _eqResto=e.restoId||e.resto_id||null; _eqKiosk=false; _eqCodeCtx='admin'; var ov=document.getElementById('equipier-portail'); if(!ov){ ov=document.createElement('div'); ov.id='equipier-portail'; document.body.appendChild(ov); } ov.style.display='block'; try{ eqChangeCode(); }catch(err){console.warn(err);} return; }
+  if(kind==='pointer'){ _ptgSel=e; try{ PTG_RESTO=e.restoId||PTG_RESTO; }catch(_){} var mp=document.getElementById('modal-ptg'); if(mp)mp.classList.add('open'); try{ ptgShowActions(); }catch(err){console.warn(err);} return; }
+}
+window.dashPreviewTile=dashPreviewTile;
 // Écran télé : « Changer mon code » → on choisit le salarié (comme Mes horaires),
 // puis on ouvre le formulaire ancien → nouveau code.
 function dashOpenChangeCode(){
@@ -12767,6 +13211,22 @@ function dashRenderCalendrierPerso(emp){
   var resto=(DASH_RESTO||'').toUpperCase();
   var snap=HR_PLANNING_BY_RESTO[resto]||{};
   var sems=Object.keys(snap).sort();
+  // Inclure aussi les semaines où le salarié a un congé VALIDÉ ou un arrêt maladie,
+  // même si le planning de la semaine n'a pas encore été transféré. Ainsi ses
+  // absences apparaissent toujours dans « Mes horaires ».
+  try{
+    var _auj=new Date(); _auj.setHours(12,0,0,0);
+    var _lun0=new Date(_auj); var _wd=(_lun0.getDay()+6)%7; _lun0.setDate(_lun0.getDate()-_wd-28); // 4 semaines en arrière
+    for(var _w=0;_w<20;_w++){ // ~4 mois glissants
+      var _lm=new Date(_lun0); _lm.setDate(_lun0.getDate()+_w*7);
+      var _lmi=hrISO(_lm);
+      if(sems.indexOf(_lmi)>=0) continue;
+      var _has=false;
+      for(var _dd=0;_dd<7;_dd++){ var _dj=new Date(_lm); _dj.setDate(_lm.getDate()+_dd); var _et=null; try{ _et=_hrEtatJour(emp.id, hrISO(_dj)); }catch(e){} if(_et){ _has=true; break; } }
+      if(_has) sems.push(_lmi);
+    }
+    sems.sort();
+  }catch(e){ console.warn('semaines absences',e); }
   if(!sems.length){
     var diag=window.__dashDiag||{};
     var diagTxt='';
@@ -12781,6 +13241,9 @@ function dashRenderCalendrierPerso(emp){
   }
   // Semaines récentes/à venir d'abord (ordre décroissant), on garde les 8 dernières
   sems.sort(); var aff=sems.slice(-8).reverse();
+  // Lundi de la semaine EN COURS : c'est elle qu'on ouvre par défaut (pas une semaine passée).
+  var _ajd=new Date(); _ajd.setHours(12,0,0,0); var _wj=(_ajd.getDay()+6)%7; _ajd.setDate(_ajd.getDate()-_wj);
+  var _lundiCourantISO=hrISO(_ajd);
   var h='<div style="text-align:left;">';
   aff.forEach(function(lundiIso, idx){
     var jours=_dashHorSemaineEmp(resto, lundiIso, emp.id);
@@ -12788,7 +13251,7 @@ function dashRenderCalendrierPerso(emp){
     var totMin=0; jours.forEach(function(j){ j.creneaux.forEach(function(c){ totMin+=(c.e-c.s); }); });
     // libellé semaine
     var lib=''; try{ lib=_hrLibelleSemaine(lundiIso); }catch(e){ lib='du '+lundiIso; }
-    var ouvert = idx===0; // la plus récente ouverte par défaut
+    var ouvert = (lundiIso===_lundiCourantISO); // ouvrir la semaine EN COURS ; si absente, rien n'est ouvert
     h+='<div style="border:1px solid #333;border-radius:12px;margin-bottom:10px;overflow:hidden;">';
     h+='<div onclick="var b=this.nextElementSibling;b.style.display=b.style.display===\'none\'?\'block\':\'none\';" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:11px 14px;background:#16223a;">';
     h+='<div style="font-weight:800;color:#dbe7ff;font-size:.9rem;">📅 Semaine '+lib+'</div>';
@@ -15875,11 +16338,15 @@ window._hrDateFr=_hrDateFr;
 function _hrBlocDemandesEnAttente(){
   var abs=window.HR_ABSENCES||HR_ABSENCES||{};
   var items=[];
+  var _brDem=(typeof _etatRestoActif==='function')?_etatRestoActif():null; // resto affiché
   Object.keys(abs).forEach(function(id){
     (abs[id]||[]).forEach(function(a,idx){
       if(a && a.statut==='attente'){
         var e=(DB.employees||[]).find(function(x){return String(x.id)===String(id);});
-        items.push({id:id, idx:idx, a:a, nom:(e&&e.name)||id, resto:(e&&(e.restoId||e.resto_id))||''});
+        var _rEmp=(e&&(e.restoId||e.resto_id))||'';
+        // SÉPARÉ PAR RESTAURANT : on ne montre que les demandes du resto affiché
+        if(_brDem && (''+_rEmp).toLowerCase()!==(''+_brDem).toLowerCase()) return;
+        items.push({id:id, idx:idx, a:a, nom:(e&&e.name)||id, resto:_rEmp});
       }
     });
   });
