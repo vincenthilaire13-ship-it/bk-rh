@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-25 · v341';
+  var EMBEDDED_VERSION = '2026-07-25 · v342';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -393,7 +393,7 @@ body.tv-mode #eye-viewas{display:none!important;}
 @media(max-width:640px){.tel-tv-grid{grid-template-columns:1fr 1fr;}}
 /* ── Espace équipier (accès PIN sur téléphone) ── */
 #equipier-portail{position:fixed;inset:0;z-index:11000;display:none;}
-.eq-back{position:absolute;inset:0;background:rgba(8,8,10,.92);display:flex;align-items:flex-start;justify-content:center;padding:38px 14px;overflow:auto;font-family:Barlow,sans-serif;}
+.eq-back{position:absolute;inset:0;background:#0a0a0c;display:flex;align-items:flex-start;justify-content:center;padding:38px 14px;overflow:auto;font-family:Barlow,sans-serif;}
 .eq-card{position:relative;background:#161618;border:1px solid #333;border-radius:22px;width:100%;max-width:390px;padding:26px 22px 24px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.6);}
 .eq-close{position:absolute;top:12px;right:16px;background:none;border:none;color:#888;font-size:1.6rem;cursor:pointer;line-height:1;}
 .eq-h{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.5rem;color:#F5A623;letter-spacing:1px;margin-top:4px;}
@@ -2590,7 +2590,9 @@ function startRealtime(){
     // sans montrer les restaurants ni les accès admin.
     if (hash.indexOf('#equipier') === 0) {
       document.getElementById('loading-screen').style.display = 'none';
-      document.getElementById('login-screen').style.display = 'block';
+      // On NE montre PAS l'écran de connexion (tuiles restaurants / admin) : l'équipier
+      // ne voit QUE son formulaire, rien d'autre derrière.
+      document.getElementById('login-screen').style.display = 'none';
       _eqKiosk = true;
       try { equipierPortail(); } catch(e){ console.warn('lien équipier', e); }
       return;
