@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-26 · v403';
+  var EMBEDDED_VERSION = '2026-07-26 · v406';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -2260,8 +2260,8 @@ async function loadAll(light) {
   // light=true : synchro de fond — on évite la colonne lourde "photo" des candidats
   // (les photos restent celles déjà en mémoire ; rechargées au 1er chargement et à l'ouverture du recrutement)
   var candCols = light
-    ? 'id,prenom,nom,email,phone,resto_id,restos,poste,niveau_apprentissage,dispos,questionnaire,motivation,statut,entretien_date,note_interne,created_at,date_naissance,etudiant,rqth,dernier_emploi,transport,trajet,adresse,code_postal,ville,nationalite,sexe,contrat_type,contrat_label,contrat_heures,cv_name,onboarding,date_debut,essai_rappels,avis_managers,refus_motif,documents,contact_urgence,tailles_tenue,bku_identifiant,bku_motdepasse,docs_soumis,videos_faites,essai_alerte,contrat_signe,visite_faite,visite_date,contrat_signe_doc'
-    : 'id,prenom,nom,email,phone,resto_id,restos,poste,niveau_apprentissage,dispos,questionnaire,motivation,statut,entretien_date,note_interne,created_at,date_naissance,etudiant,rqth,dernier_emploi,transport,trajet,adresse,code_postal,ville,nationalite,sexe,photo,contrat_type,contrat_label,contrat_heures,cv_name,onboarding,date_debut,essai_rappels,avis_managers,refus_motif,documents,contact_urgence,tailles_tenue,bku_identifiant,bku_motdepasse,docs_soumis,videos_faites,essai_alerte,contrat_signe,visite_faite,visite_date,contrat_signe_doc';
+    ? 'id,prenom,nom,email,phone,resto_id,restos,poste,niveau_apprentissage,dispos,questionnaire,motivation,statut,entretien_date,note_interne,created_at,date_naissance,etudiant,rqth,dernier_emploi,transport,trajet,adresse,code_postal,ville,nationalite,sexe,contrat_type,contrat_label,contrat_heures,cv_name,onboarding,date_debut,essai_rappels,avis_managers,refus_motif,documents,contact_urgence,tailles_tenue,bku_identifiant,bku_motdepasse,docs_soumis,videos_faites,essai_alerte,contrat_signe,visite_faite,visite_date,contrat_signe_doc,refus_date'
+    : 'id,prenom,nom,email,phone,resto_id,restos,poste,niveau_apprentissage,dispos,questionnaire,motivation,statut,entretien_date,note_interne,created_at,date_naissance,etudiant,rqth,dernier_emploi,transport,trajet,adresse,code_postal,ville,nationalite,sexe,photo,contrat_type,contrat_label,contrat_heures,cv_name,onboarding,date_debut,essai_rappels,avis_managers,refus_motif,documents,contact_urgence,tailles_tenue,bku_identifiant,bku_motdepasse,docs_soumis,videos_faites,essai_alerte,contrat_signe,visite_faite,visite_date,contrat_signe_doc,refus_date';
   const [emps, incs, lets, settArr, cands, empDocs] = await Promise.all([
     sb.get('bks_employees','select=*&order=name.asc'),
     sb.get('bks_incidents','select=*&order=created_at.desc'),
@@ -2309,7 +2309,7 @@ async function loadAll(light) {
       contratType:c.contrat_type||'',contratLabel:c.contrat_label||'',contratHeures:c.contrat_heures||0,
       cvData:(c.cv_data!==undefined?(c.cv_data||''):(_prev.cvData||'')),cvName:c.cv_name||'',
       onboarding:c.onboarding||{},dateDebut:c.date_debut||'',essaiRappels:c.essai_rappels||{},
-      avisManagers:c.avis_managers||[],refusMotif:c.refus_motif||'',
+      avisManagers:c.avis_managers||[],refusMotif:c.refus_motif||'',refusDate:c.refus_date||null,
       documents:c.documents||{},contactUrgence:c.contact_urgence||{},taillesTenue:c.tailles_tenue||'',
       bkuIdentifiant:c.bku_identifiant||'',bkuMotdepasse:c.bku_motdepasse||'',docsSoumis:!!c.docs_soumis,
       videosFaites:!!c.videos_faites,essaiAlerte:c.essai_alerte||'15j',contratSigne:!!c.contrat_signe,
@@ -5123,7 +5123,7 @@ function _incRptParJour(incs){
       var motifs=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});return p?p.label:pid;}).slice(0,3).join(', ')||'Incident';
       var grave=(String(i.severity)==='3'||String(i.severity)==='4');
       var col=grave?'#cc5555':'#F5A623';
-      return '<div class="emp-card" style="border-left:4px solid '+col+';cursor:'+(e?'pointer':'default')+';" '+(e?('onclick="openEmpFiche(\''+i.empId+'\')"'):'')+'>'
+      return '<div class="emp-card" style="border-left:4px solid '+col+';cursor:'+(e?'pointer':'default')+';" '+(e?('onclick="openEmpFiche(\''+i.empId+'\',\'histo\')"'):'')+'>'
         +'<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:.88rem;">'+nom+(grave?' <span style="color:#cc5555;">— grave</span>':'')+'</div>'
         +'<div style="font-size:.74rem;color:#999;margin-top:2px;">🕐 '+t+' · '+motifs+' · 👤 '+(i.reporterName||'?')+'</div></div>'
         +(e?('<span style="color:'+col+';font-size:1.2rem;">›</span>'):'')+'</div>';
@@ -6266,15 +6266,16 @@ function empEstEncadrement(e){
   if(/directeur|manager/.test(r)) return true;
   return false;
 }
-function openEmpFiche(id){
+function openEmpFiche(id, tab){
   var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
-  _empfId=id;_empfTab='infos';
+  var t=(['infos','docs','qualif','histo'].indexOf(tab)>=0)?tab:'infos';
+  _empfId=id;_empfTab=t;
   document.getElementById('empf-title').textContent=e.name;
   // Masquer l'onglet "Compétences & Dispos" pour l'encadrement (managers / leaders / directeurs)
   var qbtn=document.getElementById('empft-qualif');
   if(qbtn) qbtn.style.display = empEstEncadrement(e) ? 'none' : '';
   goPage('emp-fiche');
-  empfTab('infos');
+  empfTab(t);
 }
 function closeEmpFiche(){goPage('equipe');renderEquipe();}
 
@@ -7946,7 +7947,7 @@ function _alrtIncidentsParJour(){
       var motifs=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});return p?p.label:pid;}).slice(0,3).join(', ')||'Incident';
       var grave=(String(i.severity)==='3'||String(i.severity)==='4');
       var col=grave?'#cc5555':'#F5A623';
-      return '<div class="emp-card" style="border-left:4px solid '+col+';cursor:'+(e?'pointer':'default')+';" '+(e?('onclick="openEmpFiche(\''+i.empId+'\')"'):'')+'>'
+      return '<div class="emp-card" style="border-left:4px solid '+col+';cursor:'+(e?'pointer':'default')+';" '+(e?('onclick="openEmpFiche(\''+i.empId+'\',\'histo\')"'):'')+'>'
         +'<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:.88rem;">'+nom+(grave?' <span style="color:#cc5555;">— grave</span>':'')+'</div>'
         +'<div style="font-size:.74rem;color:#999;margin-top:2px;">🕐 '+t+' · '+motifs+' · 👤 '+(i.reporterName||'?')+'</div></div>'
         +(e?('<span style="color:'+col+';font-size:1.2rem;">›</span>'):'')+'</div>';
@@ -8805,10 +8806,39 @@ function _chLundiIso(iso){
   var d=new Date(iso+'T12:00:00'); var wd=(d.getDay()+6)%7; d.setDate(d.getDate()-wd);
   return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
 }
+// Traits d'ENCADREMENT (managers/leaders) d'un jour, issus du Planning d'encadrement
+// (PLAN.cells + codes à horaires). Chaque trait est RATTACHÉ au salarié correspondant
+// (par nom) → il apparaît alors dans SON horaire (Planning du jour, Contrôle, etc.).
+function _encTraitsJour(resto, iso){
+  var out=[];
+  try{
+    if(typeof PLAN==='undefined' || !PLAN.people || !PLAN.cells || typeof _nomKey!=='function') return out;
+    var restoP=(''+(resto||'')).toLowerCase();
+    function toMin(hhmm){ if(!hhmm) return null; var p=(''+hhmm).split(':'); if(p.length<2) return null; var h=parseInt(p[0],10),m=parseInt(p[1],10); if(isNaN(h)||isNaN(m)) return null; var v=h*60+m; if(h<5) v+=1440; return v; }
+    var empByKey={}; (DB.employees||[]).forEach(function(e){ if(e&&e.name&&!e.archived) empByKey[_nomKey(e.name)]=e; });
+    PLAN.people.forEach(function(p){
+      if(p.categorie!=='manager' && p.categorie!=='leader') return;
+      if((''+(p.resto_id||'')).toLowerCase()!==restoP) return;
+      var code=PLAN.cells[p.id+'_'+iso]; if(!code) return;
+      var hc=(typeof horairesDuCode==='function')?horairesDuCode(code):null;
+      if(!hc || !hc.h1 || !hc.h2) return; // repos, CP… → pas de trait
+      var codeObj=(typeof codeByVal==='function')?codeByVal(code):null;
+      var col=(codeObj&&codeObj.couleur)?codeObj.couleur:'#e8a020';
+      var emp=empByKey[_nomKey(p.nom)]||null;
+      var eid=emp?emp.id:('planenc_'+p.id);
+      var nom=emp?emp.name:p.nom;
+      function push(s,e){ if(s==null||e==null) return; if(e<=s) e+=1440; out.push({empId:eid,emp:nom,l:code,s:s,e:e,col:col,_enc:true}); }
+      push(toMin(hc.h1), toMin(hc.h2));
+      if(hc.h3 && hc.h4) push(toMin(hc.h3), toMin(hc.h4));
+    });
+  }catch(_){}
+  return out;
+}
 function _chJoursSrc(resto, iso){
   // Renvoie le tableau des traits d'un jour, en cherchant dans TOUTES les sources :
   // 1) placements placés (HR_AFFECT — tous les traits faits, même non transférés)
   // 2) planning transféré (HR_PLANNING_BY_RESTO)
+  // 3) traits d'encadrement issus du Planning d'encadrement (managers/leaders)
   var arr=[];
   try{ var src=_chAffectResto(resto); if(src&&src[iso]&&src[iso].length) arr=src[iso]; }catch(_){}
   if(!arr || !arr.length){
@@ -8818,7 +8848,9 @@ function _chJoursSrc(resto, iso){
       if(snap){ var wk=snap[_chLundiIso(iso)]; if(wk&&wk.jours&&wk.jours[iso]) arr=wk.jours[iso]; }
     }catch(_1){}
   }
-  return arr||[];
+  var res=(arr||[]).slice();
+  try{ var enc=_encTraitsJour(resto, iso); if(enc && enc.length) res=res.concat(enc); }catch(_2){}
+  return res;
 }
 function _chPlanSegs(emp, iso, resto){
   try{
@@ -8857,6 +8889,22 @@ function _chDatesAvecTraits(resto){
     var snap=(typeof HR_PLANNING_BY_RESTO!=='undefined' && HR_PLANNING_BY_RESTO[up])?HR_PLANNING_BY_RESTO[up]:null;
     if(snap) Object.keys(snap).forEach(function(lun){ var j=snap[lun]&&snap[lun].jours; if(j) Object.keys(j).forEach(function(d){ if(Array.isArray(j[d])&&j[d].length) set[d]=1; }); });
   }catch(_){}
+  // + jours qui n'ont QUE des traits d'encadrement (Planning d'encadrement)
+  try{
+    if(typeof PLAN!=='undefined' && PLAN.people && PLAN.cells){
+      var restoP=(''+(resto||'')).toLowerCase();
+      PLAN.people.forEach(function(p){
+        if(p.categorie!=='manager' && p.categorie!=='leader') return;
+        if((''+(p.resto_id||'')).toLowerCase()!==restoP) return;
+        var pref=p.id+'_';
+        Object.keys(PLAN.cells).forEach(function(kk){
+          if(kk.indexOf(pref)!==0) return;
+          var code=PLAN.cells[kk]; var hc=(typeof horairesDuCode==='function')?horairesDuCode(code):null;
+          if(hc && hc.h1 && hc.h2) set[kk.slice(pref.length)]=1;
+        });
+      });
+    }
+  }catch(_e){}
   return Object.keys(set).sort();
 }
 // À partir d'une date, trouve la plus proche qui a des traits (futur d'abord, sinon passé).
@@ -8918,11 +8966,13 @@ function ptgCtrlTimeline(dateISO, emps){
       bars+='<div title="'+_ptgEsc(etatAbs.label||'')+'" style="position:absolute;top:8px;height:22px;left:'+pct(rs)+'%;width:'+(pct(re)-pct(rs))+'%;background:'+(etatAbs.col||'#cc5555')+';border-radius:5px;display:flex;align-items:center;gap:5px;padding:0 7px;color:#fff;font-size:.63rem;font-weight:700;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.2);">'
         +'<span style="background:rgba(0,0,0,.28);border-radius:4px;padding:0 5px;">'+_ptgEsc(etatAbs.court||'Abs')+'</span>'+m2hm(rs)+'–'+m2hm(re)+'</div>';
     } else {
-      // PRÉVU : traits colorés par poste (comme le Planning du jour)
+      // PRÉVU : traits colorés par poste (comme le Planning du jour).
+      // Un trait d'encadrement (s.col présent) garde la couleur de son code.
       segs.forEach(function(s){
         var c=(typeof colFor==='function')?colFor(s.l):{bg:'#1565c0',tx:'#fff'};
+        var bg=s.col||c.bg||'#1565c0';
         var lab=(typeof _ptgPosteLabel==='function')?_ptgPosteLabel(s.l):s.l;
-        bars+='<div title="'+_ptgEsc(s.l)+'" style="position:absolute;top:4px;height:17px;left:'+pct(s.s)+'%;width:'+(pct(s.e)-pct(s.s))+'%;background:'+(c.bg||'#1565c0')+';color:'+(c.tx||'#fff')+';border-radius:4px;font-size:.58rem;font-weight:700;line-height:17px;padding:0 6px;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.18);">'+_ptgEsc(lab)+' '+m2hm(s.s)+'–'+m2hm(s.e)+'</div>';
+        bars+='<div title="'+_ptgEsc(s.l)+'" style="position:absolute;top:4px;height:17px;left:'+pct(s.s)+'%;width:'+(pct(s.e)-pct(s.s))+'%;background:'+bg+';color:'+(c.tx||'#fff')+';border-radius:4px;font-size:.58rem;font-weight:700;line-height:17px;padding:0 6px;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.18);">'+_ptgEsc(lab)+' '+m2hm(s.s)+'–'+m2hm(s.e)+'</div>';
       });
       // POINTÉ : barre verte (conforme) / orange / rouge (écart), sous le prévu
       if(aArr!=null && aDep!=null){
@@ -10010,6 +10060,14 @@ function setRestoFilter(btn,r){
   renderCandidatures();
 }
 
+// Formate une date ISO en « JJ/MM à HHhMM » (jour + heure), pour le suivi des candidatures.
+function _candDT(iso){
+  if(!iso) return '';
+  var d=new Date(iso); if(isNaN(d.getTime())) return '';
+  var dd=('0'+d.getDate()).slice(-2), mm=('0'+(d.getMonth()+1)).slice(-2);
+  var hh=('0'+d.getHours()).slice(-2), mi=('0'+d.getMinutes()).slice(-2);
+  return dd+'/'+mm+' à '+hh+'h'+mi;
+}
 function renderCandidatures(){
   var list=document.getElementById('rec-cand-list');if(!list)return;
   var cands=DB.candidatures.slice();
@@ -10058,11 +10116,17 @@ function renderCandidatures(){
         +'<span style="color:'+col+';font-size:1.3rem;">›</span>'
         +'</div>';
     }
-    if(c.statut==='nouveau'){var dt=c.createdAt?new Date(c.createdAt).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}):'';meta=(c.poste||'—')+' · '+resto+' · reçu le '+dt;}
+    if(c.statut==='nouveau'){meta=(c.poste||'—')+' · '+resto+' · reçu le '+_candDT(c.createdAt);}
     else if(c.statut==='entretien'){meta='Entretien : '+(c.entretienDate?new Date(c.entretienDate).toLocaleString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'à programmer')+' · '+resto;}
     else if(c.statut==='retenu'){var dok=docsComplets(c)&&c.docsSoumis;var vok=!!c.videosFaites;var st=(dok&&vok)?'✅ dossier validé':((dok?'📎 docs ok':'📎 docs en attente')+' · '+(vok?'🎓 vidéos ok':'🎓 vidéos en attente'));meta='Retenu · '+resto+' · '+st+(c.dateDebut?' · début '+new Date(c.dateDebut).toLocaleDateString('fr-FR'):'');}
     else if(c.statut==='essai'){var ess=essaiInfo(c);meta='Début '+(c.dateDebut?new Date(c.dateDebut).toLocaleDateString('fr-FR'):'?')+' · '+(ess?ess.label:'')+' · '+resto;}
-    else if(c.statut==='refuse'){meta='Refusé · '+resto;}
+    else if(c.statut==='refuse'){
+      var _parc=(c.refusMotif==='Intégration annulée')?'Intégration annulée'
+        :(c.refusMotif==='Ne s\'est pas présenté à l\'entretien')?'Ne s\'est pas présenté'
+        :(c.entretienDate?'Refusé après entretien':'Refusé sans entretien');
+      var _post=_candDT(c.createdAt), _refu=_candDT(c.refusDate);
+      meta='Postulé le '+(_post||'?')+' · '+_parc+(_refu?(' · Refusé le '+_refu):'')+' · '+resto;
+    }
     if(c.statut==='essai'){var e=essaiInfo(c);if(e&&e.alert)alert='<span style="background:'+e.alertCol+';color:#fff;border-radius:10px;padding:2px 8px;font-size:.68rem;font-weight:700;margin-left:6px;">'+e.alert+'</span>';}
     return '<div class="emp-card" style="border-left:4px solid '+col+';cursor:pointer;" onclick="openCand(\''+c.id+'\')">'
       +'<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
@@ -10630,6 +10694,8 @@ async function _candUpdate(patch,msg,after){
   if(!_candId)return;
   var _cAvant=curCand();  // état AVANT patch (resto + statut + nom/prénom) pour Dropbox
   patch.updated_at=new Date().toISOString();
+  // Date/heure de refus : mémorisée une seule fois, au moment où on passe en « refusé ».
+  if(patch.statut==='refuse' && !patch.refus_date && !(_cAvant&&_cAvant.refusDate)) patch.refus_date=patch.updated_at;
   try{
     await sb.patch('bks_candidatures','id=eq.'+_candId,patch);
     // ── Dropbox : le dossier du candidat suit son étape / son restaurant ──
@@ -11796,13 +11862,47 @@ async function _syncEncadrementAuto(){
   try{
     if(typeof _nomKey!=='function' || !window.PLAN) return;
     function key(nom,cat,resto){ return _nomKey(nom)+'|'+(cat||'')+'|'+((''+(resto||'')).toLowerCase()); }
-    // 1) Nettoyage des doublons existants (on garde la première occurrence)
+    function toks(nom){ return _nomKey(nom).split(' ').filter(Boolean); }
+    function catr(p){ return (p.categorie||'')+'|'+((''+(p.resto_id||'')).toLowerCase()); }
+    // 0) FUSION des entrées « partielles » (prénom seul / nom incomplet) vers la fiche
+    //    en NOM COMPLET correspondante. Évite les doublons « Kevin » vs « LE LABOURIER
+    //    KEVIN » : on déplace les journées (bks_planning_cells) puis on supprime la
+    //    partielle. Sécurité : une entrée qui correspond exactement à une fiche salarié
+    //    n'est JAMAIS fusionnée (c'est une vraie ligne), et on ne fusionne que si UNE
+    //    seule cible plausible existe (sinon on ne touche à rien).
+    var empKeys={}; (DB.employees||[]).forEach(function(e){ if(e&&e.name) empKeys[_nomKey(e.name)]=true; });
+    var gens=(PLAN.people||[]).slice();
+    var fusionne=false;
+    for(var a=0;a<gens.length;a++){
+      var P=gens[a]; if(!P || !P.id || P.__fus) continue;
+      var tp=toks(P.nom); if(!tp.length) continue;
+      if(empKeys[_nomKey(P.nom)]) continue;               // P = vraie fiche → on garde
+      var cands=gens.filter(function(F){
+        if(!F || F===P || F.__fus || !F.id) return false;
+        if(catr(F)!==catr(P)) return false;
+        var tf=toks(F.nom);
+        if(tf.length<=tp.length) return false;            // F doit être « plus complet »
+        return tp.every(function(w){ return tf.indexOf(w)>=0; });
+      });
+      if(!cands.length) continue;
+      var reel=cands.filter(function(F){ return empKeys[_nomKey(F.nom)]; });
+      var F=(reel.length===1)?reel[0]:(cands.length===1?cands[0]:null);
+      if(!F) continue;                                    // ambigu → on ne touche pas
+      try{ await sb.patch('bks_planning_cells','person_id=eq.'+P.id,{person_id:F.id}); }catch(_){}
+      try{ if(await sb.del('bks_planning_people','id=eq.'+P.id)){ P.__fus=true; fusionne=true; } }catch(_){}
+    }
+    if(fusionne){ try{ await loadPlanning(); }catch(_){} }
+    // 1) Nettoyage des doublons EXACTS (même clé) : on garde la 1re occurrence mais on
+    //    récupère d'abord ses journées (au cas où une copie en porterait).
     var byKey={};
     (PLAN.people||[]).forEach(function(p){ (byKey[key(p.nom,p.categorie,p.resto_id)]=byKey[key(p.nom,p.categorie,p.resto_id)]||[]).push(p); });
     var supprime=false;
     for(var k in byKey){
       var arr=byKey[k];
-      for(var j=1;j<arr.length;j++){ if(arr[j].id){ try{ await sb.del('bks_planning_people','id=eq.'+arr[j].id); supprime=true; }catch(_){} } }
+      for(var j=1;j<arr.length;j++){ if(arr[j].id){
+        try{ await sb.patch('bks_planning_cells','person_id=eq.'+arr[j].id,{person_id:arr[0].id}); }catch(_){}
+        try{ if(await sb.del('bks_planning_people','id=eq.'+arr[j].id)) supprime=true; }catch(_){}
+      } }
     }
     if(supprime){ try{ await loadPlanning(); }catch(_){} }
     // 2) Ajout des managers/leaders manquants depuis l'Équipe
@@ -13726,8 +13826,9 @@ function dashPlanningJourHtml(resto, dateISO){
     var gl=HRS.map(function(h,i){return '<div style="position:absolute;top:0;bottom:0;left:'+(i/HRS.length*100)+'%;width:1px;background:#e8e8e8;"></div>';}).join('');
     var bars=rd.segs.map(function(s){
       var c=(typeof colFor==='function')?colFor(s.l):{bg:'#1565c0',tx:'#fff'};
+      var bg=s.col||c.bg||'#1565c0';
       var lab=(typeof _ptgPosteLabel==='function')?_ptgPosteLabel(s.l):s.l;
-      return '<div title="'+_ptgEsc(s.l)+'" style="position:absolute;top:6px;height:24px;left:'+pct(s.s)+'%;width:'+(pct(s.e)-pct(s.s))+'%;background:'+(c.bg||'#1565c0')+';color:'+(c.tx||'#fff')+';border-radius:5px;font-size:.62rem;font-weight:700;line-height:24px;padding:0 7px;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.25);">'+_ptgEsc(lab)+' '+m2hm(s.s)+'–'+m2hm(s.e)+'</div>';
+      return '<div title="'+_ptgEsc(s.l)+'" style="position:absolute;top:6px;height:24px;left:'+pct(s.s)+'%;width:'+(pct(s.e)-pct(s.s))+'%;background:'+bg+';color:'+(c.tx||'#fff')+';border-radius:5px;font-size:.62rem;font-weight:700;line-height:24px;padding:0 7px;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.25);">'+_ptgEsc(lab)+' '+m2hm(s.s)+'–'+m2hm(s.e)+'</div>';
     }).join('');
     return '<div style="display:flex;align-items:stretch;border-bottom:1px solid #ececec;">'
       +'<div style="flex:0 0 '+NAMEW+';padding:7px 8px;font-weight:700;color:#1c1c1c;font-size:.76rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_ptgEsc(rd.e.name)+'</div>'
