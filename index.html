@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-27 · v421';
+  var EMBEDDED_VERSION = '2026-07-27 · v422';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -13972,11 +13972,15 @@ function dashRenderTiles(){
       +'<div class="dt-accent" style="background:'+t.color+'"></div><div class="dt-em">'+t.em+'</div>'
       +'<div><div class="dt-tt">'+t.tt+'</div><div class="dt-ds">'+t.ds+'</div></div></div>';
   }).join('')+codeTile;
-  // Fil d'actualité à droite de l'écran télé (rendu local immédiat + rafraîchi depuis Supabase)
+  // Fil d'actualité à droite de l'écran télé (affichable/masquable via l'interrupteur « Actualité »)
   var fa=document.getElementById('dash-actu-feed');
   if(fa){
-    try{ fa.innerHTML=dashActuFeedHtml(DASH_RESTO); }catch(_){}
-    try{ hrChargerActusSupabase(DASH_RESTO).then(function(){ var fa2=document.getElementById('dash-actu-feed'); if(fa2){ try{ fa2.innerHTML=dashActuFeedHtml(DASH_RESTO); }catch(_e){} } }); }catch(_2){}
+    if(cfg.actu_feed===false){ fa.style.display='none'; }
+    else {
+      fa.style.display='';
+      try{ fa.innerHTML=dashActuFeedHtml(DASH_RESTO); }catch(_){}
+      try{ hrChargerActusSupabase(DASH_RESTO).then(function(){ var fa2=document.getElementById('dash-actu-feed'); if(fa2 && getDashConfig().actu_feed!==false){ try{ fa2.innerHTML=dashActuFeedHtml(DASH_RESTO); }catch(_e){} } }); }catch(_2){}
+    }
   }
 }
 // ══ ÉCRAN TÉLÉ — pièces configurables (même système que le Téléphone équipe) ══
@@ -13984,7 +13988,9 @@ function dashRenderTiles(){
 // lesquelles s'affichent. Config partagée via app_config (clé 'bkrh_dashboard')
 // + miroir localStorage. Indépendante de la config du Téléphone équipe.
 var DASH_CONFIG=null;
-function dashDefaultConfig(){ var o={}; DASH_TILES.forEach(function(t){ o[t.id]=true; }); o.changecode=true; return o; }
+function dashDefaultConfig(){ var o={}; DASH_TILES.forEach(function(t){ o[t.id]=true; }); o.changecode=true; o.actu_feed=true; return o; }
+// Pseudo-pièce « Actualité » (le fil de droite) : interrupteur affichable comme les tuiles.
+var ACTU_FEED_TILE={id:'actu_feed', em:'📣', tt:'Actualité', ds:'Fil d\'actu à droite de l\'écran'};
 function getDashConfig(){
   if(DASH_CONFIG) return DASH_CONFIG;
   try{ var raw=localStorage.getItem('bkrh_dashboard'); if(raw){ DASH_CONFIG=Object.assign(dashDefaultConfig(),JSON.parse(raw)); return DASH_CONFIG; } }catch(e){}
@@ -14013,7 +14019,7 @@ function dashRenderConfig(){
   }catch(e){}
   var tg=document.getElementById('dash-cfg-toggles');
   if(tg){
-    tg.innerHTML=DASH_TILES.concat([CODE_TILE]).map(function(t){
+    tg.innerHTML=DASH_TILES.concat([ACTU_FEED_TILE, CODE_TILE]).map(function(t){
       var on=(t.id==='changecode')?(cfg.changecode!==false):(cfg[t.id]!==false);
       return '<div class="tel-tog'+(on?' on':'')+'" onclick="dashToggleTile(\''+t.id+'\')">'
         +'<div class="tt-em">'+t.em+'</div>'
@@ -14038,8 +14044,12 @@ function dashRenderConfig(){
   // Aperçu du fil d'actualité (à droite du cadre télé)
   var cfa=document.getElementById('dash-cfg-actu');
   if(cfa){
+    if(cfg.actu_feed===false){ cfa.style.display='none'; cfa.innerHTML=''; }
+    else{
+    cfa.style.display='';
     try{ cfa.innerHTML=dashActuFeedHtml(DASH_RESTO); }catch(_){}
-    try{ hrChargerActusSupabase(DASH_RESTO).then(function(){ var c2=document.getElementById('dash-cfg-actu'); if(c2){ try{ c2.innerHTML=dashActuFeedHtml(DASH_RESTO); }catch(_e){} } }); }catch(_2){}
+    try{ hrChargerActusSupabase(DASH_RESTO).then(function(){ var c2=document.getElementById('dash-cfg-actu'); if(c2 && getDashConfig().actu_feed!==false){ try{ c2.innerHTML=dashActuFeedHtml(DASH_RESTO); }catch(_e){} } }); }catch(_2){}
+    }
   }
   try{ dashFillPreviewEmp(); }catch(_){}
 }
