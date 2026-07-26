@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-27 · v422';
+  var EMBEDDED_VERSION = '2026-07-27 · v423';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1498,6 +1498,11 @@ html,body{overflow-x:hidden;}
       <div class="sec-title">💬 Messagerie — qui peut écrire à qui</div>
       <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Pour chaque rôle (à gauche), coche les rôles avec qui il a le droit de communiquer. La règle est <strong>réciproque</strong> : si les équipiers ne peuvent parler qu'aux directeurs, alors seuls les directeurs peuvent leur écrire. Un salarié ne peut démarrer une conversation qu'avec les personnes autorisées.</p>
       <div id="msg-regles-box"></div>
+    </div>
+    <div class="card param-card" id="pc-conso" style="display:none;">
+      <div class="sec-title">📊 État / Consommation</div>
+      <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Aperçu de ce que consomme BKRH. <strong>L'application n'utilise aucune « IA » à l'usage</strong> : faire tourner les restaurants ne coûte rien en tokens. Ce qui compte, c'est la base de données (Supabase) et les fichiers (Dropbox).</p>
+      <div id="conso-box"><div style="color:#888;padding:12px;">Chargement…</div></div>
     </div>
     <div class="card param-card" id="rec-apercu-card" style="display:none;">
       <div class="sec-title">👁️ Aperçu de la fiche de recrutement</div>
@@ -3451,6 +3456,7 @@ var PARAM_TILES=[
   {ico:'🩺', titre:'Visite médicale',sub:'Délais et rappels',            type:'card', card:'pc-visite',      accent:'#c0392b'},
   {ico:'📍', titre:'Pointer',       sub:'Messages du pointage',         type:'card', card:'pc-pointer',     accent:'#D62300'},
   {ico:'💬', titre:'Messagerie',    sub:'Qui peut écrire à qui',        type:'card', card:'pc-messagerie', accent:'#7e57c2'},
+  {ico:'📊', titre:'État / Consommation', sub:'Base, fichiers, usage',   type:'card', card:'pc-conso',       accent:'#16a085'},
   {ico:'👁️', titre:'Aperçu fiche',  sub:'Vue candidat',                 type:'card', card:'rec-apercu-card',accent:'#7f8c8d'},
   {ico:'📧', titre:'Adresses mail', sub:'Expédition RH',                type:'card', card:'pc-adresses',    accent:'#2c3e50'},
   {ico:'✉️', titre:'Modèles mails', sub:'Mails aux candidats',          type:'card', card:'pc-mails',       accent:'#27ae60'},
@@ -3497,6 +3503,7 @@ function paramOuvrir(type, ref){
     if(ref==='pc-pointer'){ try{ ptgMsgCharger('suivi'); }catch(_){} try{ ptgRenderMsgAdmin(); }catch(_){} }
     if(ref==='pc-dispos'){ try{ renderDisposContratParam(); }catch(_){} }
     if(ref==='pc-messagerie'){ try{ renderMsgReglesParam(); }catch(_){} }
+    if(ref==='pc-conso'){ try{ renderConso(); }catch(_){} }
     // bouton retour en tête de page
     var back=document.getElementById('param-back');
     if(!back){
@@ -3509,6 +3516,68 @@ function paramOuvrir(type, ref){
   }
 }
 window.renderParamTiles=renderParamTiles; window.paramOuvrir=paramOuvrir;
+// ── État / Consommation ──
+function _consoFmt(b){ b=+b||0; if(b>=1e9) return (b/1e9).toFixed(2)+' Go'; if(b>=1e6) return (b/1e6).toFixed(1)+' Mo'; if(b>=1e3) return (b/1e3).toFixed(0)+' Ko'; return b+' o'; }
+function _consoBar(pct,col){ pct=Math.max(0,Math.min(100,pct)); return '<div style="background:#0e0e0e;border:1px solid #333;border-radius:8px;height:14px;overflow:hidden;"><div style="height:100%;width:'+pct+'%;background:'+(col||'#16a085')+';"></div></div>'; }
+async function _consoDbxUsage(){
+  try{
+    if(typeof dbxEstPret==='function' && dbxEstPret() && typeof dbxToken==='function'){
+      var tok=await dbxToken();
+      var r=await fetch('https://api.dropboxapi.com/2/users/get_space_usage',{method:'POST',headers:{'Authorization':'Bearer '+tok}});
+      if(r.ok){ var d=await r.json(); var alloc=(d.allocation&&(d.allocation.allocated!=null))?d.allocation.allocated:null; return {used:d.used||0, allocated:alloc}; }
+    }
+  }catch(e){ console.warn('dbx space',e); }
+  return null;
+}
+async function renderConso(){
+  var box=document.getElementById('conso-box'); if(!box) return;
+  box.innerHTML='<div style="color:#888;padding:12px;">Analyse en cours…</div>';
+  var rows=[];
+  try{ var r=await sb.get('bkrh_conso','select=*'); rows=r||[]; }catch(e){ console.warn('conso',e); }
+  var tables=rows.filter(function(x){return x.kind==='table';}).sort(function(a,b){return b.bytes-a.bytes;});
+  var configs=rows.filter(function(x){return x.kind==='config';}).sort(function(a,b){return b.bytes-a.bytes;});
+  var totalDb=tables.reduce(function(s,x){return s+(+x.bytes||0);},0);
+  var DB_LIMIT=8e9;   // Supabase Pro : 8 Go de base
+  var pctDb=totalDb/DB_LIMIT*100;
+  var LBL={bks_employees:'Salariés',bks_incidents:'Incidents',bks_candidatures:'Candidatures',bks_letters:'Courriers/sanctions',bks_messages:'Messages',bks_conversations:'Conversations',bks_planning_cells:'Planning encadrement',bks_planning_people:'Personnes planning',bks_emp_docs:'Documents (liens)',app_config:'Réglages & plannings',ventes_horaire:'Ventes (CA)',planning_validations:'Validations planning'};
+  function nom(n){ return LBL[n]||n; }
+  var h='';
+  // Base de données
+  h+='<div class="card" style="background:#141414;margin-bottom:14px;">'
+    +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;"><div style="font-weight:800;color:#fff;">🗄️ Base de données (Supabase)</div><div style="font-size:.8rem;color:#aaa;">Plan Pro · 8 Go</div></div>'
+    +'<div style="font-size:1.5rem;font-weight:900;color:#16a085;">'+_consoFmt(totalDb)+' <span style="font-size:.8rem;color:#888;font-weight:400;">/ 8 Go ('+pctDb.toFixed(pctDb<1?2:1)+' %)</span></div>'
+    +_consoBar(pctDb,'#16a085')
+    +'<div style="margin-top:12px;font-size:.8rem;color:#ccc;">';
+  tables.slice(0,7).forEach(function(t){ h+='<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #222;"><span>'+_actuEsc(nom(t.name))+(t.rows>0?(' <span style="color:#777;">· '+t.rows+' lignes</span>'):'')+'</span><span style="color:#aaa;">'+_consoFmt(t.bytes)+'</span></div>'; });
+  h+='</div></div>';
+  // Détail des gros réglages/plannings
+  if(configs.length){
+    h+='<div class="card" style="background:#141414;margin-bottom:14px;"><div style="font-weight:800;color:#fff;margin-bottom:6px;">⚙️ Détail « Réglages & plannings »</div><div style="font-size:.8rem;color:#ccc;">';
+    configs.slice(0,6).forEach(function(c){ h+='<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #222;"><span>'+_actuEsc(c.name)+'</span><span style="color:#aaa;">'+_consoFmt(c.bytes)+'</span></div>'; });
+    h+='</div><p style="font-size:.72rem;color:#777;margin-top:8px;">Les plannings (hr_affect / hr_planning) sont les plus volumineux — c\'est normal, ça reste minime.</p></div>';
+  }
+  // Dropbox (fichiers) — placeholder puis maj async
+  h+='<div class="card" style="background:#141414;margin-bottom:14px;" id="conso-dbx"><div style="font-weight:800;color:#fff;margin-bottom:6px;">📁 Fichiers (Dropbox)</div><div style="color:#888;font-size:.85rem;">Lecture de l\'espace Dropbox…</div></div>';
+  // Trafic (egress) — non mesurable côté appli
+  h+='<div class="card" style="background:#141414;"><div style="font-weight:800;color:#fff;margin-bottom:6px;">📶 Trafic (egress)</div>'
+    +'<p style="font-size:.82rem;color:#ccc;margin:0;">Le trafic mensuel se consulte dans le tableau de bord Supabase (Reports). Ton plan Pro inclut <strong>250 Go/mois</strong> — très largement suffisant pour 3 restaurants.</p></div>';
+  h+='<div style="margin-top:12px;"><button class="btn btn-gray btn-sm" onclick="renderConso()">🔄 Actualiser</button></div>';
+  box.innerHTML=h;
+  // Dropbox async
+  var dbx=await _consoDbxUsage();
+  var db=document.getElementById('conso-dbx'); if(db){
+    if(dbx){
+      var pctF=dbx.allocated?(dbx.used/dbx.allocated*100):0;
+      db.innerHTML='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;"><div style="font-weight:800;color:#fff;">📁 Fichiers (Dropbox)</div>'+(dbx.allocated?'<div style="font-size:.8rem;color:#aaa;">'+_consoFmt(dbx.allocated)+' au total</div>':'')+'</div>'
+        +'<div style="font-size:1.5rem;font-weight:900;color:#5BA3F5;">'+_consoFmt(dbx.used)+(dbx.allocated?(' <span style="font-size:.8rem;color:#888;font-weight:400;">/ '+_consoFmt(dbx.allocated)+' ('+pctF.toFixed(pctF<1?2:1)+' %)</span>'):'')+'</div>'
+        +(dbx.allocated?_consoBar(pctF,'#5BA3F5'):'')
+        +'<p style="font-size:.72rem;color:#777;margin-top:8px;">Photos, PDF, documents des salariés, contrats. C\'est ici que ça monte le plus avec le temps.</p>';
+    } else {
+      db.innerHTML='<div style="font-weight:800;color:#fff;margin-bottom:6px;">📁 Fichiers (Dropbox)</div><p style="font-size:.82rem;color:#aaa;margin:0;">Espace Dropbox non lisible depuis ici (voir directement dans ton compte Dropbox).</p>';
+    }
+  }
+}
+window.renderConso=renderConso;
 
 // ── IMPORT DES DOSSIERS DROPBOX EXISTANTS (Paramètres) ───────────────────────
 var _dbxScan=[];
