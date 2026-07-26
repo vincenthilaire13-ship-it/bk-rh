@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-26 · v383';
+  var EMBEDDED_VERSION = '2026-07-26 · v397';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -675,10 +675,10 @@ html,body{overflow-x:hidden;}
     <button class="desktop-only" onclick="goPage('equipe',this)">👥 Équipe</button>
     <button onclick="goPage('etatequipe',this)">🧑‍🤝‍🧑 État équipe <span id="eebadge" style="background:var(--orange);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
     <button onclick="goPage('horaires',this)">🕐 Horaires</button>
-    <button class="desktop-only" onclick="goPage('visite',this)">🩺 Visite médicale <span id="vbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
+    <button onclick="goPage('planning',this)">🗓️ Planning encadrement</button>
+    <!-- Onglet « Visite médicale » retiré de la barre : accessible via Rapports › Visite médicale. Page conservée (#page-visite). Badge vbadge supprimé (le compteur reste dans Alertes / Rapports). -->
     <button onclick="goPage('incidents',this)">📋 Incidents <span id="incbadge" style="background:var(--red);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
     <button class="desktop-only" onclick="goPage('rapports',this)">📊 Rapports</button>
-    <button onclick="goPage('planning',this)">🗓️ Planning encadrement</button>
     <button class="desktop-only" onclick="goPage('parametres',this)">⚙️ Paramètres</button>
     <button class="desktop-only" onclick="goPage('alertes',this)">🔔 Alertes <span id="albadge" style="background:var(--red);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
   </nav>
@@ -1019,18 +1019,11 @@ html,body{overflow-x:hidden;}
         <span id="dbx-ranger-status" style="font-size:.76rem;color:#888;"></span>
       </div>
 
-      <!-- agenda (visible en Entretien) -->
+      <!-- agenda (visible en Entretien) — calendrier retiré (trop encombrant),
+           on garde le rappel + la liste des candidats avec leur date d'entretien -->
       <div id="rec-agenda-wrap" style="display:none;margin-bottom:16px;">
         <div id="rappel-demain"></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-          <button class="btn btn-gray btn-sm" onclick="agendaNav(-1)">← Mois précédent</button>
-          <div id="agenda-month-label" style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.25rem;color:var(--yellow);text-transform:uppercase;letter-spacing:2px;"></div>
-          <button class="btn btn-gray btn-sm" onclick="agendaNav(1)">Mois suivant →</button>
-        </div>
-        <div id="agenda-grid"></div>
-        <div id="agenda-day-detail" style="margin-top:14px;"></div>
-        <div style="border-top:1px solid #2A2A2A;margin:16px 0 4px;"></div>
-        <div style="font-size:.8rem;color:#888;margin-bottom:8px;">Tous les candidats en entretien :</div>
+        <div style="font-size:.9rem;color:var(--yellow);font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:4px 0 10px;">📅 Candidats en entretien</div>
       </div>
 
       <div id="rec-cand-list"></div>
@@ -1305,8 +1298,8 @@ html,body{overflow-x:hidden;}
       <button class="btn btn-red btn-sm" onclick="impQualifApply()" id="imp-qualif-apply" style="display:none;margin-top:10px;">💾 Importer dans la base</button>
     </div>
     <div class="card param-card" id="pc-dispos" style="display:none;">
-      <div class="sec-title">📅 Importer les disponibilités</div>
-      <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">Glissez ici le fichier Excel des <b style="color:#fff;">disponibilités</b> exporté depuis les Rapports. Le restaurant est lu automatiquement dans le fichier (colonne « Restaurant »).</p>
+      <div class="sec-title">📅 Disponibilité contrat — base des contrats</div>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">Glissez ici le fichier Excel des <b style="color:#fff;">disponibilités du contrat</b>. C'est la <b>base</b> qui alimente les contrats des salariés et sert au planning. Le restaurant est lu automatiquement (colonne « Restaurant »). Ensuite, tu peux <b>modifier cette base par salarié</b> dans sa fiche (onglet « Compétences &amp; dispos » → « Disponibilités du contrat »).</p>
       <div id="imp-dispo-drop" ondragover="bkDragOver(event,this)" ondragleave="bkDragLeave(this)" ondrop="bkDropDispo(event,this)" onclick="document.getElementById('imp-dispo-file').click()" style="border:2px dashed #555;border-radius:14px;padding:34px 18px;text-align:center;cursor:pointer;transition:all .15s;background:#141414;">
         <div style="font-size:2.4rem;">📊</div>
         <div style="font-size:.95rem;color:#ddd;margin-top:8px;font-weight:600;">Glissez le fichier Excel ici</div>
@@ -1664,7 +1657,7 @@ html,body{overflow-x:hidden;}
   <!-- L'éditeur de messages du pointage est désormais dans Paramètres › Pointer (#ptg-msg-admin). -->
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
-      <div class="sec-title" style="margin:0;">📋 Suivi des pointages</div>
+      <div class="sec-title" style="margin:0;">📋 Contrôle des pointages</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
         <div style="display:flex;gap:6px;flex-wrap:wrap;" id="ptgs-resto-tabs"></div>
         <div style="display:flex;align-items:center;gap:4px;">
@@ -3322,7 +3315,7 @@ function visBadge(){ return ''; }  // ancien affichage par tuile : désactivé
 
 var PARAM_TILES=[
   {ico:'🎯', titre:'Compétences',   sub:'Importer la grille BK',        type:'card', card:'pc-competences', accent:'#e53935'},
-  {ico:'📅', titre:'Disponibilités',sub:'Importer depuis Excel',        type:'card', card:'pc-dispos',      accent:'#1565c0'},
+  {ico:'📅', titre:'Disponibilité contrat',sub:'Base des contrats (import Excel)', type:'card', card:'pc-dispos',      accent:'#1565c0'},
   {ico:'💶', titre:'Salaires',      sub:'Grille des salaires',          type:'page', page:'salaires',       accent:'#2e7d32'},
   {ico:'📄', titre:'Contrats',      sub:'Modèles de contrats',          type:'page', page:'contrats',       accent:'#e87722'},
   {ico:'⚖️', titre:'Réglementation',sub:'Règles du planning',           type:'page', page:'reglementation', accent:'#8e44ad'},
@@ -4195,7 +4188,8 @@ function filterIncsByPeriod(period){
 function buildRestoBlock(restoId,incs,targets){
   var resto=RESTOS[restoId];
   var rIncs=incs.filter(function(i){var e=DB.employees.find(function(x){return x.id===i.empId;});return e&&e.restoId===restoId;});
-  var rTargets=sortByRoleThenName(targets.filter(function(e){return e.restoId===restoId;}));
+  // Seulement les salariés qui ONT des incidents (pas la liste entière avec des 0).
+  var rTargets=sortByRoleThenName(targets.filter(function(e){return e.restoId===restoId && rIncs.some(function(i){return i.empId===e.id;});}));
   var total=rIncs.length;
   var grave=rIncs.filter(function(i){return i.severity==='4';}).length;
   var ser=rIncs.filter(function(i){return i.severity==='3';}).length;
@@ -4227,7 +4221,10 @@ var RPT_TILES=[
   {id:'traits',    em:'📋', tt:'Traits de la semaine', ds:'Tous les créneaux à couvrir, jour par jour', color:'#8e24aa'},
   {id:'planhebdo', em:'🗓️', tt:'Planning de la semaine', ds:'Qui travaille quand (planning fait)', color:'#00897b'},
   {id:'planpartage', em:'📤', tt:'Plannings transférés', ds:'Semaines transférées aux employés (imprimables)', color:'#0277bd'},
-  {id:'suivipointage', em:'⏱️', tt:'Suivi pointage', ds:'Heures pointées par les équipiers', color:'#6d4aad'},
+  {id:'suivipointage', em:'⏱️', tt:'Contrôle pointage', ds:'Prévu vs pointé + heures réelles', color:'#6d4aad'},
+  {id:'visitemed', em:'🩺', tt:'Visite médicale', ds:'Suivi des visites médicales', color:'#e67e22'},
+  {id:'mutuelle', em:'❤️', tt:'Mutuelle', ds:'Suivi mutuelles + documents', color:'#c0392b'},
+  {id:'sejour', em:'🛂', tt:'Titre de séjour', ds:'Suivi titres + documents', color:'#8e44ad'},
   {id:'incidents', em:'⚠️', tt:'Incidents',       ds:'Suivi disciplinaire', color:'#D62300'},
   {id:'turnover',  em:'🔄', tt:'Entrées / Sorties', ds:'Turnover par mois et par an', color:'#c2185b'},
 ];
@@ -4255,6 +4252,18 @@ function rptOpen(type){
     try{ ptgSuiviInit(); }catch(e){ console.warn('ptgSuiviInit',e); }
     return;
   }
+  if(type==='visitemed'){
+    // ouvrir le vrai écran « Visite médicale », filtré sur le resto du rapport
+    var vresto=(curUser.role==='franchise')?(rptTab==='all'?'all':rptTab):curUser.restoId;
+    try{ visiteRestoFilter=vresto; }catch(_){}
+    document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+    document.querySelectorAll('nav button').forEach(function(b){b.classList.remove('active');});
+    var pgv=document.getElementById('page-visite'); if(pgv) pgv.classList.add('active');
+    try{ var nbv=document.querySelector('nav button[onclick*="visite"]'); if(nbv) nbv.classList.add('active'); }catch(e){}
+    try{ var vf=document.getElementById('visite-resto-filter'); if(vf) vf.style.display='none'; }catch(e){}
+    try{ renderVisiteList(); }catch(e){ console.warn('renderVisiteList',e); }
+    return;
+  }
   _rptCurrent=type;
   document.getElementById('rpt-pick').style.display='none';
   document.getElementById('rpt-panel').style.display='block';
@@ -4280,8 +4289,96 @@ function rptRefresh(){
   else if(_rptCurrent==='traits'){ genTraitsReport(); }
   else if(_rptCurrent==='planhebdo'){ genPlanHebdoReport(); }
   else if(_rptCurrent==='planpartage'){ genPlanPartageReport(); }
+  else if(_rptCurrent==='mutuelle'){ genMutuelleReport(); }
+  else if(_rptCurrent==='sejour'){ genSejourReport(); }
   else if(_rptCurrent==='turnover'){ genTurnoverReport(); }
 }
+// RAPPORT TITRE DE SÉJOUR — suivi des salariés concernés + document consultable.
+function genSejourReport(){
+  var out=document.getElementById('rpt-out'); if(!out) return;
+  var resto=(curUser.role==='franchise')?(rptTab==='all'?null:rptTab):curUser.restoId;
+  var emps=(DB.employees||[]).filter(function(e){return !e.archived && e.role!=='franchise' && (resto? e.restoId===resto : true);});
+  function sInfo(e){
+    var inf=e.infos||{}; var fin=inf.fin_carte_sejour||''; var num=inf.titre_sejour_num||''; var deliv=inf.sejour_delivrance||''; var alerte=inf.sejour_alerte||'';
+    var etranger=/^(oui|yes|1|true|o)/i.test(String(inf.etranger_hors_ue||'').trim());
+    var docs=(DB.empDocs||[]).filter(function(d){return d.empId===e.id && d.categorie==='titre_sejour' && d.link;}).sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'');});
+    var doc=docs[0]||null;
+    var concerne=!!(etranger||fin||num||deliv||doc);
+    if(!concerne) return {concerne:false};
+    var etat,col,ordre;
+    if(fin && (typeof _isExpired==='function'?_isExpired(fin):(new Date(fin)<new Date()))){ etat='🔴 Expiré'; col='#e8623a'; ordre=0; }
+    else if(fin){ var j=Math.ceil((new Date(fin+'T12:00:00')-new Date())/(24*3600*1000)); var seuil= (alerte && !isNaN(new Date(alerte))) ? Math.ceil((new Date(fin+'T12:00:00')-new Date(alerte+'T12:00:00'))/(24*3600*1000)) : 60; if(seuil<0||isNaN(seuil))seuil=60; if(j<=seuil){ etat='🟠 Expire dans '+j+' j'; col='#e8a020'; ordre=1; } else { etat='🟢 À jour'; col='#3ecf8e'; ordre=2; } }
+    else { etat='⚠️ Date manquante'; col='#e8a020'; ordre=1; }
+    return {concerne:true,fin:fin,num:num,deliv:deliv,doc:doc,etat:etat,col:col,ordre:ordre};
+  }
+  var rows=[]; emps.forEach(function(e){ var m=sInfo(e); if(m.concerne) rows.push({e:e,m:m}); });
+  rows.sort(function(a,b){return a.m.ordre-b.m.ordre || (a.e.name||'').localeCompare(b.e.name||'');});
+  var nExp=0,nSoon=0,nOk=0,nDoc=0; rows.forEach(function(r){ if(r.m.ordre===0)nExp++; else if(r.m.ordre===1)nSoon++; else if(r.m.ordre===2)nOk++; if(r.m.doc)nDoc++; });
+  var lbl=resto&&RESTOS[resto]?RESTOS[resto].label:'Tous les restaurants';
+  var h='<div style="text-align:center;padding:16px;background:linear-gradient(135deg,#1A1A1A,#2C2C2C);border-radius:var(--r);margin-bottom:14px;border:1px solid #333;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.4rem;color:var(--yellow);text-transform:uppercase;letter-spacing:2px;">🛂 Titres de séjour — suivi</div><p style="color:var(--orange);font-size:.82rem;margin-top:4px;">'+lbl+' · '+rows.length+' salarié'+(rows.length>1?'s':'')+' concerné'+(rows.length>1?'s':'')+'</p></div>';
+  h+='<div class="stats-grid"><div class="stat-card"><div class="stat-n" style="color:var(--red);">'+nExp+'</div><div class="stat-l">Expirés</div></div><div class="stat-card"><div class="stat-n" style="color:var(--orange);">'+nSoon+'</div><div class="stat-l">À renouveler</div></div><div class="stat-card"><div class="stat-n" style="color:#4CAF50;">'+nOk+'</div><div class="stat-l">À jour</div></div><div class="stat-card"><div class="stat-n" style="color:#5b9bd5;">'+nDoc+'</div><div class="stat-l">Documents</div></div></div>';
+  h+='<div class="card" style="padding:0;overflow:hidden;margin-top:14px;"><div style="overflow-x:auto;"><table class="tbl" style="width:100%;border-collapse:collapse;font-size:.85rem;">'
+    +'<thead><tr style="color:#888;text-align:left;border-bottom:1px solid #333;"><th style="padding:8px 10px;">Nom</th><th style="padding:8px 10px;">Rôle</th><th style="padding:8px 10px;">N° titre</th><th style="padding:8px 10px;">Délivrance</th><th style="padding:8px 10px;">Fin de validité</th><th style="padding:8px 10px;">Statut</th><th style="padding:8px 10px;">Document</th></tr></thead><tbody>';
+  h+=rows.map(function(r){
+    var e=r.e,m=r.m;
+    var delivTxt=m.deliv?(typeof _frDate==='function'?_frDate(m.deliv):m.deliv):'—';
+    var finTxt=m.fin?(typeof _frDate==='function'?_frDate(m.fin):m.fin):'—';
+    var docBtn=m.doc?('<button onclick="viewDoc(\''+m.doc.id+'\')" style="background:#12233a;border:1px solid #2a4a6a;color:#8fc3f5;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:.78rem;font-weight:700;">📄 Voir</button>'):'<span style="color:#666;font-size:.78rem;">—</span>';
+    return '<tr style="border-bottom:1px solid #232323;cursor:pointer;" onclick="openEmpFiche(\''+e.id+'\')">'
+      +'<td style="padding:7px 10px;color:#eee;font-weight:600;white-space:nowrap;">'+e.name+'</td>'
+      +'<td style="padding:7px 10px;"><span class="role-pill rp-'+(e.role||'e')[0]+'">'+cap(e.role||'')+'</span></td>'
+      +'<td style="padding:7px 10px;color:#bbb;white-space:nowrap;">'+(m.num||'—')+'</td>'
+      +'<td style="padding:7px 10px;color:#bbb;white-space:nowrap;">'+delivTxt+'</td>'
+      +'<td style="padding:7px 10px;color:'+(m.ordre===0?'var(--red)':m.ordre===1?'var(--orange)':'#bbb')+';white-space:nowrap;">'+finTxt+'</td>'
+      +'<td style="padding:7px 10px;color:'+m.col+';font-weight:700;white-space:nowrap;">'+m.etat+'</td>'
+      +'<td style="padding:5px 10px;" onclick="event.stopPropagation();">'+docBtn+'</td>'
+    +'</tr>';
+  }).join('')||'<tr><td colspan="7" style="padding:14px;color:#888;">Aucun salarié concerné par un titre de séjour. ✅</td></tr>';
+  h+='</tbody></table></div></div>';
+  out.innerHTML=h;
+}
+window.genSejourReport=genSejourReport;
+// RAPPORT MUTUELLE — suivi de toute l'équipe + document consultable.
+function genMutuelleReport(){
+  var out=document.getElementById('rpt-out'); if(!out) return;
+  var resto=(curUser.role==='franchise')?(rptTab==='all'?null:rptTab):curUser.restoId;
+  var emps=(DB.employees||[]).filter(function(e){return !e.archived && e.role!=='franchise' && (resto? e.restoId===resto : true);});
+  function mInfo(e){
+    var inf=e.infos||{}; var fin=inf.mutuelle_fin||''; var aff=inf.mutuelle_affiliation||'';
+    var docs=(DB.empDocs||[]).filter(function(d){return d.empId===e.id && d.categorie==='mutuelle' && d.link;}).sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'');});
+    var doc=docs[0]||null;
+    var etat,col,ordre;
+    if(fin && (typeof _isExpired==='function'?_isExpired(fin):(new Date(fin)<new Date()))){ etat='🔴 Expirée'; col='#e8623a'; ordre=0; }
+    else if(fin){ var j=Math.ceil((new Date(fin+'T12:00:00')-new Date())/(24*3600*1000)); if(j<=30){ etat='🟠 Expire dans '+j+' j'; col='#e8a020'; ordre=1; } else { etat='🟢 À jour'; col='#3ecf8e'; ordre=2; } }
+    else if(aff){ etat='🟢 Affiliée'; col='#3ecf8e'; ordre=2; }
+    else { etat='⚪ Aucune info'; col='#888'; ordre=4; }
+    return {fin:fin,aff:aff,doc:doc,etat:etat,col:col,ordre:ordre};
+  }
+  var rows=emps.map(function(e){return {e:e,m:mInfo(e)};}).sort(function(a,b){return a.m.ordre-b.m.ordre || (a.e.name||'').localeCompare(b.e.name||'');});
+  var nExp=0,nSoon=0,nOk=0,nDoc=0; rows.forEach(function(r){ if(r.m.ordre===0)nExp++; else if(r.m.ordre===1)nSoon++; else if(r.m.ordre===2)nOk++; if(r.m.doc)nDoc++; });
+  var lbl=resto&&RESTOS[resto]?RESTOS[resto].label:'Tous les restaurants';
+  var h='<div style="text-align:center;padding:16px;background:linear-gradient(135deg,#1A1A1A,#2C2C2C);border-radius:var(--r);margin-bottom:14px;border:1px solid #333;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.4rem;color:var(--yellow);text-transform:uppercase;letter-spacing:2px;">❤️ Mutuelle — suivi de l\'équipe</div><p style="color:var(--orange);font-size:.82rem;margin-top:4px;">'+lbl+'</p></div>';
+  h+='<div class="stats-grid"><div class="stat-card"><div class="stat-n" style="color:var(--red);">'+nExp+'</div><div class="stat-l">Expirées</div></div><div class="stat-card"><div class="stat-n" style="color:var(--orange);">'+nSoon+'</div><div class="stat-l">À renouveler (30j)</div></div><div class="stat-card"><div class="stat-n" style="color:#4CAF50;">'+nOk+'</div><div class="stat-l">À jour</div></div><div class="stat-card"><div class="stat-n" style="color:#5b9bd5;">'+nDoc+'</div><div class="stat-l">Documents</div></div></div>';
+  h+='<div class="card" style="padding:0;overflow:hidden;margin-top:14px;"><div style="overflow-x:auto;"><table class="tbl" style="width:100%;border-collapse:collapse;font-size:.85rem;">'
+    +'<thead><tr style="color:#888;text-align:left;border-bottom:1px solid #333;"><th style="padding:8px 10px;">Nom</th><th style="padding:8px 10px;">Rôle</th><th style="padding:8px 10px;">Affiliation</th><th style="padding:8px 10px;">Fin de droit</th><th style="padding:8px 10px;">Statut</th><th style="padding:8px 10px;">Document</th></tr></thead><tbody>';
+  h+=rows.map(function(r){
+    var e=r.e,m=r.m;
+    var affTxt=m.aff?(typeof _frDate==='function'?_frDate(m.aff):m.aff):'—';
+    var finTxt=m.fin?(typeof _frDate==='function'?_frDate(m.fin):m.fin):'—';
+    var docBtn=m.doc?('<button onclick="viewDoc(\''+m.doc.id+'\')" style="background:#12233a;border:1px solid #2a4a6a;color:#8fc3f5;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:.78rem;font-weight:700;">📄 Voir</button>'):'<span style="color:#666;font-size:.78rem;">—</span>';
+    return '<tr style="border-bottom:1px solid #232323;cursor:pointer;" onclick="openEmpFiche(\''+e.id+'\')">'
+      +'<td style="padding:7px 10px;color:#eee;font-weight:600;white-space:nowrap;">'+e.name+'</td>'
+      +'<td style="padding:7px 10px;"><span class="role-pill rp-'+(e.role||'e')[0]+'">'+cap(e.role||'')+'</span></td>'
+      +'<td style="padding:7px 10px;color:#bbb;white-space:nowrap;">'+affTxt+'</td>'
+      +'<td style="padding:7px 10px;color:'+(m.ordre===0?'var(--red)':m.ordre===1?'var(--orange)':'#bbb')+';white-space:nowrap;">'+finTxt+'</td>'
+      +'<td style="padding:7px 10px;color:'+m.col+';font-weight:700;white-space:nowrap;">'+m.etat+'</td>'
+      +'<td style="padding:5px 10px;" onclick="event.stopPropagation();">'+docBtn+'</td>'
+    +'</tr>';
+  }).join('')||'<tr><td colspan="6" style="padding:14px;color:#888;">Aucun salarié.</td></tr>';
+  h+='</tbody></table></div></div>';
+  out.innerHTML=h;
+}
+window.genMutuelleReport=genMutuelleReport;
 // Rapports : plannings transférés (semaines verrouillées/partagées) + impression
 function genPlanPartageReport(){
   var out=document.getElementById('rpt-out'); if(!out) return;
@@ -4850,6 +4947,7 @@ function genReport(){
   // ── 3 tuiles de navigation ──
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0 16px;">';
   h+=_incRptTile('apercu','📋','Vue par salarié','Tableau + scores','#e87722');
+  h+=_incRptTile('jour','📅','Par jour','Les incidents jour par jour','#16a085');
   h+=_incRptTile('cat','🏷️','Par catégorie','Ce qui ressort le plus','#8e44ad');
   h+=_incRptTile('decl','🧑‍💼','Par déclarant','Qui a signalé les incidents','#2980b9');
   if(canDoc) h+=_incRptTile('doc','📄','Créer un document','Observation / avertissement…','#c0392b');
@@ -4858,8 +4956,11 @@ function genReport(){
   var apercu='';
   if(isMulti){ Object.keys(RESTOS).forEach(function(rid){ apercu+=buildRestoBlock(rid,incs,targets); }); }
   else{
+    // Seulement les salariés qui ONT au moins un incident (pas toute la liste avec des 0).
+    var _avecInc=sortByRoleThenName(targets).filter(function(emp){ return incs.some(function(i){return i.empId===emp.id;}); });
     apercu+='<div class="card" style="padding:0;overflow:hidden;"><table class="tbl"><thead><tr><th>Nom</th><th>Rôle</th><th>Incidents</th><th>Type fréquent</th><th>Max</th><th>Score</th></tr></thead><tbody>';
-    sortByRoleThenName(targets).forEach(function(emp){
+    if(!_avecInc.length){ apercu+='<tr><td colspan="6" style="padding:14px;color:#888;">Aucun salarié avec incident sur cette période. ✅</td></tr>'; }
+    _avecInc.forEach(function(emp){
       var mInc=incs.filter(function(i){return i.empId===emp.id;});var t=mInc.length;
       var maxSev=mInc.reduce(function(m,i){return Math.max(m,parseInt(i.severity)||0);},0);
       var freq={};mInc.forEach(function(i){i.problems.forEach(function(p){freq[p]=(freq[p]||0)+1;});});
@@ -4871,6 +4972,8 @@ function genReport(){
     apercu+='</tbody></table></div>';
   }
   h+='<div id="incrpt-apercu">'+apercu+'</div>';
+  // ── SECTION « PAR JOUR » : incidents regroupés jour par jour (repliables) ──
+  h+='<div id="incrpt-jour" style="display:none;">'+_incRptParJour(incs)+'</div>';
   // ── SECTION 2 : par catégorie (ce qui ressort le plus) ──
   var catCounts=PROBS.map(function(p){return {p:p,cnt:incs.filter(function(i){return (i.problems||[]).indexOf(p.id)>=0;}).length};}).filter(function(x){return x.cnt>0;}).sort(function(a,b){return b.cnt-a.cnt;});
   var maxCnt=catCounts.length?catCounts[0].cnt:0;
@@ -4916,6 +5019,55 @@ function genReport(){
   // Toutes les tuiles fermées au départ : l'utilisateur en ouvre une au clic.
   try{ _incRptApply(window._incRptView||''); }catch(_){}
 }
+// Incidents REGROUPÉS PAR JOUR (repliables) pour le rapport — même style que les Alertes.
+// Reçoit la liste d'incidents déjà filtrée (période + restaurant).
+function _incRptParJour(incs){
+  incs=incs||[];
+  if(!incs.length) return '<div style="color:#888;padding:12px;">Aucun incident sur cette période. ✅</div>';
+  var MN=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var JN=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+  var byDay={};
+  incs.forEach(function(i){ var d=new Date(i.datetime||i.createdAt||i.created_at); if(isNaN(d.getTime()))return; var k=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); (byDay[k]=byDay[k]||[]).push(i); });
+  var jours=Object.keys(byDay).sort().reverse();
+  var totGrave=incs.filter(function(i){return String(i.severity)==='3'||String(i.severity)==='4';}).length;
+  var head='<div style="background:#141414;border:1px solid #2A2A2A;border-radius:10px;padding:12px 14px;margin-bottom:12px;">'
+    +'<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;">'
+    +'<span style="font-size:1.3rem;font-weight:900;color:#F5A623;">'+incs.length+'</span><span style="color:#ddd;font-size:.85rem;">incident'+(incs.length>1?'s':'')+'</span>'
+    +(totGrave?'<span style="background:#cc5555;color:#fff;border-radius:10px;padding:1px 9px;font-size:.75rem;font-weight:700;">'+totGrave+' grave'+(totGrave>1?'s':'')+'</span>':'')
+    +'<span style="color:#888;font-size:.8rem;">'+jours.length+' jour'+(jours.length>1?'s':'')+' concerné'+(jours.length>1?'s':'')+'</span>'
+    +'</div></div>';
+  var corps=jours.map(function(k,idx){
+    var arr=byDay[k].sort(function(a,b){return new Date(b.datetime||b.created_at)-new Date(a.datetime||a.created_at);});
+    var d=new Date(k+'T12:00:00');
+    var titreJour=JN[d.getDay()]+' '+d.getDate()+' '+MN[d.getMonth()]+' '+d.getFullYear();
+    var nGrave=arr.filter(function(i){return String(i.severity)==='3'||String(i.severity)==='4';}).length;
+    var decl={}; arr.forEach(function(i){ var rn=i.reporterName||'?'; decl[rn]=(decl[rn]||0)+1; });
+    var declTxt=Object.keys(decl).map(function(rn){return rn+' ('+decl[rn]+')';}).join(', ');
+    var lignes=arr.map(function(i){
+      var e=(DB.employees||[]).find(function(x){return x.id===i.empId;});
+      var nom=e?e.name:'Salarié';
+      var t=new Date(i.datetime||i.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      var motifs=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});return p?p.label:pid;}).slice(0,3).join(', ')||'Incident';
+      var grave=(String(i.severity)==='3'||String(i.severity)==='4');
+      var col=grave?'#cc5555':'#F5A623';
+      return '<div class="emp-card" style="border-left:4px solid '+col+';cursor:'+(e?'pointer':'default')+';" '+(e?('onclick="openEmpFiche(\''+i.empId+'\')"'):'')+'>'
+        +'<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:.88rem;">'+nom+(grave?' <span style="color:#cc5555;">— grave</span>':'')+'</div>'
+        +'<div style="font-size:.74rem;color:#999;margin-top:2px;">🕐 '+t+' · '+motifs+' · 👤 '+(i.reporterName||'?')+'</div></div>'
+        +(e?('<span style="color:'+col+';font-size:1.2rem;">›</span>'):'')+'</div>';
+    }).join('');
+    var open=(idx===0)?' open':'';
+    return '<details'+open+' style="margin-bottom:8px;border:1px solid #2A2A2A;border-radius:10px;overflow:hidden;">'
+      +'<summary style="cursor:pointer;padding:11px 14px;background:#1A1A1A;font-weight:700;font-size:.9rem;color:#fff;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">'
+      +'<span style="text-transform:capitalize;">📅 '+titreJour+'</span>'
+      +'<span style="display:flex;gap:6px;align-items:center;">'
+      +(nGrave?('<span style="background:#cc5555;color:#fff;border-radius:10px;padding:1px 8px;font-size:.72rem;">'+nGrave+' grave'+(nGrave>1?'s':'')+'</span>'):'')
+      +'<span style="background:#D62300;color:#fff;border-radius:12px;padding:1px 10px;font-size:.8rem;">'+arr.length+' incident'+(arr.length>1?'s':'')+'</span></span>'
+      +'</summary>'
+      +'<div style="padding:8px 10px;"><div style="font-size:.72rem;color:#888;margin-bottom:6px;">👤 Déclarés par : '+declTxt+'</div>'+lignes+'</div></details>';
+  }).join('');
+  return head+corps;
+}
+window._incRptParJour=_incRptParJour;
 // Tuile de navigation du rapport Incidents
 function _incRptTile(id,ico,tt,ds,accent){
   return '<div class="dash-tile" id="incrpt-tile-'+id+'" onclick="incRptTab(\''+id+'\')" style="cursor:pointer;">'
@@ -4924,7 +5076,7 @@ function _incRptTile(id,ico,tt,ds,accent){
     +'<div><div class="dt-tt">'+tt+'</div><div class="dt-ds">'+ds+'</div></div></div>';
 }
 function _incRptApply(v){
-  ['apercu','cat','decl','doc'].forEach(function(k){
+  ['apercu','jour','cat','decl','doc'].forEach(function(k){
     var sec=document.getElementById('incrpt-'+k); if(sec) sec.style.display=(k===v)?'block':'none';
     var t=document.getElementById('incrpt-tile-'+k); if(t) t.style.boxShadow=(k===v)?'0 0 0 2px var(--orange)':'';
   });
@@ -6089,7 +6241,8 @@ function renderEmpQualif(id){
   var e=DB.employees.find(function(x){return x.id===id;});if(!e)return;
   var inf=e.infos||{};
   var qualifs=inf.qualifs||[];      // tableau de postes maîtrisés
-  var dispos=inf.dispos||{};        // {lun:{on:true,from:'11:00',to:'15:00'}, ...}
+  var dispos=inf.dispos||{};        // DISPOS DU CONTRAT (servent au planning) {lun:{on,from,to}}
+  var disposR=inf.dispos_reelles||{}; // VRAIES dispos (à valider, AUCUN impact planning)
   var canEdit=(curUser.role==='franchise'||curUser.role==='directeur')&&!window.__readOnly;
   var np=postesNonProductifs();
 
@@ -6121,10 +6274,10 @@ function renderEmpQualif(id){
   }
   h+='</div>';
 
-  // ── Bloc DISPONIBILITÉS ──
+  // ── Bloc DISPONIBILITÉS DU CONTRAT (servent au planning) ──
   h+='<div class="card">';
-  h+='<div class="sec-title">📅 Disponibilités</div>';
-  h+='<p style="font-size:.8rem;color:#aaa;margin-bottom:12px;">Indiquez les jours et les heures où '+e.name+' peut travailler. Ces créneaux servent de base pour le planning.</p>';
+  h+='<div class="sec-title">📅 Disponibilités du contrat</div>';
+  h+='<p style="font-size:.8rem;color:#aaa;margin-bottom:12px;">Les jours et heures inscrits au contrat de '+e.name+'. <b>Ce sont ces créneaux qui servent au planning</b> (placement intelligent).</p>';
   h+='<div style="display:flex;flex-direction:column;gap:8px;">';
   JOURS.forEach(function(j){
     var jk=j[0];var d=dispos[jk]||{};var on=!!d.on;
@@ -6141,9 +6294,30 @@ function renderEmpQualif(id){
     h+='</div>';
   });
   h+='</div>';
+  // ── Bloc VRAIES DISPONIBILITÉS (à valider — AUCUN impact sur le planning) ──
+  h+='<div style="border-top:1px solid #2a2a2a;margin:20px 0 12px;"></div>';
+  h+='<div class="sec-title" style="font-size:1.02rem;">✅ Vraies disponibilités <span style="font-size:.7rem;color:#e8a020;font-weight:700;vertical-align:middle;background:#3a2a10;border:1px solid #7a5a1a;border-radius:10px;padding:1px 8px;margin-left:6px;">à valider · sans impact planning</span></div>';
+  h+='<p style="font-size:.8rem;color:#aaa;margin-bottom:12px;">Les disponibilités <b>réelles</b> déclarées par '+e.name+'. Elles sont conservées à part et n\'ont <b>aucun effet</b> sur le logiciel horaire pour l\'instant — seules les disponibilités du contrat servent au planning.</p>';
+  h+='<div style="display:flex;flex-direction:column;gap:8px;">';
+  JOURS.forEach(function(j){
+    var jk=j[0];var d=disposR[jk]||{};var on=!!d.on;
+    h+='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#12210f;border:1px solid #2e5e33;border-radius:8px;padding:8px 11px;">';
+    h+='<label style="display:flex;align-items:center;gap:7px;min-width:120px;cursor:'+(canEdit?'pointer':'default')+';">'
+      +'<input type="checkbox" '+(on?'checked':'')+' '+(canEdit?'':'disabled')+' onchange="toggleDispoReelJour(\''+id+'\',\''+jk+'\',this.checked)" style="width:16px;height:16px;accent-color:#3ecf8e;">'
+      +'<span style="font-size:.85rem;color:#ddd;font-weight:600;">'+j[1]+'</span></label>';
+    h+='<div style="display:flex;align-items:center;gap:6px;'+(on?'':'opacity:.35;pointer-events:none;')+'">'
+      +'<span style="font-size:.78rem;color:#888;">de</span>'
+      +'<input type="time" value="'+(d.from||'11:00')+'" '+(canEdit?'':'disabled')+' onchange="setDispoReelHeure(\''+id+'\',\''+jk+'\',\'from\',this.value)" class="fi" style="width:auto;padding:4px 6px;">'
+      +'<span style="font-size:.78rem;color:#888;">à</span>'
+      +'<input type="time" value="'+(d.to||'15:00')+'" '+(canEdit?'':'disabled')+' onchange="setDispoReelHeure(\''+id+'\',\''+jk+'\',\'to\',this.value)" class="fi" style="width:auto;padding:4px 6px;">'
+      +'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
   if(canEdit){
     h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">'
-      +'<button class="btn btn-gray btn-sm" onclick="copyDispoToAll(\''+id+'\')">📋 Appliquer le 1er jour coché à tous</button>'
+      +'<button class="btn btn-gray btn-sm" onclick="copyDispoToAll(\''+id+'\')">📋 Copier le 1er jour (contrat) à tous</button>'
+      +'<button class="btn btn-gray btn-sm" onclick="copyDispoReelToAll(\''+id+'\')">📋 Copier le 1er jour (vraies) à tous</button>'
       +'<button class="btn btn-red btn-sm" onclick="saveEmpQualif(\''+id+'\')">💾 Enregistrer compétences & dispos</button>'
       +'</div>';
     h+='<div id="qualif-status" style="font-size:.78rem;color:#888;margin-top:8px;"></div>';
@@ -6177,6 +6351,30 @@ function setDispoHeure(id,jk,champ,val){
   if(!e.infos.dispos[jk])e.infos.dispos[jk]={on:true};
   e.infos.dispos[jk][champ]=val;
 }
+// VRAIES disponibilités (à valider — aucun impact planning) : stockées dans infos.dispos_reelles
+function toggleDispoReelJour(id,jk,on){
+  var e=_ensureQualifBuf(id);if(!e)return;
+  if(!e.infos.dispos_reelles)e.infos.dispos_reelles={};
+  if(!e.infos.dispos_reelles[jk])e.infos.dispos_reelles[jk]={from:'11:00',to:'15:00'};
+  e.infos.dispos_reelles[jk].on=on;
+  renderEmpQualif(id);
+}
+function setDispoReelHeure(id,jk,champ,val){
+  var e=_ensureQualifBuf(id);if(!e)return;
+  if(!e.infos.dispos_reelles)e.infos.dispos_reelles={};
+  if(!e.infos.dispos_reelles[jk])e.infos.dispos_reelles[jk]={on:true};
+  e.infos.dispos_reelles[jk][champ]=val;
+}
+function copyDispoReelToAll(id){
+  var e=_ensureQualifBuf(id);if(!e)return;
+  if(!e.infos.dispos_reelles)e.infos.dispos_reelles={};
+  var first=null;
+  for(var k in e.infos.dispos_reelles){if(e.infos.dispos_reelles[k]&&e.infos.dispos_reelles[k].on){first=e.infos.dispos_reelles[k];break;}}
+  if(!first){ try{toast('Coche d\'abord un jour dans les vraies disponibilités.','error');}catch(_){} return; }
+  JOURS.forEach(function(j){e.infos.dispos_reelles[j[0]]={on:true,from:first.from,to:first.to};});
+  renderEmpQualif(id);
+}
+window.toggleDispoReelJour=toggleDispoReelJour; window.setDispoReelHeure=setDispoReelHeure; window.copyDispoReelToAll=copyDispoReelToAll;
 function copyDispoToAll(id){
   var e=_ensureQualifBuf(id);if(!e)return;
   var first=null;
@@ -6628,7 +6826,8 @@ function renderEmpFicheHisto(id){
         var tags=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});return p?'<span class="tag">'+p.icon+' '+p.label+'</span>':'';}).join('');
         var sanc=SANCTIONS[i.sanctionType];
         var dt=i.datetime?new Date(i.datetime).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
-        return '<div class="inc-item" data-s="'+(i.severity||'2')+'" style="margin-bottom:7px;"><div class="inc-head"><span style="font-size:.8rem;color:#aaa;">'+dt+'</span>'
+        var declTxt=i.reporterName?(' · 👤 '+i.reporterName):'';
+        return '<div class="inc-item" data-s="'+(i.severity||'2')+'" style="margin-bottom:7px;"><div class="inc-head"><span style="font-size:.8rem;color:#aaa;">'+dt+declTxt+'</span>'
           +(sanc?'<span style="border:1px solid '+sanc.color+';color:'+sanc.color+';padding:1px 7px;border-radius:10px;font-size:.7rem;">'+sanc.icon+' '+sanc.label+'</span>':'')+'</div>'
           +'<div class="inc-tags">'+tags+'</div>'+(i.note?'<div class="inc-note">💬 '+i.note+'</div>':'')+'</div>';
       }).join('');
@@ -8483,9 +8682,8 @@ function ptgSuiviInit(){
   }
   var sd=document.getElementById('ptgs-date'); if(sd && !sd.value) sd.value=ptgTodayISO();
   // Charger le planning (barres grises « prévu ») du restaurant suivi + rafraîchir la frise.
-  try{ if(typeof hrChargerPlanning==='function'){ hrChargerPlanning(PTGS_RESTO); } }catch(e){}
   try{ if(typeof hrChargerAffect==='function'){ hrChargerAffect(PTGS_RESTO); } }catch(e){}
-  try{ setTimeout(function(){ try{ ptgRenderSuivi(); }catch(_){} }, 800); }catch(e){}
+  try{ _chLoadPlanning(PTGS_RESTO, function(){ try{ ptgRenderSuivi(); }catch(_){} }); }catch(e){}
   ptgRenderSuivi();
   try{ ptgRenderMsgAdmin(); }catch(e){}
 }
@@ -8541,6 +8739,25 @@ function _chPlanSegs(emp, iso, resto){
     return out;
   }catch(e){ return []; }
 }
+// Charge le planning (placements + transféré) DIRECTEMENT depuis Supabase et appelle
+// cb() dès que c'est arrivé (les fichiers sont gros ~600 Ko → le chargement prend du temps).
+var _chLoadEnCours=false;
+function _chLoadPlanning(resto, cb){
+  var up=(''+(resto||'')).toUpperCase();
+  try{
+    if(typeof SB==='undefined' || !SB){ if(cb) cb(); return; }
+    _chLoadEnCours=true;
+    var done=0; function fin(){ done++; if(done>=2){ _chLoadEnCours=false; if(cb) cb(); } }
+    SB.from('app_config').select('valeur').eq('cle','hr_affect_'+up).maybeSingle().then(function(r){
+      try{ if(r&&r.data&&r.data.valeur){ HR_AFFECT_BY_RESTO[up]=r.data.valeur; try{localStorage.setItem('hr_affect_'+up,JSON.stringify(r.data.valeur));}catch(_){} } }catch(_){}
+      fin();
+    }, function(){ fin(); });
+    SB.from('app_config').select('valeur').eq('cle','hr_planning_'+up).maybeSingle().then(function(r){
+      try{ if(r&&r.data&&r.data.valeur){ HR_PLANNING_BY_RESTO[up]=r.data.valeur; try{localStorage.setItem('hr_planning_'+up,JSON.stringify(r.data.valeur));}catch(_){} } }catch(_){}
+      fin();
+    }, function(){ fin(); });
+  }catch(e){ _chLoadEnCours=false; if(cb) cb(); }
+}
 // Toutes les dates (ISO) qui ont au moins un trait pour ce resto (HR_AFFECT + transféré).
 function _chDatesAvecTraits(resto){
   var set={};
@@ -8568,90 +8785,100 @@ function ptgCtrlTimeline(dateISO, emps){
   function m2hm(m){ m=((m%1440)+1440)%1440; var h=Math.floor(m/60),mm=m%60; return (h<10?'0':'')+h+':'+(mm<10?'0':'')+mm; }
   var resto=PTGS_RESTO||PTG_RESTO;
   var all=ptgGetAll();
-  var NAMEW='160px', STATW='96px';
-  // en-tête (règle des heures)
-  var ruler='<div style="display:flex;align-items:stretch;border-bottom:1px solid #2a2a2a;">'
+  var NAMEW='150px', STATW='94px';
+  // en-tête (règle des heures) — thème clair, comme le Planning du jour
+  var ruler='<div style="display:flex;align-items:stretch;border-bottom:1px solid #ccc;">'
     +'<div style="flex:0 0 '+NAMEW+';"></div>'
-    +'<div style="flex:1;display:flex;">'+HRS.map(function(h){ return '<div style="flex:1;text-align:center;font-size:.6rem;color:#888;border-left:1px solid #222;padding:3px 0;">'+((''+h).length<2?'0':'')+h+'h</div>'; }).join('')+'</div>'
-    +'<div style="flex:0 0 '+STATW+';"></div></div>';
-  var body=emps.map(function(e){
+    +'<div style="flex:1;display:flex;">'+HRS.map(function(h){ return '<div style="flex:1;text-align:center;font-size:.6rem;color:#666;border-left:1px solid #e2e2e2;padding:3px 0;">'+((''+h).length<2?'0':'')+h+'h</div>'; }).join('')+'</div>'
+    +'<div style="flex:0 0 '+STATW+';border-left:1px solid #e2e2e2;"></div></div>';
+  // Ne garder que les salariés concernés : prévus, pointés, ou absents ce jour.
+  var lignes=[];
+  emps.forEach(function(e){
     var rec=all[e.id+'_'+dateISO];
     var segs=_chPlanSegs(e, dateISO, resto);
     var abs=null; try{ abs=(typeof hrAbsenceDuJour==='function')?hrAbsenceDuJour(e.id,dateISO):null; }catch(_){}
     if(abs && (abs.statut==='attente'||abs.statut==='refuse')) abs=null;
+    if(!segs.length && !(rec&&rec.arrivee) && !abs) return;
+    var mn=segs.length?Math.min.apply(null,segs.map(function(s){return s.s;})):(rec&&rec.arrivee?toDom(hm2m(rec.arrivee)):9999);
+    lignes.push({e:e,rec:rec,segs:segs,abs:abs,mn:mn});
+  });
+  lignes.sort(function(a,b){ return a.mn-b.mn || (a.e.name||'').localeCompare(b.e.name||''); });
+  var body=lignes.map(function(ln){
+    var e=ln.e, rec=ln.rec, segs=ln.segs, abs=ln.abs;
     var incE=null; try{ incE=(typeof incEtatJour==='function')?incEtatJour(e.id,dateISO):null; }catch(_){}
     var pMin=null,pMax=null; segs.forEach(function(s){ if(pMin==null||s.s<pMin)pMin=s.s; if(pMax==null||s.e>pMax)pMax=s.e; });
     var aArr=(rec&&rec.arrivee)?toDom(hm2m(rec.arrivee)):null;
     var aDep=(rec&&rec.depart)?toDom(hm2m(rec.depart)):null;
-    // gridlines
-    var gl=HRS.map(function(h,i){ return '<div style="position:absolute;top:0;bottom:0;left:'+(i/HRS.length*100)+'%;width:1px;background:#1c1c1c;"></div>'; }).join('');
+    var gl=HRS.map(function(h,i){ return '<div style="position:absolute;top:0;bottom:0;left:'+(i/HRS.length*100)+'%;width:1px;background:#e8e8e8;"></div>'; }).join('');
     var bars='';
     if(abs){
       var mi=null; try{ mi=(typeof _etatMotifInfo==='function')?_etatMotifInfo(abs.motif):null; }catch(_){}
       mi=mi||{court:'Abs',col:'#cc5555',label:'Absence'};
       var rs=(pMin!=null?pMin:11*60), re=(pMax!=null?pMax:15*60);
-      bars+='<div title="'+_ptgEsc(mi.label||'')+'" style="position:absolute;top:8px;height:20px;left:'+pct(rs)+'%;width:'+(pct(re)-pct(rs))+'%;background:'+(mi.col||'#cc5555')+';border-radius:5px;display:flex;align-items:center;gap:5px;padding:0 7px;color:#fff;font-size:.63rem;font-weight:700;overflow:hidden;white-space:nowrap;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);">'
+      bars+='<div title="'+_ptgEsc(mi.label||'')+'" style="position:absolute;top:8px;height:22px;left:'+pct(rs)+'%;width:'+(pct(re)-pct(rs))+'%;background:'+(mi.col||'#cc5555')+';border-radius:5px;display:flex;align-items:center;gap:5px;padding:0 7px;color:#fff;font-size:.63rem;font-weight:700;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.2);">'
         +'<span style="background:rgba(0,0,0,.28);border-radius:4px;padding:0 5px;">'+_ptgEsc(mi.court||'CP')+'</span>'+m2hm(rs)+'–'+m2hm(re)+'</div>';
     } else {
+      // PRÉVU : traits colorés par poste (comme le Planning du jour)
       segs.forEach(function(s){
-        bars+='<div title="'+_ptgEsc(s.l)+'" style="position:absolute;top:5px;height:14px;left:'+pct(s.s)+'%;width:'+(pct(s.e)-pct(s.s))+'%;background:#595959;border-radius:3px;color:#eaeaea;font-size:.58rem;line-height:14px;padding:0 5px;overflow:hidden;white-space:nowrap;">'+m2hm(s.s)+'–'+m2hm(s.e)+'</div>';
+        var c=(typeof colFor==='function')?colFor(s.l):{bg:'#1565c0',tx:'#fff'};
+        var lab=(typeof _ptgPosteLabel==='function')?_ptgPosteLabel(s.l):s.l;
+        bars+='<div title="'+_ptgEsc(s.l)+'" style="position:absolute;top:4px;height:17px;left:'+pct(s.s)+'%;width:'+(pct(s.e)-pct(s.s))+'%;background:'+(c.bg||'#1565c0')+';color:'+(c.tx||'#fff')+';border-radius:4px;font-size:.58rem;font-weight:700;line-height:17px;padding:0 6px;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.18);">'+_ptgEsc(lab)+' '+m2hm(s.s)+'–'+m2hm(s.e)+'</div>';
       });
+      // POINTÉ : barre verte (conforme) / orange / rouge (écart), sous le prévu
       if(aArr!=null && aDep!=null){
         var g0=Math.min(aArr,aDep), g1=Math.max(aArr,aDep);
-        // Couleur de la barre pointée selon la conformité au prévu : vert = conforme.
         var greenCol='#2e9e4a', conforme=true;
         if(pMin!=null && pMax!=null){
           try{
             var _ea=ptgEcartMin(m2hm(pMin), rec.arrivee), _ed=ptgEcartMin(m2hm(pMax), rec.depart);
             var _sa=ptgStatut(_ea,'arr'), _sd=ptgStatut(_ed,'dep');
             if(_sa.code==='grave'||_sd.code==='grave'){ greenCol='#e8623a'; conforme=false; }
-            else if(_sa.code==='leger'||_sd.code==='leger'){ greenCol='#d9a441'; conforme=false; }
+            else if(_sa.code==='leger'||_sd.code==='leger'){ greenCol='#e0a021'; conforme=false; }
           }catch(_c){}
         }
-        if(pMax!=null && aDep>pMax){ bars+='<div title="Dépassement" style="position:absolute;top:21px;height:13px;left:'+pct(pMax)+'%;width:'+(pct(aDep)-pct(pMax))+'%;background:#d9a441;border-radius:0 3px 3px 0;"></div>'; }
-        if(pMin!=null && aArr<pMin){ bars+='<div title="Arrivée en avance" style="position:absolute;top:21px;height:13px;left:'+pct(aArr)+'%;width:'+(pct(pMin)-pct(aArr))+'%;background:#d9a441;border-radius:3px 0 0 3px;"></div>'; }
-        bars+='<div title="'+(conforme?'Pointage conforme au prévu':'Écart avec le prévu')+'" style="position:absolute;top:21px;height:13px;left:'+pct(g0)+'%;width:'+(pct(g1)-pct(g0))+'%;background:'+greenCol+';border-radius:3px;color:#eafff0;font-size:.57rem;line-height:13px;padding:0 5px;overflow:hidden;white-space:nowrap;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);">'+m2hm(aArr)+'–'+m2hm(aDep)+'</div>';
+        if(pMax!=null && aDep>pMax){ bars+='<div title="Dépassement" style="position:absolute;top:24px;height:13px;left:'+pct(pMax)+'%;width:'+(pct(aDep)-pct(pMax))+'%;background:#d9a441;border-radius:0 3px 3px 0;"></div>'; }
+        if(pMin!=null && aArr<pMin){ bars+='<div title="Arrivée en avance" style="position:absolute;top:24px;height:13px;left:'+pct(aArr)+'%;width:'+(pct(pMin)-pct(aArr))+'%;background:#d9a441;border-radius:3px 0 0 3px;"></div>'; }
+        bars+='<div title="'+(conforme?'Pointage conforme au prévu':'Écart avec le prévu')+'" style="position:absolute;top:24px;height:13px;left:'+pct(g0)+'%;width:'+(pct(g1)-pct(g0))+'%;background:'+greenCol+';border-radius:3px;color:#fff;font-size:.56rem;font-weight:700;line-height:13px;padding:0 5px;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.25);">'+m2hm(aArr)+'–'+m2hm(aDep)+'</div>';
       } else if(aArr!=null){
-        bars+='<div title="En poste (pas encore parti)" style="position:absolute;top:21px;height:13px;left:'+pct(aArr)+'%;width:'+(pct(aArr+45)-pct(aArr))+'%;background:#2e9e4a;border-radius:3px;color:#eafff0;font-size:.57rem;line-height:13px;padding:0 5px;white-space:nowrap;">'+m2hm(aArr)+' →</div>';
+        bars+='<div title="En poste (pas encore parti)" style="position:absolute;top:24px;height:13px;left:'+pct(aArr)+'%;width:'+(pct(aArr+45)-pct(aArr))+'%;background:#2e9e4a;border-radius:3px;color:#fff;font-size:.56rem;font-weight:700;line-height:13px;padding:0 5px;white-space:nowrap;">'+m2hm(aArr)+' →</div>';
       }
     }
     // statut court à droite
-    var st='—', stc='#666';
-    if(abs){ var mi2=null; try{ mi2=_etatMotifInfo(abs.motif); }catch(_){} st=((mi2&&mi2.icon)||'🗓️')+' '+((mi2&&mi2.court)||'Abs'); stc=(mi2&&mi2.col)||'#5aa9e6'; }
-    else if(incE&&incE.type==='maladie'){ st='🏥 Arrêt'; stc='#5aa9e6'; }
-    else if(incE&&incE.type==='misepied'){ st='🚷 M.à pied'; stc='#e8623a'; }
-    else if(incE&&incE.type==='abandon'){ st='🚪 Abandon'; stc='#e8623a'; }
-    else if(!rec||!rec.arrivee){ if(segs.length){ st='⚠️ Pas pointé'; stc='#e8623a'; } else { st='—'; stc='#555'; } }
-    else if(!rec.depart){ st='🟢 Présent'; stc='#3ecf8e'; }
+    var st='—', stc='#888';
+    if(abs){ var mi2=null; try{ mi2=_etatMotifInfo(abs.motif); }catch(_){} st=((mi2&&mi2.icon)||'🗓️')+' '+((mi2&&mi2.court)||'Abs'); stc=(mi2&&mi2.col)||'#c0392b'; }
+    else if(incE&&incE.type==='maladie'){ st='🏥 Arrêt'; stc='#2b7bbd'; }
+    else if(incE&&incE.type==='misepied'){ st='🚷 M.à pied'; stc='#c0392b'; }
+    else if(incE&&incE.type==='abandon'){ st='🚪 Abandon'; stc='#c0392b'; }
+    else if(!rec||!rec.arrivee){ if(segs.length){ st='⚠️ Pas pointé'; stc='#c0392b'; } else { st='—'; stc='#aaa'; } }
+    else if(!rec.depart){ st='🟢 Présent'; stc='#1e8e3e'; }
     else {
       var prevuArr=(pMin!=null)?m2hm(pMin):null, prevuDep=(pMax!=null)?m2hm(pMax):null;
       var ecA=(prevuArr&&rec.arrivee)?ptgEcartMin(prevuArr,rec.arrivee):null;
       var ecD=(prevuDep&&rec.depart)?ptgEcartMin(prevuDep,rec.depart):null;
       var sA=ptgStatut(ecA,'arr'), sD=ptgStatut(ecD,'dep');
-      if(sA.code==='grave'||sD.code==='grave'){ st='🔴 Écart'; stc='#e8623a'; }
-      else if(sA.code==='leger'||sD.code==='leger'){ st='🟠 Léger'; stc='#e8a020'; }
-      else { st='✅ Conforme'; stc='#3ecf8e'; }
+      if(sA.code==='grave'||sD.code==='grave'){ st='🔴 Écart'; stc='#c0392b'; }
+      else if(sA.code==='leger'||sD.code==='leger'){ st='🟠 Léger'; stc='#c77700'; }
+      else { st='✅ Conforme'; stc='#1e8e3e'; }
     }
-    // sous-titre : prévu / pointé (heures)
     var prevuH=0; segs.forEach(function(s){ prevuH+=(s.e-s.s); }); prevuH=prevuH/60;
     var reelH=null; try{ reelH=rec?ptgHeuresTravaillees(rec):null; }catch(_){}
     var sub=(segs.length?('prévu '+(Math.round(prevuH*10)/10)+'h'):'—')+(reelH!=null?(' · pointé '+(Math.round(reelH*10)/10)+'h'):'');
-    return '<div style="display:flex;align-items:stretch;border-bottom:1px solid #1b1b1b;">'
+    return '<div style="display:flex;align-items:stretch;border-bottom:1px solid #ececec;">'
       +'<div style="flex:0 0 '+NAMEW+';padding:6px 8px;min-width:0;">'
-        +'<div style="font-weight:700;color:#eee;font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_ptgEsc(e.name)+'</div>'
-        +'<div style="color:#777;font-size:.6rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+sub+'</div>'
+        +'<div style="font-weight:700;color:#1c1c1c;font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_ptgEsc(e.name)+'</div>'
+        +'<div style="color:#888;font-size:.6rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+sub+'</div>'
       +'</div>'
-      +'<div style="flex:1;position:relative;height:38px;background:#0f0f0f;">'+gl+bars+'</div>'
-      +'<div style="flex:0 0 '+STATW+';padding:6px 6px;font-size:.62rem;text-align:right;color:'+stc+';font-weight:700;white-space:nowrap;align-self:center;">'+st+'</div>'
+      +'<div style="flex:1;position:relative;height:42px;background:#f2f2f2;">'+gl+bars+'</div>'
+      +'<div style="flex:0 0 '+STATW+';padding:6px 6px;font-size:.62rem;text-align:right;color:'+stc+';font-weight:700;white-space:nowrap;align-self:center;border-left:1px solid #ececec;">'+st+'</div>'
     +'</div>';
   }).join('');
   var legend='<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:.68rem;color:#999;">'
-    +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#595959;border-radius:2px;display:inline-block;"></span>Prévu (planning)</span>'
-    +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#2e9e4a;border-radius:2px;display:inline-block;"></span>Pointé (réel)</span>'
-    +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#d9a441;border-radius:2px;display:inline-block;"></span>Dépassement</span>'
+    +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#1565c0;border-radius:2px;display:inline-block;"></span>Prévu (traits par poste)</span>'
+    +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#2e9e4a;border-radius:2px;display:inline-block;"></span>Pointé conforme</span>'
+    +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#e0a021;border-radius:2px;display:inline-block;"></span>Écart / dépassement</span>'
     +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#cc5555;border-radius:2px;display:inline-block;"></span>Congé / absence</span>'
     +'</div>';
-  return '<div style="overflow-x:auto;border:1px solid #262626;border-radius:12px;background:#121212;min-width:760px;">'+ruler+(body||'<div style="padding:14px;color:#888;font-size:.85rem;">Aucun salarié pour ce restaurant.</div>')+'</div>'+legend;
+  return '<div style="overflow-x:auto;background:#fafafa;color:#222;border:1px solid #ddd;border-radius:12px;min-width:760px;">'+ruler+(body||'<div style="padding:16px;color:#666;font-size:.9rem;text-align:center;">Aucun salarié prévu, pointé ou absent ce jour.</div>')+'</div>'+legend;
 }
 function ptgRenderSuivi(){
   var box=document.getElementById('ptg-suivi'); if(!box) return;
@@ -13297,7 +13524,7 @@ function dashPlanningJourHtml(resto, dateISO){
       +'<div style="flex:1;position:relative;height:36px;background:#f2f2f2;">'+gl+bars+'</div>'
     +'</div>';
   }).join('');
-  if(!rowsData.length) body='<div style="padding:22px;color:#666;text-align:center;font-size:.92rem;">Aucun horaire prévu ce jour.</div>';
+  if(!rowsData.length) body='<div style="padding:22px;color:#666;text-align:center;font-size:.92rem;">'+(_chLoadEnCours?'⏳ Chargement du planning…':'Aucun horaire prévu ce jour.')+'</div>';
   return '<div style="overflow-x:auto;background:#fafafa;color:#222;border-radius:12px;border:1px solid #ddd;min-width:760px;">'+ruler+body+'</div>';
 }
 var _chJourIso=null, _chJourAutoDone=false;
@@ -13310,11 +13537,10 @@ function dashOpenPlanningJour(){
   var lbl=(dashRestoList().find(function(x){return x.id===resto;})||{}).label||'';
   var body=dashOpenPanel('Planning du jour — '+lbl);
   _dashJourBody=body; _dashJourResto=resto;
-  try{ if(typeof hrChargerPlanning==='function'){ hrChargerPlanning(resto); } }catch(_){}
   try{ if(typeof hrChargerAffect==='function'){ hrChargerAffect(resto); } }catch(_){}
   _dashPlanningJourFill();
-  // Le planning arrive parfois de façon asynchrone (Supabase) : on réessaie.
-  try{ [300,900,1600].forEach(function(ms){ setTimeout(function(){ if(_dashOpenTile==='dashOpenPlanningJour'){ _dashPlanningJourFill(); } }, ms); }); }catch(_){}
+  // Chargement DIRECT depuis Supabase (gros fichiers) → on rafraîchit dès l'arrivée.
+  _chLoadPlanning(resto, function(){ if(_dashOpenTile==='dashOpenPlanningJour'){ _chJourAutoDone=false; _dashPlanningJourFill(); } });
 }
 var _dashJourBody=null, _dashJourResto=null;
 function _dashPlanningJourFill(){
