@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-25 · v378';
+  var EMBEDDED_VERSION = '2026-07-26 · v383';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1667,7 +1667,12 @@ html,body{overflow-x:hidden;}
       <div class="sec-title" style="margin:0;">📋 Suivi des pointages</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
         <div style="display:flex;gap:6px;flex-wrap:wrap;" id="ptgs-resto-tabs"></div>
-        <input type="date" id="ptgs-date" class="fi" style="max-width:170px;" onchange="ptgRenderSuivi()">
+        <div style="display:flex;align-items:center;gap:4px;">
+          <button onclick="ptgsDecalerJour(-1)" title="Jour précédent" style="background:#2C2C2C;color:#fff;border:1px solid #444;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:1rem;line-height:1;">‹</button>
+          <input type="date" id="ptgs-date" class="fi" style="max-width:170px;" onchange="ptgRenderSuivi()">
+          <button onclick="ptgsDecalerJour(1)" title="Jour suivant" style="background:#2C2C2C;color:#fff;border:1px solid #444;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:1rem;line-height:1;">›</button>
+          <button onclick="ptgsAujourdhui()" title="Aujourd'hui" style="background:#2C2C2C;color:#F5A623;border:1px solid #5a4420;border-radius:8px;padding:0 10px;height:30px;cursor:pointer;font-size:.78rem;font-weight:700;">Aujourd'hui</button>
+        </div>
       </div>
     </div>
     <p style="font-size:.8rem;color:#aaa;margin:0 0 14px;">Pointages réels des salariés (arrivée, pauses, départ et total d'heures travaillées). Cet écran est réservé à la direction et au RH.</p>
@@ -8477,11 +8482,177 @@ function ptgSuiviInit(){
     } else { tabs.innerHTML=''; }
   }
   var sd=document.getElementById('ptgs-date'); if(sd && !sd.value) sd.value=ptgTodayISO();
+  // Charger le planning (barres grises « prévu ») du restaurant suivi + rafraîchir la frise.
+  try{ if(typeof hrChargerPlanning==='function'){ hrChargerPlanning(PTGS_RESTO); } }catch(e){}
+  try{ if(typeof hrChargerAffect==='function'){ hrChargerAffect(PTGS_RESTO); } }catch(e){}
+  try{ setTimeout(function(){ try{ ptgRenderSuivi(); }catch(_){} }, 800); }catch(e){}
   ptgRenderSuivi();
   try{ ptgRenderMsgAdmin(); }catch(e){}
 }
 function ptgsSetResto(r){ PTGS_RESTO=r; ptgSuiviInit(); }
+// Flèches ‹ › : avancer/reculer d'un jour sans ouvrir le calendrier.
+function ptgsDecalerJour(delta){
+  var sd=document.getElementById('ptgs-date'); if(!sd) return;
+  var base=sd.value||ptgTodayISO();
+  var d=new Date(base+'T12:00:00'); d.setDate(d.getDate()+delta);
+  sd.value=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  ptgRenderSuivi();
+}
+function ptgsAujourdhui(){ var sd=document.getElementById('ptgs-date'); if(sd){ sd.value=ptgTodayISO(); ptgRenderSuivi(); } }
+window.ptgsDecalerJour=ptgsDecalerJour; window.ptgsAujourdhui=ptgsAujourdhui;
 
+// ══ CONTRÔLE DES HEURES — frise prévu (gris) vs pointé (vert) ═══════════════════
+// Reproduit l'écran « Contrôle des heures » : une ligne par salarié, barre grise =
+// horaire prévu (planning), barre verte = pointage réel, beige = dépassement,
+// rouge = congé/absence (badge CP/CSS/Maladie).
+function _chAffectResto(resto){
+  var up=(''+(resto||'')).toUpperCase();
+  if(typeof HR_AFFECT_BY_RESTO!=='undefined'){
+    if(HR_AFFECT_BY_RESTO[up]) return HR_AFFECT_BY_RESTO[up];
+    if(HR_AFFECT_BY_RESTO[resto]) return HR_AFFECT_BY_RESTO[resto];
+  }
+  return (typeof HR_AFFECT!=='undefined')?HR_AFFECT:{};
+}
+function _chLundiIso(iso){
+  var d=new Date(iso+'T12:00:00'); var wd=(d.getDay()+6)%7; d.setDate(d.getDate()-wd);
+  return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+}
+function _chJoursSrc(resto, iso){
+  // Renvoie le tableau des traits d'un jour, en cherchant dans TOUTES les sources :
+  // 1) placements placés (HR_AFFECT — tous les traits faits, même non transférés)
+  // 2) planning transféré (HR_PLANNING_BY_RESTO)
+  var arr=[];
+  try{ var src=_chAffectResto(resto); if(src&&src[iso]&&src[iso].length) arr=src[iso]; }catch(_){}
+  if(!arr || !arr.length){
+    try{
+      var up=(''+(resto||'')).toUpperCase();
+      var snap=(typeof HR_PLANNING_BY_RESTO!=='undefined' && HR_PLANNING_BY_RESTO[up])?HR_PLANNING_BY_RESTO[up]:null;
+      if(snap){ var wk=snap[_chLundiIso(iso)]; if(wk&&wk.jours&&wk.jours[iso]) arr=wk.jours[iso]; }
+    }catch(_1){}
+  }
+  return arr||[];
+}
+function _chPlanSegs(emp, iso, resto){
+  try{
+    var arr=_chJoursSrc(resto, iso);
+    var bars=arr.filter(function(b){return b&&b.empId===emp.id&&b.s!=null&&b.e!=null;}).slice().sort(function(a,b){return a.s-b.s;});
+    var out=[];
+    bars.forEach(function(b){ var last=out[out.length-1]; if(last&&last.l===b.l&&b.s<=last.e+1){last.e=Math.max(last.e,b.e);} else {out.push({l:b.l,s:b.s,e:b.e,col:b.col});} });
+    return out;
+  }catch(e){ return []; }
+}
+// Toutes les dates (ISO) qui ont au moins un trait pour ce resto (HR_AFFECT + transféré).
+function _chDatesAvecTraits(resto){
+  var set={};
+  try{ var src=_chAffectResto(resto); if(src) Object.keys(src).forEach(function(d){ if(Array.isArray(src[d])&&src[d].length) set[d]=1; }); }catch(_){}
+  try{
+    var up=(''+(resto||'')).toUpperCase();
+    var snap=(typeof HR_PLANNING_BY_RESTO!=='undefined' && HR_PLANNING_BY_RESTO[up])?HR_PLANNING_BY_RESTO[up]:null;
+    if(snap) Object.keys(snap).forEach(function(lun){ var j=snap[lun]&&snap[lun].jours; if(j) Object.keys(j).forEach(function(d){ if(Array.isArray(j[d])&&j[d].length) set[d]=1; }); });
+  }catch(_){}
+  return Object.keys(set).sort();
+}
+// À partir d'une date, trouve la plus proche qui a des traits (futur d'abord, sinon passé).
+function _chJourProcheAvecTraits(resto, iso){
+  var dates=_chDatesAvecTraits(resto); if(!dates.length) return null;
+  if(dates.indexOf(iso)>=0) return iso;
+  var fut=dates.filter(function(d){return d>=iso;}); if(fut.length) return fut[0];
+  return dates[dates.length-1];
+}
+function ptgCtrlTimeline(dateISO, emps){
+  var DS=5*60, SPAN=23*60;
+  var HRS=[5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,0,1,2,3];
+  function pct(m){ return ((m-DS)/SPAN*100); }
+  function hm2m(hm){ if(!hm) return null; var p=(''+hm).split(':'); return (+p[0])*60+(+p[1]); }
+  function toDom(m){ if(m==null) return null; return (m<DS)? m+1440 : m; }
+  function m2hm(m){ m=((m%1440)+1440)%1440; var h=Math.floor(m/60),mm=m%60; return (h<10?'0':'')+h+':'+(mm<10?'0':'')+mm; }
+  var resto=PTGS_RESTO||PTG_RESTO;
+  var all=ptgGetAll();
+  var NAMEW='160px', STATW='96px';
+  // en-tête (règle des heures)
+  var ruler='<div style="display:flex;align-items:stretch;border-bottom:1px solid #2a2a2a;">'
+    +'<div style="flex:0 0 '+NAMEW+';"></div>'
+    +'<div style="flex:1;display:flex;">'+HRS.map(function(h){ return '<div style="flex:1;text-align:center;font-size:.6rem;color:#888;border-left:1px solid #222;padding:3px 0;">'+((''+h).length<2?'0':'')+h+'h</div>'; }).join('')+'</div>'
+    +'<div style="flex:0 0 '+STATW+';"></div></div>';
+  var body=emps.map(function(e){
+    var rec=all[e.id+'_'+dateISO];
+    var segs=_chPlanSegs(e, dateISO, resto);
+    var abs=null; try{ abs=(typeof hrAbsenceDuJour==='function')?hrAbsenceDuJour(e.id,dateISO):null; }catch(_){}
+    if(abs && (abs.statut==='attente'||abs.statut==='refuse')) abs=null;
+    var incE=null; try{ incE=(typeof incEtatJour==='function')?incEtatJour(e.id,dateISO):null; }catch(_){}
+    var pMin=null,pMax=null; segs.forEach(function(s){ if(pMin==null||s.s<pMin)pMin=s.s; if(pMax==null||s.e>pMax)pMax=s.e; });
+    var aArr=(rec&&rec.arrivee)?toDom(hm2m(rec.arrivee)):null;
+    var aDep=(rec&&rec.depart)?toDom(hm2m(rec.depart)):null;
+    // gridlines
+    var gl=HRS.map(function(h,i){ return '<div style="position:absolute;top:0;bottom:0;left:'+(i/HRS.length*100)+'%;width:1px;background:#1c1c1c;"></div>'; }).join('');
+    var bars='';
+    if(abs){
+      var mi=null; try{ mi=(typeof _etatMotifInfo==='function')?_etatMotifInfo(abs.motif):null; }catch(_){}
+      mi=mi||{court:'Abs',col:'#cc5555',label:'Absence'};
+      var rs=(pMin!=null?pMin:11*60), re=(pMax!=null?pMax:15*60);
+      bars+='<div title="'+_ptgEsc(mi.label||'')+'" style="position:absolute;top:8px;height:20px;left:'+pct(rs)+'%;width:'+(pct(re)-pct(rs))+'%;background:'+(mi.col||'#cc5555')+';border-radius:5px;display:flex;align-items:center;gap:5px;padding:0 7px;color:#fff;font-size:.63rem;font-weight:700;overflow:hidden;white-space:nowrap;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);">'
+        +'<span style="background:rgba(0,0,0,.28);border-radius:4px;padding:0 5px;">'+_ptgEsc(mi.court||'CP')+'</span>'+m2hm(rs)+'–'+m2hm(re)+'</div>';
+    } else {
+      segs.forEach(function(s){
+        bars+='<div title="'+_ptgEsc(s.l)+'" style="position:absolute;top:5px;height:14px;left:'+pct(s.s)+'%;width:'+(pct(s.e)-pct(s.s))+'%;background:#595959;border-radius:3px;color:#eaeaea;font-size:.58rem;line-height:14px;padding:0 5px;overflow:hidden;white-space:nowrap;">'+m2hm(s.s)+'–'+m2hm(s.e)+'</div>';
+      });
+      if(aArr!=null && aDep!=null){
+        var g0=Math.min(aArr,aDep), g1=Math.max(aArr,aDep);
+        // Couleur de la barre pointée selon la conformité au prévu : vert = conforme.
+        var greenCol='#2e9e4a', conforme=true;
+        if(pMin!=null && pMax!=null){
+          try{
+            var _ea=ptgEcartMin(m2hm(pMin), rec.arrivee), _ed=ptgEcartMin(m2hm(pMax), rec.depart);
+            var _sa=ptgStatut(_ea,'arr'), _sd=ptgStatut(_ed,'dep');
+            if(_sa.code==='grave'||_sd.code==='grave'){ greenCol='#e8623a'; conforme=false; }
+            else if(_sa.code==='leger'||_sd.code==='leger'){ greenCol='#d9a441'; conforme=false; }
+          }catch(_c){}
+        }
+        if(pMax!=null && aDep>pMax){ bars+='<div title="Dépassement" style="position:absolute;top:21px;height:13px;left:'+pct(pMax)+'%;width:'+(pct(aDep)-pct(pMax))+'%;background:#d9a441;border-radius:0 3px 3px 0;"></div>'; }
+        if(pMin!=null && aArr<pMin){ bars+='<div title="Arrivée en avance" style="position:absolute;top:21px;height:13px;left:'+pct(aArr)+'%;width:'+(pct(pMin)-pct(aArr))+'%;background:#d9a441;border-radius:3px 0 0 3px;"></div>'; }
+        bars+='<div title="'+(conforme?'Pointage conforme au prévu':'Écart avec le prévu')+'" style="position:absolute;top:21px;height:13px;left:'+pct(g0)+'%;width:'+(pct(g1)-pct(g0))+'%;background:'+greenCol+';border-radius:3px;color:#eafff0;font-size:.57rem;line-height:13px;padding:0 5px;overflow:hidden;white-space:nowrap;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);">'+m2hm(aArr)+'–'+m2hm(aDep)+'</div>';
+      } else if(aArr!=null){
+        bars+='<div title="En poste (pas encore parti)" style="position:absolute;top:21px;height:13px;left:'+pct(aArr)+'%;width:'+(pct(aArr+45)-pct(aArr))+'%;background:#2e9e4a;border-radius:3px;color:#eafff0;font-size:.57rem;line-height:13px;padding:0 5px;white-space:nowrap;">'+m2hm(aArr)+' →</div>';
+      }
+    }
+    // statut court à droite
+    var st='—', stc='#666';
+    if(abs){ var mi2=null; try{ mi2=_etatMotifInfo(abs.motif); }catch(_){} st=((mi2&&mi2.icon)||'🗓️')+' '+((mi2&&mi2.court)||'Abs'); stc=(mi2&&mi2.col)||'#5aa9e6'; }
+    else if(incE&&incE.type==='maladie'){ st='🏥 Arrêt'; stc='#5aa9e6'; }
+    else if(incE&&incE.type==='misepied'){ st='🚷 M.à pied'; stc='#e8623a'; }
+    else if(incE&&incE.type==='abandon'){ st='🚪 Abandon'; stc='#e8623a'; }
+    else if(!rec||!rec.arrivee){ if(segs.length){ st='⚠️ Pas pointé'; stc='#e8623a'; } else { st='—'; stc='#555'; } }
+    else if(!rec.depart){ st='🟢 Présent'; stc='#3ecf8e'; }
+    else {
+      var prevuArr=(pMin!=null)?m2hm(pMin):null, prevuDep=(pMax!=null)?m2hm(pMax):null;
+      var ecA=(prevuArr&&rec.arrivee)?ptgEcartMin(prevuArr,rec.arrivee):null;
+      var ecD=(prevuDep&&rec.depart)?ptgEcartMin(prevuDep,rec.depart):null;
+      var sA=ptgStatut(ecA,'arr'), sD=ptgStatut(ecD,'dep');
+      if(sA.code==='grave'||sD.code==='grave'){ st='🔴 Écart'; stc='#e8623a'; }
+      else if(sA.code==='leger'||sD.code==='leger'){ st='🟠 Léger'; stc='#e8a020'; }
+      else { st='✅ Conforme'; stc='#3ecf8e'; }
+    }
+    // sous-titre : prévu / pointé (heures)
+    var prevuH=0; segs.forEach(function(s){ prevuH+=(s.e-s.s); }); prevuH=prevuH/60;
+    var reelH=null; try{ reelH=rec?ptgHeuresTravaillees(rec):null; }catch(_){}
+    var sub=(segs.length?('prévu '+(Math.round(prevuH*10)/10)+'h'):'—')+(reelH!=null?(' · pointé '+(Math.round(reelH*10)/10)+'h'):'');
+    return '<div style="display:flex;align-items:stretch;border-bottom:1px solid #1b1b1b;">'
+      +'<div style="flex:0 0 '+NAMEW+';padding:6px 8px;min-width:0;">'
+        +'<div style="font-weight:700;color:#eee;font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_ptgEsc(e.name)+'</div>'
+        +'<div style="color:#777;font-size:.6rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+sub+'</div>'
+      +'</div>'
+      +'<div style="flex:1;position:relative;height:38px;background:#0f0f0f;">'+gl+bars+'</div>'
+      +'<div style="flex:0 0 '+STATW+';padding:6px 6px;font-size:.62rem;text-align:right;color:'+stc+';font-weight:700;white-space:nowrap;align-self:center;">'+st+'</div>'
+    +'</div>';
+  }).join('');
+  var legend='<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:.68rem;color:#999;">'
+    +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#595959;border-radius:2px;display:inline-block;"></span>Prévu (planning)</span>'
+    +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#2e9e4a;border-radius:2px;display:inline-block;"></span>Pointé (réel)</span>'
+    +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#d9a441;border-radius:2px;display:inline-block;"></span>Dépassement</span>'
+    +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#cc5555;border-radius:2px;display:inline-block;"></span>Congé / absence</span>'
+    +'</div>';
+  return '<div style="overflow-x:auto;border:1px solid #262626;border-radius:12px;background:#121212;min-width:760px;">'+ruler+(body||'<div style="padding:14px;color:#888;font-size:.85rem;">Aucun salarié pour ce restaurant.</div>')+'</div>'+legend;
+}
 function ptgRenderSuivi(){
   var box=document.getElementById('ptg-suivi'); if(!box) return;
   var dateISO=((document.getElementById('ptgs-date')||{}).value)||ptgTodayISO();
@@ -8544,10 +8715,14 @@ function ptgRenderSuivi(){
     +'<span style="background:#3a2a10;border:1px solid #7a5a1a;color:#e8a020;padding:5px 12px;border-radius:20px;font-size:.8rem;font-weight:700;">🟠🔴 '+nEcart+' écart'+(nEcart>1?'s':'')+'</span>'
     +'<span style="background:#3a1616;border:1px solid #6a2a2a;color:#e8623a;padding:5px 12px;border-radius:20px;font-size:.8rem;font-weight:700;">⚠️ '+nAbsPointage+' pas pointé'+(nAbsPointage>1?'s':'')+'</span>'
     +'</div>';
-  box.innerHTML=synth+'<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.85rem;">'
+  var timeline='';
+  try{ timeline='<div class="sec-title" style="font-size:1rem;margin:2px 0 10px;">🕐 Contrôle des heures — prévu vs pointé</div>'+ptgCtrlTimeline(dateISO, emps); }catch(_e){ console.warn('ptgCtrlTimeline',_e); }
+  var table='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.85rem;">'
     +'<thead><tr style="color:#888;text-align:left;border-bottom:1px solid #333;">'
     +'<th style="padding:7px 10px;">Salarié</th><th style="padding:7px 10px;">Prévu</th><th style="padding:7px 10px;">Arrivée</th><th style="padding:7px 10px;">Départ</th><th style="padding:7px 10px;">Total</th><th style="padding:7px 10px;">Contrôle</th><th style="padding:7px 10px;">Note</th>'
     +'</tr></thead><tbody>'+(rows||'<tr><td style="padding:12px;color:#888;" colspan="7">Aucun salarié.</td></tr>')+'</tbody></table></div>';
+  box.innerHTML=synth+timeline
+    +'<details style="margin-top:16px;"><summary style="cursor:pointer;color:#8fbced;font-size:.82rem;font-weight:700;padding:6px 0;">📋 Détail par salarié (tableau + notes)</summary><div style="margin-top:10px;">'+table+'</div></details>';
 }
 // Note RH sur un pointage (partagée). Crée l'enregistrement du jour si besoin.
 function ptgSaveNote(empId,dateISO,val){
@@ -12578,6 +12753,7 @@ window.onload=function(){schedReports();};
 var DASH_RESTO=null,_dashClockTm=null,_dashRefreshTm=null,_dashOpenTile=null;
 var DASH_TILES=[
   {id:'horaires',  em:'🗓️', tt:'Mes horaires',     ds:'Planning de la semaine', color:'#1565c0', action:'dashOpenHoraires'},
+  {id:'planningjour',em:'📋', tt:'Planning du jour', ds:"Les traits de l'équipe aujourd'hui", color:'#0097a7', action:'dashOpenPlanningJour'},
   {id:'pointer',   em:'⏱️', tt:'Pointer',           ds:'Arrivée / départ',       color:'#2e7d32', action:'dashOpenPointer'},
   {id:'conges',    em:'🏖️', tt:'Mes congés',        ds:'Demander des vacances',  color:'#F5A623', action:'dashOpenConges'},
   {id:'indispo',   em:'🚫', tt:'Indisponibilités', ds:'Jours où je ne peux pas',color:'#FF8732', action:'dashOpenIndispo'},
@@ -12736,6 +12912,7 @@ function dashPreviewTile(kind){
   if(kind==='conges'||kind==='indispo'){ _dashDemType=kind; try{ dashDemOpen(e.id,true); }catch(err){console.warn(err);} var o2=document.getElementById('dash-dem-ov'); if(o2)o2.style.zIndex='11800'; return; }
   if(kind==='changecode'){ _eqSel=e; _eqResto=e.restoId||e.resto_id||null; _eqKiosk=false; _eqCodeCtx='admin'; var ov=document.getElementById('equipier-portail'); if(!ov){ ov=document.createElement('div'); ov.id='equipier-portail'; document.body.appendChild(ov); } ov.style.display='block'; try{ eqChangeCode(); }catch(err){console.warn(err);} return; }
   if(kind==='pointer'){ _ptgSel=e; try{ PTG_RESTO=e.restoId||PTG_RESTO; }catch(_){} var mp=document.getElementById('modal-ptg'); if(mp)mp.classList.add('open'); try{ ptgShowActions(); }catch(err){console.warn(err);} return; }
+  if(kind==='planningjour'){ try{ dashOpenPlanningJour(); }catch(err){console.warn(err);} return; }
 }
 window.dashPreviewTile=dashPreviewTile;
 // Écran télé : « Changer mon code » → on choisit le salarié (comme Mes horaires),
@@ -12761,7 +12938,7 @@ window.dashToggleTile=dashToggleTile;
 // Reprend DASH_TILES en retirant la tuile « pointer » (on ne pointe jamais depuis la
 // maison). Chaque pièce peut être activée/désactivée ; la config est partagée via
 // app_config (clé 'bkrh_telephone') + miroir localStorage, comme la Société.
-var TEL_TILES = DASH_TILES.filter(function(t){ return t.id!=='pointer'; });
+var TEL_TILES = DASH_TILES.filter(function(t){ return t.id!=='pointer' && t.id!=='planningjour'; });
 // Pièce spéciale « Changer mon code » : présente sur le téléphone ET l'écran télé,
 // configurable (activable/masquable) comme les autres, listée en DERNIER.
 var CODE_TILE={id:'changecode', em:'🔑', tt:'Changer mon code', ds:'Modifier mon code PIN', color:'#8e8e8e'};
@@ -13089,6 +13266,77 @@ function dashOpenHoraires(){
   // pour voir SON calendrier personnel (façon Google), uniquement ses horaires.
   _dashRenderTuiles(body, resto, 'dashHorairesOpen');
 }
+// ══ PLANNING DU JOUR — frise linéaire de TOUTE l'équipe (traits par poste) ══════
+// Écran télé : l'équipe voit d'un coup d'œil qui est posté où aujourd'hui.
+// Fond clair + traits de couleur (couleur du poste). Journée du jour uniquement.
+function dashPlanningJourHtml(resto, dateISO){
+  var DS=5*60, SPAN=23*60;
+  var HRS=[5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,0,1,2,3];
+  function pct(m){ return ((m-DS)/SPAN*100); }
+  function m2hm(m){ m=((m%1440)+1440)%1440; var h=Math.floor(m/60),mm=m%60; return (h<10?'0':'')+h+':'+(mm<10?'0':'')+mm; }
+  var emps=(typeof ptgEmployesResto==='function')?ptgEmployesResto(resto):[];
+  var rowsData=[];
+  emps.forEach(function(e){
+    var segs=[]; try{ segs=_chPlanSegs(e, dateISO, resto); }catch(_){}
+    if(segs && segs.length){ var mn=Math.min.apply(null,segs.map(function(s){return s.s;})); rowsData.push({e:e,segs:segs,mn:mn}); }
+  });
+  rowsData.sort(function(a,b){ return a.mn-b.mn || (a.e.name||'').localeCompare(b.e.name||''); });
+  var NAMEW='150px';
+  var ruler='<div style="display:flex;border-bottom:1px solid #ccc;">'
+    +'<div style="flex:0 0 '+NAMEW+';"></div>'
+    +'<div style="flex:1;display:flex;">'+HRS.map(function(h){return '<div style="flex:1;text-align:center;font-size:.6rem;color:#666;border-left:1px solid #e2e2e2;padding:3px 0;">'+((''+h).length<2?'0':'')+h+'h</div>';}).join('')+'</div></div>';
+  var body=rowsData.map(function(rd){
+    var gl=HRS.map(function(h,i){return '<div style="position:absolute;top:0;bottom:0;left:'+(i/HRS.length*100)+'%;width:1px;background:#e8e8e8;"></div>';}).join('');
+    var bars=rd.segs.map(function(s){
+      var c=(typeof colFor==='function')?colFor(s.l):{bg:'#1565c0',tx:'#fff'};
+      var lab=(typeof _ptgPosteLabel==='function')?_ptgPosteLabel(s.l):s.l;
+      return '<div title="'+_ptgEsc(s.l)+'" style="position:absolute;top:6px;height:24px;left:'+pct(s.s)+'%;width:'+(pct(s.e)-pct(s.s))+'%;background:'+(c.bg||'#1565c0')+';color:'+(c.tx||'#fff')+';border-radius:5px;font-size:.62rem;font-weight:700;line-height:24px;padding:0 7px;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.25);">'+_ptgEsc(lab)+' '+m2hm(s.s)+'–'+m2hm(s.e)+'</div>';
+    }).join('');
+    return '<div style="display:flex;align-items:stretch;border-bottom:1px solid #ececec;">'
+      +'<div style="flex:0 0 '+NAMEW+';padding:7px 8px;font-weight:700;color:#1c1c1c;font-size:.76rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_ptgEsc(rd.e.name)+'</div>'
+      +'<div style="flex:1;position:relative;height:36px;background:#f2f2f2;">'+gl+bars+'</div>'
+    +'</div>';
+  }).join('');
+  if(!rowsData.length) body='<div style="padding:22px;color:#666;text-align:center;font-size:.92rem;">Aucun horaire prévu ce jour.</div>';
+  return '<div style="overflow-x:auto;background:#fafafa;color:#222;border-radius:12px;border:1px solid #ddd;min-width:760px;">'+ruler+body+'</div>';
+}
+var _chJourIso=null, _chJourAutoDone=false;
+function _chIsoToday(){ var d=new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+function dashOpenPlanningJour(){
+  _dashOpenTile='dashOpenPlanningJour';
+  var resto=DASH_RESTO;
+  if(!resto){ if(typeof toast==='function') toast('Choisis d\'abord un restaurant','error'); return; }
+  _chJourIso=_chIsoToday(); _chJourAutoDone=false;
+  var lbl=(dashRestoList().find(function(x){return x.id===resto;})||{}).label||'';
+  var body=dashOpenPanel('Planning du jour — '+lbl);
+  _dashJourBody=body; _dashJourResto=resto;
+  try{ if(typeof hrChargerPlanning==='function'){ hrChargerPlanning(resto); } }catch(_){}
+  try{ if(typeof hrChargerAffect==='function'){ hrChargerAffect(resto); } }catch(_){}
+  _dashPlanningJourFill();
+  // Le planning arrive parfois de façon asynchrone (Supabase) : on réessaie.
+  try{ [300,900,1600].forEach(function(ms){ setTimeout(function(){ if(_dashOpenTile==='dashOpenPlanningJour'){ _dashPlanningJourFill(); } }, ms); }); }catch(_){}
+}
+var _dashJourBody=null, _dashJourResto=null;
+function _dashPlanningJourFill(){
+  var body=_dashJourBody, resto=_dashJourResto; if(!body) return;
+  // Si le jour affiché n'a pas de traits, sauter une seule fois vers le jour le plus proche qui en a.
+  if(!_chJourAutoDone){
+    try{ var np=_chJourProcheAvecTraits(resto, _chIsoToday()); if(np){ _chJourIso=np; _chJourAutoDone=true; } }catch(_){}
+  }
+  var iso=_chJourIso||_chIsoToday();
+  var jour=new Date(iso+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  var nav='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">'
+    +'<button onclick="dashJourDecaler(-1)" title="Jour précédent" style="background:#2C2C2C;color:#fff;border:1px solid #555;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:1rem;">‹</button>'
+    +'<div style="font-size:.98rem;color:#eee;text-transform:capitalize;font-weight:800;min-width:230px;text-align:center;">📋 '+jour+'</div>'
+    +'<button onclick="dashJourDecaler(1)" title="Jour suivant" style="background:#2C2C2C;color:#fff;border:1px solid #555;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:1rem;">›</button>'
+    +'<button onclick="dashJourAuj()" style="background:#2C2C2C;color:#F5A623;border:1px solid #5a4420;border-radius:8px;padding:0 10px;height:30px;cursor:pointer;font-size:.76rem;font-weight:700;">Aujourd\'hui</button>'
+    +'</div>';
+  body.innerHTML=nav+dashPlanningJourHtml(resto, iso);
+}
+function dashJourDecaler(delta){ _chJourAutoDone=true; var d=new Date((_chJourIso||_chIsoToday())+'T12:00:00'); d.setDate(d.getDate()+delta); _chJourIso=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); _dashPlanningJourFill(); }
+function dashJourAuj(){ _chJourAutoDone=true; _chJourIso=_chIsoToday(); _dashPlanningJourFill(); }
+window.dashOpenPlanningJour=dashOpenPlanningJour; window.dashPlanningJourHtml=dashPlanningJourHtml;
+window.dashJourDecaler=dashJourDecaler; window.dashJourAuj=dashJourAuj;
 // ══ MES HORAIRES — CALENDRIER PERSONNEL DU SALARIÉ (façon agenda Google) ═══════
 // Le salarié clique sur sa tuile → saisit son code (jour+mois de naissance) →
 // voit UNIQUEMENT ses horaires, semaine par semaine, sur les semaines transférées.
