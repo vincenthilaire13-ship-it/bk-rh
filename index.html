@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-26 · v398';
+  var EMBEDDED_VERSION = '2026-07-26 · v403';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -8744,6 +8744,10 @@ function ptgSuiviInit(){
   try{ ptgChargerPartage('suivi'); }catch(e){}   // pointages partagés (toutes tablettes)
   try{ ptgMsgCharger('suivi'); }catch(e){}       // messages/infos partagés
   var vis=ptgRestosVisibles();
+  // Restaurant à suivre : celui demandé (rapport / bandeau actif) sinon le 1er visible.
+  var _want=(window.__ptgRestoActif && vis.indexOf(window.__ptgRestoActif)>=0) ? window.__ptgRestoActif
+          : (window.ACTIVE_RESTO && window.ACTIVE_RESTO!=='ALL' && vis.indexOf(window.ACTIVE_RESTO)>=0) ? window.ACTIVE_RESTO : null;
+  if(_want) PTGS_RESTO=_want;
   if(!PTGS_RESTO || vis.indexOf(PTGS_RESTO)<0) PTGS_RESTO=vis[0];
   var tabs=document.getElementById('ptgs-resto-tabs');
   if(tabs){
@@ -8754,22 +8758,35 @@ function ptgSuiviInit(){
     } else { tabs.innerHTML=''; }
   }
   var sd=document.getElementById('ptgs-date'); if(sd && !sd.value) sd.value=ptgTodayISO();
-  // Charger le planning (barres grises « prévu ») du restaurant suivi + rafraîchir la frise.
+  _ptgsAutoJump=true; // autorise un saut auto vers un jour qui a un planning (1er rendu)
+  // Charger le planning (traits « prévu ») du restaurant suivi + rafraîchir la frise dès l'arrivée.
   try{ if(typeof hrChargerAffect==='function'){ hrChargerAffect(PTGS_RESTO); } }catch(e){}
-  try{ _chLoadPlanning(PTGS_RESTO, function(){ try{ ptgRenderSuivi(); }catch(_){} }); }catch(e){}
+  try{ _chLoadPlanning(PTGS_RESTO, function(){
+    try{
+      if(_ptgsAutoJump && sd){
+        var cur=sd.value||ptgTodayISO();
+        var hasCur=false; try{ hasCur=(_chJoursSrc(PTGS_RESTO,cur)||[]).length>0; }catch(_){}
+        if(!hasCur){ var np=_chJourProcheAvecTraits(PTGS_RESTO,cur); if(np){ sd.value=np; } }
+        _ptgsAutoJump=false;
+      }
+    }catch(_){}
+    try{ ptgRenderSuivi(); }catch(_){}
+  }); }catch(e){}
   ptgRenderSuivi();
   try{ ptgRenderMsgAdmin(); }catch(e){}
 }
+var _ptgsAutoJump=false;
 function ptgsSetResto(r){ PTGS_RESTO=r; ptgSuiviInit(); }
 // Flèches ‹ › : avancer/reculer d'un jour sans ouvrir le calendrier.
 function ptgsDecalerJour(delta){
+  _ptgsAutoJump=false;
   var sd=document.getElementById('ptgs-date'); if(!sd) return;
   var base=sd.value||ptgTodayISO();
   var d=new Date(base+'T12:00:00'); d.setDate(d.getDate()+delta);
   sd.value=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
   ptgRenderSuivi();
 }
-function ptgsAujourdhui(){ var sd=document.getElementById('ptgs-date'); if(sd){ sd.value=ptgTodayISO(); ptgRenderSuivi(); } }
+function ptgsAujourdhui(){ _ptgsAutoJump=false; var sd=document.getElementById('ptgs-date'); if(sd){ sd.value=ptgTodayISO(); ptgRenderSuivi(); } }
 window.ptgsDecalerJour=ptgsDecalerJour; window.ptgsAujourdhui=ptgsAujourdhui;
 
 // ══ CONTRÔLE DES HEURES — frise prévu (gris) vs pointé (vert) ═══════════════════
@@ -8871,25 +8888,35 @@ function ptgCtrlTimeline(dateISO, emps){
     var segs=_chPlanSegs(e, dateISO, resto);
     var abs=null; try{ abs=(typeof hrAbsenceDuJour==='function')?hrAbsenceDuJour(e.id,dateISO):null; }catch(_){}
     if(abs && (abs.statut==='attente'||abs.statut==='refuse')) abs=null;
-    if(!segs.length && !(rec&&rec.arrivee) && !abs) return;
+    var incE=null; try{ incE=(typeof incEtatJour==='function')?incEtatJour(e.id,dateISO):null; }catch(_){}
+    if(!segs.length && !(rec&&rec.arrivee) && !abs && !incE) return;
     var mn=segs.length?Math.min.apply(null,segs.map(function(s){return s.s;})):(rec&&rec.arrivee?toDom(hm2m(rec.arrivee)):9999);
-    lignes.push({e:e,rec:rec,segs:segs,abs:abs,mn:mn});
+    lignes.push({e:e,rec:rec,segs:segs,abs:abs,incE:incE,mn:mn});
   });
   lignes.sort(function(a,b){ return a.mn-b.mn || (a.e.name||'').localeCompare(b.e.name||''); });
+  // état d'absence unifié (congé validé OU incident maladie/injustifiée/mise à pied/abandon)
+  function _chEtatAbs(abs,incE){
+    if(abs){ var mi=_etatMotifInfo(abs.motif); return {col:mi.col,court:mi.court,icon:mi.icon,label:mi.label}; }
+    if(incE){
+      if(incE.type==='maladie')     return {col:'#cc5555',court:'Arrêt maladie',icon:'🏥',label:'Arrêt maladie'};
+      if(incE.type==='injustifiee') return {col:'#e8623a',court:'Injustifiée',icon:'⛔',label:'Absence injustifiée'};
+      if(incE.type==='misepied')    return {col:'#c0392b',court:'Mise à pied',icon:'🚷',label:'Mise à pied'};
+      if(incE.type==='abandon')     return {col:'#c0392b',court:'Abandon',icon:'🚪',label:'Abandon de poste'+(incE.at?(' '+incE.at):'')};
+    }
+    return null;
+  }
   var body=lignes.map(function(ln){
-    var e=ln.e, rec=ln.rec, segs=ln.segs, abs=ln.abs;
-    var incE=null; try{ incE=(typeof incEtatJour==='function')?incEtatJour(e.id,dateISO):null; }catch(_){}
+    var e=ln.e, rec=ln.rec, segs=ln.segs, abs=ln.abs, incE=ln.incE;
+    var etatAbs=_chEtatAbs(abs,incE);
     var pMin=null,pMax=null; segs.forEach(function(s){ if(pMin==null||s.s<pMin)pMin=s.s; if(pMax==null||s.e>pMax)pMax=s.e; });
     var aArr=(rec&&rec.arrivee)?toDom(hm2m(rec.arrivee)):null;
     var aDep=(rec&&rec.depart)?toDom(hm2m(rec.depart)):null;
     var gl=HRS.map(function(h,i){ return '<div style="position:absolute;top:0;bottom:0;left:'+(i/HRS.length*100)+'%;width:1px;background:#e8e8e8;"></div>'; }).join('');
     var bars='';
-    if(abs){
-      var mi=null; try{ mi=(typeof _etatMotifInfo==='function')?_etatMotifInfo(abs.motif):null; }catch(_){}
-      mi=mi||{court:'Abs',col:'#cc5555',label:'Absence'};
+    if(etatAbs){
       var rs=(pMin!=null?pMin:11*60), re=(pMax!=null?pMax:15*60);
-      bars+='<div title="'+_ptgEsc(mi.label||'')+'" style="position:absolute;top:8px;height:22px;left:'+pct(rs)+'%;width:'+(pct(re)-pct(rs))+'%;background:'+(mi.col||'#cc5555')+';border-radius:5px;display:flex;align-items:center;gap:5px;padding:0 7px;color:#fff;font-size:.63rem;font-weight:700;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.2);">'
-        +'<span style="background:rgba(0,0,0,.28);border-radius:4px;padding:0 5px;">'+_ptgEsc(mi.court||'CP')+'</span>'+m2hm(rs)+'–'+m2hm(re)+'</div>';
+      bars+='<div title="'+_ptgEsc(etatAbs.label||'')+'" style="position:absolute;top:8px;height:22px;left:'+pct(rs)+'%;width:'+(pct(re)-pct(rs))+'%;background:'+(etatAbs.col||'#cc5555')+';border-radius:5px;display:flex;align-items:center;gap:5px;padding:0 7px;color:#fff;font-size:.63rem;font-weight:700;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.2);">'
+        +'<span style="background:rgba(0,0,0,.28);border-radius:4px;padding:0 5px;">'+_ptgEsc(etatAbs.court||'Abs')+'</span>'+m2hm(rs)+'–'+m2hm(re)+'</div>';
     } else {
       // PRÉVU : traits colorés par poste (comme le Planning du jour)
       segs.forEach(function(s){
@@ -8936,13 +8963,13 @@ function ptgCtrlTimeline(dateISO, emps){
     var prevuH=0; segs.forEach(function(s){ prevuH+=(s.e-s.s); }); prevuH=prevuH/60;
     var reelH=null; try{ reelH=rec?ptgHeuresTravaillees(rec):null; }catch(_){}
     var sub=(segs.length?('prévu '+(Math.round(prevuH*10)/10)+'h'):'—')+(reelH!=null?(' · pointé '+(Math.round(reelH*10)/10)+'h'):'');
-    return '<div style="display:flex;align-items:stretch;border-bottom:1px solid #ececec;">'
+    return '<div onclick="ptgEditJour(\''+e.id+'\')" title="Cliquer pour saisir le pointage ou marquer une absence" style="display:flex;align-items:stretch;border-bottom:1px solid #ececec;cursor:pointer;" onmouseover="this.style.background=\'#eef4ff\'" onmouseout="this.style.background=\'\'">'
       +'<div style="flex:0 0 '+NAMEW+';padding:6px 8px;min-width:0;">'
         +'<div style="font-weight:700;color:#1c1c1c;font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_ptgEsc(e.name)+'</div>'
         +'<div style="color:#888;font-size:.6rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+sub+'</div>'
       +'</div>'
       +'<div style="flex:1;position:relative;height:42px;background:#f2f2f2;">'+gl+bars+'</div>'
-      +'<div style="flex:0 0 '+STATW+';padding:6px 6px;font-size:.62rem;text-align:right;color:'+stc+';font-weight:700;white-space:nowrap;align-self:center;border-left:1px solid #ececec;">'+st+'</div>'
+      +'<div style="flex:0 0 '+STATW+';padding:6px 6px;font-size:.62rem;text-align:right;color:'+stc+';font-weight:700;white-space:nowrap;align-self:center;border-left:1px solid #ececec;">'+st+' ✏️</div>'
     +'</div>';
   }).join('');
   var legend='<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:.68rem;color:#999;">'
@@ -8953,6 +8980,79 @@ function ptgCtrlTimeline(dateISO, emps){
     +'</div>';
   return '<div style="overflow-x:auto;background:#fafafa;color:#222;border:1px solid #ddd;border-radius:12px;min-width:760px;">'+ruler+(body||'<div style="padding:16px;color:#666;font-size:.9rem;text-align:center;">Aucun salarié prévu, pointé ou absent ce jour.</div>')+'</div>'+legend;
 }
+// ══ ÉDITEUR DE POINTAGE / ABSENCE (clic sur une ligne du Contrôle des heures) ═══
+function ptgEditFermer(){ var ov=document.getElementById('modal-ptg-edit'); if(ov) ov.remove(); }
+window.ptgEditFermer=ptgEditFermer;
+function _ptgAbsRetirerJour(empId,dateISO){
+  window.HR_ABSENCES=window.HR_ABSENCES||{};
+  if(HR_ABSENCES[empId]){
+    HR_ABSENCES[empId]=HR_ABSENCES[empId].filter(function(a){ var f=a.from||a.de||''; var t=a.to||a.a||f; return !(f && dateISO>=f && dateISO<=t); });
+  }
+}
+function ptgEditAbsence(empId,dateISO,motif){
+  window.HR_ABSENCES=window.HR_ABSENCES||{}; if(!HR_ABSENCES[empId]) HR_ABSENCES[empId]=[];
+  _ptgAbsRetirerJour(empId,dateISO);
+  HR_ABSENCES[empId].push({from:dateISO,to:dateISO,motif:motif,statut:'valide'});
+  try{ hrSauverAbsences(); }catch(_){}
+  try{ var ctx=ptgRec(empId,dateISO); ctx.rec.arrivee=''; ctx.rec.depart=''; ctx.rec.pauses=[]; ptgSaveAll(ctx.all); }catch(_){}
+  ptgEditFermer(); try{ ptgRenderSuivi(); }catch(_){} try{ updateAlBadge(); }catch(_){}
+  try{ toast('Absence enregistrée : '+_etatMotifInfo(motif).court,'success'); }catch(_){}
+}
+function ptgEditPresent(empId,dateISO){
+  _ptgAbsRetirerJour(empId,dateISO); try{ hrSauverAbsences(); }catch(_){}
+  ptgEditFermer(); try{ ptgRenderSuivi(); }catch(_){}
+  try{ toast('Absence retirée — présent','success'); }catch(_){}
+}
+function ptgEditSavePointage(empId,dateISO){
+  var a=((document.getElementById('pe-arr')||{}).value||'').trim();
+  var d=((document.getElementById('pe-dep')||{}).value||'').trim();
+  try{ var ctx=ptgRec(empId,dateISO); ctx.rec.arrivee=a; ctx.rec.depart=d; ptgSaveAll(ctx.all); }catch(_){}
+  if(a){ _ptgAbsRetirerJour(empId,dateISO); try{ hrSauverAbsences(); }catch(_){} }
+  ptgEditFermer(); try{ ptgRenderSuivi(); }catch(_){}
+  try{ toast('Pointage enregistré','success'); }catch(_){}
+}
+window.ptgEditAbsence=ptgEditAbsence; window.ptgEditPresent=ptgEditPresent; window.ptgEditSavePointage=ptgEditSavePointage;
+function ptgEditJour(empId){
+  var dateISO=((document.getElementById('ptgs-date')||{}).value)||ptgTodayISO();
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  var rec=ptgGetAll()[empId+'_'+dateISO]||{};
+  var prevu=null; try{ prevu=ptgPrevuDe(e,dateISO); }catch(_){}
+  var abs=null; try{ abs=hrAbsenceDuJour(empId,dateISO); }catch(_){}
+  var jourFr=new Date(dateISO+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  var ov=document.getElementById('modal-ptg-edit'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='modal-ptg-edit';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:10001;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto;';
+  ov.onclick=function(ev){ if(ev.target===ov) ptgEditFermer(); };
+  var absTxt=abs?(' · <span style="color:'+_etatMotifInfo(abs.motif).col+';font-weight:700;">'+_etatMotifInfo(abs.motif).icon+' '+_etatMotifInfo(abs.motif).court+'</span>'):'';
+  var motBtn=function(motif,ico,lbl,col){ return '<button onclick="ptgEditAbsence(\''+empId+'\',\''+dateISO+'\',\''+motif+'\')" style="background:#1a1a1a;border:1px solid '+col+';color:'+col+';border-radius:8px;padding:8px 11px;cursor:pointer;font-size:.82rem;font-weight:700;">'+ico+' '+lbl+'</button>'; };
+  ov.innerHTML='<div style="background:#1c1c1f;border:1px solid #555;border-radius:16px;max-width:460px;width:100%;padding:20px;font-family:Barlow,sans-serif;">'
+    +'<button onclick="ptgEditFermer()" style="float:right;background:none;border:none;color:#aaa;font-size:1.6rem;cursor:pointer;line-height:1;">×</button>'
+    +'<div style="font-weight:800;font-size:1.12rem;color:#fff;">'+_ptgEsc(e.name)+'</div>'
+    +'<div style="color:#F5A623;font-size:.86rem;text-transform:capitalize;margin-bottom:2px;">'+jourFr+'</div>'
+    +'<div style="color:#999;font-size:.8rem;margin-bottom:14px;">Prévu : '+(prevu?(prevu.arr+' → '+prevu.dep):'—')+absTxt+'</div>'
+    +'<div style="background:#141414;border-radius:10px;padding:12px;margin-bottom:12px;">'
+      +'<div style="font-size:.82rem;color:#8fe6a8;font-weight:700;margin-bottom:8px;">🟢 A pointé — heures réelles</div>'
+      +'<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">'
+        +'<label style="font-size:.8rem;color:#bbb;display:flex;align-items:center;gap:6px;">Arrivée <input type="time" id="pe-arr" value="'+(rec.arrivee||'')+'" class="fi" style="width:auto;padding:5px 7px;"></label>'
+        +'<label style="font-size:.8rem;color:#bbb;display:flex;align-items:center;gap:6px;">Départ <input type="time" id="pe-dep" value="'+(rec.depart||'')+'" class="fi" style="width:auto;padding:5px 7px;"></label>'
+      +'</div>'
+      +'<button onclick="ptgEditSavePointage(\''+empId+'\',\''+dateISO+'\')" class="btn btn-red btn-sm" style="margin-top:11px;">💾 Enregistrer le pointage</button>'
+    +'</div>'
+    +'<div style="background:#141414;border-radius:10px;padding:12px;">'
+      +'<div style="font-size:.82rem;color:#e8a020;font-weight:700;margin-bottom:2px;">Absence (correction manuelle) :</div>'
+      +'<div style="font-size:.7rem;color:#888;margin-bottom:8px;">Normalement automatique : arrêt maladie / injustifiée via les <b>Incidents</b>, congés (CP/CSS) via les <b>demandes validées</b>. À utiliser seulement pour corriger.</div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+        +motBtn('cp','🏖️','Congés (CP)','#5b9bd5')
+        +motBtn('maladie','🏥','Arrêt maladie','#cc5555')
+        +motBtn('injustifiee','⛔','Injustifiée','#e8623a')
+        +motBtn('absence','🟧','Autre absence','#d98324')
+      +'</div>'
+      +'<button onclick="ptgEditPresent(\''+empId+'\',\''+dateISO+'\')" style="margin-top:11px;background:#16321f;border:1px solid #2e5e33;color:#7fe0a0;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:.82rem;font-weight:700;">✅ Présent — retirer l\'absence</button>'
+    +'</div>'
+  +'</div>';
+  document.body.appendChild(ov);
+}
+window.ptgEditJour=ptgEditJour;
 function ptgRenderSuivi(){
   var box=document.getElementById('ptg-suivi'); if(!box) return;
   var dateISO=((document.getElementById('ptgs-date')||{}).value)||ptgTodayISO();
@@ -9921,9 +10021,23 @@ function renderCandidatures(){
   }
   // filtre resto sur tous les sous-onglets
   if(restoFilter!=='all')cands=cands.filter(function(c){return c.restoId===restoFilter;});
+  // ── Sous-tuiles REFUSÉ : après entretien / sans entretien / ne s'est pas présenté ──
+  var refusTiles='';
+  if(candFilter==='refuse'){
+    var nA=0,nB=0,nN=0; cands.forEach(function(c){var k=_refusCat(c); if(k==='apres')nA++;else if(k==='avant')nB++;else nN++;});
+    var _rt=function(id,ico,tt,n,col){ var on=(_refusSub===id); return '<div onclick="setRefusSub(\''+id+'\')" style="flex:1;min-width:145px;cursor:pointer;background:'+(on?'#241416':'#1A1A1A')+';border:1px solid '+(on?col:'#333')+';border-radius:10px;padding:10px 12px;box-shadow:'+(on?('0 0 0 1px '+col):'none')+';">'+'<div style="font-size:1.5rem;font-weight:900;color:'+col+';line-height:1;">'+n+'</div><div style="font-size:.72rem;color:#ccc;font-weight:700;margin-top:3px;">'+ico+' '+tt+'</div></div>'; };
+    refusTiles='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">'
+      +_rt('all','📋','Tous les refusés',cands.length,'#cc5555')
+      +_rt('apres','🗣️','Refusé après entretien',nA,'#e8623a')
+      +_rt('avant','⏭️','Refusé sans entretien',nB,'#e8a020')
+      +_rt('noshow','🚫','Ne s\'est pas présenté',nN,'#c77700')
+      +'</div>';
+    if(_refusSub!=='all') cands=cands.filter(function(c){return _refusCat(c)===_refusSub;});
+  }
   if(!cands.length){
     var msgs={nouveau:'Aucune nouvelle candidature',entretien:'Aucun entretien programmé',retenu:'Aucun candidat retenu',essai:'Aucun salarié en période d\'essai',visite:'Aucun salarié à suivre pour la visite médicale',refuse:'Aucune candidature refusée'};
-    list.innerHTML='<div class="empty"><div class="ei">'+(candFilter==='visite'?'🩺':'🎯')+'</div><p>'+(msgs[candFilter]||'Aucune candidature')+'</p></div>';return;
+    var _emptyMsg=(candFilter==='refuse'&&_refusSub!=='all')?'Aucun candidat dans cette catégorie':(msgs[candFilter]||'Aucune candidature');
+    list.innerHTML=refusTiles+'<div class="empty"><div class="ei">'+(candFilter==='visite'?'🩺':'🎯')+'</div><p>'+_emptyMsg+'</p></div>';return;
   }
   var stCol={nouveau:'#5BA3F5',entretien:'#F5A623',retenu:'#4CAF50',essai:'#B57EDC',refuse:'#cc5555'};
   list.innerHTML=cands.map(function(c){
@@ -9958,7 +10072,16 @@ function renderCandidatures(){
       +'<span style="color:'+col+';font-size:1.3rem;">›</span>'
       +'</div>';
   }).join('');
+  list.innerHTML=refusTiles+list.innerHTML;
 }
+// Catégorie d'un candidat refusé : 'noshow' (absent entretien) / 'apres' (refusé après entretien) / 'avant' (refusé sans entretien)
+var _refusSub='all';
+function _refusCat(c){
+  if(c.refusMotif==='Ne s\'est pas présenté à l\'entretien') return 'noshow';
+  return c.entretienDate ? 'apres' : 'avant';
+}
+function setRefusSub(v){ _refusSub=v; renderCandidatures(); }
+window.setRefusSub=setRefusSub;
 
 var _candId=null;
 function openCand(id){
@@ -10187,6 +10310,7 @@ function renderCandActions(c){
       +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
       +'<button class="btn btn-red btn-sm" style="background:#1E3A1E;border-color:#4A8A4A;color:#7ACA7A;" onclick="candRetenir()">✅ Retenir le candidat</button>'
       +'<button class="btn btn-gray btn-sm" style="color:#cc5555;border-color:#5a2020;" onclick="candRefuser()">❌ Refuser + mail</button>'
+      +'<button class="btn btn-gray btn-sm" style="color:#e8a020;border-color:#5a4420;" onclick="candNonPresente()">🚫 Ne s\'est pas présenté</button>'
       +'</div></div>';
   }else if(st==='retenu'){
     h=candRetenuActionsHtml(c);
@@ -10195,8 +10319,10 @@ function renderCandActions(c){
     h=onVisitePage?candVisiteActionsHtml(c):candEssaiActionsHtml(c);
   }else if(st==='refuse'){
     var _estIA=(c.refusMotif==='Intégration annulée');
+    var _estNP=(c.refusMotif==='Ne s\'est pas présenté à l\'entretien');
+    var _refLbl=_estIA?'🚫 Intégration annulée — dossier conservé':(_estNP?'🚫 Ne s\'est pas présenté à l\'entretien':('❌ Candidature refusée'+(c.refusMotif?' — '+c.refusMotif:'')));
     h='<div style="background:#1A1A1A;border-radius:8px;padding:12px;">'
-      +'<div style="font-size:.85rem;color:'+(_estIA?'#e8a020':'#cc5555')+';margin-bottom:8px;">'+(_estIA?'🚫 Intégration annulée — dossier conservé':('❌ Candidature refusée'+(c.refusMotif?' — '+c.refusMotif:'')))+'</div>'
+      +'<div style="font-size:.85rem;color:'+((_estIA||_estNP)?'#e8a020':'#cc5555')+';margin-bottom:8px;">'+_refLbl+'</div>'
       +(_estIA?'<div style="font-size:.78rem;color:#999;margin-bottom:8px;">On garde tout son dossier et une trace : s\'il repostule, il apparaîtra comme « a déjà postulé ». Marqué « Intégration annulée » dans Dropbox.</div>':'<button class="btn btn-gray btn-sm" onclick="mailRefus()">✉️ Renvoyer le mail de refus</button>')
       +'<button class="btn btn-gray btn-sm" style="margin-left:6px;" onclick="candRemettreNouveau()">↩️ Remettre en Nouveau</button>'
       +'</div>';
@@ -10275,10 +10401,21 @@ function candRetenir(){
 }
 
 function candRefuser(){
-  var motif=prompt('Motif interne du refus (non envoyé au candidat, sert juste à votre suivi) :','Profil ne correspondant pas aux besoins actuels');
+  var motif=prompt('Pourquoi refusez-vous ce profil ? (commentaire INTERNE — non envoyé au candidat, sert à votre suivi)','');
   if(motif===null)return;
-  _candUpdate({statut:'refuse',refus_motif:motif,note_interne:document.getElementById('cand-note').value.trim()},'Candidature refusée',function(){mailRefus();});
+  motif=(motif||'').trim();
+  if(!motif){ try{toast('Indiquez d\'abord un motif de refus (interne).','error');}catch(_){} return; }
+  var _n=document.getElementById('cand-note'); var _note=_n?_n.value.trim():'';
+  _candUpdate({statut:'refuse',refus_motif:motif,note_interne:_note},'Candidature refusée',function(){mailRefus();});
 }
+// L'entretien a eu lieu mais le candidat NE S'EST PAS PRÉSENTÉ (no-show).
+function candNonPresente(){
+  var c=curCand(); if(!c) return;
+  if(!confirm('Marquer '+c.prenom+' '+c.nom+' comme NE S\'EST PAS PRÉSENTÉ à l\'entretien ?\n\nLe dossier est conservé, avec la trace « absent à l\'entretien ».')) return;
+  var _n=document.getElementById('cand-note'); var _note=_n?_n.value.trim():'';
+  _candUpdate({statut:'refuse',refus_motif:'Ne s\'est pas présenté à l\'entretien',note_interne:_note},'Noté : ne s\'est pas présenté');
+}
+window.candNonPresente=candNonPresente;
 
 function candRemettreNouveau(){_candUpdate({statut:'nouveau'},'Remis en Nouveau ✔');}
 
@@ -16783,6 +16920,7 @@ var HR_ETAT_MOTIFS={
   css:     {label:'Congé sans solde', court:'CSS', icon:'🟪', col:'#7e57c2'},
   maladie: {label:'Arrêt maladie',court:'Maladie', icon:'🟥', col:'#cc5555'},
   absence: {label:'Absence autorisée / autre', court:'Absence', icon:'🟧', col:'#d98324'},
+  injustifiee: {label:'Absence injustifiée', court:'Injustifiée', icon:'⛔', col:'#e8623a'},
   indispo: {label:'Indispo ponctuelle', court:'Indispo', icon:'🟨', col:'#c9a227'}
 };
 function _etatMotifInfo(m){ return HR_ETAT_MOTIFS[m]||HR_ETAT_MOTIFS.absence; }
