@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-27 · v412';
+  var EMBEDDED_VERSION = '2026-07-27 · v421';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -696,6 +696,7 @@ html,body{overflow-x:hidden;}
     <button onclick="goPage('dashboard',this)">📺 Écran télé</button>
     <button class="desktop-only" onclick="goPage('telephone',this)">📱 Téléphone équipe</button>
     <button onclick="goPage('actu',this)">📣 Actualité</button>
+    <button onclick="goPage('messagerie',this)">💬 Messagerie</button>
     <button onclick="goPage('recrutement',this)">🎯 Recrutement <span id="rbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
     <button class="desktop-only" onclick="goPage('equipe',this)">👥 Équipe</button>
     <button onclick="goPage('etatequipe',this)">🧑‍🤝‍🧑 État équipe <span id="eebadge" style="background:var(--orange);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
@@ -786,6 +787,11 @@ html,body{overflow-x:hidden;}
       <p class="tel-intro">Publie des <b>informations</b>, <b>photos</b> et <b>documents PDF</b> qui s'affichent dans le fil d'actualité, à droite de l'Écran télé du restaurant et sur le Téléphone équipe. Chaque restaurant a son propre fil (sélecteur en haut).</p>
       <div id="actu-admin"></div>
     </div>
+  </div>
+
+  <!-- ════════ MESSAGERIE INTERNE ════════ -->
+  <div class="page" id="page-messagerie">
+    <div style="padding:6px 4px;"><div id="msg-root"></div></div>
   </div>
 
   <!-- ════════ TÉLÉPHONE ÉQUIPE (ce que les salariés voient sur leur téléphone) ════════ -->
@@ -1487,6 +1493,11 @@ html,body{overflow-x:hidden;}
       <div class="sec-title">📍 Pointer — messages du pointage</div>
       <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Réglez ici ce que le salarié voit <strong>en plus</strong> quand il pointe. Vous pouvez envoyer un message à <strong>tout le monde</strong>, seulement aux salariés d'un <strong>poste précis</strong> (ex. Première cabine) ou <strong>à une personne</strong> en particulier. Ajoutez une photo, une période (du…au…) et, pour les fiches produit / LTO, un accusé de lecture obligatoire. Les messages sont propres au restaurant actif (sélecteur en haut).</p>
       <div id="ptg-msg-admin"></div>
+    </div>
+    <div class="card param-card" id="pc-messagerie" style="display:none;">
+      <div class="sec-title">💬 Messagerie — qui peut écrire à qui</div>
+      <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Pour chaque rôle (à gauche), coche les rôles avec qui il a le droit de communiquer. La règle est <strong>réciproque</strong> : si les équipiers ne peuvent parler qu'aux directeurs, alors seuls les directeurs peuvent leur écrire. Un salarié ne peut démarrer une conversation qu'avec les personnes autorisées.</p>
+      <div id="msg-regles-box"></div>
     </div>
     <div class="card param-card" id="rec-apercu-card" style="display:none;">
       <div class="sec-title">👁️ Aperçu de la fiche de recrutement</div>
@@ -3103,7 +3114,7 @@ function goPage(id, btn) {
   if (btn) { btn.classList.add('active'); }
   else {
     // Pas de bouton passé (navigation programmée) : on retrouve celui de la page pour le surligner.
-    var _labels={dashboard:'Écran télé',telephone:'Téléphone équipe',actu:'Actualité',equipe:'👥 Équipe',etatequipe:'État équipe',horaires:'Horaires',recrutement:'Recrutement',visite:'Visite',incidents:'Incidents',rapports:'Rapports',planning:'Planning',parametres:'Paramètres',alertes:'Alertes'};
+    var _labels={dashboard:'Écran télé',telephone:'Téléphone équipe',actu:'Actualité',messagerie:'Messagerie',equipe:'👥 Équipe',etatequipe:'État équipe',horaires:'Horaires',recrutement:'Recrutement',visite:'Visite',incidents:'Incidents',rapports:'Rapports',planning:'Planning',parametres:'Paramètres',alertes:'Alertes'};
     var _lbl=_labels[id];
     if(_lbl){ document.querySelectorAll('#main-nav button').forEach(function(b){ if(b.textContent.indexOf(_lbl)>=0) b.classList.add('active'); }); }
   }
@@ -3141,6 +3152,7 @@ function goPage(id, btn) {
     try{ if(typeof hrOuvrirResto==='function') hrOuvrirResto(ra.toUpperCase()); }catch(e){ console.warn('hrOuvrirResto',e); }
   }catch(e){console.warn('init horaires',e);} }
   if (id==='actu'){ try{ renderActuAdmin(); }catch(e){console.warn('actu',e);} }
+  if (id==='messagerie'){ try{ msgPageInit(); }catch(e){console.warn('messagerie',e);} }
   if (id==='recrutement'){ if(curUser.role==='franchise'){ bkEntrerPage('recrutement'); } else { setCandFilter(candFilter||'nouveau'); } }
   if (id==='visite'){ if(curUser.role==='franchise'){ bkEntrerPage('visite'); } else { renderVisiteList(); } }
   if (id==='alertes'){ if(curUser.role==='franchise'){ bkEntrerPage('alertes'); } else { window.__alertResto=curUser.restoId; renderAlertes(); } }
@@ -3438,6 +3450,7 @@ var PARAM_TILES=[
   {ico:'⚠️', titre:'Observations',  sub:'Seuil rappel oral',            type:'card', card:'pc-seuil',       accent:'#d35400'},
   {ico:'🩺', titre:'Visite médicale',sub:'Délais et rappels',            type:'card', card:'pc-visite',      accent:'#c0392b'},
   {ico:'📍', titre:'Pointer',       sub:'Messages du pointage',         type:'card', card:'pc-pointer',     accent:'#D62300'},
+  {ico:'💬', titre:'Messagerie',    sub:'Qui peut écrire à qui',        type:'card', card:'pc-messagerie', accent:'#7e57c2'},
   {ico:'👁️', titre:'Aperçu fiche',  sub:'Vue candidat',                 type:'card', card:'rec-apercu-card',accent:'#7f8c8d'},
   {ico:'📧', titre:'Adresses mail', sub:'Expédition RH',                type:'card', card:'pc-adresses',    accent:'#2c3e50'},
   {ico:'✉️', titre:'Modèles mails', sub:'Mails aux candidats',          type:'card', card:'pc-mails',       accent:'#27ae60'},
@@ -3483,6 +3496,7 @@ function paramOuvrir(type, ref){
     if(ref==='pc-visite'){ try{ loadVisiteConfig(); }catch(_){} }
     if(ref==='pc-pointer'){ try{ ptgMsgCharger('suivi'); }catch(_){} try{ ptgRenderMsgAdmin(); }catch(_){} }
     if(ref==='pc-dispos'){ try{ renderDisposContratParam(); }catch(_){} }
+    if(ref==='pc-messagerie'){ try{ renderMsgReglesParam(); }catch(_){} }
     // bouton retour en tête de page
     var back=document.getElementById('param-back');
     if(!back){
@@ -13363,7 +13377,8 @@ var DASH_TILES=[
   {id:'produits',  em:'🍔', tt:'Nouveaux produits', ds:'À connaître en service', color:'#D62300', action:null},
   {id:'marchandise',em:'📦',tt:'Marchandises',      ds:'Produits & références',  color:'#8e6a00', action:null},
   {id:'memo',      em:'📌', tt:'Mémos',             ds:'Infos de la direction',  color:'#546e7a', action:null},
-  {id:'contact',   em:'☎️', tt:'Contacts',          ds:'Manager & resto',        color:'#455a64', action:null}
+  {id:'contact',   em:'☎️', tt:'Contacts',          ds:'Manager & resto',        color:'#455a64', action:null},
+  {id:'msg',       em:'💬', tt:'Messagerie',         ds:'Discuter avec l\'équipe', color:'#7e57c2', action:'dashOpenMsg'}
 ];
 // ══ ACTUALITÉ — fil d'infos (ciblage restos + rôles + suivi des lectures) ═════
 // Stockage GLOBAL (app_config 'bkrh_actualites') : chaque publication porte ses
@@ -13419,18 +13434,28 @@ function _actuByRecent(a,b){ return (b.createdAt||'').localeCompare(a.createdAt|
 function _actuActiveDate(a){ var t=new Date(); t.setHours(0,0,0,0); if(a.from){var f=new Date(a.from+'T00:00:00'); if(t<f) return false;} if(a.to){var e=new Date(a.to+'T23:59:59'); if(t>e) return false;} return true; }
 function _actuMatchResto(a,resto){ var rs=a.restos||[]; if(!rs.length) return true; return rs.indexOf((''+(resto||'')).toLowerCase())>=0; }
 function _actuMatchRole(a,role){ var rr=a.roles||[]; if(!rr.length) return true; return rr.indexOf(role)>=0; }
-// Écran TÉLÉ (public) : messages « tout le monde » ou destinés au personnel de salle
-// (équipiers/apprentis). Les messages réservés à l'encadrement restent sur le téléphone.
-function _actuTVok(a){ var rr=a.roles||[]; if(!rr.length) return true; return rr.indexOf('equipier')>=0 || rr.indexOf('apprenti')>=0; }
-function actusTV(resto){ return getAllActus().filter(function(a){ return _actuActiveDate(a)&&_actuMatchResto(a,resto)&&_actuTVok(a); }).sort(_actuByRecent); }
-function actusEmp(e){ if(!e) return []; var role=_actuRoleEmp(e), resto=e.restoId||e.resto_id; return getAllActus().filter(function(a){ return _actuActiveDate(a)&&_actuMatchResto(a,resto)&&_actuMatchRole(a,role); }).sort(_actuByRecent); }
+// Canal d'une publication : 'ecran' (télé, tout le monde) ou 'telephone' (ciblé par
+// rôle, uniquement sur les téléphones). Rétro-compat : anciennes publis sans canal →
+// 'telephone' si des rôles étaient cochés, sinon 'ecran'.
+function _actuCanal(a){ return a.canal || ((a.roles&&a.roles.length)?'telephone':'ecran'); }
+// Écran TÉLÉ (public) : uniquement les publications « Écran ».
+function actusTV(resto){ return getAllActus().filter(function(a){ return _actuActiveDate(a)&&_actuMatchResto(a,resto)&&_actuCanal(a)==='ecran'; }).sort(_actuByRecent); }
+// Téléphone : publications « Écran » (tout le monde) + publications « Téléphone » ciblant son rôle.
+function actusEmp(e){
+  if(!e) return []; var role=_actuRoleEmp(e), resto=e.restoId||e.resto_id;
+  return getAllActus().filter(function(a){
+    if(!_actuActiveDate(a) || !_actuMatchResto(a,resto)) return false;
+    if(_actuCanal(a)==='ecran') return true;              // écran = tout le monde
+    return _actuMatchRole(a,role);                        // téléphone = rôle ciblé
+  }).sort(_actuByRecent);
+}
 // Salariés ciblés par une publication (pour le suivi des lectures).
 function actuCibles(a){
-  var rs=a.restos||[], rr=a.roles||[];
+  var rs=a.restos||[], rr=a.roles||[], ecran=(_actuCanal(a)==='ecran');
   return (DB.employees||[]).filter(function(e){
     if(e.archived) return false;
     if(rs.length && rs.indexOf((''+(e.restoId||'')).toLowerCase())<0) return false;
-    if(rr.length && rr.indexOf(_actuRoleEmp(e))<0) return false;
+    if(!ecran && rr.length && rr.indexOf(_actuRoleEmp(e))<0) return false;  // écran = tout le monde
     return true;
   });
 }
@@ -13468,16 +13493,32 @@ async function actuMarquerVusEmp(e){
   if(changed) await saveActuVus(vus);
 }
 window.actuMarquerVusEmp=actuMarquerVusEmp;
+// Nombre d'actualités NON LUES par ce salarié (pour la pastille sur son téléphone).
+function actuNonLusEmp(e){
+  if(!e||!e.id) return 0;
+  var vus=getActuVus();
+  return actusEmp(e).filter(function(a){ var v=vus[a.id]||{}; return !v[e.id]; }).length;
+}
+window.actuNonLusEmp=actuNonLusEmp;
 // ── Admin : composer + gérer les publications ──
-var _actuMedia=null, _actuColor='#F5A623';
+var _actuMedia=null, _actuColor='#F5A623', _actuCanalSel='ecran';
 function _actuResto(){ return (window.ACTIVE_RESTO && window.ACTIVE_RESTO!=='ALL')?window.ACTIVE_RESTO:(DASH_RESTO||(curUser&&curUser.restoId)||'bk500'); }
+function _actuSetCanal(c){
+  _actuCanalSel=c;
+  var be=document.getElementById('actu-canal-ecran'), bt=document.getElementById('actu-canal-tel'), rw=document.getElementById('actu-roles-wrap');
+  function on(b,active){ if(!b)return; b.style.background=active?'#F5A623':'#0e0e0e'; b.style.color=active?'#000':'#eee'; b.style.borderColor=active?'#F5A623':'#444'; b.style.fontWeight=active?'800':'600'; }
+  on(be, c==='ecran'); on(bt, c==='telephone');
+  if(rw) rw.style.display=(c==='telephone')?'block':'none';
+  if(c==='ecran'){ Array.prototype.forEach.call(document.querySelectorAll('.actu-role-chk'),function(x){x.checked=false;}); }
+}
+window._actuSetCanal=_actuSetCanal;
 function _actuRestosLbl(a){ var rs=a.restos||[]; if(!rs.length) return 'Tous les restos'; return rs.map(function(r){return (RESTOS[r]&&RESTOS[r].label)||r;}).join(', '); }
 function _actuRolesLbl(a){ var rr=a.roles||[]; if(!rr.length) return 'Tout le monde'; var m={directeur:'Directeurs',manager:'Managers',leader:'Leaders',apprenti:'Apprentis',equipier:'Équipiers'}; return rr.map(function(r){return m[r]||r;}).join(', '); }
 function renderActuAdmin(){
   var box=document.getElementById('actu-admin'); if(!box) return;
   var resto=_actuResto(); window.__actuResto=resto;
   var couleurs=[['#F5A623','Orange'],['#D62300','Rouge'],['#1E8E3E','Vert'],['#1565c0','Bleu'],['#8e44ad','Violet'],['#546e7a','Gris']];
-  _actuMedia=null; _actuColor='#F5A623';
+  _actuMedia=null; _actuColor='#F5A623'; _actuCanalSel='ecran';
   var restoChecks=Object.keys(RESTOS).map(function(rid){
     var on=(rid===resto);
     return '<label style="display:inline-flex;align-items:center;gap:6px;background:#0e0e0e;border:1px solid #444;border-radius:9px;padding:7px 11px;cursor:pointer;font-size:.85rem;color:#eee;">'
@@ -13493,7 +13534,11 @@ function renderActuAdmin(){
     +'<input id="actu-titre" placeholder="Titre (ex. Nouveau LTO, Note de service…)" style="width:100%;box-sizing:border-box;background:#0e0e0e;border:1px solid #444;border-radius:10px;color:#fff;padding:11px 13px;font-size:.95rem;margin-bottom:10px;font-family:inherit;">'
     +'<textarea id="actu-texte" placeholder="Message / information à afficher…" style="width:100%;box-sizing:border-box;background:#0e0e0e;border:1px solid #444;border-radius:10px;color:#fff;padding:11px 13px;font-size:.95rem;min-height:90px;margin-bottom:12px;font-family:inherit;"></textarea>'
     +'<div style="margin-bottom:12px;"><div style="font-size:.74rem;color:#F5A623;font-weight:700;margin-bottom:6px;">🍔 Pour quel(s) restaurant(s) ?</div><div style="display:flex;gap:8px;flex-wrap:wrap;">'+restoChecks+'</div></div>'
-    +'<div style="margin-bottom:12px;"><div style="font-size:.74rem;color:#F5A623;font-weight:700;margin-bottom:6px;">🎯 Pour qui ? <span style="color:#888;font-weight:400;">(ne rien cocher = tout le monde)</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;">'+roleChecks+'</div></div>'
+    +'<div style="margin-bottom:12px;"><div style="font-size:.74rem;color:#F5A623;font-weight:700;margin-bottom:6px;">📢 Où publier ?</div><div style="display:flex;gap:10px;flex-wrap:wrap;">'
+      +'<button type="button" id="actu-canal-ecran" onclick="_actuSetCanal(\'ecran\')" style="border-radius:10px;padding:10px 16px;cursor:pointer;font-family:inherit;font-size:.9rem;border:1px solid #444;background:#0e0e0e;color:#eee;">📺 Écran télé <span style="font-size:.74rem;opacity:.8;">· tout le monde</span></button>'
+      +'<button type="button" id="actu-canal-tel" onclick="_actuSetCanal(\'telephone\')" style="border-radius:10px;padding:10px 16px;cursor:pointer;font-family:inherit;font-size:.9rem;border:1px solid #444;background:#0e0e0e;color:#eee;">📱 Téléphone <span style="font-size:.74rem;opacity:.8;">· ciblé</span></button>'
+    +'</div></div>'
+    +'<div id="actu-roles-wrap" style="margin-bottom:12px;display:none;"><div style="font-size:.74rem;color:#F5A623;font-weight:700;margin-bottom:6px;">🎯 Pour qui (téléphone) ? <span style="color:#888;font-weight:400;">(ne rien cocher = tout le monde)</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;">'+roleChecks+'</div></div>'
     +'<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">'
       +'<div><div style="font-size:.72rem;color:#888;margin-bottom:5px;">Couleur</div><div style="display:flex;gap:7px;">'+couleurs.map(function(c,i){return '<span onclick="_actuSetColor(\''+c[0]+'\')" data-actu-col="'+c[0]+'" title="'+c[1]+'" style="width:26px;height:26px;border-radius:50%;background:'+c[0]+';cursor:pointer;border:2px solid '+(i===0?'#fff':'transparent')+';display:inline-block;"></span>';}).join('')+'</div></div>'
       +'<div><div style="font-size:.72rem;color:#888;margin-bottom:5px;">Afficher du (optionnel)</div><input type="date" id="actu-from" style="background:#0e0e0e;border:1px solid #444;border-radius:8px;color:#fff;padding:8px 10px;font-family:inherit;"></div>'
@@ -13503,11 +13548,17 @@ function renderActuAdmin(){
       +'<div style="font-size:1.7rem;">📎</div><div style="font-size:.86rem;margin-top:4px;">Glisse une <b>photo</b> ou un <b>PDF</b> ici, ou clique pour choisir</div>'
       +'<div id="actu-media-info" style="font-size:.82rem;color:#F5A623;margin-top:8px;"></div>'
     +'</div>'
+    +'<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">'
+      +'<button type="button" class="btn btn-gray btn-sm" onclick="var f=document.getElementById(\'actu-cam\');if(f)f.click();">📷 Prendre une photo</button>'
+      +'<button type="button" class="btn btn-gray btn-sm" onclick="var f=document.getElementById(\'actu-file\');if(f)f.click();">🖼️ Choisir photo / PDF</button>'
+    +'</div>'
     +'<input type="file" id="actu-file" accept="image/*,application/pdf" style="display:none;" onchange="_actuFilePick(event)">'
+    +'<input type="file" id="actu-cam" accept="image/*" capture="environment" style="display:none;" onchange="_actuFilePick(event)">'
     +'<button class="btn btn-red" style="margin-top:12px;" onclick="actuPublier()">📣 Publier dans le fil</button>'
     +'</div>'
     +'<div class="sec-title" style="margin:16px 0 8px;">📋 Publications en ligne</div>'
     +'<div id="actu-list"><div style="color:#888;padding:12px;">Chargement…</div></div>';
+  _actuSetCanal('ecran');
   hrChargerActusSupabase().then(function(){ if(document.getElementById('actu-list')) _actuRenderList(); });
   _actuRenderList();
 }
@@ -13541,17 +13592,40 @@ function _actuReadFile(file){
   };
   rd.readAsDataURL(file);
 }
+// Envoie le média (photo/PDF) sur Dropbox pour ne pas alourdir la base ; renvoie un
+// lien. Repli en base64 si Dropbox n'est pas configuré ou en cas d'échec.
+async function _actuUploadMedia(media){
+  if(!media||!media.data) return null;
+  try{
+    if(typeof dbxEstPret==='function' && dbxEstPret() && typeof dbxUpload==='function' && typeof _dataUrlToBlob==='function'){
+      try{ toast('Envoi du document sur Dropbox…',''); }catch(_){}
+      var ext=(media.name && media.name.indexOf('.')>=0) ? media.name.split('.').pop() : (media.kind==='pdf'?'pdf':'jpg');
+      var safe=(media.name||('actu.'+ext)).replace(/[^a-zA-Z0-9._-]/g,'_');
+      var stamp=new Date().toISOString().slice(0,10);
+      var path='/BKRH/Actualites/'+stamp+'_'+Date.now()+'_'+safe;
+      var blob=_dataUrlToBlob(media.data);
+      var link=await dbxUpload(path, blob);
+      if(link) return {mediaLink:link, mediaPath:path, mediaName:media.name, mediaKind:media.kind};
+    }
+  }catch(e){ console.warn('actu dbx upload',e); }
+  // repli : base64 stocké dans la publication
+  return {mediaData:media.data, mediaName:media.name, mediaKind:media.kind};
+}
 async function actuPublier(){
   var titre=((document.getElementById('actu-titre')||{}).value||'').trim();
   var texte=((document.getElementById('actu-texte')||{}).value||'').trim();
   var from=(document.getElementById('actu-from')||{}).value||'';
   var to=(document.getElementById('actu-to')||{}).value||'';
   var restos=Array.prototype.map.call(document.querySelectorAll('.actu-resto-chk:checked'),function(c){return c.value;});
-  var roles=Array.prototype.map.call(document.querySelectorAll('.actu-role-chk:checked'),function(c){return c.value;});
+  var canal=_actuCanalSel||'ecran';
+  var roles=(canal==='telephone')?Array.prototype.map.call(document.querySelectorAll('.actu-role-chk:checked'),function(c){return c.value;}):[];
   if(!restos.length){ try{toast('Choisis au moins un restaurant.','error');}catch(_){} return; }
   if(!titre && !texte && !_actuMedia){ try{toast('Ajoute un titre, un texte ou un document.','error');}catch(_){} return; }
-  var post={ id:'act_'+Date.now(), titre:titre, texte:texte, color:_actuColor||'#F5A623', from:from, to:to, restos:restos, roles:roles, createdAt:new Date().toISOString(), createdBy:(curUser&&curUser.name)||'' };
-  if(_actuMedia){ post.mediaData=_actuMedia.data; post.mediaName=_actuMedia.name; post.mediaKind=_actuMedia.kind; }
+  var post={ id:'act_'+Date.now(), titre:titre, texte:texte, color:_actuColor||'#F5A623', from:from, to:to, canal:canal, restos:restos, roles:roles, createdAt:new Date().toISOString(), createdBy:(curUser&&curUser.name)||'' };
+  if(_actuMedia){
+    var up=await _actuUploadMedia(_actuMedia);   // Dropbox si dispo, sinon base64
+    if(up){ if(up.mediaLink){ post.mediaLink=up.mediaLink; if(up.mediaPath) post.mediaPath=up.mediaPath; } if(up.mediaData){ post.mediaData=up.mediaData; } post.mediaName=up.mediaName; post.mediaKind=up.mediaKind; }
+  }
   var arr=getAllActus().slice(); arr.unshift(post);
   await saveAllActus(arr);
   _actuMedia=null;
@@ -13567,21 +13641,28 @@ function _actuRenderList(){
     var d=a.createdAt?new Date(a.createdAt).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
     var per=(a.from||a.to)?(' · '+(a.from?('du '+a.from):'')+(a.to?(' au '+a.to):'')):'';
     var med=(a.mediaKind==='image')?'🖼️ photo':((a.mediaKind==='pdf')?'📄 PDF':((a.mediaData||a.mediaLink)?'📎 doc':''));
-    var cibles=actuCibles(a);
-    var vus=vusAll[a.id]||{};
-    var seen=cibles.filter(function(c){return vus[c.id];});
-    var notSeen=cibles.filter(function(c){return !vus[c.id];});
-    var detail='<details style="margin-top:7px;"><summary style="cursor:pointer;font-size:.74rem;color:#8fc3f5;font-weight:700;">👁️ Vu par '+seen.length+' / '+cibles.length+' — voir qui</summary>'
-      +'<div style="margin-top:6px;font-size:.73rem;line-height:1.5;">'
-      +'<div style="color:#3ecf8e;font-weight:700;">✅ Ont vu ('+seen.length+')</div>'
-      +(seen.length?seen.map(function(c){return '<div style="color:#ccc;">'+_actuEsc(c.name)+' <span style="color:#777;">· '+(vus[c.id]?new Date(vus[c.id]).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'')+'</span></div>';}).join(''):'<div style="color:#777;">Personne pour l\'instant</div>')
-      +'<div style="color:#e8623a;font-weight:700;margin-top:6px;">⏳ N\'ont pas vu ('+notSeen.length+')</div>'
-      +(notSeen.length?notSeen.map(function(c){return '<div style="color:#ccc;">'+_actuEsc(c.name)+'</div>';}).join(''):'<div style="color:#777;">Tout le monde a vu ✅</div>')
-      +'</div></details>';
+    var canal=_actuCanal(a);
+    var canalLbl=(canal==='ecran')?'📺 Écran télé · tout le monde':('📱 Téléphone · '+_actuEsc(_actuRolesLbl(a)));
+    var detail;
+    if(canal==='ecran'){
+      detail='<div style="margin-top:7px;font-size:.72rem;color:#8fc3f5;">📺 Affiché sur l\'écran télé — visible par tous (pas de suivi de lecture individuel).</div>';
+    } else {
+      var cibles=actuCibles(a);
+      var vus=vusAll[a.id]||{};
+      var seen=cibles.filter(function(c){return vus[c.id];});
+      var notSeen=cibles.filter(function(c){return !vus[c.id];});
+      detail='<details style="margin-top:7px;"><summary style="cursor:pointer;font-size:.74rem;color:#8fc3f5;font-weight:700;">👁️ Vu par '+seen.length+' / '+cibles.length+' — voir qui</summary>'
+        +'<div style="margin-top:6px;font-size:.73rem;line-height:1.5;">'
+        +'<div style="color:#3ecf8e;font-weight:700;">✅ Ont vu ('+seen.length+')</div>'
+        +(seen.length?seen.map(function(c){return '<div style="color:#ccc;">'+_actuEsc(c.name)+' <span style="color:#777;">· '+(vus[c.id]?new Date(vus[c.id]).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'')+'</span></div>';}).join(''):'<div style="color:#777;">Personne pour l\'instant</div>')
+        +'<div style="color:#e8623a;font-weight:700;margin-top:6px;">⏳ N\'ont pas vu ('+notSeen.length+')</div>'
+        +(notSeen.length?notSeen.map(function(c){return '<div style="color:#ccc;">'+_actuEsc(c.name)+'</div>';}).join(''):'<div style="color:#777;">Tout le monde a vu ✅</div>')
+        +'</div></details>';
+    }
     return '<div class="emp-card" style="border-left:4px solid '+(a.color||'#F5A623')+';align-items:flex-start;">'
       +'<div style="flex:1;min-width:0;"><div style="font-weight:700;">'+_actuEsc(a.titre||'(sans titre)')+'</div>'
       +'<div style="font-size:.76rem;color:#999;margin-top:2px;">'+(a.texte?_actuEsc(a.texte.slice(0,90))+(a.texte.length>90?'…':''):'')+'</div>'
-      +'<div style="font-size:.7rem;color:#F5A623;margin-top:4px;">🍔 '+_actuEsc(_actuRestosLbl(a))+' · 🎯 '+_actuEsc(_actuRolesLbl(a))+'</div>'
+      +'<div style="font-size:.7rem;color:#F5A623;margin-top:4px;">🍔 '+_actuEsc(_actuRestosLbl(a))+' · '+canalLbl+'</div>'
       +'<div style="font-size:.7rem;color:#777;margin-top:2px;">🕐 '+d+per+(med?(' · '+med):'')+'</div>'
       +detail
       +'</div>'
@@ -13608,6 +13689,221 @@ function dashOpenActu(){
 window.renderActuAdmin=renderActuAdmin; window.actuPublier=actuPublier; window.actuSupprimer=actuSupprimer;
 window._actuSetColor=_actuSetColor; window._actuDragOver=_actuDragOver; window._actuDragLeave=_actuDragLeave;
 window._actuDrop=_actuDrop; window._actuFilePick=_actuFilePick; window.dashOpenActu=dashOpenActu;
+// ══ MESSAGERIE INTERNE ═══════════════════════════════════════════════════════
+// Tout le monde ↔ tout le monde : conversations privées (2 pers.) ou groupes.
+// Accès par code (PIN). Chacun ne voit que les conversations dont il est membre.
+// Données : tables Supabase rh.bks_conversations + rh.bks_messages (via sb REST).
+var _msg={emp:null, conv:null, convObj:null, containerId:'msg-root', mode:'page'};
+var MSG_CONVS=[], MSG_MSGS={}, MSG_LUS=null, MSG_REGLES=null;
+// ── Règles « qui peut écrire à qui » (configurables dans Paramètres) ──
+function msgReglesDefaut(){ return {directeur:['directeur','manager','leader','apprenti','equipier'],manager:['directeur','manager','leader'],leader:['directeur','manager','leader'],apprenti:['directeur'],equipier:['directeur']}; }
+function getMsgRegles(){ if(MSG_REGLES) return MSG_REGLES; try{var ls=localStorage.getItem('bkrh_messagerie_regles'); if(ls){MSG_REGLES=Object.assign(msgReglesDefaut(),JSON.parse(ls)); return MSG_REGLES;}}catch(e){} MSG_REGLES=msgReglesDefaut(); return MSG_REGLES; }
+async function saveMsgRegles(){ try{localStorage.setItem('bkrh_messagerie_regles',JSON.stringify(MSG_REGLES));}catch(e){} try{ if(typeof SB!=='undefined'&&SB) await SB.from('app_config').upsert({cle:'bkrh_messagerie_regles',valeur:MSG_REGLES},{onConflict:'cle'}); }catch(e){} }
+async function hrChargerMsgReglesSupabase(){ try{ if(typeof SB==='undefined'||!SB) return; var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_messagerie_regles').maybeSingle(); if(r&&r.data&&r.data.valeur&&typeof r.data.valeur==='object'){ MSG_REGLES=Object.assign(msgReglesDefaut(),r.data.valeur); try{localStorage.setItem('bkrh_messagerie_regles',JSON.stringify(MSG_REGLES));}catch(e){} } }catch(e){} }
+window.hrChargerMsgReglesSupabase=hrChargerMsgReglesSupabase;
+// A et B peuvent-ils se parler ? (règle symétrique)
+function msgPeutParler(rA,rB){ var m=getMsgRegles(); return (m[rA]||[]).indexOf(rB)>=0 && (m[rB]||[]).indexOf(rA)>=0; }
+// Paramètres : matrice symétrique des autorisations.
+function renderMsgReglesParam(){
+  if(document.getElementById('msg-regles-box')) _msgReglesTable();
+  hrChargerMsgReglesSupabase().then(function(){ if(document.getElementById('msg-regles-box')) _msgReglesTable(); });
+}
+function _msgReglesTable(){
+  var box=document.getElementById('msg-regles-box'); if(!box) return;
+  var m=getMsgRegles();
+  var roles=(typeof ACTU_ROLES!=='undefined')?ACTU_ROLES:[['directeur','Directeurs'],['manager','Managers'],['leader','Leaders'],['apprenti','Apprentis'],['equipier','Équipiers']];
+  var h='<div style="overflow-x:auto;"><table style="border-collapse:collapse;font-size:.85rem;min-width:420px;">';
+  h+='<tr><th style="padding:8px;"></th>'+roles.map(function(r){return '<th style="padding:8px 10px;color:#ccc;font-size:.74rem;font-weight:700;">'+_msgEsc(r[1])+'</th>';}).join('')+'</tr>';
+  roles.forEach(function(ra){
+    h+='<tr><td style="padding:8px 10px;color:#F5A623;font-weight:700;white-space:nowrap;">'+_msgEsc(ra[1])+'</td>';
+    roles.forEach(function(rb){
+      var on=(m[ra[0]]||[]).indexOf(rb[0])>=0;
+      h+='<td style="padding:6px;text-align:center;border:1px solid #222;"><input type="checkbox" style="width:18px;height:18px;cursor:pointer;" '+(on?'checked':'')+' onclick="msgReglesToggle(\''+ra[0]+'\',\''+rb[0]+'\')"></td>';
+    });
+    h+='</tr>';
+  });
+  h+='</table></div>';
+  h+='<p style="font-size:.74rem;color:#888;margin-top:10px;">💡 Une case cochée = les deux rôles peuvent se parler (c\'est symétrique). La diagonale (même rôle) = ce rôle peut discuter entre collègues du même type. Par défaut : équipiers et apprentis ne parlent qu\'aux directeurs.</p>';
+  box.innerHTML=h;
+}
+function msgReglesToggle(a,b){
+  var m=getMsgRegles(); m[a]=m[a]||[]; m[b]=m[b]||[];
+  var on=m[a].indexOf(b)>=0;
+  function set(x,y,v){ var i=m[x].indexOf(y); if(v&&i<0)m[x].push(y); if(!v&&i>=0)m[x].splice(i,1); }
+  set(a,b,!on); set(b,a,!on);
+  saveMsgRegles(); _msgReglesTable();
+}
+window.renderMsgReglesParam=renderMsgReglesParam; window.msgReglesToggle=msgReglesToggle;
+function _msgEsc(s){ return (typeof _actuEsc==='function')?_actuEsc(s):(''+(s==null?'':s)); }
+function msgAllEmployes(){ return (DB.employees||[]).filter(function(e){return !e.archived;}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');}); }
+function _msgIsGroup(c){ return !!(c && ((c.members||[]).length>2 || c.name)); }
+function _msgConvTitre(c, meId){
+  if(!c) return '';
+  if(c.name) return c.name;
+  var others=(c.members||[]).filter(function(id){return String(id)!==String(meId);});
+  var names=others.map(function(id){ var e=(DB.employees||[]).find(function(x){return String(x.id)===String(id);}); return e?e.name:'?'; });
+  return names.join(', ')||'(moi seul)';
+}
+async function msgLoadConvs(meId){
+  try{ var all=await sb.get('bks_conversations','select=*&order=last_at.desc'); MSG_CONVS=(all||[]).filter(function(c){ return (c.members||[]).map(String).indexOf(String(meId))>=0; }); }
+  catch(e){ console.warn('msg load convs',e); MSG_CONVS=[]; }
+  return MSG_CONVS;
+}
+async function msgLoadMsgs(convId){
+  try{ var m=await sb.get('bks_messages','select=*&conv_id=eq.'+encodeURIComponent(convId)+'&order=created_at.asc'); MSG_MSGS[convId]=m||[]; }
+  catch(e){ console.warn('msg load msgs',e); MSG_MSGS[convId]=MSG_MSGS[convId]||[]; }
+  return MSG_MSGS[convId];
+}
+// Lectures (app_config) : { empId : { convId : ISO dernière lecture } }
+function msgGetLus(){ if(MSG_LUS) return MSG_LUS; try{var ls=localStorage.getItem('bkrh_msg_lus'); if(ls){MSG_LUS=JSON.parse(ls)||{}; return MSG_LUS;}}catch(e){} MSG_LUS={}; return MSG_LUS; }
+async function msgSaveLus(){ try{localStorage.setItem('bkrh_msg_lus',JSON.stringify(MSG_LUS));}catch(e){} try{ if(typeof SB!=='undefined'&&SB) await SB.from('app_config').upsert({cle:'bkrh_msg_lus',valeur:MSG_LUS},{onConflict:'cle'}); }catch(e){} }
+async function msgChargerLus(){ try{ if(typeof SB==='undefined'||!SB) return; var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_msg_lus').maybeSingle(); if(r&&r.data&&r.data.valeur&&typeof r.data.valeur==='object'){ MSG_LUS=r.data.valeur; try{localStorage.setItem('bkrh_msg_lus',JSON.stringify(MSG_LUS));}catch(e){} } }catch(e){} }
+function msgMarquerLu(meId, convId){ var l=msgGetLus(); if(!l[meId])l[meId]={}; l[meId][convId]=new Date().toISOString(); msgSaveLus(); }
+function msgNonLus(meId, conv, msgs){ var l=msgGetLus(); var last=(l[meId]&&l[meId][conv.id])||''; return (msgs||[]).filter(function(m){ return String(m.sender_id)!==String(meId) && (m.created_at||'')>last; }).length; }
+// ── Rendu ──
+function msgRender(){
+  var box=document.getElementById(_msg.containerId); if(!box) return;
+  if(!_msg.emp){ box.innerHTML=msgIdentifyHtml(); return; }
+  if(_msg.conv==='__new'){ box.innerHTML=msgNewShell(); return; }
+  if(!_msg.conv){ box.innerHTML=msgListShell(); msgRenderList(); return; }
+  box.innerHTML=msgThreadShell(); msgRenderThread();
+}
+function msgIdentifyHtml(){
+  var emps=msgAllEmployes();
+  var opts=emps.map(function(x){ var r=(RESTOS[x.restoId]&&RESTOS[x.restoId].label)||x.restoId; return '<option value="'+x.id+'">'+_msgEsc(x.name)+' ('+_msgEsc(r)+')</option>'; }).join('');
+  return '<div style="max-width:420px;margin:24px auto;background:#161618;border:1px solid #333;border-radius:16px;padding:24px;text-align:center;">'
+   +'<div style="font-weight:900;font-size:1.3rem;color:#F5A623;">💬 Messagerie</div>'
+   +'<div style="font-size:.85rem;color:#aaa;margin:6px 0 16px;">Identifie-toi avec ton code pour accéder à tes conversations.</div>'
+   +'<select id="msg-who" style="width:100%;box-sizing:border-box;background:#0e0e0e;border:1px solid #444;border-radius:10px;color:#fff;padding:11px 13px;margin-bottom:10px;font-family:inherit;">'+opts+'</select>'
+   +'<input id="msg-pin" type="tel" inputmode="numeric" maxlength="4" placeholder="Code" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');" onkeydown="if(event.key===\'Enter\')msgTryLogin();" style="width:170px;box-sizing:border-box;background:#0e0e0e;border:1px solid #444;border-radius:10px;color:#fff;padding:12px;text-align:center;font-size:1.3rem;letter-spacing:6px;font-family:inherit;">'
+   +'<div id="msg-pin-msg" style="color:#e8623a;font-size:.8rem;min-height:16px;margin-top:8px;"></div>'
+   +'<button class="btn btn-red" style="margin-top:8px;" onclick="msgTryLogin()">Entrer</button>'
+   +'</div>';
+}
+function msgTryLogin(){
+  var id=(document.getElementById('msg-who')||{}).value;
+  var pin=((document.getElementById('msg-pin')||{}).value||'').trim();
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(id);});
+  var m=document.getElementById('msg-pin-msg');
+  if(!e){ if(m)m.textContent='Choisis ton nom.'; return; }
+  if(typeof empCodeMatch==='function' && !empCodeMatch(e,pin)){ if(m)m.textContent='Code incorrect.'; var p=document.getElementById('msg-pin'); if(p){p.value='';p.focus();} return; }
+  _msg.emp=e; _msg.conv=null; _msg.convObj=null;
+  msgChargerLus().then(msgRender); msgRender();
+}
+function msgListShell(){
+  var e=_msg.emp;
+  return '<div style="max-width:760px;margin:0 auto;">'
+   +'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;">'
+     +'<div><div style="font-weight:900;font-size:1.2rem;color:#F5A623;">💬 Messagerie</div><div style="font-size:.8rem;color:#aaa;">'+_msgEsc(e.name)+'</div></div>'
+     +'<div style="display:flex;gap:8px;"><button class="btn btn-red btn-sm" onclick="msgNewConvForm()">➕ Nouvelle</button><button class="btn btn-gray btn-sm" onclick="msgQuitter()">Quitter</button></div>'
+   +'</div><div id="msg-list"><div style="color:#888;padding:12px;">Chargement…</div></div></div>';
+}
+async function msgRenderList(){
+  var e=_msg.emp; if(!e) return;
+  await msgLoadConvs(e.id);
+  try{ await Promise.all(MSG_CONVS.map(function(c){ return msgLoadMsgs(c.id); })); }catch(_){}
+  var box=document.getElementById('msg-list'); if(!box) return;
+  if(!MSG_CONVS.length){ box.innerHTML='<div style="color:#888;padding:14px;">Aucune conversation. Clique « ➕ Nouvelle » pour démarrer.</div>'; return; }
+  box.innerHTML=MSG_CONVS.map(function(c){
+    var msgs=MSG_MSGS[c.id]||[]; var last=msgs[msgs.length-1];
+    var prev=last?((String(last.sender_id)===String(e.id)?'Moi : ':((last.sender_name||'')+' : '))+(last.texte||'')):'—';
+    var nn=msgNonLus(e.id,c,msgs);
+    return '<div onclick="msgOpen(\''+c.id+'\')" class="emp-card" style="cursor:pointer;">'
+      +'<div style="flex:1;min-width:0;"><div style="font-weight:700;">'+(_msgIsGroup(c)?'👥 ':'💬 ')+_msgEsc(_msgConvTitre(c,e.id))+'</div>'
+      +'<div style="font-size:.78rem;color:#999;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_msgEsc(prev.slice(0,70))+'</div></div>'
+      +(nn>0?'<span style="background:#D62300;color:#fff;border-radius:50%;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.74rem;font-weight:800;padding:0 6px;flex-shrink:0;">'+nn+'</span>':'')
+      +'</div>';
+  }).join('');
+}
+function msgThreadShell(){
+  var c=_msg.convObj, e=_msg.emp;
+  return '<div style="max-width:760px;margin:0 auto;display:flex;flex-direction:column;height:76vh;">'
+    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
+      +'<button onclick="msgBackList()" class="btn btn-gray btn-sm">← Retour</button>'
+      +'<div style="font-weight:800;color:#fff;font-size:1.05rem;">'+(_msgIsGroup(c)?'👥 ':'💬 ')+_msgEsc(_msgConvTitre(c,e.id))+'</div>'
+    +'</div>'
+    +'<div id="msg-thread" style="flex:1;overflow:auto;background:#141414;border:1px solid #2a2a2a;border-radius:12px;padding:12px;"><div style="color:#888;">Chargement…</div></div>'
+    +'<div style="display:flex;gap:8px;margin-top:10px;">'
+      +'<input id="msg-input" placeholder="Écris un message…" onkeydown="if(event.key===\'Enter\'){msgSend();}" style="flex:1;background:#0e0e0e;border:1px solid #444;border-radius:10px;color:#fff;padding:12px 14px;font-family:inherit;font-size:.95rem;">'
+      +'<button class="btn btn-red" onclick="msgSend()">Envoyer</button>'
+    +'</div></div>';
+}
+async function msgRenderThread(){
+  var c=_msg.convObj, e=_msg.emp; if(!c||!e) return;
+  await msgLoadMsgs(c.id);
+  var box=document.getElementById('msg-thread'); if(!box) return;
+  var msgs=MSG_MSGS[c.id]||[];
+  if(!msgs.length){ box.innerHTML='<div style="color:#888;text-align:center;padding:20px;">Aucun message. Écris le premier !</div>'; }
+  else box.innerHTML=msgs.map(function(m){
+    var mine=String(m.sender_id)===String(e.id);
+    var t=m.created_at?new Date(m.created_at).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+    return '<div style="display:flex;justify-content:'+(mine?'flex-end':'flex-start')+';margin-bottom:8px;">'
+      +'<div style="max-width:80%;background:'+(mine?'#7e3b12':'#242424')+';border:1px solid '+(mine?'#a8460f':'#333')+';border-radius:12px;padding:8px 11px;">'
+      +(mine?'':'<div style="font-size:.7rem;color:#F5A623;font-weight:700;margin-bottom:2px;">'+_msgEsc(m.sender_name||'')+'</div>')
+      +'<div style="font-size:.92rem;color:#eee;white-space:pre-wrap;word-break:break-word;">'+_msgEsc(m.texte||'')+'</div>'
+      +'<div style="font-size:.62rem;color:#888;text-align:right;margin-top:3px;">'+t+'</div></div></div>';
+  }).join('');
+  box.scrollTop=box.scrollHeight;
+  msgMarquerLu(e.id,c.id);
+}
+async function msgSend(){
+  var input=document.getElementById('msg-input'); var txt=(input&&input.value||'').trim();
+  var e=_msg.emp, c=_msg.convObj; if(!txt||!e||!c) return;
+  input.value='';
+  var mid='m_'+Date.now()+'_'+Math.floor(Math.random()*100000);
+  try{
+    await sb.insert('bks_messages',{id:mid,conv_id:c.id,sender_id:e.id,sender_name:e.name,texte:txt});
+    await sb.patch('bks_conversations','id=eq.'+encodeURIComponent(c.id),{last_at:new Date().toISOString()});
+  }catch(err){ console.warn('msgSend',err); try{toast('Envoi impossible','error');}catch(_){} return; }
+  await msgLoadMsgs(c.id); msgMarquerLu(e.id,c.id); msgRenderThread();
+}
+function msgNewShell(){
+  var e=_msg.emp;
+  var meRole=(typeof _actuRoleEmp==='function')?_actuRoleEmp(e):(e.role||'equipier');
+  var emps=msgAllEmployes().filter(function(x){ if(String(x.id)===String(e.id)) return false; var rx=(typeof _actuRoleEmp==='function')?_actuRoleEmp(x):(x.role||'equipier'); return msgPeutParler(meRole,rx); });
+  var listHtml = emps.length
+    ? emps.map(function(x){ var r=(RESTOS[x.restoId]&&RESTOS[x.restoId].label)||x.restoId; return '<label class="msg-mbr-row" data-nom="'+_msgEsc((x.name||'').toLowerCase())+'" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #222;cursor:pointer;"><input type="checkbox" class="msg-mbr-chk" value="'+x.id+'"><span style="flex:1;">'+_msgEsc(x.name)+' <span style="color:#888;font-size:.75rem;">· '+_msgEsc(r)+'</span></span></label>'; }).join('')
+    : '<div style="padding:16px;color:#888;font-size:.85rem;">Aucune personne autorisée. Les règles de messagerie (Paramètres › Messagerie) limitent avec qui tu peux communiquer.</div>';
+  return '<div style="max-width:760px;margin:0 auto;">'
+   +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><button onclick="msgBackList()" class="btn btn-gray btn-sm">← Retour</button><div style="font-weight:800;color:#fff;font-size:1.05rem;">➕ Nouvelle conversation</div></div>'
+   +'<input id="msg-grp-name" placeholder="Nom du groupe (optionnel — pour 3 personnes et +)" style="width:100%;box-sizing:border-box;background:#0e0e0e;border:1px solid #444;border-radius:10px;color:#fff;padding:11px 13px;margin-bottom:10px;font-family:inherit;">'
+   +'<input id="msg-mbr-search" placeholder="🔍 Rechercher une personne…" oninput="msgFilterMembers()" style="width:100%;box-sizing:border-box;background:#0e0e0e;border:1px solid #444;border-radius:10px;color:#fff;padding:10px 13px;margin-bottom:8px;font-family:inherit;">'
+   +'<div style="max-height:50vh;overflow:auto;border:1px solid #2a2a2a;border-radius:10px;background:#141414;">'+listHtml+'</div>'
+   +'<button class="btn btn-red" style="margin-top:12px;" onclick="msgCreerConv()">Créer la conversation</button></div>';
+}
+function msgFilterMembers(){ var q=((document.getElementById('msg-mbr-search')||{}).value||'').toLowerCase().trim(); Array.prototype.forEach.call(document.querySelectorAll('.msg-mbr-row'),function(r){ r.style.display=(!q||r.getAttribute('data-nom').indexOf(q)>=0)?'flex':'none'; }); }
+async function msgCreerConv(){
+  var e=_msg.emp; if(!e) return;
+  var ids=Array.prototype.map.call(document.querySelectorAll('.msg-mbr-chk:checked'),function(c){return c.value;});
+  if(!ids.length){ try{toast('Choisis au moins une personne.','error');}catch(_){} return; }
+  var name=((document.getElementById('msg-grp-name')||{}).value||'').trim();
+  var members=[String(e.id)]; ids.forEach(function(x){ if(members.indexOf(String(x))<0) members.push(String(x)); });
+  var id='conv_'+Date.now();
+  var conv={id:id,name:name||'',members:members,created_by:e.id,created_by_name:e.name,last_at:new Date().toISOString()};
+  try{ await sb.insert('bks_conversations',conv); }catch(err){ console.warn('msgCreerConv',err); try{toast('Création impossible','error');}catch(_){} return; }
+  MSG_CONVS.unshift(conv); _msg.conv=id; _msg.convObj=conv; MSG_MSGS[id]=[];
+  msgRender();
+}
+function msgOpen(id){ var c=MSG_CONVS.find(function(x){return String(x.id)===String(id);}); _msg.conv=id; _msg.convObj=c||null; msgRender(); }
+function msgBackList(){ _msg.conv=null; _msg.convObj=null; msgRender(); }
+function msgNewConvForm(){ _msg.conv='__new'; msgRender(); }
+function msgQuitter(){ _msg.emp=null; _msg.conv=null; _msg.convObj=null; if(_msg.mode==='overlay') msgCloseOverlay(); else msgRender(); }
+function msgPageInit(){ _msg={emp:null,conv:null,convObj:null,containerId:'msg-root',mode:'page'}; msgChargerLus().then(function(){}); try{hrChargerMsgReglesSupabase();}catch(_){} msgRender(); }
+function msgOpenOverlay(emp){
+  var ov=document.getElementById('msg-ov'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='msg-ov';
+  ov.style.cssText='position:fixed;inset:0;background:#0a0a0c;z-index:12000;overflow:auto;padding:18px 14px;font-family:Barlow,sans-serif;';
+  ov.innerHTML='<div style="max-width:800px;margin:0 auto;"><div style="text-align:right;margin-bottom:4px;"><button onclick="msgCloseOverlay()" style="background:none;border:none;color:#aaa;font-size:1.7rem;cursor:pointer;line-height:1;">×</button></div><div id="msg-ov-body"></div></div>';
+  document.body.appendChild(ov);
+  _msg={emp:emp||null,conv:null,convObj:null,containerId:'msg-ov-body',mode:'overlay'};
+  try{hrChargerMsgReglesSupabase();}catch(_){}
+  msgChargerLus().then(msgRender); msgRender();
+}
+function msgCloseOverlay(){ var ov=document.getElementById('msg-ov'); if(ov) ov.remove(); }
+function dashOpenMsg(){ msgOpenOverlay(null); } // écran télé : accès par code
+window.msgTryLogin=msgTryLogin; window.msgOpen=msgOpen; window.msgBackList=msgBackList; window.msgNewConvForm=msgNewConvForm;
+window.msgQuitter=msgQuitter; window.msgSend=msgSend; window.msgCreerConv=msgCreerConv; window.msgFilterMembers=msgFilterMembers;
+window.msgPageInit=msgPageInit; window.msgOpenOverlay=msgOpenOverlay; window.msgCloseOverlay=msgCloseOverlay; window.dashOpenMsg=dashOpenMsg;
 function dashRestoList(){
   try{return Object.keys(RESTOS).map(function(k){return {id:k,label:RESTOS[k].label};});}
   catch(e){return [{id:'bk500',label:'BK 500'},{id:'bk509',label:'BK 509'},{id:'bk526',label:'BK 526'}];}
@@ -13772,6 +14068,7 @@ function dashPreviewTile(kind){
   if(kind==='pointer'){ _ptgSel=e; try{ PTG_RESTO=e.restoId||PTG_RESTO; }catch(_){} var mp=document.getElementById('modal-ptg'); if(mp)mp.classList.add('open'); try{ ptgShowActions(); }catch(err){console.warn(err);} return; }
   if(kind==='planningjour'){ try{ dashOpenPlanningJour(); }catch(err){console.warn(err);} return; }
   if(kind==='actu'){ _eqSel=e; _eqResto=e.restoId||e.resto_id||null; _eqKiosk=false; _eqCodeCtx='admin'; var ova=document.getElementById('equipier-portail'); if(!ova){ ova=document.createElement('div'); ova.id='equipier-portail'; document.body.appendChild(ova); } ova.style.display='block'; try{ eqOpenActu(); }catch(err){console.warn(err);} return; }
+  if(kind==='msg'){ try{ msgOpenOverlay(e); }catch(err){console.warn(err);} return; }
 }
 window.dashPreviewTile=dashPreviewTile;
 // Écran télé : « Changer mon code » → on choisit le salarié (comme Mes horaires),
@@ -13826,8 +14123,7 @@ function renderTelephone(){
   var cfg=getTelConfig();
   // En-tête de l'aperçu : restaurant actif + salutation (comme l'Écran télé)
   try{
-    var _rid=(typeof DASH_RESTO!=='undefined' && DASH_RESTO) ? DASH_RESTO
-             : ((window.ACTIVE_RESTO && window.ACTIVE_RESTO!=='ALL') ? window.ACTIVE_RESTO : (curUser && curUser.restoId));
+    var _rid=telPreviewResto();
     var r=dashRestoList().find(function(x){return x.id===_rid;})||{label:'Mon restaurant'};
     var nm=document.getElementById('tel-phone-resto'); if(nm) nm.textContent=r.label||'Mon restaurant';
   }catch(e){}
@@ -13855,10 +14151,13 @@ function renderTelephone(){
     var codeTile='<div class="tel-mini" onclick="telPreviewChangeCode()" style="cursor:pointer;">'
       +'<div class="tm-accent" style="background:#8e8e8e"></div><div class="tm-em">🔑</div>'
       +'<div><div class="tm-tt">Changer mon code</div><div class="tm-ds">Modifier mon code PIN</div></div></div>';
+    var _pe=(typeof _telPreviewEmpObj==='function')?_telPreviewEmpObj():null;
     grid.innerHTML=actives.map(function(t){
       var soon=!t.action;
-      return '<div class="tel-mini'+(soon?' tm-soon':'')+'" '+(t.action?('onclick="telPreviewTile(\''+t.id+'\')"'):'')+' style="cursor:'+(t.action?'pointer':'default')+';">'
-        +'<div class="tm-accent" style="background:'+t.color+'"></div><div class="tm-em">'+t.em+'</div>'
+      var badge='';
+      if(t.id==='actu' && _pe){ var n=(typeof actuNonLusEmp==='function')?actuNonLusEmp(_pe):0; if(n>0) badge='<span style="position:absolute;top:6px;right:8px;background:#D62300;color:#fff;border-radius:50%;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:800;padding:0 4px;">'+n+'</span>'; }
+      return '<div class="tel-mini'+(soon?' tm-soon':'')+'" '+(t.action?('onclick="telPreviewTile(\''+t.id+'\')"'):'')+' style="position:relative;cursor:'+(t.action?'pointer':'default')+';">'
+        +badge+'<div class="tm-accent" style="background:'+t.color+'"></div><div class="tm-em">'+t.em+'</div>'
         +'<div><div class="tm-tt">'+t.tt+'</div><div class="tm-ds">'+t.ds+'</div></div></div>';
     }).join('')+((cfg.changecode!==false)?codeTile:'');   // « Changer mon code » selon la config
   }
@@ -13867,7 +14166,15 @@ function renderTelephone(){
 }
 // Sélecteur « Aperçu en tant que… » : on prévisualise l'écran d'UN salarié.
 function telPreviewResto(){
-  return (typeof DASH_RESTO!=='undefined'&&DASH_RESTO) || (typeof ACTIVE_RESTO!=='undefined'&&ACTIVE_RESTO&&ACTIVE_RESTO!=='ALL'?ACTIVE_RESTO:null) || (typeof curUser!=='undefined'&&curUser&&curUser.restoId) || 'bk500';
+  // Priorité au restaurant actif (onglets du haut) pour que l'aperçu suive le resto choisi.
+  return ((window.ACTIVE_RESTO && window.ACTIVE_RESTO!=='ALL') ? window.ACTIVE_RESTO : null)
+    || (typeof DASH_RESTO!=='undefined' && DASH_RESTO)
+    || (typeof curUser!=='undefined' && curUser && curUser.restoId) || 'bk500';
+}
+function _telPreviewEmpObj(){
+  var resto=telPreviewResto(); var sel=document.getElementById('tel-preview-emp');
+  var empId=(sel&&sel.value)?sel.value:((_dashEmployesResto(resto)[0]||{}).id);
+  return (DB.employees||[]).find(function(x){return String(x.id)===String(empId);})||null;
 }
 function telFillPreviewEmp(){
   var sel=document.getElementById('tel-preview-emp'); if(!sel)return;
@@ -13875,6 +14182,7 @@ function telFillPreviewEmp(){
   var cur=sel.value;
   sel.innerHTML=list.map(function(e){return '<option value="'+e.id+'">'+e.name+'</option>';}).join('');
   if(cur){ sel.value=cur; }
+  sel.onchange=function(){ try{ renderTelephone(); }catch(_){} };
 }
 // Clic sur une tuile de l'aperçu → ouvre DIRECTEMENT l'écran du salarié choisi
 // (comme sur son téléphone : pas de liste, pas de code).
@@ -13884,6 +14192,16 @@ function telPreviewTile(kind){
   var empId=(sel&&sel.value)?sel.value:((_dashEmployesResto(resto)[0]||{}).id);
   if(!empId){ if(typeof toast==='function') toast('Aucun salarié pour ce restaurant','error'); return; }
   if(kind==='horaires'){ try{dashHorairesOpen(empId,true);}catch(e){console.warn(e);} var o=document.getElementById('dash-hor-ov'); if(o)o.style.zIndex='11800'; }
+  else if(kind==='actu'){
+    var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+    _eqSel=e; _eqResto=e.restoId||e.resto_id||null; _eqKiosk=false; _eqCodeCtx='admin';
+    var ova=document.getElementById('equipier-portail'); if(!ova){ ova=document.createElement('div'); ova.id='equipier-portail'; document.body.appendChild(ova); }
+    ova.style.display='block'; try{ eqOpenActu(); }catch(err){console.warn(err);}
+  }
+  else if(kind==='msg'){
+    var em=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
+    try{ msgOpenOverlay(em); }catch(err){console.warn(err);}
+  }
   else { _dashDemType=kind; try{dashDemOpen(empId,true);}catch(e){console.warn(e);} var o2=document.getElementById('dash-dem-ov'); if(o2)o2.style.zIndex='11800'; }
 }
 // Aperçu : « Changer mon code » ouvre le formulaire (ancien → nouveau) pour le
@@ -14018,8 +14336,10 @@ function eqHome(){
       var soon=!t.action;
       // Tuiles CLIQUABLES pour le salarié connecté : Mes horaires / Mes congés /
       // Indisponibilités s'ouvrent directement sur SES infos (comme l'Écran télé).
-      return '<div class="tel-mini'+(soon?' tm-soon':'')+'" '+(t.action?('onclick="eqOpenTile(\''+t.id+'\')"'):'')+' style="cursor:'+(t.action?'pointer':'default')+';">'
-        +'<div class="tm-accent" style="background:'+t.color+'"></div><div class="tm-em">'+t.em+'</div><div><div class="tm-tt">'+t.tt+'</div><div class="tm-ds">'+t.ds+'</div></div></div>';
+      var badge='';
+      if(t.id==='actu'){ var n=(typeof actuNonLusEmp==='function')?actuNonLusEmp(e):0; if(n>0) badge='<span style="position:absolute;top:8px;right:10px;background:#D62300;color:#fff;border-radius:50%;min-width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;padding:0 5px;box-shadow:0 1px 4px rgba(0,0,0,.4);">'+n+'</span>'; }
+      return '<div class="tel-mini'+(soon?' tm-soon':'')+'" '+(t.action?('onclick="eqOpenTile(\''+t.id+'\')"'):'')+' style="position:relative;cursor:'+(t.action?'pointer':'default')+';">'
+        +badge+'<div class="tm-accent" style="background:'+t.color+'"></div><div class="tm-em">'+t.em+'</div><div><div class="tm-tt">'+t.tt+'</div><div class="tm-ds">'+t.ds+'</div></div></div>';
     }).join('');
   var grid='<div class="eq-tiles">'+cfgTiles+((cfg.changecode!==false)?codeTile:'')+'</div>';   // « Changer mon code » selon la config
   var hh=new Date().getHours();
@@ -14074,6 +14394,7 @@ function eqOpenTile(kind){
   else if(kind==='conges'){ _dashDemType='conges'; try{ dashDemOpen(e.id, true); }catch(err){console.warn(err);} var o2=document.getElementById('dash-dem-ov'); if(o2)o2.style.zIndex='12000'; }
   else if(kind==='indispo'){ _dashDemType='indispo'; try{ dashDemOpen(e.id, true); }catch(err){console.warn(err);} var o3=document.getElementById('dash-dem-ov'); if(o3)o3.style.zIndex='12000'; }
   else if(kind==='actu'){ eqOpenActu(); }
+  else if(kind==='msg'){ try{ msgOpenOverlay(e); }catch(err){console.warn(err);} }
 }
 // Fil d'actualité dans le portail salarié (téléphone), lecture seule.
 function eqOpenActu(){
