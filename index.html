@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-26 · v406';
+  var EMBEDDED_VERSION = '2026-07-26 · v407';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -5204,6 +5204,28 @@ function rapportHebdoIncidents(){
 window.rapportHebdoIncidents=rapportHebdoIncidents;
 
 // ── ÉQUIPE ────────────────────────────────────────────────────────────────────
+// Photo d'un salarié : d'abord sa fiche (infos.photo), sinon récupérée sur sa
+// candidature d'origine (fromCandId), sinon rapprochée par nom. Renvoie '' si aucune.
+function empPhotoUrl(e){
+  if(!e) return '';
+  try{
+    if(e.infos && e.infos.photo) return e.infos.photo;
+    if(e.fromCandId){ var c=(DB.candidatures||[]).find(function(x){return x.id===e.fromCandId;}); if(c&&c.photo) return c.photo; }
+    if(typeof _nomKey==='function'){ var k=_nomKey(e.name); var c2=(DB.candidatures||[]).find(function(x){ return x.photo && _nomKey((x.prenom||'')+' '+(x.nom||''))===k; }); if(c2) return c2.photo; }
+  }catch(_){}
+  return '';
+}
+window.empPhotoUrl=empPhotoUrl;
+// Avatar HTML : photo ronde si disponible, sinon initiales colorées par rôle.
+function empAvatarHtml(e, size, extra){
+  var s=size||34, ex=extra||'';
+  var url=empPhotoUrl(e), arch=!!(e&&e.archived);
+  if(url) return '<img src="'+url+'" style="width:'+s+'px;height:'+s+'px;border-radius:50%;object-fit:cover;flex-shrink:0;'+(arch?'filter:grayscale(1);':'')+ex+'">';
+  var init=((e&&e.name)?e.name:'').split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);
+  var ro=((e&&e.role)?e.role:'equipier');
+  return '<div class="emp-av av-'+ro[0]+'" style="width:'+s+'px;height:'+s+'px;'+(arch?'filter:grayscale(1);':'')+ex+'">'+init+'</div>';
+}
+window.empAvatarHtml=empAvatarHtml;
 function empCardHtml(e,ro,canView,canManage){
   var init=e.name.split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);
   var myInc=DB.incidents.filter(function(i){return i.empId===e.id;}).length;
@@ -5212,7 +5234,7 @@ function empCardHtml(e,ro,canView,canManage){
   var sortieBadge=enSortie?' <span style="font-size:.66rem;color:#fff;background:#a8460f;padding:1px 7px;border-radius:9px;">🚪 sortie '+_motifLbl(e.sortieMotif)+(e.sortieDate?' '+new Date(e.sortieDate+'T12:00:00').toLocaleDateString('fr-FR'):'')+'</span>':'';
   return '<div class="emp-card" style="'+(arch?'opacity:.6;border-color:#553300;':(enSortie?'border-color:#a8460f;':''))+'">'
     +'<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer;" onclick="openEmpFiche(\''+e.id+'\')">'
-    +'<div class="emp-av av-'+ro[0]+'" style="'+(arch?'filter:grayscale(1);':'')+'">'+init+'</div>'
+    +empAvatarHtml(e)
     +'<div style="min-width:0;"><div style="font-weight:600;font-size:.9rem;">'+e.name+(arch?' <span style="font-size:.68rem;color:#888;background:#2A1A00;padding:1px 6px;border-radius:9px;">📁</span>':'')+sortieBadge+'</div>'
     +'<div style="font-size:.73rem;color:#888;">'+cap(e.role)+' · '+myInc+' incident'+(myInc!==1?'s':'')+(e.infos&&e.infos.matricule?' · n°'+e.infos.matricule:'')+(e.email?' · '+e.email:'')+'</div></div></div>'
     +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">'
@@ -6818,8 +6840,9 @@ function renderEmpFicheInfos(id){
   var v=visiteEmpInfo(e);
   var h='<div class="card" style="margin-bottom:14px;">'
     +'<div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;">'
+    +'<div style="display:flex;align-items:center;gap:12px;min-width:0;">'+empAvatarHtml(e,54)
     +'<div><div style="font-size:1.1rem;font-weight:700;color:#fff;">'+e.name+'</div>'
-    +'<div style="font-size:.8rem;color:#999;margin-top:2px;">'+cap(e.role)+' · 🍔 '+resto+(inf.matricule?' · Matricule <b style="color:var(--orange);">'+inf.matricule+'</b>':'')+'</div></div>'
+    +'<div style="font-size:.8rem;color:#999;margin-top:2px;">'+cap(e.role)+' · 🍔 '+resto+(inf.matricule?' · Matricule <b style="color:var(--orange);">'+inf.matricule+'</b>':'')+'</div></div></div>'
     +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'
     +(canEdit?'<button class="btn btn-red btn-sm" onclick="empfEdit()">✏️ Modifier la fiche</button>':'')
     +'</div></div>'
@@ -8475,8 +8498,9 @@ function ptgRenderList(){
     if(rec.arrivee && !rec.depart){ dot='#3ecf8e'; txt='Présent depuis '+rec.arrivee; }
     else if(rec.arrivee && rec.depart){ dot='#888'; txt='Parti à '+rec.depart; }
     else { dot='#555'; txt='Pas encore pointé'; }
+    var _pu=(typeof empPhotoUrl==='function')?empPhotoUrl(e):'';
     return '<div class="ptg-tile" onclick="ptgOpen(\''+e.id+'\')">'
-      +'<div class="ptg-tile-av" style="background:'+ptgAvColor(e.name)+'">'+ptgInitials(e.name)+'</div>'
+      +(_pu?'<img src="'+_pu+'" class="ptg-tile-av" style="object-fit:cover;">':'<div class="ptg-tile-av" style="background:'+ptgAvColor(e.name)+'">'+ptgInitials(e.name)+'</div>')
       +'<div class="ptg-tile-nm">'+e.name+'</div>'
       +'<div class="ptg-tile-role">'+ptgRoleLabel(e.role)+'</div>'
       +'<div class="ptg-tile-state" style="color:'+dot+'"><span class="ptg-dot" style="background:'+dot+'"></span>'+txt+'</div>'
@@ -9974,7 +9998,7 @@ function renderVisiteList(){
     var resto=RESTOS[e.restoId]?RESTOS[e.restoId].label:e.restoId;
     return '<div class="emp-card" style="border-left:4px solid '+v.col+';cursor:pointer;" onclick="openEmpFiche(\''+e.id+'\')">'
       +'<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
-      +'<div class="emp-av av-'+ (e.role?e.role[0]:'e') +'">'+ini+'</div>'
+      +empAvatarHtml(e)
       +'<div style="min-width:0;"><div style="font-weight:600;font-size:.92rem;">'+e.name+' <span style="font-size:.7rem;color:#888;">· '+cap(e.role)+' · '+resto+'</span></div>'
       +'<div style="font-size:.73rem;color:#888;">'+(v.sub||'')+'</div>'
       +'<div style="margin-top:3px;"><span style="background:'+v.col+';color:#fff;border-radius:10px;padding:2px 8px;font-size:.68rem;font-weight:700;">'+v.badge+'</span></div></div></div>'
@@ -10969,6 +10993,7 @@ async function candContratSigne(){
       var eid='u'+Date.now();
       var _infosEmb={};
       if(String(c.rqth||'').toLowerCase()==='oui') _infosEmb.rqth='oui';
+      if(c.photo) _infosEmb.photo=c.photo;   // la photo du candidat suit sur sa fiche salarié
       // Rôle déduit du poste choisi au recrutement (Leader/Manager/Directeur/Apprenti/Équipier)
       var _posteC=String(c.poste||'').toLowerCase();
       var _roleEmb='equipier';
