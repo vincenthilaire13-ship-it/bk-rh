@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-26 · v407';
+  var EMBEDDED_VERSION = '2026-07-27 · v412';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -336,6 +336,30 @@ body.tv-mode #eye-viewas{display:none!important;}
 .dash-tile .dt-tt{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:1px;color:#fff;text-transform:uppercase;margin-top:14px;}
 .dash-tile .dt-ds{font-size:.8rem;color:#9a9a9a;margin-top:3px;line-height:1.35;}
 .dash-tile .dt-accent{position:absolute;top:0;left:0;width:100%;height:5px;}
+/* ── Écran télé coupé en deux : applis à gauche, fil d'actualité à droite ── */
+.dash-split{display:flex;gap:18px;align-items:stretch;}
+.dash-split .dash-grid{flex:1 1 auto;min-width:0;}
+.dash-actu{flex:0 0 48%;max-width:720px;min-width:320px;background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:18px 18px 10px;max-height:82vh;overflow:auto;}
+.dash-actu-h{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.5rem;letter-spacing:1px;color:#F5A623;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;position:sticky;top:-8px;background:#141414;padding:6px 0 8px;z-index:2;}
+.actu-item{background:linear-gradient(155deg,#232323,#191919);border:1px solid #333;border-radius:14px;padding:14px 15px;margin-bottom:12px;border-left:5px solid #F5A623;}
+.actu-item .ai-t{font-weight:800;font-size:1.06rem;color:#fff;margin-bottom:4px;line-height:1.2;}
+.actu-item .ai-x{font-size:.92rem;color:#d5d5d5;line-height:1.45;white-space:pre-wrap;word-break:break-word;}
+.actu-item .ai-media{margin-top:10px;}
+.actu-item img.ai-img{width:100%;border-radius:10px;display:block;}
+.actu-item .ai-pdf{display:flex;align-items:center;gap:10px;background:#0e0e0e;border:1px solid #3a3a3a;border-radius:10px;padding:11px 13px;color:#8fc3f5;text-decoration:none;font-size:.9rem;margin-top:8px;font-weight:600;}
+.actu-item .ai-pdf:hover{border-color:#8fc3f5;}
+.actu-item .ai-date{font-size:.7rem;color:#888;margin-top:8px;text-transform:capitalize;}
+@media(max-width:900px){.dash-split{flex-direction:column;}.dash-actu{flex:1 1 auto;max-width:none;width:100%;min-width:0;}}
+/* Aperçu admin : le fil à droite du cadre télé */
+.tel-tv-body{display:flex;gap:14px;align-items:stretch;}
+.tel-tv-body .tel-tv-grid{flex:1 1 auto;min-width:0;}
+.tel-tv-body .tel-tv-grid{grid-template-columns:repeat(3,1fr);}
+.tel-tv-actu{flex:0 0 48%;max-width:420px;background:#0e0e0e;border:1px solid #2a2a2a;border-radius:8px;padding:12px;overflow:auto;}
+.tel-tv-actu .dash-actu-h{font-size:1.2rem;top:-12px;background:#0e0e0e;}
+.tel-tv-actu .actu-item{padding:11px 12px;margin-bottom:10px;}
+.tel-tv-actu .actu-item .ai-t{font-size:.96rem;}
+.tel-tv-actu .actu-item .ai-x{font-size:.82rem;}
+@media(max-width:760px){.tel-tv-body{flex-direction:column;}.tel-tv-actu{flex:1 1 auto;max-width:none;width:100%;}}
 .dash-tile.dt-soon{opacity:.62;}
 .dash-tile.dt-soon::after{content:'BIENTÔT';position:absolute;top:12px;right:12px;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:.66rem;letter-spacing:1px;color:#1A1A1A;background:#777;padding:2px 8px;border-radius:10px;}
 /* ─── Téléphone équipe ─────────────────────────────────────────────── */
@@ -671,6 +695,7 @@ html,body{overflow-x:hidden;}
   <nav id="main-nav">
     <button onclick="goPage('dashboard',this)">📺 Écran télé</button>
     <button class="desktop-only" onclick="goPage('telephone',this)">📱 Téléphone équipe</button>
+    <button onclick="goPage('actu',this)">📣 Actualité</button>
     <button onclick="goPage('recrutement',this)">🎯 Recrutement <span id="rbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
     <button class="desktop-only" onclick="goPage('equipe',this)">👥 Équipe</button>
     <button onclick="goPage('etatequipe',this)">🧑‍🤝‍🧑 État équipe <span id="eebadge" style="background:var(--orange);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
@@ -711,7 +736,10 @@ html,body{overflow-x:hidden;}
           <span class="dash-banner-ico">📢</span>
           <span class="dash-banner-txt" id="dash-banner-txt"></span>
         </div>
-        <div class="dash-grid" id="dash-grid"></div>
+        <div class="dash-split">
+          <div class="dash-grid" id="dash-grid"></div>
+          <div class="dash-actu" id="dash-actu-feed"></div>
+        </div>
       </div>
       <div id="dash-panel" class="dash-panel" style="display:none;">
         <div class="dash-panel-hdr">
@@ -735,7 +763,10 @@ html,body{overflow-x:hidden;}
                   <div class="tel-phone-hello" id="dash-cfg-hello">Bonjour 👋</div>
                   <div class="tel-phone-resto" id="dash-cfg-resto">Mon restaurant</div>
                 </div>
-                <div class="tel-tv-grid" id="dash-cfg-grid"></div>
+                <div class="tel-tv-body">
+                  <div class="tel-tv-grid" id="dash-cfg-grid"></div>
+                  <div class="tel-tv-actu" id="dash-cfg-actu"></div>
+                </div>
                 <div class="tel-phone-empty" id="dash-cfg-empty" style="display:none;">Aucune pièce activée — coche au moins une pièce à gauche.</div>
               </div>
             </div>
@@ -745,6 +776,15 @@ html,body{overflow-x:hidden;}
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ════════ ACTUALITÉ (fil d'infos de l'écran télé + téléphone) ════════ -->
+  <div class="page" id="page-actu">
+    <div style="max-width:1100px;margin:0 auto;">
+      <div class="sec-title" style="margin-bottom:6px;">📣 Actualité — Écran télé & Téléphone</div>
+      <p class="tel-intro">Publie des <b>informations</b>, <b>photos</b> et <b>documents PDF</b> qui s'affichent dans le fil d'actualité, à droite de l'Écran télé du restaurant et sur le Téléphone équipe. Chaque restaurant a son propre fil (sélecteur en haut).</p>
+      <div id="actu-admin"></div>
     </div>
   </div>
 
@@ -3063,7 +3103,7 @@ function goPage(id, btn) {
   if (btn) { btn.classList.add('active'); }
   else {
     // Pas de bouton passé (navigation programmée) : on retrouve celui de la page pour le surligner.
-    var _labels={dashboard:'Écran télé',telephone:'Téléphone équipe',equipe:'👥 Équipe',etatequipe:'État équipe',horaires:'Horaires',recrutement:'Recrutement',visite:'Visite',incidents:'Incidents',rapports:'Rapports',planning:'Planning',parametres:'Paramètres',alertes:'Alertes'};
+    var _labels={dashboard:'Écran télé',telephone:'Téléphone équipe',actu:'Actualité',equipe:'👥 Équipe',etatequipe:'État équipe',horaires:'Horaires',recrutement:'Recrutement',visite:'Visite',incidents:'Incidents',rapports:'Rapports',planning:'Planning',parametres:'Paramètres',alertes:'Alertes'};
     var _lbl=_labels[id];
     if(_lbl){ document.querySelectorAll('#main-nav button').forEach(function(b){ if(b.textContent.indexOf(_lbl)>=0) b.classList.add('active'); }); }
   }
@@ -3100,6 +3140,7 @@ function goPage(id, btn) {
     if(_hrSel) _hrSel.style.display='none';
     try{ if(typeof hrOuvrirResto==='function') hrOuvrirResto(ra.toUpperCase()); }catch(e){ console.warn('hrOuvrirResto',e); }
   }catch(e){console.warn('init horaires',e);} }
+  if (id==='actu'){ try{ renderActuAdmin(); }catch(e){console.warn('actu',e);} }
   if (id==='recrutement'){ if(curUser.role==='franchise'){ bkEntrerPage('recrutement'); } else { setCandFilter(candFilter||'nouveau'); } }
   if (id==='visite'){ if(curUser.role==='franchise'){ bkEntrerPage('visite'); } else { renderVisiteList(); } }
   if (id==='alertes'){ if(curUser.role==='franchise'){ bkEntrerPage('alertes'); } else { window.__alertResto=curUser.restoId; renderAlertes(); } }
@@ -13324,6 +13365,249 @@ var DASH_TILES=[
   {id:'memo',      em:'📌', tt:'Mémos',             ds:'Infos de la direction',  color:'#546e7a', action:null},
   {id:'contact',   em:'☎️', tt:'Contacts',          ds:'Manager & resto',        color:'#455a64', action:null}
 ];
+// ══ ACTUALITÉ — fil d'infos (ciblage restos + rôles + suivi des lectures) ═════
+// Stockage GLOBAL (app_config 'bkrh_actualites') : chaque publication porte ses
+// restos cibles + ses rôles cibles. Les lectures sont dans 'bkrh_actu_vus'.
+var ACTU_ALL = window.ACTU_ALL || null;   // tableau global des publications
+var ACTU_VUS = window.ACTU_VUS || null;   // { postId : { empId : ISO } }
+var ACTU_ROLES = [['directeur','👑 Directeurs'],['manager','⭐ Managers'],['leader','🎖️ Leaders'],['apprenti','🎓 Apprentis'],['equipier','👤 Équipiers']];
+function _actuEsc(s){ return (''+(s==null?'':s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+// Rôle « audience » d'un salarié (apprenti = équipier au contrat ≥ 35 h).
+function _actuRoleEmp(e){
+  if(!e) return 'equipier';
+  var r=e.role||'equipier';
+  if(r==='equipier'){ var hc=(window.hrContratHebdo?window.hrContratHebdo(e):null); if(hc!=null && hc>=35) return 'apprenti'; return 'equipier'; }
+  return r;
+}
+function _actuMigrateLegacy(){
+  var out=[];
+  try{ ['BK500','BK509','BK526'].forEach(function(up){ var ls=localStorage.getItem('bkrh_actualites_'+up); if(ls){ (JSON.parse(ls)||[]).forEach(function(a){ a.restos=(a.restos&&a.restos.length)?a.restos:[up.toLowerCase()]; a.roles=a.roles||[]; out.push(a); }); } }); }catch(e){}
+  return out;
+}
+function getAllActus(){
+  if(ACTU_ALL) return ACTU_ALL;
+  try{ var ls=localStorage.getItem('bkrh_actualites'); if(ls){ ACTU_ALL=JSON.parse(ls)||[]; return ACTU_ALL; } }catch(e){}
+  ACTU_ALL=_actuMigrateLegacy(); return ACTU_ALL;
+}
+function _actuSaveAllLocal(arr){ ACTU_ALL=arr; try{localStorage.setItem('bkrh_actualites',JSON.stringify(arr));}catch(e){} }
+async function saveAllActus(arr){
+  _actuSaveAllLocal(arr);
+  try{ if(typeof SB!=='undefined'&&SB){ await SB.from('app_config').upsert({cle:'bkrh_actualites',valeur:arr},{onConflict:'cle'}); } }catch(e){ console.warn('saveAllActus',e); }
+}
+function getActuVus(){
+  if(ACTU_VUS) return ACTU_VUS;
+  try{ var ls=localStorage.getItem('bkrh_actu_vus'); if(ls){ ACTU_VUS=JSON.parse(ls)||{}; return ACTU_VUS; } }catch(e){}
+  ACTU_VUS={}; return ACTU_VUS;
+}
+function _actuSaveVusLocal(o){ ACTU_VUS=o; try{localStorage.setItem('bkrh_actu_vus',JSON.stringify(o));}catch(e){} }
+async function saveActuVus(o){
+  _actuSaveVusLocal(o);
+  try{ if(typeof SB!=='undefined'&&SB){ await SB.from('app_config').upsert({cle:'bkrh_actu_vus',valeur:o},{onConflict:'cle'}); } }catch(e){ console.warn('saveActuVus',e); }
+}
+async function hrChargerActusSupabase(){
+  try{
+    if(typeof SB==='undefined'||!SB) return;
+    var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_actualites').maybeSingle();
+    if(r&&r.data&&Array.isArray(r.data.valeur)){ _actuSaveAllLocal(r.data.valeur); }
+    var v=await SB.from('app_config').select('valeur').eq('cle','bkrh_actu_vus').maybeSingle();
+    if(v&&v.data&&v.data.valeur&&typeof v.data.valeur==='object'){ _actuSaveVusLocal(v.data.valeur); }
+  }catch(e){ console.warn('actus charger',e); }
+}
+window.hrChargerActusSupabase=hrChargerActusSupabase;
+// ── Filtres ──
+function _actuByRecent(a,b){ return (b.createdAt||'').localeCompare(a.createdAt||''); }
+function _actuActiveDate(a){ var t=new Date(); t.setHours(0,0,0,0); if(a.from){var f=new Date(a.from+'T00:00:00'); if(t<f) return false;} if(a.to){var e=new Date(a.to+'T23:59:59'); if(t>e) return false;} return true; }
+function _actuMatchResto(a,resto){ var rs=a.restos||[]; if(!rs.length) return true; return rs.indexOf((''+(resto||'')).toLowerCase())>=0; }
+function _actuMatchRole(a,role){ var rr=a.roles||[]; if(!rr.length) return true; return rr.indexOf(role)>=0; }
+// Écran TÉLÉ (public) : messages « tout le monde » ou destinés au personnel de salle
+// (équipiers/apprentis). Les messages réservés à l'encadrement restent sur le téléphone.
+function _actuTVok(a){ var rr=a.roles||[]; if(!rr.length) return true; return rr.indexOf('equipier')>=0 || rr.indexOf('apprenti')>=0; }
+function actusTV(resto){ return getAllActus().filter(function(a){ return _actuActiveDate(a)&&_actuMatchResto(a,resto)&&_actuTVok(a); }).sort(_actuByRecent); }
+function actusEmp(e){ if(!e) return []; var role=_actuRoleEmp(e), resto=e.restoId||e.resto_id; return getAllActus().filter(function(a){ return _actuActiveDate(a)&&_actuMatchResto(a,resto)&&_actuMatchRole(a,role); }).sort(_actuByRecent); }
+// Salariés ciblés par une publication (pour le suivi des lectures).
+function actuCibles(a){
+  var rs=a.restos||[], rr=a.roles||[];
+  return (DB.employees||[]).filter(function(e){
+    if(e.archived) return false;
+    if(rs.length && rs.indexOf((''+(e.restoId||'')).toLowerCase())<0) return false;
+    if(rr.length && rr.indexOf(_actuRoleEmp(e))<0) return false;
+    return true;
+  });
+}
+function actuItemHtml(a){
+  var media='';
+  var src=a.mediaData||a.mediaLink||'';
+  if(src){
+    if(a.mediaKind==='image'){ media='<div class="ai-media"><img class="ai-img" src="'+src+'" alt=""></div>'; }
+    else if(a.mediaKind==='pdf'){ media='<a class="ai-pdf" href="'+src+'" target="_blank" rel="noopener">📄 '+_actuEsc(a.mediaName||'Document PDF')+'</a>'; }
+    else { media='<a class="ai-pdf" href="'+src+'" target="_blank" rel="noopener">📎 '+_actuEsc(a.mediaName||'Document')+'</a>'; }
+  }
+  var d=a.createdAt?new Date(a.createdAt):null;
+  var dtxt=d?d.toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long'}):'';
+  return '<div class="actu-item" style="border-left-color:'+(a.color||'#F5A623')+';">'
+    +(a.titre?'<div class="ai-t">'+_actuEsc(a.titre)+'</div>':'')
+    +(a.texte?'<div class="ai-x">'+_actuEsc(a.texte)+'</div>':'')
+    +media
+    +(dtxt?'<div class="ai-date">🕐 '+dtxt+'</div>':'')
+    +'</div>';
+}
+function _actuFeedFrom(arr){
+  var head='<div class="dash-actu-h">📣 Actualités</div>';
+  if(!arr.length) return head+'<div style="color:#888;padding:20px 6px;text-align:center;font-size:.9rem;">Aucune actualité pour le moment.</div>';
+  return head+arr.map(actuItemHtml).join('');
+}
+function dashActuFeedHtml(resto){ return _actuFeedFrom(actusTV(resto)); }      // écran télé (public)
+function dashActuFeedHtmlEmp(e){ return _actuFeedFrom(actusEmp(e)); }          // téléphone (personnalisé)
+window.dashActuFeedHtml=dashActuFeedHtml; window.dashActuFeedHtmlEmp=dashActuFeedHtmlEmp;
+// Marque comme LU toutes les publications visibles par ce salarié.
+async function actuMarquerVusEmp(e){
+  if(!e||!e.id) return;
+  var arr=actusEmp(e); if(!arr.length) return;
+  var vus=getActuVus(), changed=false, now=new Date().toISOString();
+  arr.forEach(function(a){ if(!vus[a.id]) vus[a.id]={}; if(!vus[a.id][e.id]){ vus[a.id][e.id]=now; changed=true; } });
+  if(changed) await saveActuVus(vus);
+}
+window.actuMarquerVusEmp=actuMarquerVusEmp;
+// ── Admin : composer + gérer les publications ──
+var _actuMedia=null, _actuColor='#F5A623';
+function _actuResto(){ return (window.ACTIVE_RESTO && window.ACTIVE_RESTO!=='ALL')?window.ACTIVE_RESTO:(DASH_RESTO||(curUser&&curUser.restoId)||'bk500'); }
+function _actuRestosLbl(a){ var rs=a.restos||[]; if(!rs.length) return 'Tous les restos'; return rs.map(function(r){return (RESTOS[r]&&RESTOS[r].label)||r;}).join(', '); }
+function _actuRolesLbl(a){ var rr=a.roles||[]; if(!rr.length) return 'Tout le monde'; var m={directeur:'Directeurs',manager:'Managers',leader:'Leaders',apprenti:'Apprentis',equipier:'Équipiers'}; return rr.map(function(r){return m[r]||r;}).join(', '); }
+function renderActuAdmin(){
+  var box=document.getElementById('actu-admin'); if(!box) return;
+  var resto=_actuResto(); window.__actuResto=resto;
+  var couleurs=[['#F5A623','Orange'],['#D62300','Rouge'],['#1E8E3E','Vert'],['#1565c0','Bleu'],['#8e44ad','Violet'],['#546e7a','Gris']];
+  _actuMedia=null; _actuColor='#F5A623';
+  var restoChecks=Object.keys(RESTOS).map(function(rid){
+    var on=(rid===resto);
+    return '<label style="display:inline-flex;align-items:center;gap:6px;background:#0e0e0e;border:1px solid #444;border-radius:9px;padding:7px 11px;cursor:pointer;font-size:.85rem;color:#eee;">'
+      +'<input type="checkbox" class="actu-resto-chk" value="'+rid+'"'+(on?' checked':'')+'> '+((RESTOS[rid]&&RESTOS[rid].label)||rid)+'</label>';
+  }).join('');
+  var roleChecks=ACTU_ROLES.map(function(r){
+    return '<label style="display:inline-flex;align-items:center;gap:6px;background:#0e0e0e;border:1px solid #444;border-radius:9px;padding:7px 11px;cursor:pointer;font-size:.85rem;color:#eee;">'
+      +'<input type="checkbox" class="actu-role-chk" value="'+r[0]+'"> '+r[1]+'</label>';
+  }).join('');
+  box.innerHTML=''
+    +'<div class="card" style="margin-bottom:14px;">'
+    +'<div class="sec-title" style="margin-bottom:8px;">➕ Nouvelle publication</div>'
+    +'<input id="actu-titre" placeholder="Titre (ex. Nouveau LTO, Note de service…)" style="width:100%;box-sizing:border-box;background:#0e0e0e;border:1px solid #444;border-radius:10px;color:#fff;padding:11px 13px;font-size:.95rem;margin-bottom:10px;font-family:inherit;">'
+    +'<textarea id="actu-texte" placeholder="Message / information à afficher…" style="width:100%;box-sizing:border-box;background:#0e0e0e;border:1px solid #444;border-radius:10px;color:#fff;padding:11px 13px;font-size:.95rem;min-height:90px;margin-bottom:12px;font-family:inherit;"></textarea>'
+    +'<div style="margin-bottom:12px;"><div style="font-size:.74rem;color:#F5A623;font-weight:700;margin-bottom:6px;">🍔 Pour quel(s) restaurant(s) ?</div><div style="display:flex;gap:8px;flex-wrap:wrap;">'+restoChecks+'</div></div>'
+    +'<div style="margin-bottom:12px;"><div style="font-size:.74rem;color:#F5A623;font-weight:700;margin-bottom:6px;">🎯 Pour qui ? <span style="color:#888;font-weight:400;">(ne rien cocher = tout le monde)</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;">'+roleChecks+'</div></div>'
+    +'<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">'
+      +'<div><div style="font-size:.72rem;color:#888;margin-bottom:5px;">Couleur</div><div style="display:flex;gap:7px;">'+couleurs.map(function(c,i){return '<span onclick="_actuSetColor(\''+c[0]+'\')" data-actu-col="'+c[0]+'" title="'+c[1]+'" style="width:26px;height:26px;border-radius:50%;background:'+c[0]+';cursor:pointer;border:2px solid '+(i===0?'#fff':'transparent')+';display:inline-block;"></span>';}).join('')+'</div></div>'
+      +'<div><div style="font-size:.72rem;color:#888;margin-bottom:5px;">Afficher du (optionnel)</div><input type="date" id="actu-from" style="background:#0e0e0e;border:1px solid #444;border-radius:8px;color:#fff;padding:8px 10px;font-family:inherit;"></div>'
+      +'<div><div style="font-size:.72rem;color:#888;margin-bottom:5px;">au (optionnel)</div><input type="date" id="actu-to" style="background:#0e0e0e;border:1px solid #444;border-radius:8px;color:#fff;padding:8px 10px;font-family:inherit;"></div>'
+    +'</div>'
+    +'<div id="actu-drop" ondragover="_actuDragOver(event)" ondragleave="_actuDragLeave(event)" ondrop="_actuDrop(event)" onclick="var f=document.getElementById(\'actu-file\');if(f)f.click();" style="border:2px dashed #555;border-radius:12px;padding:18px;text-align:center;color:#9a9a9a;cursor:pointer;background:#0e0e0e;">'
+      +'<div style="font-size:1.7rem;">📎</div><div style="font-size:.86rem;margin-top:4px;">Glisse une <b>photo</b> ou un <b>PDF</b> ici, ou clique pour choisir</div>'
+      +'<div id="actu-media-info" style="font-size:.82rem;color:#F5A623;margin-top:8px;"></div>'
+    +'</div>'
+    +'<input type="file" id="actu-file" accept="image/*,application/pdf" style="display:none;" onchange="_actuFilePick(event)">'
+    +'<button class="btn btn-red" style="margin-top:12px;" onclick="actuPublier()">📣 Publier dans le fil</button>'
+    +'</div>'
+    +'<div class="sec-title" style="margin:16px 0 8px;">📋 Publications en ligne</div>'
+    +'<div id="actu-list"><div style="color:#888;padding:12px;">Chargement…</div></div>';
+  hrChargerActusSupabase().then(function(){ if(document.getElementById('actu-list')) _actuRenderList(); });
+  _actuRenderList();
+}
+function _actuSetColor(c){ _actuColor=c; document.querySelectorAll('[data-actu-col]').forEach(function(s){ s.style.border='2px solid '+(s.getAttribute('data-actu-col')===c?'#fff':'transparent'); }); }
+function _actuDragOver(e){ e.preventDefault(); var d=document.getElementById('actu-drop'); if(d)d.style.borderColor='#F5A623'; }
+function _actuDragLeave(e){ e.preventDefault(); var d=document.getElementById('actu-drop'); if(d)d.style.borderColor='#555'; }
+function _actuDrop(e){ e.preventDefault(); _actuDragLeave(e); var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f)_actuReadFile(f); }
+function _actuFilePick(e){ var f=e.target.files&&e.target.files[0]; if(f)_actuReadFile(f); }
+function _actuReadFile(file){
+  var info=document.getElementById('actu-media-info');
+  var isImg=/^image\//.test(file.type), isPdf=/pdf/i.test(file.type)||/\.pdf$/i.test(file.name);
+  if(info) info.textContent='Chargement…';
+  var rd=new FileReader();
+  rd.onload=function(){
+    var data=rd.result;
+    if(isImg){
+      var img=new Image();
+      img.onload=function(){
+        var max=1400, w=img.width, h=img.height;
+        if(w>max||h>max){ if(w>=h){ h=Math.round(h*max/w); w=max; } else { w=Math.round(w*max/h); h=max; } }
+        var cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+        try{ cv.getContext('2d').drawImage(img,0,0,w,h); data=cv.toDataURL('image/jpeg',0.82); }catch(_){}
+        _actuMedia={data:data,name:file.name,kind:'image'}; if(info) info.textContent='🖼️ '+file.name+' ajouté ✓';
+      };
+      img.onerror=function(){ _actuMedia={data:data,name:file.name,kind:'image'}; if(info) info.textContent='🖼️ '+file.name; };
+      img.src=data;
+    } else {
+      _actuMedia={data:data,name:file.name,kind:isPdf?'pdf':'file'};
+      if(info) info.textContent=(isPdf?'📄 ':'📎 ')+file.name+' ajouté ✓';
+    }
+  };
+  rd.readAsDataURL(file);
+}
+async function actuPublier(){
+  var titre=((document.getElementById('actu-titre')||{}).value||'').trim();
+  var texte=((document.getElementById('actu-texte')||{}).value||'').trim();
+  var from=(document.getElementById('actu-from')||{}).value||'';
+  var to=(document.getElementById('actu-to')||{}).value||'';
+  var restos=Array.prototype.map.call(document.querySelectorAll('.actu-resto-chk:checked'),function(c){return c.value;});
+  var roles=Array.prototype.map.call(document.querySelectorAll('.actu-role-chk:checked'),function(c){return c.value;});
+  if(!restos.length){ try{toast('Choisis au moins un restaurant.','error');}catch(_){} return; }
+  if(!titre && !texte && !_actuMedia){ try{toast('Ajoute un titre, un texte ou un document.','error');}catch(_){} return; }
+  var post={ id:'act_'+Date.now(), titre:titre, texte:texte, color:_actuColor||'#F5A623', from:from, to:to, restos:restos, roles:roles, createdAt:new Date().toISOString(), createdBy:(curUser&&curUser.name)||'' };
+  if(_actuMedia){ post.mediaData=_actuMedia.data; post.mediaName=_actuMedia.name; post.mediaKind=_actuMedia.kind; }
+  var arr=getAllActus().slice(); arr.unshift(post);
+  await saveAllActus(arr);
+  _actuMedia=null;
+  try{toast('Publié dans le fil ✔','success');}catch(_){}
+  renderActuAdmin();
+}
+function _actuRenderList(){
+  var box=document.getElementById('actu-list'); if(!box) return;
+  var arr=getAllActus().slice().sort(_actuByRecent);
+  if(!arr.length){ box.innerHTML='<div style="color:#888;padding:12px;">Aucune publication. Crée-en une ci-dessus.</div>'; return; }
+  var vusAll=getActuVus();
+  box.innerHTML=arr.map(function(a){
+    var d=a.createdAt?new Date(a.createdAt).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+    var per=(a.from||a.to)?(' · '+(a.from?('du '+a.from):'')+(a.to?(' au '+a.to):'')):'';
+    var med=(a.mediaKind==='image')?'🖼️ photo':((a.mediaKind==='pdf')?'📄 PDF':((a.mediaData||a.mediaLink)?'📎 doc':''));
+    var cibles=actuCibles(a);
+    var vus=vusAll[a.id]||{};
+    var seen=cibles.filter(function(c){return vus[c.id];});
+    var notSeen=cibles.filter(function(c){return !vus[c.id];});
+    var detail='<details style="margin-top:7px;"><summary style="cursor:pointer;font-size:.74rem;color:#8fc3f5;font-weight:700;">👁️ Vu par '+seen.length+' / '+cibles.length+' — voir qui</summary>'
+      +'<div style="margin-top:6px;font-size:.73rem;line-height:1.5;">'
+      +'<div style="color:#3ecf8e;font-weight:700;">✅ Ont vu ('+seen.length+')</div>'
+      +(seen.length?seen.map(function(c){return '<div style="color:#ccc;">'+_actuEsc(c.name)+' <span style="color:#777;">· '+(vus[c.id]?new Date(vus[c.id]).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'')+'</span></div>';}).join(''):'<div style="color:#777;">Personne pour l\'instant</div>')
+      +'<div style="color:#e8623a;font-weight:700;margin-top:6px;">⏳ N\'ont pas vu ('+notSeen.length+')</div>'
+      +(notSeen.length?notSeen.map(function(c){return '<div style="color:#ccc;">'+_actuEsc(c.name)+'</div>';}).join(''):'<div style="color:#777;">Tout le monde a vu ✅</div>')
+      +'</div></details>';
+    return '<div class="emp-card" style="border-left:4px solid '+(a.color||'#F5A623')+';align-items:flex-start;">'
+      +'<div style="flex:1;min-width:0;"><div style="font-weight:700;">'+_actuEsc(a.titre||'(sans titre)')+'</div>'
+      +'<div style="font-size:.76rem;color:#999;margin-top:2px;">'+(a.texte?_actuEsc(a.texte.slice(0,90))+(a.texte.length>90?'…':''):'')+'</div>'
+      +'<div style="font-size:.7rem;color:#F5A623;margin-top:4px;">🍔 '+_actuEsc(_actuRestosLbl(a))+' · 🎯 '+_actuEsc(_actuRolesLbl(a))+'</div>'
+      +'<div style="font-size:.7rem;color:#777;margin-top:2px;">🕐 '+d+per+(med?(' · '+med):'')+'</div>'
+      +detail
+      +'</div>'
+      +'<button class="btn-danger" onclick="actuSupprimer(\''+a.id+'\')" title="Supprimer" style="flex-shrink:0;">🗑️</button>'
+      +'</div>';
+  }).join('');
+}
+async function actuSupprimer(id){
+  if(!confirm('Supprimer cette publication du fil ?')) return;
+  var arr=getAllActus().filter(function(a){return a.id!==id;});
+  await saveAllActus(arr);
+  try{toast('Publication supprimée','success');}catch(_){}
+  _actuRenderList();
+}
+// Écran télé : ouvrir le fil dans un panneau (lecture seule, vue publique).
+function dashOpenActu(){
+  _dashOpenTile='dashOpenActu';
+  var resto=DASH_RESTO||(curUser&&curUser.restoId)||'bk500';
+  var body=dashOpenPanel('Actualités'); if(!body) return;
+  function fill(){ body.innerHTML='<div class="dash-actu" style="max-width:640px;margin:0 auto;background:transparent;border:none;padding:0;max-height:none;">'+dashActuFeedHtml(resto)+'</div>'; }
+  fill();
+  hrChargerActusSupabase().then(function(){ if(_dashOpenTile==='dashOpenActu') fill(); });
+}
+window.renderActuAdmin=renderActuAdmin; window.actuPublier=actuPublier; window.actuSupprimer=actuSupprimer;
+window._actuSetColor=_actuSetColor; window._actuDragOver=_actuDragOver; window._actuDragLeave=_actuDragLeave;
+window._actuDrop=_actuDrop; window._actuFilePick=_actuFilePick; window.dashOpenActu=dashOpenActu;
 function dashRestoList(){
   try{return Object.keys(RESTOS).map(function(k){return {id:k,label:RESTOS[k].label};});}
   catch(e){return [{id:'bk500',label:'BK 500'},{id:'bk509',label:'BK 509'},{id:'bk526',label:'BK 526'}];}
@@ -13392,6 +13676,12 @@ function dashRenderTiles(){
       +'<div class="dt-accent" style="background:'+t.color+'"></div><div class="dt-em">'+t.em+'</div>'
       +'<div><div class="dt-tt">'+t.tt+'</div><div class="dt-ds">'+t.ds+'</div></div></div>';
   }).join('')+codeTile;
+  // Fil d'actualité à droite de l'écran télé (rendu local immédiat + rafraîchi depuis Supabase)
+  var fa=document.getElementById('dash-actu-feed');
+  if(fa){
+    try{ fa.innerHTML=dashActuFeedHtml(DASH_RESTO); }catch(_){}
+    try{ hrChargerActusSupabase(DASH_RESTO).then(function(){ var fa2=document.getElementById('dash-actu-feed'); if(fa2){ try{ fa2.innerHTML=dashActuFeedHtml(DASH_RESTO); }catch(_e){} } }); }catch(_2){}
+  }
 }
 // ══ ÉCRAN TÉLÉ — pièces configurables (même système que le Téléphone équipe) ══
 // L'Écran télé garde TOUTES ses pièces (Pointer inclus) ; la direction choisit
@@ -13449,6 +13739,12 @@ function dashRenderConfig(){
     }).join('')+codeMini;
   }
   var emp=document.getElementById('dash-cfg-empty'); if(emp) emp.style.display=(actives.length||cfg.changecode!==false)?'none':'block';
+  // Aperçu du fil d'actualité (à droite du cadre télé)
+  var cfa=document.getElementById('dash-cfg-actu');
+  if(cfa){
+    try{ cfa.innerHTML=dashActuFeedHtml(DASH_RESTO); }catch(_){}
+    try{ hrChargerActusSupabase(DASH_RESTO).then(function(){ var c2=document.getElementById('dash-cfg-actu'); if(c2){ try{ c2.innerHTML=dashActuFeedHtml(DASH_RESTO); }catch(_e){} } }); }catch(_2){}
+  }
   try{ dashFillPreviewEmp(); }catch(_){}
 }
 // Remplit le sélecteur « Aperçu en tant que… » de l'Écran télé + ouvre une pièce
@@ -13475,6 +13771,7 @@ function dashPreviewTile(kind){
   if(kind==='changecode'){ _eqSel=e; _eqResto=e.restoId||e.resto_id||null; _eqKiosk=false; _eqCodeCtx='admin'; var ov=document.getElementById('equipier-portail'); if(!ov){ ov=document.createElement('div'); ov.id='equipier-portail'; document.body.appendChild(ov); } ov.style.display='block'; try{ eqChangeCode(); }catch(err){console.warn(err);} return; }
   if(kind==='pointer'){ _ptgSel=e; try{ PTG_RESTO=e.restoId||PTG_RESTO; }catch(_){} var mp=document.getElementById('modal-ptg'); if(mp)mp.classList.add('open'); try{ ptgShowActions(); }catch(err){console.warn(err);} return; }
   if(kind==='planningjour'){ try{ dashOpenPlanningJour(); }catch(err){console.warn(err);} return; }
+  if(kind==='actu'){ _eqSel=e; _eqResto=e.restoId||e.resto_id||null; _eqKiosk=false; _eqCodeCtx='admin'; var ova=document.getElementById('equipier-portail'); if(!ova){ ova=document.createElement('div'); ova.id='equipier-portail'; document.body.appendChild(ova); } ova.style.display='block'; try{ eqOpenActu(); }catch(err){console.warn(err);} return; }
 }
 window.dashPreviewTile=dashPreviewTile;
 // Écran télé : « Changer mon code » → on choisit le salarié (comme Mes horaires),
@@ -13500,7 +13797,8 @@ window.dashToggleTile=dashToggleTile;
 // Reprend DASH_TILES en retirant la tuile « pointer » (on ne pointe jamais depuis la
 // maison). Chaque pièce peut être activée/désactivée ; la config est partagée via
 // app_config (clé 'bkrh_telephone') + miroir localStorage, comme la Société.
-var TEL_TILES = DASH_TILES.filter(function(t){ return t.id!=='pointer' && t.id!=='planningjour'; });
+var TEL_TILES = [{id:'actu',em:'📣',tt:'Actualité',ds:'Infos du restaurant',color:'#F5A623',action:'dashOpenActu'}]
+  .concat(DASH_TILES.filter(function(t){ return t.id!=='pointer' && t.id!=='planningjour'; }));
 // Pièce spéciale « Changer mon code » : présente sur le téléphone ET l'écran télé,
 // configurable (activable/masquable) comme les autres, listée en DERNIER.
 var CODE_TILE={id:'changecode', em:'🔑', tt:'Changer mon code', ds:'Modifier mon code PIN', color:'#8e8e8e'};
@@ -13775,7 +14073,18 @@ function eqOpenTile(kind){
   if(kind==='horaires'){ try{ dashHorairesOpen(e.id, true); }catch(err){console.warn(err);} var o=document.getElementById('dash-hor-ov'); if(o)o.style.zIndex='12000'; }
   else if(kind==='conges'){ _dashDemType='conges'; try{ dashDemOpen(e.id, true); }catch(err){console.warn(err);} var o2=document.getElementById('dash-dem-ov'); if(o2)o2.style.zIndex='12000'; }
   else if(kind==='indispo'){ _dashDemType='indispo'; try{ dashDemOpen(e.id, true); }catch(err){console.warn(err);} var o3=document.getElementById('dash-dem-ov'); if(o3)o3.style.zIndex='12000'; }
+  else if(kind==='actu'){ eqOpenActu(); }
 }
+// Fil d'actualité dans le portail salarié (téléphone), lecture seule.
+function eqOpenActu(){
+  var e=_eqSel; if(!e) return; var ov=document.getElementById('equipier-portail'); if(!ov) return;
+  var apercu=(_eqCodeCtx==='admin'); // aperçu admin → on ne marque PAS les lectures
+  function fill(){ ov.innerHTML=_eqShell('<button class="eq-lnk" onclick="eqHome()">← Retour</button>'
+    +'<div class="dash-actu" style="background:transparent;border:none;padding:0;max-height:none;margin-top:6px;text-align:left;">'+dashActuFeedHtmlEmp(e)+'</div>'); }
+  fill();
+  try{ hrChargerActusSupabase().then(function(){ fill(); if(!apercu){ try{ actuMarquerVusEmp(e).then(function(){}); }catch(_2){} } }); }catch(_){ if(!apercu){ try{ actuMarquerVusEmp(e); }catch(_3){} } }
+}
+window.eqOpenActu=eqOpenActu;
 window.equipierPortail=equipierPortail; window.equipierFermer=equipierFermer; window.eqLogin=eqLogin;
 window.eqHome=eqHome; window.eqChangeCode=eqChangeCode; window.eqSaveCode=eqSaveCode; window.eqOpenTile=eqOpenTile;
 function dashStartClock(){
