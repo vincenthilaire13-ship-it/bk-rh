@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-26 · v397';
+  var EMBEDDED_VERSION = '2026-07-26 · v398';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1299,15 +1299,22 @@ html,body{overflow-x:hidden;}
     </div>
     <div class="card param-card" id="pc-dispos" style="display:none;">
       <div class="sec-title">📅 Disponibilité contrat — base des contrats</div>
-      <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">Glissez ici le fichier Excel des <b style="color:#fff;">disponibilités du contrat</b>. C'est la <b>base</b> qui alimente les contrats des salariés et sert au planning. Le restaurant est lu automatiquement (colonne « Restaurant »). Ensuite, tu peux <b>modifier cette base par salarié</b> dans sa fiche (onglet « Compétences &amp; dispos » → « Disponibilités du contrat »).</p>
-      <div id="imp-dispo-drop" ondragover="bkDragOver(event,this)" ondragleave="bkDragLeave(this)" ondrop="bkDropDispo(event,this)" onclick="document.getElementById('imp-dispo-file').click()" style="border:2px dashed #555;border-radius:14px;padding:34px 18px;text-align:center;cursor:pointer;transition:all .15s;background:#141414;">
-        <div style="font-size:2.4rem;">📊</div>
-        <div style="font-size:.95rem;color:#ddd;margin-top:8px;font-weight:600;">Glissez le fichier Excel ici</div>
-        <div style="font-size:.8rem;color:#888;margin-top:4px;">ou cliquez pour le choisir — <span id="imp-dispo-file-name">aucun fichier</span></div>
-      </div>
-      <input type="file" id="imp-dispo-file" accept=".xlsx,.xls" style="display:none;" onchange="bkFileDispo(this.files[0])">
-      <div id="imp-dispo-report" style="font-size:.82rem;margin-top:14px;"></div>
-      <button class="btn btn-red btn-sm" onclick="impDispoApply()" id="imp-dispo-apply" style="display:none;margin-top:10px;">💾 Importer dans la base</button>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">Fixe ici, <b>par type de contrat</b> (15h, 20h, 24h, 35h), les créneaux standards jour par jour. C'est la <b>base</b> qui alimente les contrats : quand tu fabriques le contrat d'un salarié, ces créneaux se remplissent automatiquement selon son type de contrat (et tu pourras les vérifier / modifier avant signature). Tu peux aussi les ajuster par salarié dans sa fiche (« Compétences &amp; dispos » → « Disponibilités du contrat »).</p>
+      <div id="dispos-contrat-editor"></div>
+      <details style="margin-top:18px;border-top:1px solid #2a2a2a;padding-top:14px;">
+        <summary style="cursor:pointer;color:#8fbced;font-size:.84rem;font-weight:700;">📊 Ou importer une base depuis Excel</summary>
+        <div style="margin-top:12px;">
+          <p style="font-size:.8rem;color:#aaa;margin-bottom:10px;">Glissez le fichier Excel des disponibilités (exporté depuis les Rapports). Le restaurant est lu automatiquement (colonne « Restaurant »).</p>
+          <div id="imp-dispo-drop" ondragover="bkDragOver(event,this)" ondragleave="bkDragLeave(this)" ondrop="bkDropDispo(event,this)" onclick="document.getElementById('imp-dispo-file').click()" style="border:2px dashed #555;border-radius:14px;padding:26px 18px;text-align:center;cursor:pointer;transition:all .15s;background:#141414;">
+            <div style="font-size:2rem;">📊</div>
+            <div style="font-size:.92rem;color:#ddd;margin-top:8px;font-weight:600;">Glissez le fichier Excel ici</div>
+            <div style="font-size:.8rem;color:#888;margin-top:4px;">ou cliquez pour le choisir — <span id="imp-dispo-file-name">aucun fichier</span></div>
+          </div>
+          <input type="file" id="imp-dispo-file" accept=".xlsx,.xls" style="display:none;" onchange="bkFileDispo(this.files[0])">
+          <div id="imp-dispo-report" style="font-size:.82rem;margin-top:14px;"></div>
+          <button class="btn btn-red btn-sm" onclick="impDispoApply()" id="imp-dispo-apply" style="display:none;margin-top:10px;">💾 Importer dans la base</button>
+        </div>
+      </details>
     </div>
     <div class="card param-card" id="pc-version" style="display:none;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <div class="sec-title" style="margin-bottom:0;">ℹ️ Version de l'application</div>
@@ -2325,6 +2332,7 @@ async function loadAll(light) {
   try{ if(typeof hrChargerTelephoneSupabase==='function'){ await hrChargerTelephoneSupabase(); } }catch(e){}
   try{ if(typeof hrChargerDashboardSupabase==='function'){ await hrChargerDashboardSupabase(); } }catch(e){}
   try{ if(typeof hrChargerVisibiliteSupabase==='function'){ await hrChargerVisibiliteSupabase(); } }catch(e){}
+  try{ if(typeof hrChargerDisposContratSupabase==='function'){ await hrChargerDisposContratSupabase(); } }catch(e){}
 }
 
 async function saveDB() {
@@ -3313,6 +3321,70 @@ window.visDim=visDim; window.visMark=visMark;
 function visPanel(){ return ''; }  // ancien panneau : désactivé (remplacé par visLayout)
 function visBadge(){ return ''; }  // ancien affichage par tuile : désactivé
 
+// ══ DISPONIBILITÉS DU CONTRAT — base par TYPE de contrat (15h/20h/24h/35h) ═══════
+// L'admin fixe une fois, jour par jour, les créneaux standards de chaque type de
+// contrat. Ces créneaux servent de base au contrat du salarié (modifiables ensuite
+// dans sa fiche + à la fabrication du contrat, avant signature).
+var CONTRAT_TYPES=['15h','20h','24h','35h'];
+var DISPOS_CONTRAT=null, _dcTypeSel='24h';
+function dcDefault(){ var o={}; CONTRAT_TYPES.forEach(function(t){ o[t]={}; (typeof JOURS!=='undefined'?JOURS:[]).forEach(function(j){ o[t][j[0]]={on:false,from:'11:00',to:'15:00'}; }); }); return o; }
+function getDisposContrat(){
+  if(DISPOS_CONTRAT) return DISPOS_CONTRAT;
+  try{ var raw=localStorage.getItem('bkrh_dispos_contrat'); if(raw){ DISPOS_CONTRAT=Object.assign(dcDefault(),JSON.parse(raw)); return DISPOS_CONTRAT; } }catch(e){}
+  DISPOS_CONTRAT=dcDefault(); return DISPOS_CONTRAT;
+}
+function saveDisposContrat(){
+  try{ localStorage.setItem('bkrh_dispos_contrat',JSON.stringify(DISPOS_CONTRAT)); }catch(e){}
+  try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:'bkrh_dispos_contrat',valeur:DISPOS_CONTRAT},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
+}
+async function hrChargerDisposContratSupabase(){
+  try{ if(typeof SB==='undefined'||!SB) return; var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_dispos_contrat').maybeSingle(); if(r&&r.data&&r.data.valeur){ DISPOS_CONTRAT=Object.assign(dcDefault(),r.data.valeur); try{localStorage.setItem('bkrh_dispos_contrat',JSON.stringify(DISPOS_CONTRAT));}catch(e){} } }catch(e){ console.warn('dispos contrat charger',e); }
+}
+window.hrChargerDisposContratSupabase=hrChargerDisposContratSupabase;
+// Renvoie les dispos de base pour un type de contrat (objet {jk:{on,from,to}}).
+function disposContratPour(typeHeures){
+  var cfg=getDisposContrat(); var key=(''+typeHeures).replace(/[^0-9]/g,'')+'h';
+  return cfg[key]||cfg[_dcTypeSel]||{};
+}
+window.disposContratPour=disposContratPour;
+function dcSelType(t){ _dcTypeSel=t; renderDisposContratParam(); }
+function dcToggle(jk,on){ var cfg=getDisposContrat(); if(!cfg[_dcTypeSel])cfg[_dcTypeSel]={}; if(!cfg[_dcTypeSel][jk])cfg[_dcTypeSel][jk]={from:'11:00',to:'15:00'}; cfg[_dcTypeSel][jk].on=on; renderDisposContratParam(); }
+function dcSetHeure(jk,champ,val){ var cfg=getDisposContrat(); if(!cfg[_dcTypeSel])cfg[_dcTypeSel]={}; if(!cfg[_dcTypeSel][jk])cfg[_dcTypeSel][jk]={on:true}; cfg[_dcTypeSel][jk][champ]=val; }
+function dcCopyAll(){ var cfg=getDisposContrat(); var d=cfg[_dcTypeSel]||{}; var first=null; for(var k in d){ if(d[k]&&d[k].on){ first=d[k]; break; } } if(!first){ try{toast('Coche d\'abord un jour.','error');}catch(_){} return; } (typeof JOURS!=='undefined'?JOURS:[]).forEach(function(j){ cfg[_dcTypeSel][j[0]]={on:true,from:first.from,to:first.to}; }); renderDisposContratParam(); }
+function dcSave(){ saveDisposContrat(); try{ var s=document.getElementById('dc-status'); if(s){ s.textContent='✅ Disponibilités du contrat '+_dcTypeSel+' enregistrées'; setTimeout(function(){ if(s)s.textContent=''; },3000); } }catch(_){} try{ toast('Base '+_dcTypeSel+' enregistrée','success'); }catch(_){} }
+window.dcSelType=dcSelType; window.dcToggle=dcToggle; window.dcSetHeure=dcSetHeure; window.dcCopyAll=dcCopyAll; window.dcSave=dcSave;
+function renderDisposContratParam(){
+  var box=document.getElementById('dispos-contrat-editor'); if(!box) return;
+  var cfg=getDisposContrat();
+  if(!cfg[_dcTypeSel]) _dcTypeSel=CONTRAT_TYPES[0];
+  var d=cfg[_dcTypeSel]||{};
+  var tabs=CONTRAT_TYPES.map(function(t){
+    var on=(t===_dcTypeSel);
+    return '<button onclick="dcSelType(\''+t+'\')" style="background:'+(on?'#D62300':'#2C2C2C')+';color:#fff;border:1px solid '+(on?'#D62300':'#444')+';border-radius:20px;padding:7px 16px;font-size:.88rem;font-weight:800;cursor:pointer;">'+t+'</button>';
+  }).join('');
+  var days=(typeof JOURS!=='undefined'?JOURS:[]).map(function(j){
+    var jk=j[0]; var dd=d[jk]||{}; var on=!!dd.on;
+    return '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#141414;border-radius:8px;padding:8px 11px;">'
+      +'<label style="display:flex;align-items:center;gap:7px;min-width:120px;cursor:pointer;">'
+        +'<input type="checkbox" '+(on?'checked':'')+' onchange="dcToggle(\''+jk+'\',this.checked)" style="width:16px;height:16px;accent-color:var(--orange);">'
+        +'<span style="font-size:.85rem;color:#ddd;font-weight:600;">'+j[1]+'</span></label>'
+      +'<div style="display:flex;align-items:center;gap:6px;'+(on?'':'opacity:.35;pointer-events:none;')+'">'
+        +'<span style="font-size:.78rem;color:#888;">de</span>'
+        +'<input type="time" value="'+(dd.from||'11:00')+'" onchange="dcSetHeure(\''+jk+'\',\'from\',this.value)" class="fi" style="width:auto;padding:4px 6px;">'
+        +'<span style="font-size:.78rem;color:#888;">à</span>'
+        +'<input type="time" value="'+(dd.to||'15:00')+'" onchange="dcSetHeure(\''+jk+'\',\'to\',this.value)" class="fi" style="width:auto;padding:4px 6px;">'
+      +'</div></div>';
+  }).join('');
+  box.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">'+tabs+'</div>'
+    +'<div style="font-size:.8rem;color:#F5A623;font-weight:700;margin-bottom:8px;">Disponibilités standard du contrat <b>'+_dcTypeSel+'</b> :</div>'
+    +'<div style="display:flex;flex-direction:column;gap:8px;">'+days+'</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">'
+      +'<button class="btn btn-gray btn-sm" onclick="dcCopyAll()">📋 Appliquer le 1er jour coché à tous</button>'
+      +'<button class="btn btn-red btn-sm" onclick="dcSave()">💾 Enregistrer la base '+_dcTypeSel+'</button>'
+    +'</div><div id="dc-status" style="font-size:.78rem;color:#888;margin-top:8px;"></div>';
+}
+window.renderDisposContratParam=renderDisposContratParam;
+
 var PARAM_TILES=[
   {ico:'🎯', titre:'Compétences',   sub:'Importer la grille BK',        type:'card', card:'pc-competences', accent:'#e53935'},
   {ico:'📅', titre:'Disponibilité contrat',sub:'Base des contrats (import Excel)', type:'card', card:'pc-dispos',      accent:'#1565c0'},
@@ -3369,6 +3441,7 @@ function paramOuvrir(type, ref){
     if(ref==='pc-societe'){ try{ renderSocieteForm(); }catch(_){} }
     if(ref==='pc-visite'){ try{ loadVisiteConfig(); }catch(_){} }
     if(ref==='pc-pointer'){ try{ ptgMsgCharger('suivi'); }catch(_){} try{ ptgRenderMsgAdmin(); }catch(_){} }
+    if(ref==='pc-dispos'){ try{ renderDisposContratParam(); }catch(_){} }
     // bouton retour en tête de page
     var back=document.getElementById('param-back');
     if(!back){
