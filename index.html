@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-27 · v425';
+  var EMBEDDED_VERSION = '2026-07-27 · v428';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1498,6 +1498,11 @@ html,body{overflow-x:hidden;}
       <div class="sec-title">💬 Messagerie — qui peut écrire à qui</div>
       <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Pour chaque rôle (à gauche), coche les rôles avec qui il a le droit de communiquer. La règle est <strong>réciproque</strong> : si les équipiers ne peuvent parler qu'aux directeurs, alors seuls les directeurs peuvent leur écrire. Un salarié ne peut démarrer une conversation qu'avec les personnes autorisées.</p>
       <div id="msg-regles-box"></div>
+    </div>
+    <div class="card param-card" id="pc-biblio" style="display:none;">
+      <div class="sec-title">📚 Documents — Nouveaux produits & Marchandises</div>
+      <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Range ici les documents que l'équipe consultera depuis les tuiles <strong>Nouveaux produits</strong> et <strong>Marchandises</strong> (écran télé + téléphone). Crée des dossiers, glisse des PDF ou des photos (envoyés sur Dropbox), choisis les restaurants concernés, et coche « Annoncer dans le fil d'actualité » pour prévenir l'équipe.</p>
+      <div id="biblio-admin"></div>
     </div>
     <div class="card param-card" id="pc-conso" style="display:none;">
       <div class="sec-title">📊 État / Consommation</div>
@@ -3465,6 +3470,7 @@ var PARAM_TILES=[
   {ico:'🩺', titre:'Visite médicale',sub:'Délais et rappels',            type:'card', card:'pc-visite',      accent:'#c0392b'},
   {ico:'📍', titre:'Pointer',       sub:'Messages du pointage',         type:'card', card:'pc-pointer',     accent:'#D62300'},
   {ico:'💬', titre:'Messagerie',    sub:'Qui peut écrire à qui',        type:'card', card:'pc-messagerie', accent:'#7e57c2'},
+  {ico:'📚', titre:'Documents',     sub:'Nouveaux produits & Marchandises', type:'card', card:'pc-biblio',   accent:'#8e6a00'},
   {ico:'📊', titre:'État / Consommation', sub:'Base, fichiers, usage',   type:'card', card:'pc-conso',       accent:'#16a085'},
   {ico:'👁️', titre:'Aperçu fiche',  sub:'Vue candidat',                 type:'card', card:'rec-apercu-card',accent:'#7f8c8d'},
   {ico:'📧', titre:'Adresses mail', sub:'Expédition RH',                type:'card', card:'pc-adresses',    accent:'#2c3e50'},
@@ -3513,6 +3519,7 @@ function paramOuvrir(type, ref){
     if(ref==='pc-dispos'){ try{ renderDisposContratParam(); }catch(_){} }
     if(ref==='pc-messagerie'){ try{ renderMsgReglesParam(); }catch(_){} }
     if(ref==='pc-conso'){ try{ renderConso(); }catch(_){} }
+    if(ref==='pc-biblio'){ try{ renderBiblioParam(); }catch(_){} }
     // bouton retour en tête de page
     var back=document.getElementById('param-back');
     if(!back){
@@ -13463,8 +13470,8 @@ var DASH_TILES=[
   {id:'pointer',   em:'⏱️', tt:'Pointer',           ds:'Arrivée / départ',       color:'#2e7d32', action:'dashOpenPointer'},
   {id:'conges',    em:'🏖️', tt:'Mes congés',        ds:'Demander des vacances',  color:'#F5A623', action:'dashOpenConges'},
   {id:'indispo',   em:'🚫', tt:'Indisponibilités', ds:'Jours où je ne peux pas',color:'#FF8732', action:'dashOpenIndispo'},
-  {id:'produits',  em:'🍔', tt:'Nouveaux produits', ds:'À connaître en service', color:'#D62300', action:null},
-  {id:'marchandise',em:'📦',tt:'Marchandises',      ds:'Produits & références',  color:'#8e6a00', action:null},
+  {id:'produits',  em:'🍔', tt:'Nouveaux produits', ds:'À connaître en service', color:'#D62300', action:'dashOpenBiblioProduits'},
+  {id:'marchandise',em:'📦',tt:'Marchandises',      ds:'Produits & références',  color:'#8e6a00', action:'dashOpenBiblioMarch'},
   {id:'memo',      em:'📌', tt:'Mémos',             ds:'Infos de la direction',  color:'#546e7a', action:null},
   {id:'contact',   em:'☎️', tt:'Contacts',          ds:'Manager & resto',        color:'#455a64', action:null},
   {id:'msg',       em:'💬', tt:'Messagerie',         ds:'Discuter avec l\'équipe', color:'#7e57c2', action:'dashOpenMsg'}
@@ -13643,6 +13650,15 @@ function renderActuAdmin(){
     +'</div>'
     +'<input type="file" id="actu-file" accept="image/*,application/pdf" style="display:none;" onchange="_actuFilePick(event)">'
     +'<input type="file" id="actu-cam" accept="image/*" capture="environment" style="display:none;" onchange="_actuFilePick(event)">'
+    +'<div style="margin-top:12px;padding-top:12px;border-top:1px solid #2a2a2a;">'
+      +'<div style="font-size:.74rem;color:#F5A623;font-weight:700;margin-bottom:6px;">📚 Ranger aussi ce document dans une bibliothèque ? <span style="color:#888;font-weight:400;">(optionnel — nécessite un document joint)</span></div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'
+        +'<select id="actu-bib-lib" onchange="_actuBibLibChange()" style="background:#0e0e0e;border:1px solid #444;border-radius:9px;color:#fff;padding:9px 12px;font-family:inherit;">'
+          +'<option value="">— Ne pas ranger —</option><option value="produits">🍔 Nouveaux produits</option><option value="marchandise">📦 Marchandises</option></select>'
+        +'<select id="actu-bib-dossier" style="display:none;background:#0e0e0e;border:1px solid #444;border-radius:9px;color:#fff;padding:9px 12px;font-family:inherit;"></select>'
+        +'<button type="button" id="actu-bib-newdos" onclick="_actuBibNewDossier()" style="display:none;background:#0e0e0e;border:1px solid #444;border-radius:9px;color:#eee;padding:9px 12px;cursor:pointer;font-family:inherit;">+ dossier</button>'
+      +'</div>'
+    +'</div>'
     +'<button class="btn btn-red" style="margin-top:12px;" onclick="actuPublier()">📣 Publier dans le fil</button>'
     +'</div>'
     +'<div class="sec-title" style="margin:16px 0 8px;">📋 Publications en ligne</div>'
@@ -13652,14 +13668,52 @@ function renderActuAdmin(){
   _actuRenderList();
 }
 function _actuSetColor(c){ _actuColor=c; document.querySelectorAll('[data-actu-col]').forEach(function(s){ s.style.border='2px solid '+(s.getAttribute('data-actu-col')===c?'#fff':'transparent'); }); }
+// Rangement dans une bibliothèque depuis Actualité : remplir la liste des dossiers.
+function _actuBibLibChange(){
+  var lib=(document.getElementById('actu-bib-lib')||{}).value;
+  var sel=document.getElementById('actu-bib-dossier'), btn=document.getElementById('actu-bib-newdos');
+  if(!sel) return;
+  if(!lib){ sel.style.display='none'; if(btn) btn.style.display='none'; return; }
+  var L=(typeof getBiblio==='function')?getBiblio()[lib]:null;
+  sel.innerHTML=((L&&L.dossiers)||[]).map(function(d){return '<option value="'+d.id+'">'+_actuEsc(d.nom)+'</option>';}).join('');
+  sel.style.display=''; if(btn) btn.style.display='';
+}
+async function _actuBibNewDossier(){
+  var lib=(document.getElementById('actu-bib-lib')||{}).value; if(!lib) return;
+  var nom=prompt('Nom du nouveau dossier :',''); if(nom===null) return; nom=nom.trim(); if(!nom) return;
+  getBiblio()[lib].dossiers.push({id:'d_'+Date.now(), nom:nom});
+  try{ await saveBiblio(); }catch(_){}
+  _actuBibLibChange();
+  var sel=document.getElementById('actu-bib-dossier'); if(sel){ sel.value=getBiblio()[lib].dossiers[getBiblio()[lib].dossiers.length-1].id; }
+}
+window._actuBibLibChange=_actuBibLibChange; window._actuBibNewDossier=_actuBibNewDossier;
 function _actuDragOver(e){ e.preventDefault(); var d=document.getElementById('actu-drop'); if(d)d.style.borderColor='#F5A623'; }
 function _actuDragLeave(e){ e.preventDefault(); var d=document.getElementById('actu-drop'); if(d)d.style.borderColor='#555'; }
 function _actuDrop(e){ e.preventDefault(); _actuDragLeave(e); var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f)_actuReadFile(f); }
 function _actuFilePick(e){ var f=e.target.files&&e.target.files[0]; if(f)_actuReadFile(f); }
+// Détection auto d'un « On The Grill » d'après le nom du fichier : remplit le titre
+// (N° + semaine) et propose le dossier « On The Grill » dans Nouveaux produits.
+function _actuDetectOTG(name){
+  try{
+    var m=String(name||'').match(/on\s*the\s*grill\s*n\s*[°ºo:]*\s*(\d+)/i);
+    if(!m) return;
+    var num=m[1];
+    var sem='';
+    var dm=String(name).match(/(\d{1,2})[.\-\/](\d{1,2})[.\-\/](\d{2,4})/);
+    if(dm){ var dd=+dm[1], mm=+dm[2], yy=+dm[3]; if(yy<100) yy+=2000; var MN=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre']; if(mm>=1&&mm<=12) sem=' — semaine du '+dd+' '+MN[mm-1]+' '+yy; }
+    var t=document.getElementById('actu-titre'); if(t && !t.value.trim()) t.value='On The Grill N°'+num+sem;
+    var libSel=document.getElementById('actu-bib-lib');
+    if(libSel){ libSel.value='produits'; try{ _actuBibLibChange(); }catch(_){}
+      var L=getBiblio().produits; var dos=(L.dossiers||[]).find(function(d){return /on\s*the\s*grill/i.test(d.nom);});
+      if(dos){ var ds=document.getElementById('actu-bib-dossier'); if(ds) ds.value=dos.id; }
+    }
+  }catch(_){}
+}
 function _actuReadFile(file){
   var info=document.getElementById('actu-media-info');
   var isImg=/^image\//.test(file.type), isPdf=/pdf/i.test(file.type)||/\.pdf$/i.test(file.name);
   if(info) info.textContent='Chargement…';
+  try{ _actuDetectOTG(file.name); }catch(_){}
   var rd=new FileReader();
   rd.onload=function(){
     var data=rd.result;
@@ -13683,7 +13737,8 @@ function _actuReadFile(file){
 }
 // Envoie le média (photo/PDF) sur Dropbox pour ne pas alourdir la base ; renvoie un
 // lien. Repli en base64 si Dropbox n'est pas configuré ou en cas d'échec.
-async function _actuUploadMedia(media){
+function _dbxSafe(s){ return String(s||'').replace(/[^a-zA-Z0-9 ._-]/g,'').replace(/\s+/g,'_').slice(0,60)||'Divers'; }
+async function _actuUploadMedia(media, folder){
   if(!media||!media.data) return null;
   try{
     if(typeof dbxEstPret==='function' && dbxEstPret() && typeof dbxUpload==='function' && typeof _dataUrlToBlob==='function'){
@@ -13691,7 +13746,8 @@ async function _actuUploadMedia(media){
       var ext=(media.name && media.name.indexOf('.')>=0) ? media.name.split('.').pop() : (media.kind==='pdf'?'pdf':'jpg');
       var safe=(media.name||('actu.'+ext)).replace(/[^a-zA-Z0-9._-]/g,'_');
       var stamp=new Date().toISOString().slice(0,10);
-      var path='/BKRH/Actualites/'+stamp+'_'+Date.now()+'_'+safe;
+      var base=folder?('/BKRH/'+folder):'/BKRH/Actualites';
+      var path=base+'/'+stamp+'_'+Date.now()+'_'+safe;
       var blob=_dataUrlToBlob(media.data);
       var link=await dbxUpload(path, blob);
       if(link) return {mediaLink:link, mediaPath:path, mediaName:media.name, mediaKind:media.kind};
@@ -13711,14 +13767,30 @@ async function actuPublier(){
   if(!restos.length){ try{toast('Choisis au moins un restaurant.','error');}catch(_){} return; }
   if(!titre && !texte && !_actuMedia){ try{toast('Ajoute un titre, un texte ou un document.','error');}catch(_){} return; }
   var post={ id:'act_'+Date.now(), titre:titre, texte:texte, color:_actuColor||'#F5A623', from:from, to:to, canal:canal, restos:restos, roles:roles, createdAt:new Date().toISOString(), createdBy:(curUser&&curUser.name)||'' };
+  // Cible bibliothèque (choisie dans le formulaire) → détermine aussi le rangement Dropbox.
+  var bibLib=(document.getElementById('actu-bib-lib')||{}).value;
+  var bibDos=(document.getElementById('actu-bib-dossier')||{}).value;
+  var upFolder='Actualites';
+  if(bibLib && bibDos){
+    try{ var _Ln=(BIBLIO_LIBS[bibLib]&&BIBLIO_LIBS[bibLib].nom)||bibLib; var _Dn=((getBiblio()[bibLib].dossiers.find(function(d){return d.id===bibDos;})||{}).nom)||'Divers'; upFolder='Bibliotheque/'+_dbxSafe(_Ln)+'/'+_dbxSafe(_Dn); }catch(_f){}
+  }
   if(_actuMedia){
-    var up=await _actuUploadMedia(_actuMedia);   // Dropbox si dispo, sinon base64
+    var up=await _actuUploadMedia(_actuMedia, upFolder);   // Dropbox (rangé par dossier) sinon base64
     if(up){ if(up.mediaLink){ post.mediaLink=up.mediaLink; if(up.mediaPath) post.mediaPath=up.mediaPath; } if(up.mediaData){ post.mediaData=up.mediaData; } post.mediaName=up.mediaName; post.mediaKind=up.mediaKind; }
   }
   var arr=getAllActus().slice(); arr.unshift(post);
   await saveAllActus(arr);
+  // Ranger aussi le document dans une bibliothèque (Nouveaux produits / Marchandises) si demandé.
+  var _rangé=false;
+  if(bibLib && bibDos && (post.mediaLink||post.mediaData)){
+    try{
+      var L=getBiblio()[bibLib];
+      L.docs.unshift({ id:'doc_'+Date.now(), dossier:bibDos, titre:titre||post.mediaName||'Document', name:post.mediaName||'', kind:post.mediaKind||'file', link:(post.mediaLink||post.mediaData), path:post.mediaPath||'', restos:restos, createdAt:new Date().toISOString(), by:(curUser&&curUser.name)||'' });
+      await saveBiblio(); _rangé=true;
+    }catch(e){ console.warn('rangement biblio',e); }
+  }
   _actuMedia=null;
-  try{toast('Publié dans le fil ✔','success');}catch(_){}
+  try{toast('Publié dans le fil ✔'+(_rangé?' + rangé dans la bibliothèque':''),'success');}catch(_){}
   renderActuAdmin();
 }
 function _actuRenderList(){
@@ -13993,6 +14065,212 @@ function dashOpenMsg(){ msgOpenOverlay(null); } // écran télé : accès par co
 window.msgTryLogin=msgTryLogin; window.msgOpen=msgOpen; window.msgBackList=msgBackList; window.msgNewConvForm=msgNewConvForm;
 window.msgQuitter=msgQuitter; window.msgSend=msgSend; window.msgCreerConv=msgCreerConv; window.msgFilterMembers=msgFilterMembers;
 window.msgPageInit=msgPageInit; window.msgOpenOverlay=msgOpenOverlay; window.msgCloseOverlay=msgCloseOverlay; window.dashOpenMsg=dashOpenMsg;
+// ══ BIBLIOTHÈQUE DE DOCUMENTS (Nouveaux produits & Marchandises) ══════════════
+// 2 bibliothèques, chacune avec des dossiers ; documents (PDF/photos) sur Dropbox.
+// Dépôt commun aux 3 restos ou ciblé. Option « annoncer dans le fil d'actualité ».
+var BIBLIO=null;
+var BIBLIO_LIBS={ produits:{nom:'Nouveaux produits', em:'🍔'}, marchandise:{nom:'Marchandises', em:'📦'} };
+function biblioDefaut(){ return {
+  produits:{ dossiers:[{id:'d_lto',nom:'LTO'},{id:'d_otg',nom:'On The Grill'},{id:'d_fiches',nom:'Fiches produit'},{id:'d_proc',nom:'Procédures'}], docs:[] },
+  marchandise:{ dossiers:[{id:'d_ref',nom:'Références produits'},{id:'d_four',nom:'Fournisseurs'},{id:'d_cmd',nom:'Commandes'}], docs:[] }
+}; }
+function getBiblio(){
+  if(!BIBLIO){ try{var ls=localStorage.getItem('bkrh_biblio'); if(ls) BIBLIO=JSON.parse(ls);}catch(e){} }
+  if(!BIBLIO) BIBLIO=biblioDefaut();
+  if(!BIBLIO.produits) BIBLIO.produits=biblioDefaut().produits;
+  if(!BIBLIO.marchandise) BIBLIO.marchandise=biblioDefaut().marchandise;
+  ['produits','marchandise'].forEach(function(k){ BIBLIO[k].dossiers=BIBLIO[k].dossiers||[]; BIBLIO[k].docs=BIBLIO[k].docs||[]; });
+  return BIBLIO;
+}
+function _biblioSaveLocal(){ try{localStorage.setItem('bkrh_biblio',JSON.stringify(BIBLIO));}catch(e){} }
+async function saveBiblio(){ _biblioSaveLocal(); try{ if(typeof SB!=='undefined'&&SB) await SB.from('app_config').upsert({cle:'bkrh_biblio',valeur:BIBLIO},{onConflict:'cle'}); }catch(e){ console.warn('saveBiblio',e); } }
+async function hrChargerBiblioSupabase(){ try{ if(typeof SB==='undefined'||!SB) return; var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_biblio').maybeSingle(); if(r&&r.data&&r.data.valeur){ BIBLIO=r.data.valeur; getBiblio(); _biblioSaveLocal(); } }catch(e){} }
+window.hrChargerBiblioSupabase=hrChargerBiblioSupabase;
+function _biblioDocsResto(lib, dossierId, resto){
+  var L=getBiblio()[lib]; if(!L) return [];
+  return (L.docs||[]).filter(function(d){ if(d.dossier!==dossierId) return false; var rs=d.restos||[]; if(!rs.length) return true; return rs.indexOf((''+(resto||'')).toLowerCase())>=0; })
+    .sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'');});
+}
+function _biblioNbDossier(lib, dossierId, resto){ return _biblioDocsResto(lib,dossierId,resto).length; }
+// ── Lecteur (écran + téléphone) : overlay dossiers → documents → visualisation ──
+var _bibView={lib:'produits', dossier:null, resto:null};
+function biblioOpen(lib, resto){
+  _bibView={lib:lib||'produits', dossier:null, resto:(resto||DASH_RESTO||(curUser&&curUser.restoId)||'bk500')};
+  var ov=document.getElementById('biblio-ov'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='biblio-ov';
+  ov.style.cssText='position:fixed;inset:0;background:#0a0a0c;z-index:12000;overflow:auto;padding:18px 14px;font-family:Barlow,sans-serif;';
+  ov.innerHTML='<div style="max-width:900px;margin:0 auto;"><div style="text-align:right;margin-bottom:4px;"><button onclick="biblioCloseOv()" style="background:none;border:none;color:#aaa;font-size:1.7rem;cursor:pointer;line-height:1;">×</button></div><div id="biblio-ov-body"></div></div>';
+  document.body.appendChild(ov);
+  try{ hrChargerBiblioSupabase().then(biblioRender); }catch(_){}
+  biblioRender();
+}
+function biblioCloseOv(){ var ov=document.getElementById('biblio-ov'); if(ov) ov.remove(); }
+function biblioRender(){
+  var box=document.getElementById('biblio-ov-body'); if(!box) return;
+  var lib=_bibView.lib, resto=_bibView.resto, L=getBiblio()[lib];
+  var libLbl=(BIBLIO_LIBS[lib]&&BIBLIO_LIBS[lib].nom)||lib;
+  if(!_bibView.dossier){
+    var dossiers=(L.dossiers||[]).map(function(d){
+      var n=_biblioNbDossier(lib,d.id,resto);
+      return '<div onclick="biblioOuvrirDossier(\''+d.id+'\')" class="dash-tile" style="cursor:pointer;min-height:110px;">'
+        +'<div class="dt-em">📁</div><div><div class="dt-tt" style="font-size:1.05rem;">'+_msgEsc(d.nom)+'</div><div class="dt-ds">'+n+' document'+(n>1?'s':'')+'</div></div></div>';
+    }).join('');
+    box.innerHTML='<div style="font-weight:900;font-size:1.4rem;color:#F5A623;margin-bottom:12px;">'+(BIBLIO_LIBS[lib]?BIBLIO_LIBS[lib].em:'📚')+' '+_msgEsc(libLbl)+'</div>'
+      +(dossiers?('<div class="bk-tiles-grid" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr));">'+dossiers+'</div>'):'<div style="color:#888;padding:16px;">Aucun dossier.</div>');
+    return;
+  }
+  var dos=(L.dossiers||[]).find(function(d){return d.id===_bibView.dossier;})||{nom:'?'};
+  var docs=_biblioDocsResto(lib,_bibView.dossier,resto);
+  var list=docs.length?docs.map(function(d){
+    var ic=(d.kind==='image')?'🖼️':(d.kind==='pdf'?'📄':'📎');
+    return '<div onclick="biblioVoirDoc(\''+d.id+'\')" class="emp-card" style="cursor:pointer;">'
+      +'<div style="flex:1;min-width:0;"><div style="font-weight:700;">'+ic+' '+_msgEsc(d.titre||d.name||'Document')+'</div>'
+      +'<div style="font-size:.72rem;color:#888;margin-top:2px;">'+(d.createdAt?new Date(d.createdAt).toLocaleDateString('fr-FR'):'')+'</div></div>'
+      +'<span style="color:#F5A623;font-size:1.2rem;">›</span></div>';
+  }).join(''):'<div style="color:#888;padding:16px;">Aucun document dans ce dossier.</div>';
+  box.innerHTML='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;"><button onclick="biblioRetourDossiers()" class="btn btn-gray btn-sm">← Dossiers</button>'
+    +'<div style="font-weight:900;font-size:1.2rem;color:#F5A623;">📁 '+_msgEsc(dos.nom)+'</div></div>'+list;
+}
+function biblioOuvrirDossier(id){ _bibView.dossier=id; biblioRender(); }
+function biblioRetourDossiers(){ _bibView.dossier=null; biblioRender(); }
+function biblioVoirDoc(id){
+  var L=getBiblio()[_bibView.lib]; var d=(L.docs||[]).find(function(x){return x.id===id;}); if(!d||!d.link) return;
+  var ov=document.getElementById('biblio-doc-ov'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='biblio-doc-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:12050;display:flex;flex-direction:column;padding:12px;font-family:Barlow,sans-serif;';
+  var inner=(d.kind==='image')
+    ? '<img src="'+d.link+'" style="max-width:100%;max-height:100%;margin:auto;display:block;object-fit:contain;">'
+    : '<iframe src="'+d.link+'" style="flex:1;width:100%;border:none;background:#fff;border-radius:8px;"></iframe>';
+  ov.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;color:#fff;">'
+    +'<div style="font-weight:700;">'+_msgEsc(d.titre||d.name||'Document')+'</div>'
+    +'<div><a href="'+d.link+'" target="_blank" rel="noopener" style="color:#8fc3f5;font-size:.85rem;margin-right:16px;">Ouvrir ↗</a>'
+    +'<button onclick="document.getElementById(\'biblio-doc-ov\').remove()" style="background:none;border:none;color:#fff;font-size:1.7rem;cursor:pointer;">×</button></div></div>'
+    +'<div style="flex:1;display:flex;overflow:auto;">'+inner+'</div>';
+  document.body.appendChild(ov);
+}
+function dashOpenBiblioProduits(){ biblioOpen('produits', DASH_RESTO); }
+function dashOpenBiblioMarch(){ biblioOpen('marchandise', DASH_RESTO); }
+window.biblioOpen=biblioOpen; window.biblioCloseOv=biblioCloseOv; window.biblioOuvrirDossier=biblioOuvrirDossier;
+window.biblioRetourDossiers=biblioRetourDossiers; window.biblioVoirDoc=biblioVoirDoc;
+window.dashOpenBiblioProduits=dashOpenBiblioProduits; window.dashOpenBiblioMarch=dashOpenBiblioMarch;
+// ── Admin (Paramètres) : gérer dossiers + déposer documents ──
+var _bibAdmin={lib:'produits'}, _bibMedia=null;
+function renderBiblioParam(){
+  var box=document.getElementById('biblio-admin'); if(!box) return;
+  hrChargerBiblioSupabase().then(function(){ if(document.getElementById('biblio-admin')) _biblioAdminRender(); });
+  _biblioAdminRender();
+}
+function _biblioAdminRender(){
+  var box=document.getElementById('biblio-admin'); if(!box) return;
+  var lib=_bibAdmin.lib, L=getBiblio()[lib];
+  _bibMedia=null;
+  var tabs=Object.keys(BIBLIO_LIBS).map(function(k){ var on=(k===lib); return '<button onclick="_bibSetLib(\''+k+'\')" style="border-radius:9px;padding:8px 14px;cursor:pointer;font-family:inherit;font-size:.9rem;border:1px solid '+(on?'#F5A623':'#444')+';background:'+(on?'#F5A623':'#0e0e0e')+';color:'+(on?'#000':'#eee')+';font-weight:'+(on?'800':'600')+';margin-right:8px;">'+BIBLIO_LIBS[k].em+' '+BIBLIO_LIBS[k].nom+'</button>'; }).join('');
+  var dossierOpts=(L.dossiers||[]).map(function(d){return '<option value="'+d.id+'">'+_msgEsc(d.nom)+'</option>';}).join('');
+  var dossierList=(L.dossiers||[]).map(function(d){ var n=(L.docs||[]).filter(function(x){return x.dossier===d.id;}).length; return '<div class="emp-card"><div style="flex:1;">📁 '+_msgEsc(d.nom)+' <span style="color:#888;font-size:.78rem;">· '+n+' doc'+(n>1?'s':'')+'</span></div><button class="btn btn-gray btn-sm" onclick="biblioRenommerDossier(\''+d.id+'\')">✏️</button><button class="btn-danger" onclick="biblioSupprDossier(\''+d.id+'\')" title="Supprimer le dossier">🗑️</button></div>'; }).join('');
+  var restoChecks=Object.keys(RESTOS).map(function(rid){ return '<label style="display:inline-flex;align-items:center;gap:6px;background:#0e0e0e;border:1px solid #444;border-radius:9px;padding:7px 11px;cursor:pointer;font-size:.85rem;color:#eee;"><input type="checkbox" class="bib-resto-chk" value="'+rid+'"> '+((RESTOS[rid]&&RESTOS[rid].label)||rid)+'</label>'; }).join('');
+  box.innerHTML='<div style="margin-bottom:14px;">'+tabs+'</div>'
+    +'<div class="card" style="margin-bottom:14px;"><div class="sec-title" style="margin-bottom:8px;">📁 Dossiers</div>'
+      +'<div>'+ (dossierList||'<div style="color:#888;">Aucun dossier.</div>') +'</div>'
+      +'<div style="display:flex;gap:8px;margin-top:10px;"><input id="bib-newdos" placeholder="Nom d\'un nouveau dossier" style="flex:1;background:#0e0e0e;border:1px solid #444;border-radius:9px;color:#fff;padding:9px 12px;font-family:inherit;"><button class="btn btn-gray btn-sm" onclick="biblioAjouterDossier()">➕ Ajouter</button></div></div>'
+    +'<div class="card" style="margin-bottom:14px;"><div class="sec-title" style="margin-bottom:8px;">➕ Déposer un document</div>'
+      +'<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;">'
+        +'<div style="flex:1;min-width:180px;"><div style="font-size:.72rem;color:#888;margin-bottom:4px;">Dossier</div><select id="bib-dossier" style="width:100%;background:#0e0e0e;border:1px solid #444;border-radius:9px;color:#fff;padding:9px 12px;font-family:inherit;">'+dossierOpts+'</select></div>'
+        +'<div style="flex:1;min-width:180px;"><div style="font-size:.72rem;color:#888;margin-bottom:4px;">Titre</div><input id="bib-titre" placeholder="ex. LTO Chèvre miel" style="width:100%;box-sizing:border-box;background:#0e0e0e;border:1px solid #444;border-radius:9px;color:#fff;padding:9px 12px;font-family:inherit;"></div>'
+      +'</div>'
+      +'<div style="margin-bottom:10px;"><div style="font-size:.72rem;color:#888;margin-bottom:5px;">Pour quel(s) restaurant(s) ? <span style="color:#666;">(ne rien cocher = commun aux 3)</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;">'+restoChecks+'</div></div>'
+      +'<div id="bib-drop" onclick="var f=document.getElementById(\'bib-file\');if(f)f.click();" ondragover="event.preventDefault();this.style.borderColor=\'#F5A623\';" ondragleave="this.style.borderColor=\'#555\';" ondrop="biblioDrop(event)" style="border:2px dashed #555;border-radius:12px;padding:16px;text-align:center;color:#9a9a9a;cursor:pointer;background:#0e0e0e;"><div style="font-size:1.6rem;">📎</div><div style="font-size:.85rem;margin-top:4px;">Glisse un PDF ou une photo, ou clique</div><div id="bib-media-info" style="font-size:.82rem;color:#F5A623;margin-top:6px;"></div></div>'
+      +'<input type="file" id="bib-file" accept="image/*,application/pdf" style="display:none;" onchange="biblioFilePick(event)">'
+      +'<label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.86rem;color:#eee;cursor:pointer;"><input type="checkbox" id="bib-annonce"> 📣 Annoncer ce document dans le fil d\'actualité</label>'
+      +'<button class="btn btn-red" style="margin-top:12px;" onclick="biblioDeposer()">📥 Déposer le document</button>'
+    +'</div>'
+    +'<div class="sec-title" style="margin:16px 0 8px;">📋 Documents en ligne</div><div id="bib-doclist"></div>';
+  _biblioDocList();
+}
+function _bibSetLib(k){ _bibAdmin.lib=k; _biblioAdminRender(); }
+function _biblioDocList(){
+  var box=document.getElementById('bib-doclist'); if(!box) return;
+  var lib=_bibAdmin.lib, L=getBiblio()[lib];
+  var docs=(L.docs||[]).slice().sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'');});
+  if(!docs.length){ box.innerHTML='<div style="color:#888;padding:12px;">Aucun document.</div>'; return; }
+  function dosNom(id){ var d=(L.dossiers||[]).find(function(x){return x.id===id;}); return d?d.nom:'?'; }
+  box.innerHTML=docs.map(function(d){
+    var ic=(d.kind==='image')?'🖼️':(d.kind==='pdf'?'📄':'📎');
+    var rs=(d.restos&&d.restos.length)?d.restos.map(function(r){return (RESTOS[r]&&RESTOS[r].label)||r;}).join(', '):'Commun aux 3';
+    return '<div class="emp-card"><div style="flex:1;min-width:0;"><div style="font-weight:700;">'+ic+' '+_msgEsc(d.titre||d.name||'Document')+'</div>'
+      +'<div style="font-size:.72rem;color:#888;margin-top:2px;">📁 '+_msgEsc(dosNom(d.dossier))+' · 🍔 '+_msgEsc(rs)+'</div></div>'
+      +'<a href="'+d.link+'" target="_blank" rel="noopener" class="btn btn-gray btn-sm">👁️</a>'
+      +'<button class="btn-danger" onclick="biblioSupprDoc(\''+d.id+'\')" title="Supprimer">🗑️</button></div>';
+  }).join('');
+}
+async function biblioAjouterDossier(){
+  var nom=((document.getElementById('bib-newdos')||{}).value||'').trim(); if(!nom) return;
+  getBiblio()[_bibAdmin.lib].dossiers.push({id:'d_'+Date.now(), nom:nom});
+  await saveBiblio(); _biblioAdminRender();
+}
+async function biblioRenommerDossier(id){
+  var L=getBiblio()[_bibAdmin.lib]; var d=L.dossiers.find(function(x){return x.id===id;}); if(!d) return;
+  var nv=prompt('Nouveau nom du dossier :', d.nom); if(nv===null) return; nv=nv.trim(); if(!nv) return;
+  d.nom=nv; await saveBiblio(); _biblioAdminRender();
+}
+async function biblioSupprDossier(id){
+  var L=getBiblio()[_bibAdmin.lib];
+  var n=(L.docs||[]).filter(function(x){return x.dossier===id;}).length;
+  if(!confirm('Supprimer ce dossier'+(n?(' et ses '+n+' document(s)'):'')+' ?')) return;
+  L.dossiers=L.dossiers.filter(function(x){return x.id!==id;});
+  L.docs=(L.docs||[]).filter(function(x){return x.dossier!==id;});
+  await saveBiblio(); _biblioAdminRender();
+}
+function biblioFilePick(e){ var f=e.target.files&&e.target.files[0]; if(f) biblioReadFile(f); }
+function biblioDrop(e){ e.preventDefault(); var d=document.getElementById('bib-drop'); if(d)d.style.borderColor='#555'; var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) biblioReadFile(f); }
+function biblioReadFile(file){
+  var info=document.getElementById('bib-media-info');
+  var isImg=/^image\//.test(file.type), isPdf=/pdf/i.test(file.type)||/\.pdf$/i.test(file.name);
+  if(info) info.textContent='Chargement…';
+  var rd=new FileReader();
+  rd.onload=function(){
+    var data=rd.result;
+    if(isImg){ var img=new Image(); img.onload=function(){ var max=1600,w=img.width,h=img.height; if(w>max||h>max){ if(w>=h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;} } var cv=document.createElement('canvas');cv.width=w;cv.height=h; try{cv.getContext('2d').drawImage(img,0,0,w,h);data=cv.toDataURL('image/jpeg',0.85);}catch(_){} _bibMedia={data:data,name:file.name,kind:'image'}; if(info)info.textContent='🖼️ '+file.name+' ✓'; }; img.onerror=function(){ _bibMedia={data:data,name:file.name,kind:'image'}; if(info)info.textContent='🖼️ '+file.name; }; img.src=data; }
+    else { _bibMedia={data:data,name:file.name,kind:isPdf?'pdf':'file'}; if(info) info.textContent=(isPdf?'📄 ':'📎 ')+file.name+' ✓'; }
+  };
+  rd.readAsDataURL(file);
+}
+async function biblioDeposer(){
+  var lib=_bibAdmin.lib, L=getBiblio()[lib];
+  var dossier=(document.getElementById('bib-dossier')||{}).value;
+  var titre=((document.getElementById('bib-titre')||{}).value||'').trim();
+  var restos=Array.prototype.map.call(document.querySelectorAll('.bib-resto-chk:checked'),function(c){return c.value;});
+  var annonce=!!(document.getElementById('bib-annonce')||{}).checked;
+  if(!dossier){ try{toast('Choisis un dossier.','error');}catch(_){} return; }
+  if(!_bibMedia){ try{toast('Ajoute un PDF ou une photo.','error');}catch(_){} return; }
+  var _Ln=(BIBLIO_LIBS[lib]&&BIBLIO_LIBS[lib].nom)||lib;
+  var _Dn=((L.dossiers.find(function(x){return x.id===dossier;})||{}).nom)||'Divers';
+  var up=await _actuUploadMedia(_bibMedia, 'Bibliotheque/'+_dbxSafe(_Ln)+'/'+_dbxSafe(_Dn)); // Dropbox rangé par dossier
+  var doc={ id:'doc_'+Date.now(), dossier:dossier, titre:titre||_bibMedia.name, name:_bibMedia.name, kind:_bibMedia.kind, restos:restos, createdAt:new Date().toISOString(), by:(curUser&&curUser.name)||'' };
+  doc.link = (up&&up.mediaLink) ? up.mediaLink : ((up&&up.mediaData)||_bibMedia.data);
+  if(up&&up.mediaPath) doc.path=up.mediaPath;
+  L.docs.unshift(doc);
+  await saveBiblio();
+  // Annonce dans le fil d'actualité (canal écran = tout le monde), pointant vers le document.
+  if(annonce){
+    try{
+      var arr=getAllActus().slice();
+      arr.unshift({ id:'act_'+Date.now(), titre:'📄 '+(doc.titre), texte:'Nouveau document — '+(BIBLIO_LIBS[lib]?BIBLIO_LIBS[lib].nom:lib)+' › '+((L.dossiers.find(function(x){return x.id===dossier;})||{}).nom||''), color:'#D62300', from:'', to:'', canal:'ecran', restos:restos, roles:[], mediaLink:doc.link, mediaName:doc.name, mediaKind:doc.kind, createdAt:new Date().toISOString(), createdBy:(curUser&&curUser.name)||'' });
+      await saveAllActus(arr);
+    }catch(e){ console.warn('annonce actu',e); }
+  }
+  _bibMedia=null;
+  try{toast('Document déposé ✔'+(annonce?' + annoncé dans l\'actu':''),'success');}catch(_){}
+  _biblioAdminRender();
+}
+async function biblioSupprDoc(id){
+  var L=getBiblio()[_bibAdmin.lib];
+  if(!confirm('Supprimer ce document ?')) return;
+  L.docs=(L.docs||[]).filter(function(x){return x.id!==id;});
+  await saveBiblio(); _biblioDocList();
+}
+window.renderBiblioParam=renderBiblioParam; window._bibSetLib=_bibSetLib; window.biblioAjouterDossier=biblioAjouterDossier;
+window.biblioRenommerDossier=biblioRenommerDossier; window.biblioSupprDossier=biblioSupprDossier; window.biblioFilePick=biblioFilePick;
+window.biblioDrop=biblioDrop; window.biblioDeposer=biblioDeposer; window.biblioSupprDoc=biblioSupprDoc;
 function dashRestoList(){
   try{return Object.keys(RESTOS).map(function(k){return {id:k,label:RESTOS[k].label};});}
   catch(e){return [{id:'bk500',label:'BK 500'},{id:'bk509',label:'BK 509'},{id:'bk526',label:'BK 526'}];}
@@ -14168,6 +14446,8 @@ function dashPreviewTile(kind){
   if(kind==='planningjour'){ try{ dashOpenPlanningJour(); }catch(err){console.warn(err);} return; }
   if(kind==='actu'){ _eqSel=e; _eqResto=e.restoId||e.resto_id||null; _eqKiosk=false; _eqCodeCtx='admin'; var ova=document.getElementById('equipier-portail'); if(!ova){ ova=document.createElement('div'); ova.id='equipier-portail'; document.body.appendChild(ova); } ova.style.display='block'; try{ eqOpenActu(); }catch(err){console.warn(err);} return; }
   if(kind==='msg'){ try{ msgOpenOverlay(e); }catch(err){console.warn(err);} return; }
+  if(kind==='produits'){ try{ biblioOpen('produits', DASH_RESTO); }catch(err){console.warn(err);} return; }
+  if(kind==='marchandise'){ try{ biblioOpen('marchandise', DASH_RESTO); }catch(err){console.warn(err);} return; }
 }
 window.dashPreviewTile=dashPreviewTile;
 // Écran télé : « Changer mon code » → on choisit le salarié (comme Mes horaires),
@@ -14301,6 +14581,8 @@ function telPreviewTile(kind){
     var em=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
     try{ msgOpenOverlay(em); }catch(err){console.warn(err);}
   }
+  else if(kind==='produits'){ try{ biblioOpen('produits', resto); }catch(err){console.warn(err);} }
+  else if(kind==='marchandise'){ try{ biblioOpen('marchandise', resto); }catch(err){console.warn(err);} }
   else { _dashDemType=kind; try{dashDemOpen(empId,true);}catch(e){console.warn(e);} var o2=document.getElementById('dash-dem-ov'); if(o2)o2.style.zIndex='11800'; }
 }
 // Aperçu : « Changer mon code » ouvre le formulaire (ancien → nouveau) pour le
@@ -14494,6 +14776,8 @@ function eqOpenTile(kind){
   else if(kind==='indispo'){ _dashDemType='indispo'; try{ dashDemOpen(e.id, true); }catch(err){console.warn(err);} var o3=document.getElementById('dash-dem-ov'); if(o3)o3.style.zIndex='12000'; }
   else if(kind==='actu'){ eqOpenActu(); }
   else if(kind==='msg'){ try{ msgOpenOverlay(e); }catch(err){console.warn(err);} }
+  else if(kind==='produits'){ try{ biblioOpen('produits', e.restoId||e.resto_id); }catch(err){console.warn(err);} }
+  else if(kind==='marchandise'){ try{ biblioOpen('marchandise', e.restoId||e.resto_id); }catch(err){console.warn(err);} }
 }
 // Fil d'actualité dans le portail salarié (téléphone), lecture seule.
 function eqOpenActu(){
