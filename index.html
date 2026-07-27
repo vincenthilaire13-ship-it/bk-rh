@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-27 · v428';
+  var EMBEDDED_VERSION = '2026-07-27 · v434';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -3470,7 +3470,8 @@ var PARAM_TILES=[
   {ico:'🩺', titre:'Visite médicale',sub:'Délais et rappels',            type:'card', card:'pc-visite',      accent:'#c0392b'},
   {ico:'📍', titre:'Pointer',       sub:'Messages du pointage',         type:'card', card:'pc-pointer',     accent:'#D62300'},
   {ico:'💬', titre:'Messagerie',    sub:'Qui peut écrire à qui',        type:'card', card:'pc-messagerie', accent:'#7e57c2'},
-  {ico:'📚', titre:'Documents',     sub:'Nouveaux produits & Marchandises', type:'card', card:'pc-biblio',   accent:'#8e6a00'},
+  {ico:'🍔', titre:'Nouveaux produits', sub:'Dossiers & fichiers (LTO, On The Grill…)', type:'card', card:'pc-biblio', id:'pc-biblio-produits', fn:"paramBiblio('produits')", accent:'#D62300'},
+  {ico:'📦', titre:'Marchandises',  sub:'Dossiers & fichiers (références…)', type:'card', card:'pc-biblio', id:'pc-biblio-march', fn:"paramBiblio('marchandise')", accent:'#8e6a00'},
   {ico:'📊', titre:'État / Consommation', sub:'Base, fichiers, usage',   type:'card', card:'pc-conso',       accent:'#16a085'},
   {ico:'👁️', titre:'Aperçu fiche',  sub:'Vue candidat',                 type:'card', card:'rec-apercu-card',accent:'#7f8c8d'},
   {ico:'📧', titre:'Adresses mail', sub:'Expédition RH',                type:'card', card:'pc-adresses',    accent:'#2c3e50'},
@@ -3485,13 +3486,14 @@ function renderParamTiles(){
   // cacher toutes les cartes + bouton retour éventuel
   document.querySelectorAll('#page-parametres .param-card').forEach(function(c){ c.style.display='none'; });
   var back=document.getElementById('param-back'); if(back) back.remove();
-  var meta=PARAM_TILES.map(function(t){return {id:(t.card||t.page), ico:t.ico, titre:t.titre, sub:t.sub};});
+  var meta=PARAM_TILES.map(function(t){return {id:(t.id||t.card||t.page), ico:t.ico, titre:t.titre, sub:t.sub};});
   var grid='<div class="bk-tiles-grid">';
   PARAM_TILES.forEach(function(t,i){
-    var tid=t.card||t.page;
+    var tid=t.id||t.card||t.page;
     if(!visTuileVisible('parametres',tid)) return;
     var arg=t.type==='card'?("'card','"+t.card+"'"):("'page','"+t.page+"'");
-    grid+='<div class="dash-tile" onclick="paramOuvrir('+arg+')" style="position:relative;'+visDim('parametres',tid)+'">'
+    var oc=t.fn?t.fn:('paramOuvrir('+arg+')');
+    grid+='<div class="dash-tile" onclick="'+oc+'" style="position:relative;'+visDim('parametres',tid)+'">'
       +'<div class="dt-accent" style="background:'+t.accent+';"></div>'
       +'<div class="dt-em">'+t.ico+'</div>'
       +'<div><div class="dt-tt">'+t.titre+'</div><div class="dt-ds">'+t.sub+'</div></div>'
@@ -3531,6 +3533,8 @@ function paramOuvrir(type, ref){
     } else { card.parentElement.insertBefore(back, card); back.style.display='inline-block'; }
   }
 }
+function paramBiblio(lib){ try{ if(typeof _bibAdmin!=='undefined') _bibAdmin.lib=lib||'produits'; }catch(_){} paramOuvrir('card','pc-biblio'); }
+window.paramBiblio=paramBiblio;
 window.renderParamTiles=renderParamTiles; window.paramOuvrir=paramOuvrir;
 // ── État / Consommation ──
 function _consoFmt(b){ b=+b||0; if(b>=1e9) return (b/1e9).toFixed(2)+' Go'; if(b>=1e6) return (b/1e6).toFixed(1)+' Mo'; if(b>=1e3) return (b/1e3).toFixed(0)+' Ko'; return b+' o'; }
@@ -4440,6 +4444,8 @@ var RPT_TILES=[
   {id:'sejour', em:'🛂', tt:'Titre de séjour', ds:'Suivi titres + documents', color:'#8e44ad'},
   {id:'incidents', em:'⚠️', tt:'Incidents',       ds:'Suivi disciplinaire', color:'#D62300'},
   {id:'turnover',  em:'🔄', tt:'Entrées / Sorties', ds:'Turnover par mois et par an', color:'#c2185b'},
+  {id:'biblio_produits', em:'🍔', tt:'Nouveaux produits', ds:'LTO, On The Grill… archivés par dossier', color:'#D62300'},
+  {id:'biblio_march',    em:'📦', tt:'Marchandises',      ds:'Références, fournisseurs… archivés', color:'#8e6a00'},
 ];
 var _rptCurrent=null;
 function renderRptTiles(){
@@ -4454,6 +4460,11 @@ function renderRptTiles(){
   pick.innerHTML=visLayout('rapports', meta, grid, 'Rapports');
 }
 function rptOpen(type){
+  if(type==='biblio_produits' || type==='biblio_march'){
+    var rb=(curUser.role==='franchise')?((typeof rptTab!=='undefined'&&rptTab!=='all')?rptTab:'all'):curUser.restoId;
+    try{ biblioOpen(type==='biblio_produits'?'produits':'marchandise', rb); }catch(e){ console.warn('biblio rapport',e); }
+    return;
+  }
   if(type==='suivipointage'){
     // ouvrir le véritable écran « Suivi pointage », filtré sur le resto du rapport
     var resto=(curUser.role==='franchise')?(rptTab==='all'?null:rptTab):curUser.restoId;
@@ -13559,8 +13570,11 @@ function actuItemHtml(a){
   var media='';
   var src=a.mediaData||a.mediaLink||'';
   if(src){
-    if(a.mediaKind==='image'){ media='<div class="ai-media"><img class="ai-img" src="'+src+'" alt=""></div>'; }
-    else if(a.mediaKind==='pdf'){ media='<a class="ai-pdf" href="'+src+'" target="_blank" rel="noopener">📄 '+_actuEsc(a.mediaName||'Document PDF')+'</a>'; }
+    if(a.mediaKind==='image'){ media='<div class="ai-media"><img class="ai-img" src="'+_actuEsc(src)+'" alt="" style="cursor:pointer;" data-pdf="'+_actuEsc(src)+'" onclick="actuVoirPdf(this.getAttribute(\'data-pdf\'))"></div>'; }
+    else if(a.mediaKind==='pdf'){
+      if(a.mediaThumb){ media='<div class="ai-media"><img class="ai-img" src="'+_actuEsc(a.mediaThumb)+'" alt="" style="cursor:pointer;border:1px solid #333;" data-pdf="'+_actuEsc(src)+'" onclick="actuVoirPdf(this.getAttribute(\'data-pdf\'))"><div style="text-align:center;margin-top:6px;"><span data-pdf="'+_actuEsc(src)+'" onclick="actuVoirPdf(this.getAttribute(\'data-pdf\'))" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;background:#0e0e0e;border:1px solid #3a3a3a;border-radius:8px;padding:6px 12px;color:#8fc3f5;font-size:.82rem;font-weight:600;">👁️ Voir le document</span></div></div>'; }
+      else { media='<a class="ai-pdf" href="'+src+'" target="_blank" rel="noopener">👁️ Voir le document '+_actuEsc(a.mediaName||'PDF')+'</a>'; }
+    }
     else { media='<a class="ai-pdf" href="'+src+'" target="_blank" rel="noopener">📎 '+_actuEsc(a.mediaName||'Document')+'</a>'; }
   }
   var d=a.createdAt?new Date(a.createdAt):null;
@@ -13614,7 +13628,8 @@ function renderActuAdmin(){
   var box=document.getElementById('actu-admin'); if(!box) return;
   var resto=_actuResto(); window.__actuResto=resto;
   var couleurs=[['#F5A623','Orange'],['#D62300','Rouge'],['#1E8E3E','Vert'],['#1565c0','Bleu'],['#8e44ad','Violet'],['#546e7a','Gris']];
-  _actuMedia=null; _actuColor='#F5A623'; _actuCanalSel='ecran';
+  _actuMedia=null; _actuColor='#F5A623'; _actuCanalSel='ecran'; window.__actuIsOTG=false; window.__actuAutoTitre='';
+  try{ _biblioEnsureNouveautes(); }catch(_){}
   var restoChecks=Object.keys(RESTOS).map(function(rid){
     var on=(rid===resto);
     return '<label style="display:inline-flex;align-items:center;gap:6px;background:#0e0e0e;border:1px solid #444;border-radius:9px;padding:7px 11px;cursor:pointer;font-size:.85rem;color:#eee;">'
@@ -13691,32 +13706,160 @@ function _actuDragOver(e){ e.preventDefault(); var d=document.getElementById('ac
 function _actuDragLeave(e){ e.preventDefault(); var d=document.getElementById('actu-drop'); if(d)d.style.borderColor='#555'; }
 function _actuDrop(e){ e.preventDefault(); _actuDragLeave(e); var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f)_actuReadFile(f); }
 function _actuFilePick(e){ var f=e.target.files&&e.target.files[0]; if(f)_actuReadFile(f); }
-// Détection auto d'un « On The Grill » d'après le nom du fichier : remplit le titre
-// (N° + semaine) et propose le dossier « On The Grill » dans Nouveaux produits.
-function _actuDetectOTG(name){
+// ── Détection automatique « On The Grill » (numéro + semaine) ──
+// D'abord depuis le NOM du fichier ; sinon en lisant le CONTENU du PDF (pdf.js).
+var _pdfjsLoading=null;
+function _loadPdfJs(){
+  if(window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if(_pdfjsLoading) return _pdfjsLoading;
+  _pdfjsLoading=new Promise(function(res,rej){
+    var s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload=function(){ try{ if(window.pdfjsLib){ window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; res(window.pdfjsLib);} else rej(new Error('pdfjs')); }catch(e){rej(e);} };
+    s.onerror=function(){ rej(new Error('pdfjs load')); };
+    document.head.appendChild(s);
+  });
+  return _pdfjsLoading;
+}
+async function _pdfTexte(dataUrl){
+  var lib=await _loadPdfJs();
+  var b64=dataUrl.split(',')[1]; var bin=atob(b64); var a=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);
+  var pdf=await lib.getDocument({data:a}).promise;
+  var txt=''; var n=Math.min(pdf.numPages,2);
+  for(var p=1;p<=n;p++){ var pg=await pdf.getPage(p); var c=await pg.getTextContent(); txt+=' '+c.items.map(function(it){return it.str;}).join(' '); }
+  return txt;
+}
+// Génère un aperçu (image JPEG) de la 1re page d'un PDF, pour l'afficher dans le fil.
+async function _pdfThumb(dataUrl){
+  var lib=await _loadPdfJs();
+  var b64=dataUrl.split(',')[1]; var bin=atob(b64); var a=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);
+  var pdf=await lib.getDocument({data:a}).promise;
+  var page=await pdf.getPage(1);
+  var vp=page.getViewport({scale:1});
+  var scale=Math.min(2.2, 1000/(vp.width||1000));
+  var v2=page.getViewport({scale:scale});
+  var cv=document.createElement('canvas'); cv.width=Math.round(v2.width); cv.height=Math.round(v2.height);
+  await page.render({canvasContext:cv.getContext('2d'), viewport:v2}).promise;
+  return cv.toDataURL('image/jpeg',0.82);
+}
+// Ouvre un PDF (lien Dropbox) en plein écran.
+function actuVoirPdf(link){
+  if(!link) return;
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:13000;display:flex;flex-direction:column;padding:12px;font-family:Barlow,sans-serif;';
+  ov.innerHTML='<div style="text-align:right;margin-bottom:6px;"><a href="'+link+'" target="_blank" rel="noopener" style="color:#8fc3f5;margin-right:18px;font-size:.9rem;">Ouvrir ↗</a><button style="background:none;border:none;color:#fff;font-size:1.8rem;cursor:pointer;line-height:1;">×</button></div>'
+    +'<iframe src="'+link+'" style="flex:1;width:100%;border:none;background:#fff;border-radius:8px;"></iframe>';
+  ov.querySelector('button').onclick=function(){ ov.remove(); };
+  document.body.appendChild(ov);
+}
+window.actuVoirPdf=actuVoirPdf;
+// Reconnaît un OTG dans un texte : renvoie {num, semaine} ou null.
+function _otgFromText(txt){
+  if(!txt) return null;
+  var mn=txt.match(/#\s*(\d{2,4})/) || txt.match(/n\s*[°ºo]\s*(\d{2,4})/i);
+  var ms=txt.match(/semaine\s+du\s+(\d{1,2})\s+([a-zàâäéèêëîïôöùûüç]{3,})/i);
+  if(!mn || !ms) return null;
+  var an=''; var my=txt.match(/\b(20\d\d)\b/); if(my) an=' '+my[1];
+  return { num:mn[1], semaine:ms[1]+' '+ms[2]+an };
+}
+function _otgFromName(name){
+  var m=String(name||'').match(/on\s*the\s*grill\s*n\s*[°ºo:]*\s*(\d+)/i); if(!m) return null;
+  var sem=''; var dm=String(name).match(/(\d{1,2})[.\-\/](\d{1,2})[.\-\/](\d{2,4})/);
+  if(dm){ var dd=+dm[1],mm=+dm[2],yy=+dm[3]; if(yy<100)yy+=2000; var MN=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre']; if(mm>=1&&mm<=12) sem=dd+' '+MN[mm-1]+' '+yy; }
+  return { num:m[1], semaine:sem };
+}
+// Applique la détection OTG au formulaire (titre + tous restos + écran + rangement).
+function _setActuTitre(v){ var t=document.getElementById('actu-titre'); if(!t) return; var cur=(t.value||'').trim(); if(!cur || cur===window.__actuAutoTitre || /^(on the grill|lto)\b/i.test(cur)){ t.value=v; window.__actuAutoTitre=v; } }
+function _titreFromName(name){ return String(name||'').replace(/\.[a-z0-9]+$/i,'').replace(/\bbook(\s*de\s*lancement)?\b/ig,'').replace(/[_\-–—]+/g,' ').replace(/\s+/g,' ').trim(); }
+function _docNom(name, text){
+  var mc=(text||'').match(/book\s+de\s+lancement\s+([a-z0-9àâäéèêëîïôöùûüç' ]{2,40}?)\s*(?:du\b|\d{1,2}\s|\(|$)/i);
+  if(mc && mc[1].trim()) return mc[1].trim();
+  return _titreFromName(name);
+}
+function _actuApplyOTG(otg){
+  if(!otg) return;
+  window.__actuIsOTG=true;
+  _setActuTitre('On The Grill N°'+otg.num+(otg.semaine?(' — semaine du '+otg.semaine):''));
+  try{ Array.prototype.forEach.call(document.querySelectorAll('.actu-resto-chk'),function(c){c.checked=true;}); }catch(_){}   // tous les restaurants
+  try{ _actuSetCanal('ecran'); }catch(_){}   // écran = TV + tous les téléphones
+  var libSel=document.getElementById('actu-bib-lib');
+  if(libSel){ libSel.value='produits'; try{ _actuBibLibChange(); }catch(_){}
+    var L=getBiblio().produits; var dos=(L.dossiers||[]).find(function(d){return /on\s*the\s*grill/i.test(d.nom);});
+    if(dos){ var ds=document.getElementById('actu-bib-dossier'); if(ds) ds.value=dos.id; }
+  }
+  var info=document.getElementById('actu-media-info'); if(info) info.textContent='📄 On The Grill N°'+otg.num+' reconnu — tout rempli, tu peux publier ✓';
+}
+function _actuDetectOTG(name){ var o=_otgFromName(name); if(o) _actuApplyOTG(o); return !!o; }
+// ── Détection LTO (numéro + nom + période) ──
+function _ltoFromName(name){
+  var fn=String(name||''); var mn=fn.match(/\blto\s*(\d+)\s*(bis|ter)?/i); if(!mn) return null;
+  var num=mn[1]+(mn[2]?(' '+mn[2].toLowerCase()):'');
+  var base=fn.replace(/\.[a-z0-9]+$/i,'');
+  var after=base.match(/lto\s*\d+\s*(?:bis|ter)?\s*(.+)$/i);
+  var nom=after?after[1].replace(/\bbook(\s*de\s*lancement)?\b/ig,'').replace(/[_\-]+/g,' ').replace(/\s+/g,' ').trim():'';
+  return { num:num, nom:nom };
+}
+function _ltoNumFromText(txt){ var m=(txt||'').match(/\blto\s*(\d+)\s*(bis|ter)?/i); return m?(m[1]+(m[2]?(' '+m[2].toLowerCase()):'')):null; }
+function _periodeFromText(txt){ var m=(txt||'').match(/du\s+(\d{1,2}\s+[a-zàâäéèêëîïôöùûüç]{3,})\s+au\s+(\d{1,2}\s+[a-zàâäéèêëîïôöùûüç]{3,}(?:\s+\d{4})?)/i); return m?('du '+m[1]+' au '+m[2]):''; }
+function _actuApplyLTO(num, nom, periode){
+  window.__actuIsOTG=false; // les LTO ne se remplacent pas dans le fil (plusieurs peuvent coexister)
+  _setActuTitre('LTO '+num+(nom?(' — '+nom):'')+(periode?(' ('+periode+')'):''));
+  try{ Array.prototype.forEach.call(document.querySelectorAll('.actu-resto-chk'),function(c){c.checked=true;}); }catch(_){}
+  try{ _actuSetCanal('ecran'); }catch(_){}
+  var libSel=document.getElementById('actu-bib-lib');
+  if(libSel){ libSel.value='produits'; try{_actuBibLibChange();}catch(_){}
+    var L=getBiblio().produits; var dos=(L.dossiers||[]).find(function(d){return /\blto\b/i.test(d.nom);});
+    if(dos){ var ds=document.getElementById('actu-bib-dossier'); if(ds) ds.value=dos.id; }
+  }
+  var info=document.getElementById('actu-media-info'); if(info) info.textContent='📄 LTO '+num+' reconnu — tout rempli, tu peux publier ✓';
+}
+// Rangement automatique par mot-clé de dossier (nom + contenu du fichier).
+function _actuAutoRoute(name, text){
   try{
-    var m=String(name||'').match(/on\s*the\s*grill\s*n\s*[°ºo:]*\s*(\d+)/i);
-    if(!m) return;
-    var num=m[1];
-    var sem='';
-    var dm=String(name).match(/(\d{1,2})[.\-\/](\d{1,2})[.\-\/](\d{2,4})/);
-    if(dm){ var dd=+dm[1], mm=+dm[2], yy=+dm[3]; if(yy<100) yy+=2000; var MN=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre']; if(mm>=1&&mm<=12) sem=' — semaine du '+dd+' '+MN[mm-1]+' '+yy; }
-    var t=document.getElementById('actu-titre'); if(t && !t.value.trim()) t.value='On The Grill N°'+num+sem;
-    var libSel=document.getElementById('actu-bib-lib');
-    if(libSel){ libSel.value='produits'; try{ _actuBibLibChange(); }catch(_){}
-      var L=getBiblio().produits; var dos=(L.dossiers||[]).find(function(d){return /on\s*the\s*grill/i.test(d.nom);});
-      if(dos){ var ds=document.getElementById('actu-bib-dossier'); if(ds) ds.value=dos.id; }
+    var hay=((name||'')+' '+(text||'')).toLowerCase();
+    var B=getBiblio(); var libs=['produits','marchandise'];
+    for(var li=0;li<libs.length;li++){ var lib=libs[li]; var L=B[lib]; if(!L) continue;
+      for(var i=0;i<(L.dossiers||[]).length;i++){ var d=L.dossiers[i]; var kw=((d.motcle||'').trim()).toLowerCase(); if(!kw) continue;
+        if(hay.indexOf(kw)>=0){
+          var libSel=document.getElementById('actu-bib-lib'); if(libSel){ libSel.value=lib; try{_actuBibLibChange();}catch(_){} var ds=document.getElementById('actu-bib-dossier'); if(ds) ds.value=d.id; }
+          // Titre auto (nom + période) + diffusion large pour les Nouveaux produits.
+          var isBook=/book\s*de\s*lancement/i.test(((text||'')+' '+(name||'')));
+          var nom=_docNom(name,text); var per=_periodeFromText(text)||_periodeFromText(name);
+          var titre=(isBook?('Book de lancement — '+nom):(nom||d.nom))+(per?(' ('+per+')'):'');
+          _setActuTitre(titre);
+          if(lib==='produits'){ try{ Array.prototype.forEach.call(document.querySelectorAll('.actu-resto-chk'),function(c){c.checked=true;}); }catch(_){} try{ _actuSetCanal('ecran'); }catch(_){} }
+          var info=document.getElementById('actu-media-info'); if(info) info.textContent='📄 Rangé automatiquement dans '+((BIBLIO_LIBS[lib]&&BIBLIO_LIBS[lib].nom)||lib)+' › '+d.nom+' ✓';
+          return true;
+        }
+      }
     }
   }catch(_){}
+  return false;
 }
 function _actuReadFile(file){
   var info=document.getElementById('actu-media-info');
   var isImg=/^image\//.test(file.type), isPdf=/pdf/i.test(file.type)||/\.pdf$/i.test(file.name);
   if(info) info.textContent='Chargement…';
-  try{ _actuDetectOTG(file.name); }catch(_){}
+  window.__actuIsOTG=false;
+  // Reconnaissance rapide par le NOM du fichier (OTG puis LTO), utile aussi pour les images.
+  var _named=false; var _lto0=null;
+  try{ if(_actuDetectOTG(file.name)) _named=true; }catch(_){}
+  if(!_named){ _lto0=_ltoFromName(file.name); if(_lto0){ _actuApplyLTO(_lto0.num,_lto0.nom,''); _named=true; } }
+  if(!_named){ try{ _actuAutoRoute(file.name,''); }catch(_){} }   // routage par mot-clé (nom)
   var rd=new FileReader();
   rd.onload=function(){
     var data=rd.result;
+    // On lit le CONTENU du PDF pour enrichir (numéro, semaine/période) ou reconnaître.
+    if(isPdf){
+      try{ if(info && !_named) info.textContent='📄 Lecture du document…';
+        _pdfTexte(data).then(function(txt){
+          var o=_otgFromText(txt); if(o){ _actuApplyOTG(o); return; }
+          var lnum=_ltoNumFromText(txt);
+          if(_lto0 || lnum){ var num=(_lto0&&_lto0.num)||lnum; var nom=(_lto0&&_lto0.nom)||''; var per=_periodeFromText(txt); _actuApplyLTO(num,nom,per); return; }
+          if(!_named){ if(!_actuAutoRoute(file.name,txt) && info) info.textContent='📄 '+file.name+' ajouté ✓'; }
+        }).catch(function(){ if(info && !_named) info.textContent='📄 '+file.name+' ajouté ✓'; });
+      }catch(_){}
+    }
     if(isImg){
       var img=new Image();
       img.onload=function(){
@@ -13777,15 +13920,26 @@ async function actuPublier(){
   if(_actuMedia){
     var up=await _actuUploadMedia(_actuMedia, upFolder);   // Dropbox (rangé par dossier) sinon base64
     if(up){ if(up.mediaLink){ post.mediaLink=up.mediaLink; if(up.mediaPath) post.mediaPath=up.mediaPath; } if(up.mediaData){ post.mediaData=up.mediaData; } post.mediaName=up.mediaName; post.mediaKind=up.mediaKind; }
+    // Aperçu (1re page) pour les PDF → image affichée dans le fil, stockée sur Dropbox.
+    if(_actuMedia.kind==='pdf'){
+      try{ var thumb=await _pdfThumb(_actuMedia.data);
+        if(thumb){ var upt=await _actuUploadMedia({data:thumb,name:(_actuMedia.name||'doc')+'.apercu.jpg',kind:'image'}, upFolder); post.mediaThumb=(upt&&upt.mediaLink)||thumb; }
+      }catch(_t){}
+    }
   }
-  var arr=getAllActus().slice(); arr.unshift(post);
+  // On The Grill : on ne garde qu'UN seul OTG dans le fil (le nouveau remplace l'ancien).
+  // Les anciens restent rangés dans la bibliothèque et sur Dropbox — juste retirés du fil.
+  var isOTG = !!window.__actuIsOTG || /^on the grill/i.test(titre);
+  var arr=getAllActus().slice();
+  if(isOTG){ arr=arr.filter(function(a){ return !a.otg; }); post.otg=true; }
+  arr.unshift(post);
   await saveAllActus(arr);
   // Ranger aussi le document dans une bibliothèque (Nouveaux produits / Marchandises) si demandé.
   var _rangé=false;
   if(bibLib && bibDos && (post.mediaLink||post.mediaData)){
     try{
       var L=getBiblio()[bibLib];
-      L.docs.unshift({ id:'doc_'+Date.now(), dossier:bibDos, titre:titre||post.mediaName||'Document', name:post.mediaName||'', kind:post.mediaKind||'file', link:(post.mediaLink||post.mediaData), path:post.mediaPath||'', restos:restos, createdAt:new Date().toISOString(), by:(curUser&&curUser.name)||'' });
+      L.docs.unshift({ id:'doc_'+Date.now(), dossier:bibDos, titre:titre||post.mediaName||'Document', name:post.mediaName||'', kind:post.mediaKind||'file', link:(post.mediaLink||post.mediaData), thumb:post.mediaThumb||'', path:post.mediaPath||'', restos:restos, createdAt:new Date().toISOString(), by:(curUser&&curUser.name)||'' });
       await saveBiblio(); _rangé=true;
     }catch(e){ console.warn('rangement biblio',e); }
   }
@@ -14071,9 +14225,19 @@ window.msgPageInit=msgPageInit; window.msgOpenOverlay=msgOpenOverlay; window.msg
 var BIBLIO=null;
 var BIBLIO_LIBS={ produits:{nom:'Nouveaux produits', em:'🍔'}, marchandise:{nom:'Marchandises', em:'📦'} };
 function biblioDefaut(){ return {
-  produits:{ dossiers:[{id:'d_lto',nom:'LTO'},{id:'d_otg',nom:'On The Grill'},{id:'d_fiches',nom:'Fiches produit'},{id:'d_proc',nom:'Procédures'}], docs:[] },
+  produits:{ dossiers:[{id:'d_lto',nom:'LTO',motcle:'lto'},{id:'d_otg',nom:'On The Grill',motcle:'on the grill'},{id:'d_nouv',nom:'Nouveautés',motcle:'book de lancement'},{id:'d_fiches',nom:'Fiches produit'},{id:'d_proc',nom:'Procédures'}], docs:[] },
   marchandise:{ dossiers:[{id:'d_ref',nom:'Références produits'},{id:'d_four',nom:'Fournisseurs'},{id:'d_cmd',nom:'Commandes'}], docs:[] }
 }; }
+// Ajoute (une seule fois) le dossier « Nouveautés » aux bibliothèques déjà créées.
+async function _biblioEnsureNouveautes(){
+  try{
+    var B=getBiblio(); if(B._upgrNouv) return;
+    var P=B.produits;
+    if(!(P.dossiers||[]).some(function(d){return /nouveaut/i.test(d.nom);})){ P.dossiers.push({id:'d_nouv',nom:'Nouveautés',motcle:'book de lancement'}); }
+    B._upgrNouv=true; await saveBiblio();
+  }catch(e){}
+}
+window._biblioEnsureNouveautes=_biblioEnsureNouveautes;
 function getBiblio(){
   if(!BIBLIO){ try{var ls=localStorage.getItem('bkrh_biblio'); if(ls) BIBLIO=JSON.parse(ls);}catch(e){} }
   if(!BIBLIO) BIBLIO=biblioDefaut();
@@ -14088,7 +14252,8 @@ async function hrChargerBiblioSupabase(){ try{ if(typeof SB==='undefined'||!SB) 
 window.hrChargerBiblioSupabase=hrChargerBiblioSupabase;
 function _biblioDocsResto(lib, dossierId, resto){
   var L=getBiblio()[lib]; if(!L) return [];
-  return (L.docs||[]).filter(function(d){ if(d.dossier!==dossierId) return false; var rs=d.restos||[]; if(!rs.length) return true; return rs.indexOf((''+(resto||'')).toLowerCase())>=0; })
+  var all=(resto==='all');
+  return (L.docs||[]).filter(function(d){ if(d.dossier!==dossierId) return false; if(all) return true; var rs=d.restos||[]; if(!rs.length) return true; return rs.indexOf((''+(resto||'')).toLowerCase())>=0; })
     .sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'');});
 }
 function _biblioNbDossier(lib, dossierId, resto){ return _biblioDocsResto(lib,dossierId,resto).length; }
@@ -14101,7 +14266,8 @@ function biblioOpen(lib, resto){
   ov.style.cssText='position:fixed;inset:0;background:#0a0a0c;z-index:12000;overflow:auto;padding:18px 14px;font-family:Barlow,sans-serif;';
   ov.innerHTML='<div style="max-width:900px;margin:0 auto;"><div style="text-align:right;margin-bottom:4px;"><button onclick="biblioCloseOv()" style="background:none;border:none;color:#aaa;font-size:1.7rem;cursor:pointer;line-height:1;">×</button></div><div id="biblio-ov-body"></div></div>';
   document.body.appendChild(ov);
-  try{ hrChargerBiblioSupabase().then(biblioRender); }catch(_){}
+  try{ _biblioEnsureNouveautes(); }catch(_){}
+  try{ hrChargerBiblioSupabase().then(function(){ try{_biblioEnsureNouveautes();}catch(_){} biblioRender(); }); }catch(_){}
   biblioRender();
 }
 function biblioCloseOv(){ var ov=document.getElementById('biblio-ov'); if(ov) ov.remove(); }
@@ -14123,7 +14289,9 @@ function biblioRender(){
   var docs=_biblioDocsResto(lib,_bibView.dossier,resto);
   var list=docs.length?docs.map(function(d){
     var ic=(d.kind==='image')?'🖼️':(d.kind==='pdf'?'📄':'📎');
-    return '<div onclick="biblioVoirDoc(\''+d.id+'\')" class="emp-card" style="cursor:pointer;">'
+    var vign=(d.thumb||(d.kind==='image'&&d.link))?('<img src="'+_msgEsc(d.thumb||d.link)+'" style="width:48px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #333;flex-shrink:0;margin-right:10px;">'):'';
+    return '<div onclick="biblioVoirDoc(\''+d.id+'\')" class="emp-card" style="cursor:pointer;align-items:center;">'
+      +vign
       +'<div style="flex:1;min-width:0;"><div style="font-weight:700;">'+ic+' '+_msgEsc(d.titre||d.name||'Document')+'</div>'
       +'<div style="font-size:.72rem;color:#888;margin-top:2px;">'+(d.createdAt?new Date(d.createdAt).toLocaleDateString('fr-FR'):'')+'</div></div>'
       +'<span style="color:#F5A623;font-size:1.2rem;">›</span></div>';
@@ -14157,7 +14325,8 @@ window.dashOpenBiblioProduits=dashOpenBiblioProduits; window.dashOpenBiblioMarch
 var _bibAdmin={lib:'produits'}, _bibMedia=null;
 function renderBiblioParam(){
   var box=document.getElementById('biblio-admin'); if(!box) return;
-  hrChargerBiblioSupabase().then(function(){ if(document.getElementById('biblio-admin')) _biblioAdminRender(); });
+  hrChargerBiblioSupabase().then(function(){ try{_biblioEnsureNouveautes();}catch(_){} if(document.getElementById('biblio-admin')) _biblioAdminRender(); });
+  try{ _biblioEnsureNouveautes(); }catch(_){}
   _biblioAdminRender();
 }
 function _biblioAdminRender(){
@@ -14166,12 +14335,13 @@ function _biblioAdminRender(){
   _bibMedia=null;
   var tabs=Object.keys(BIBLIO_LIBS).map(function(k){ var on=(k===lib); return '<button onclick="_bibSetLib(\''+k+'\')" style="border-radius:9px;padding:8px 14px;cursor:pointer;font-family:inherit;font-size:.9rem;border:1px solid '+(on?'#F5A623':'#444')+';background:'+(on?'#F5A623':'#0e0e0e')+';color:'+(on?'#000':'#eee')+';font-weight:'+(on?'800':'600')+';margin-right:8px;">'+BIBLIO_LIBS[k].em+' '+BIBLIO_LIBS[k].nom+'</button>'; }).join('');
   var dossierOpts=(L.dossiers||[]).map(function(d){return '<option value="'+d.id+'">'+_msgEsc(d.nom)+'</option>';}).join('');
-  var dossierList=(L.dossiers||[]).map(function(d){ var n=(L.docs||[]).filter(function(x){return x.dossier===d.id;}).length; return '<div class="emp-card"><div style="flex:1;">📁 '+_msgEsc(d.nom)+' <span style="color:#888;font-size:.78rem;">· '+n+' doc'+(n>1?'s':'')+'</span></div><button class="btn btn-gray btn-sm" onclick="biblioRenommerDossier(\''+d.id+'\')">✏️</button><button class="btn-danger" onclick="biblioSupprDossier(\''+d.id+'\')" title="Supprimer le dossier">🗑️</button></div>'; }).join('');
+  var dossierList=(L.dossiers||[]).map(function(d){ var n=(L.docs||[]).filter(function(x){return x.dossier===d.id;}).length; var kw=d.motcle?(' · 🏷️ « '+_msgEsc(d.motcle)+' »'):''; return '<div class="emp-card"><div style="flex:1;min-width:0;">📁 '+_msgEsc(d.nom)+' <span style="color:#888;font-size:.78rem;">· '+n+' doc'+(n>1?'s':'')+kw+'</span></div><button class="btn btn-gray btn-sm" onclick="biblioMotcle(\''+d.id+'\')" title="Mot-clé de rangement auto">🏷️</button><button class="btn btn-gray btn-sm" onclick="biblioRenommerDossier(\''+d.id+'\')">✏️</button><button class="btn-danger" onclick="biblioSupprDossier(\''+d.id+'\')" title="Supprimer le dossier">🗑️</button></div>'; }).join('');
   var restoChecks=Object.keys(RESTOS).map(function(rid){ return '<label style="display:inline-flex;align-items:center;gap:6px;background:#0e0e0e;border:1px solid #444;border-radius:9px;padding:7px 11px;cursor:pointer;font-size:.85rem;color:#eee;"><input type="checkbox" class="bib-resto-chk" value="'+rid+'"> '+((RESTOS[rid]&&RESTOS[rid].label)||rid)+'</label>'; }).join('');
   box.innerHTML='<div style="margin-bottom:14px;">'+tabs+'</div>'
     +'<div class="card" style="margin-bottom:14px;"><div class="sec-title" style="margin-bottom:8px;">📁 Dossiers</div>'
       +'<div>'+ (dossierList||'<div style="color:#888;">Aucun dossier.</div>') +'</div>'
-      +'<div style="display:flex;gap:8px;margin-top:10px;"><input id="bib-newdos" placeholder="Nom d\'un nouveau dossier" style="flex:1;background:#0e0e0e;border:1px solid #444;border-radius:9px;color:#fff;padding:9px 12px;font-family:inherit;"><button class="btn btn-gray btn-sm" onclick="biblioAjouterDossier()">➕ Ajouter</button></div></div>'
+      +'<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><input id="bib-newdos" placeholder="Nom d\'un nouveau dossier" style="flex:1;min-width:160px;background:#0e0e0e;border:1px solid #444;border-radius:9px;color:#fff;padding:9px 12px;font-family:inherit;"><input id="bib-newdos-kw" placeholder="Mot-clé auto (optionnel, ex. on the grill)" style="flex:1;min-width:160px;background:#0e0e0e;border:1px solid #444;border-radius:9px;color:#fff;padding:9px 12px;font-family:inherit;"><button class="btn btn-gray btn-sm" onclick="biblioAjouterDossier()">➕ Ajouter</button></div>'
+      +'<p style="font-size:.72rem;color:#888;margin-top:8px;">🏷️ Le <b>mot-clé auto</b> : quand tu déposeras un fichier (dans Actualité) dont le nom ou le contenu contient ce mot, il se rangera tout seul dans ce dossier. Ex. dossier « On The Grill » avec le mot-clé « on the grill ».</p></div>'
     +'<div class="card" style="margin-bottom:14px;"><div class="sec-title" style="margin-bottom:8px;">➕ Déposer un document</div>'
       +'<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;">'
         +'<div style="flex:1;min-width:180px;"><div style="font-size:.72rem;color:#888;margin-bottom:4px;">Dossier</div><select id="bib-dossier" style="width:100%;background:#0e0e0e;border:1px solid #444;border-radius:9px;color:#fff;padding:9px 12px;font-family:inherit;">'+dossierOpts+'</select></div>'
@@ -14204,9 +14374,16 @@ function _biblioDocList(){
 }
 async function biblioAjouterDossier(){
   var nom=((document.getElementById('bib-newdos')||{}).value||'').trim(); if(!nom) return;
-  getBiblio()[_bibAdmin.lib].dossiers.push({id:'d_'+Date.now(), nom:nom});
+  var kw=((document.getElementById('bib-newdos-kw')||{}).value||'').trim();
+  getBiblio()[_bibAdmin.lib].dossiers.push({id:'d_'+Date.now(), nom:nom, motcle:kw});
   await saveBiblio(); _biblioAdminRender();
 }
+async function biblioMotcle(id){
+  var L=getBiblio()[_bibAdmin.lib]; var d=L.dossiers.find(function(x){return x.id===id;}); if(!d) return;
+  var nv=prompt('Mot-clé de rangement automatique pour « '+d.nom+' »\n(quand un fichier déposé contient ce mot, il ira dans ce dossier tout seul. Laisse vide pour désactiver.) :', d.motcle||'');
+  if(nv===null) return; d.motcle=nv.trim(); await saveBiblio(); _biblioAdminRender();
+}
+window.biblioMotcle=biblioMotcle;
 async function biblioRenommerDossier(id){
   var L=getBiblio()[_bibAdmin.lib]; var d=L.dossiers.find(function(x){return x.id===id;}); if(!d) return;
   var nv=prompt('Nouveau nom du dossier :', d.nom); if(nv===null) return; nv=nv.trim(); if(!nv) return;
