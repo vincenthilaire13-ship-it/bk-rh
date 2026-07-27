@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-27 · v434';
+  var EMBEDDED_VERSION = '2026-07-27 · v436';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -339,13 +339,13 @@ body.tv-mode #eye-viewas{display:none!important;}
 /* ── Écran télé coupé en deux : applis à gauche, fil d'actualité à droite ── */
 .dash-split{display:flex;gap:18px;align-items:stretch;}
 .dash-split .dash-grid{flex:1 1 auto;min-width:0;}
-.dash-actu{flex:0 0 48%;max-width:720px;min-width:320px;background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:18px 18px 10px;max-height:82vh;overflow:auto;}
+.dash-actu{flex:0 0 48%;max-width:720px;min-width:320px;background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:18px 18px 10px;max-height:82vh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .dash-actu-h{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.5rem;letter-spacing:1px;color:#F5A623;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;position:sticky;top:-8px;background:#141414;padding:6px 0 8px;z-index:2;}
 .actu-item{background:linear-gradient(155deg,#232323,#191919);border:1px solid #333;border-radius:14px;padding:14px 15px;margin-bottom:12px;border-left:5px solid #F5A623;}
 .actu-item .ai-t{font-weight:800;font-size:1.06rem;color:#fff;margin-bottom:4px;line-height:1.2;}
 .actu-item .ai-x{font-size:.92rem;color:#d5d5d5;line-height:1.45;white-space:pre-wrap;word-break:break-word;}
 .actu-item .ai-media{margin-top:10px;}
-.actu-item img.ai-img{width:100%;border-radius:10px;display:block;}
+.actu-item img.ai-img{width:100%;max-height:52vh;object-fit:contain;border-radius:10px;display:block;background:#0b0b0b;}
 .actu-item .ai-pdf{display:flex;align-items:center;gap:10px;background:#0e0e0e;border:1px solid #3a3a3a;border-radius:10px;padding:11px 13px;color:#8fc3f5;text-decoration:none;font-size:.9rem;margin-top:8px;font-weight:600;}
 .actu-item .ai-pdf:hover{border-color:#8fc3f5;}
 .actu-item .ai-date{font-size:.7rem;color:#888;margin-top:8px;text-transform:capitalize;}
@@ -354,7 +354,8 @@ body.tv-mode #eye-viewas{display:none!important;}
 .tel-tv-body{display:flex;gap:14px;align-items:stretch;}
 .tel-tv-body .tel-tv-grid{flex:1 1 auto;min-width:0;}
 .tel-tv-body .tel-tv-grid{grid-template-columns:repeat(3,1fr);}
-.tel-tv-actu{flex:0 0 48%;max-width:420px;background:#0e0e0e;border:1px solid #2a2a2a;border-radius:8px;padding:12px;overflow:auto;}
+.tel-tv-actu{flex:0 0 48%;max-width:420px;background:#0e0e0e;border:1px solid #2a2a2a;border-radius:8px;padding:12px;max-height:520px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.tel-tv-actu .actu-item img.ai-img{max-height:280px;}
 .tel-tv-actu .dash-actu-h{font-size:1.2rem;top:-12px;background:#0e0e0e;}
 .tel-tv-actu .actu-item{padding:11px 12px;margin-bottom:10px;}
 .tel-tv-actu .actu-item .ai-t{font-size:.96rem;}
@@ -4462,7 +4463,7 @@ function renderRptTiles(){
 function rptOpen(type){
   if(type==='biblio_produits' || type==='biblio_march'){
     var rb=(curUser.role==='franchise')?((typeof rptTab!=='undefined'&&rptTab!=='all')?rptTab:'all'):curUser.restoId;
-    try{ biblioOpen(type==='biblio_produits'?'produits':'marchandise', rb); }catch(e){ console.warn('biblio rapport',e); }
+    try{ biblioOpen(type==='biblio_produits'?'produits':'marchandise', rb, true); }catch(e){ console.warn('biblio rapport',e); }
     return;
   }
   if(type==='suivipointage'){
@@ -13997,7 +13998,7 @@ function dashOpenActu(){
   _dashOpenTile='dashOpenActu';
   var resto=DASH_RESTO||(curUser&&curUser.restoId)||'bk500';
   var body=dashOpenPanel('Actualités'); if(!body) return;
-  function fill(){ body.innerHTML='<div class="dash-actu" style="max-width:640px;margin:0 auto;background:transparent;border:none;padding:0;max-height:none;">'+dashActuFeedHtml(resto)+'</div>'; }
+  function fill(){ body.innerHTML='<div class="dash-actu" style="max-width:640px;margin:0 auto;background:transparent;border:none;padding:0;max-height:80vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">'+dashActuFeedHtml(resto)+'</div>'; }
   fill();
   hrChargerActusSupabase().then(function(){ if(_dashOpenTile==='dashOpenActu') fill(); });
 }
@@ -14258,9 +14259,9 @@ function _biblioDocsResto(lib, dossierId, resto){
 }
 function _biblioNbDossier(lib, dossierId, resto){ return _biblioDocsResto(lib,dossierId,resto).length; }
 // ── Lecteur (écran + téléphone) : overlay dossiers → documents → visualisation ──
-var _bibView={lib:'produits', dossier:null, resto:null};
-function biblioOpen(lib, resto){
-  _bibView={lib:lib||'produits', dossier:null, resto:(resto||DASH_RESTO||(curUser&&curUser.restoId)||'bk500')};
+var _bibView={lib:'produits', dossier:null, resto:null, manage:false};
+function biblioOpen(lib, resto, manage){
+  _bibView={lib:lib||'produits', dossier:null, resto:(resto||DASH_RESTO||(curUser&&curUser.restoId)||'bk500'), manage:!!manage};
   var ov=document.getElementById('biblio-ov'); if(ov) ov.remove();
   ov=document.createElement('div'); ov.id='biblio-ov';
   ov.style.cssText='position:fixed;inset:0;background:#0a0a0c;z-index:12000;overflow:auto;padding:18px 14px;font-family:Barlow,sans-serif;';
@@ -14273,16 +14274,23 @@ function biblioOpen(lib, resto){
 function biblioCloseOv(){ var ov=document.getElementById('biblio-ov'); if(ov) ov.remove(); }
 function biblioRender(){
   var box=document.getElementById('biblio-ov-body'); if(!box) return;
-  var lib=_bibView.lib, resto=_bibView.resto, L=getBiblio()[lib];
+  var lib=_bibView.lib, resto=_bibView.resto, L=getBiblio()[lib], manage=!!_bibView.manage;
   var libLbl=(BIBLIO_LIBS[lib]&&BIBLIO_LIBS[lib].nom)||lib;
   if(!_bibView.dossier){
     var dossiers=(L.dossiers||[]).map(function(d){
       var n=_biblioNbDossier(lib,d.id,resto);
+      var ctrl = manage ? ('<div style="display:flex;gap:6px;margin-top:10px;">'
+          +'<button onclick="event.stopPropagation();biblioMgrRenommer(\''+d.id+'\')" class="btn btn-gray btn-sm" title="Renommer">✏️</button>'
+          +'<button onclick="event.stopPropagation();biblioMgrSupprDossier(\''+d.id+'\')" class="btn-danger" title="Supprimer le dossier">🗑️</button></div>') : '';
       return '<div onclick="biblioOuvrirDossier(\''+d.id+'\')" class="dash-tile" style="cursor:pointer;min-height:110px;">'
-        +'<div class="dt-em">📁</div><div><div class="dt-tt" style="font-size:1.05rem;">'+_msgEsc(d.nom)+'</div><div class="dt-ds">'+n+' document'+(n>1?'s':'')+'</div></div></div>';
+        +'<div class="dt-em">📁</div><div><div class="dt-tt" style="font-size:1.05rem;">'+_msgEsc(d.nom)+'</div><div class="dt-ds">'+n+' document'+(n>1?'s':'')+'</div>'+ctrl+'</div></div>';
     }).join('');
-    box.innerHTML='<div style="font-weight:900;font-size:1.4rem;color:#F5A623;margin-bottom:12px;">'+(BIBLIO_LIBS[lib]?BIBLIO_LIBS[lib].em:'📚')+' '+_msgEsc(libLbl)+'</div>'
-      +(dossiers?('<div class="bk-tiles-grid" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr));">'+dossiers+'</div>'):'<div style="color:#888;padding:16px;">Aucun dossier.</div>');
+    var addBox = manage ? ('<div class="card" style="margin-top:16px;"><div class="sec-title" style="margin-bottom:8px;">➕ Nouveau dossier</div>'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap;"><input id="biblio-newdos" placeholder="Nom du dossier (ex. LTO)" style="flex:1;min-width:160px;background:#0e0e0e;border:1px solid #444;border-radius:9px;color:#fff;padding:9px 12px;font-family:inherit;"><input id="biblio-newdos-kw" placeholder="Mot-clé auto (optionnel)" style="flex:1;min-width:160px;background:#0e0e0e;border:1px solid #444;border-radius:9px;color:#fff;padding:9px 12px;font-family:inherit;"><button class="btn btn-red" onclick="biblioMgrAddDossier()">Créer</button></div>'
+        +'<p style="font-size:.72rem;color:#888;margin-top:8px;">🏷️ Le mot-clé auto range un fichier tout seul dans ce dossier quand tu le déposes dans l\'Actualité (si son nom ou son contenu contient ce mot).</p></div>') : '';
+    box.innerHTML='<div style="font-weight:900;font-size:1.4rem;color:#F5A623;margin-bottom:12px;">'+(BIBLIO_LIBS[lib]?BIBLIO_LIBS[lib].em:'📚')+' '+_msgEsc(libLbl)+(manage?' <span style="font-size:.85rem;color:#888;font-weight:600;">· gestion des dossiers</span>':'')+'</div>'
+      +(dossiers?('<div class="bk-tiles-grid" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr));">'+dossiers+'</div>'):'<div style="color:#888;padding:16px;">Aucun dossier pour l\'instant.</div>')
+      +addBox;
     return;
   }
   var dos=(L.dossiers||[]).find(function(d){return d.id===_bibView.dossier;})||{nom:'?'};
@@ -14290,11 +14298,12 @@ function biblioRender(){
   var list=docs.length?docs.map(function(d){
     var ic=(d.kind==='image')?'🖼️':(d.kind==='pdf'?'📄':'📎');
     var vign=(d.thumb||(d.kind==='image'&&d.link))?('<img src="'+_msgEsc(d.thumb||d.link)+'" style="width:48px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #333;flex-shrink:0;margin-right:10px;">'):'';
+    var del = manage ? ('<button onclick="event.stopPropagation();biblioMgrSupprDoc(\''+d.id+'\')" class="btn-danger" title="Supprimer (aussi de Dropbox)" style="margin-left:8px;">🗑️</button>') : '';
     return '<div onclick="biblioVoirDoc(\''+d.id+'\')" class="emp-card" style="cursor:pointer;align-items:center;">'
       +vign
       +'<div style="flex:1;min-width:0;"><div style="font-weight:700;">'+ic+' '+_msgEsc(d.titre||d.name||'Document')+'</div>'
       +'<div style="font-size:.72rem;color:#888;margin-top:2px;">'+(d.createdAt?new Date(d.createdAt).toLocaleDateString('fr-FR'):'')+'</div></div>'
-      +'<span style="color:#F5A623;font-size:1.2rem;">›</span></div>';
+      +'<span style="color:#F5A623;font-size:1.2rem;">›</span>'+del+'</div>';
   }).join(''):'<div style="color:#888;padding:16px;">Aucun document dans ce dossier.</div>';
   box.innerHTML='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;"><button onclick="biblioRetourDossiers()" class="btn btn-gray btn-sm">← Dossiers</button>'
     +'<div style="font-weight:900;font-size:1.2rem;color:#F5A623;">📁 '+_msgEsc(dos.nom)+'</div></div>'+list;
@@ -14316,6 +14325,43 @@ function biblioVoirDoc(id){
     +'<div style="flex:1;display:flex;overflow:auto;">'+inner+'</div>';
   document.body.appendChild(ov);
 }
+// ── Suppression réelle sur Dropbox (fichier + éventuelle vignette) ──
+async function _biblioDeleteDocDropbox(doc){
+  if(!doc) return;
+  try{ if(doc.path && typeof dbxDelete==='function') await dbxDelete(doc.path); }catch(e){ console.warn('dbx del doc',e); }
+  try{ if(doc.thumbPath && typeof dbxDelete==='function') await dbxDelete(doc.thumbPath); }catch(e){ console.warn('dbx del thumb',e); }
+}
+window._biblioDeleteDocDropbox=_biblioDeleteDocDropbox;
+// ── Gestion des dossiers/documents depuis l'overlay (Rapports) ──
+async function biblioMgrAddDossier(){
+  var inp=document.getElementById('biblio-newdos'); var nom=((inp&&inp.value)||'').trim(); if(!nom){ try{toast('Donne un nom au dossier.','error');}catch(_){} return; }
+  var kw=((document.getElementById('biblio-newdos-kw')||{}).value||'').trim();
+  getBiblio()[_bibView.lib].dossiers.push({id:'d_'+Date.now(), nom:nom, motcle:kw});
+  await saveBiblio(); try{toast('Dossier créé ✔','success');}catch(_){} biblioRender();
+}
+async function biblioMgrRenommer(id){
+  var L=getBiblio()[_bibView.lib]; var d=(L.dossiers||[]).find(function(x){return x.id===id;}); if(!d) return;
+  var nv=prompt('Nouveau nom du dossier :', d.nom); if(nv===null) return; nv=nv.trim(); if(!nv) return;
+  d.nom=nv; await saveBiblio(); biblioRender();
+}
+async function biblioMgrSupprDossier(id){
+  var L=getBiblio()[_bibView.lib];
+  var ds=(L.docs||[]).filter(function(x){return x.dossier===id;});
+  if(!confirm('Supprimer ce dossier'+(ds.length?(' et ses '+ds.length+' document(s)'):'')+' ?'+(ds.length?'\n(les fichiers seront aussi effacés de Dropbox)':''))) return;
+  for(var i=0;i<ds.length;i++){ await _biblioDeleteDocDropbox(ds[i]); }
+  L.dossiers=(L.dossiers||[]).filter(function(x){return x.id!==id;});
+  L.docs=(L.docs||[]).filter(function(x){return x.dossier!==id;});
+  await saveBiblio(); try{toast('Dossier supprimé','success');}catch(_){} biblioRender();
+}
+async function biblioMgrSupprDoc(id){
+  var L=getBiblio()[_bibView.lib]; var d=(L.docs||[]).find(function(x){return x.id===id;});
+  if(!confirm('Supprimer ce document ?\n(le fichier sera aussi effacé de Dropbox)')) return;
+  if(d) await _biblioDeleteDocDropbox(d);
+  L.docs=(L.docs||[]).filter(function(x){return x.id!==id;});
+  await saveBiblio(); try{toast('Document supprimé','success');}catch(_){} biblioRender();
+}
+window.biblioMgrAddDossier=biblioMgrAddDossier; window.biblioMgrRenommer=biblioMgrRenommer;
+window.biblioMgrSupprDossier=biblioMgrSupprDossier; window.biblioMgrSupprDoc=biblioMgrSupprDoc;
 function dashOpenBiblioProduits(){ biblioOpen('produits', DASH_RESTO); }
 function dashOpenBiblioMarch(){ biblioOpen('marchandise', DASH_RESTO); }
 window.biblioOpen=biblioOpen; window.biblioCloseOv=biblioCloseOv; window.biblioOuvrirDossier=biblioOuvrirDossier;
@@ -14391,8 +14437,9 @@ async function biblioRenommerDossier(id){
 }
 async function biblioSupprDossier(id){
   var L=getBiblio()[_bibAdmin.lib];
-  var n=(L.docs||[]).filter(function(x){return x.dossier===id;}).length;
-  if(!confirm('Supprimer ce dossier'+(n?(' et ses '+n+' document(s)'):'')+' ?')) return;
+  var ds=(L.docs||[]).filter(function(x){return x.dossier===id;});
+  if(!confirm('Supprimer ce dossier'+(ds.length?(' et ses '+ds.length+' document(s)'):'')+' ?'+(ds.length?'\n(les fichiers seront aussi effacés de Dropbox)':''))) return;
+  if(typeof _biblioDeleteDocDropbox==='function'){ for(var i=0;i<ds.length;i++){ await _biblioDeleteDocDropbox(ds[i]); } }
   L.dossiers=L.dossiers.filter(function(x){return x.id!==id;});
   L.docs=(L.docs||[]).filter(function(x){return x.dossier!==id;});
   await saveBiblio(); _biblioAdminRender();
@@ -14441,7 +14488,9 @@ async function biblioDeposer(){
 }
 async function biblioSupprDoc(id){
   var L=getBiblio()[_bibAdmin.lib];
-  if(!confirm('Supprimer ce document ?')) return;
+  var d=(L.docs||[]).find(function(x){return x.id===id;});
+  if(!confirm('Supprimer ce document ?\n(le fichier sera aussi effacé de Dropbox)')) return;
+  if(d && typeof _biblioDeleteDocDropbox==='function') await _biblioDeleteDocDropbox(d);
   L.docs=(L.docs||[]).filter(function(x){return x.id!==id;});
   await saveBiblio(); _biblioDocList();
 }
@@ -14961,7 +15010,7 @@ function eqOpenActu(){
   var e=_eqSel; if(!e) return; var ov=document.getElementById('equipier-portail'); if(!ov) return;
   var apercu=(_eqCodeCtx==='admin'); // aperçu admin → on ne marque PAS les lectures
   function fill(){ ov.innerHTML=_eqShell('<button class="eq-lnk" onclick="eqHome()">← Retour</button>'
-    +'<div class="dash-actu" style="background:transparent;border:none;padding:0;max-height:none;margin-top:6px;text-align:left;">'+dashActuFeedHtmlEmp(e)+'</div>'); }
+    +'<div class="dash-actu" style="background:transparent;border:none;padding:0;max-height:72vh;overflow-y:auto;-webkit-overflow-scrolling:touch;margin-top:6px;text-align:left;">'+dashActuFeedHtmlEmp(e)+'</div>'); }
   fill();
   try{ hrChargerActusSupabase().then(function(){ fill(); if(!apercu){ try{ actuMarquerVusEmp(e).then(function(){}); }catch(_2){} } }); }catch(_){ if(!apercu){ try{ actuMarquerVusEmp(e); }catch(_3){} } }
 }
