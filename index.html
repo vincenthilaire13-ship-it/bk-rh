@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-27 · v423';
+  var EMBEDDED_VERSION = '2026-07-27 · v425';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -2409,6 +2409,15 @@ async function saveDB() {
 var _syncBusy=false, _syncQueued=false;
 async function doSoftRefresh(){
   if(!curUser) return;
+  // ÉCRAN RESTAURANT (télé) : rafraîchissement ULTRA-LÉGER — on ne recharge PAS
+  // toute la base à chaque changement (ça consommerait énormément sur une télé
+  // allumée 24h/24). On redessine juste les tuiles + le fil d'actu, et le panneau
+  // ouvert le cas échéant.
+  if(curUser.role==='tv'){
+    try{ if(typeof dashRenderTiles==='function') dashRenderTiles(); }catch(e){}
+    try{ if(typeof dashRefreshOpenPanel==='function') dashRefreshOpenPanel(); }catch(e){}
+    return;
+  }
   if(_syncBusy){ _syncQueued=true; return; }   // évite les rafraîchissements qui se chevauchent
   _syncBusy=true;
   try{
@@ -8788,7 +8797,17 @@ function ptgAction(type){
   ptgSaveAll(ctx.all);
   ptgShowActions();
   ptgRenderList();
+  // Retour automatique à la liste après une arrivée ou un départ (écran partagé :
+  // le salarié suivant peut pointer sans attendre).
+  if(type==='arrivee' || type==='depart'){ _ptgAutoRetour(); }
 }
+// Ferme la modale de pointage après quelques secondes pour libérer l'écran.
+var _ptgRetourTm=null;
+function _ptgAutoRetour(){
+  if(_ptgRetourTm) clearTimeout(_ptgRetourTm);
+  _ptgRetourTm=setTimeout(function(){ try{ closeModal('modal-ptg'); }catch(_){} _ptgSel=null; }, 3500);
+}
+window._ptgAutoRetour=_ptgAutoRetour;
 
 // ─── DÉPART AVEC RAISON (écart net avec le prévu) ────────────────────────────
 var PTG_DEP_RAISONS=['Le manager m\'a demandé de rester','Il y avait du monde / du rush','Je pars plus tôt (accord du manager)','Fin de service anticipée','Autre raison'];
@@ -8834,6 +8853,7 @@ function _ptgDepValider(empId, heure){
   try{ ptgShowActions(); }catch(_){}
   try{ ptgRenderList(); }catch(_){}
   try{ toast('Départ enregistré ✔','success'); }catch(_){}
+  try{ _ptgAutoRetour(); }catch(_){}   // retour auto à la liste
 }
 window._ptgDepValider=_ptgDepValider;
 function ptgHeuresTravaillees(rec){
@@ -14499,11 +14519,19 @@ function dashStartClock(){
 }
 function dashStartAutoRefresh(){
   if(_dashRefreshTm)clearInterval(_dashRefreshTm);
+  var isTV=(curUser && curUser.role==='tv');
+  // TV (écran restaurant, allumé en continu) : refresh LÉGER toutes les 5 min (juste
+  // le fil d'actu + panneau ouvert). Admin/back-office : refresh complet toutes les 3 min.
   _dashRefreshTm=setInterval(function(){
     var pg=document.getElementById('page-dashboard');
     if(!pg||!pg.classList.contains('active')){clearInterval(_dashRefreshTm);_dashRefreshTm=null;return;}
-    if(typeof loadAll==='function'){loadAll(true).then(function(){dashRefreshOpenPanel();}).catch(function(){});}
-  },30000);
+    if(isTV){
+      try{ if(typeof dashRenderTiles==='function') dashRenderTiles(); }catch(e){}
+      try{ dashRefreshOpenPanel(); }catch(e){}
+    } else if(typeof loadAll==='function'){
+      loadAll(true).then(function(){dashRefreshOpenPanel();}).catch(function(){});
+    }
+  }, isTV?300000:180000);
 }
 function dashStopAutoRefresh(){if(_dashRefreshTm){clearInterval(_dashRefreshTm);_dashRefreshTm=null;}}
 function dashRefreshOpenPanel(){
@@ -15030,6 +15058,8 @@ function dashDemEnvoyer(){
       +'<div style="color:#aaa;font-size:.9rem;margin-bottom:14px;">'+(motif==='cp'?'Congé':'Indisponibilité')+' du '+from+' au '+to+'.<br>Elle sera validée par la personne qui fait les horaires.</div>'
       +'<button onclick="document.getElementById(\'dash-dem-ov\').remove()" style="background:#2e6fc2;border:none;color:#fff;font-weight:700;border-radius:8px;padding:9px 22px;cursor:pointer;">Fermer</button>'
       +'</div>';
+    // Retour automatique (écran partagé) : on referme tout seul au bout de quelques secondes.
+    setTimeout(function(){ var o=document.getElementById('dash-dem-ov'); if(o) o.remove(); }, 3500);
   }
   if(typeof toast==='function') toast('Demande envoyée ✔','success');
 }
