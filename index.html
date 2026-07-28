@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-27 · v436';
+  var EMBEDDED_VERSION = '2026-07-27 · v438';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -2389,6 +2389,10 @@ async function loadAll(light) {
   try{ if(typeof hrChargerSalairesSupabase==='function'){ await hrChargerSalairesSupabase(); } }catch(e){}
   try{ if(typeof hrChargerContratsSupabase==='function'){ await hrChargerContratsSupabase(); } }catch(e){}
   try{ if(typeof hrChargerCodesSupabase==='function'){ await hrChargerCodesSupabase(); } }catch(e){}
+  // Charge le Planning d'encadrement (managers/leaders) dès le démarrage, pour que
+  // leurs traits apparaissent dans les Horaires, le pointage et le Planning du jour
+  // même si on n'ouvre pas d'abord la page « Planning encadrement ».
+  try{ if(typeof loadPlanning==='function'){ await loadPlanning(); } }catch(e){}
   try{ if(typeof hrChargerModelesSupabase==='function'){ await hrChargerModelesSupabase(); } }catch(e){}
   try{ if(typeof hrChargerSocieteSupabase==='function'){ await hrChargerSocieteSupabase(); } }catch(e){}
   try{ if(typeof hrChargerTelephoneSupabase==='function'){ await hrChargerTelephoneSupabase(); } }catch(e){}
@@ -22697,9 +22701,12 @@ function renderTimeline(){
       for(var _bi=0; _bi<_bars.length; _bi++){
         var b=_bars[_bi];
         if(!b.empId) continue;
-        if(estTraitEncadrement && estTraitEncadrement(b.l)) continue;
+        // Les traits d'ENCADREMENT (managers/leaders posés dans le Planning
+        // d'encadrement) DOIVENT apparaître dans les Horaires : on les garde
+        // comme une ligne salarié à part (couleur du code conservée via b.col).
+        var _estEnc=(estTraitEncadrement && estTraitEncadrement(b.l));
         if(!EMP_IDX[b.empId]){
-          EMP_IDX[b.empId]={nom:b.emp||b.empId, jours:[{bars:[],min:0},{bars:[],min:0},{bars:[],min:0},{bars:[],min:0},{bars:[],min:0},{bars:[],min:0},{bars:[],min:0}], totSem:0};
+          EMP_IDX[b.empId]={nom:b.emp||b.empId, enc:_estEnc, jours:[{bars:[],min:0},{bars:[],min:0},{bars:[],min:0},{bars:[],min:0},{bars:[],min:0},{bars:[],min:0},{bars:[],min:0}], totSem:0};
         }
         var _e=b.e||b.s+60;
         EMP_IDX[b.empId].jours[_d].bars.push({s:b.s,e:_e,l:b.l,col:b.col,rowIdx:_ri,barIdx:_bi});
@@ -22741,6 +22748,9 @@ function renderTimeline(){
     return m;
   }
   empList.sort(function(a,b){
+    // Encadrement (managers/leaders du Planning d'encadrement) TOUJOURS en haut.
+    var ea=(EMP_IDX[a.id]&&EMP_IDX[a.id].enc)?0:1, eb=(EMP_IDX[b.id]&&EMP_IDX[b.id].enc)?0:1;
+    if(ea!==eb) return ea-eb;
     var da=_arrMin(a.id), db=_arrMin(b.id);
     if(da!==db) return da-db;                              // heure d'arrivée croissante ; repos (Infinity) en dernier
     return (a.nom||'').localeCompare(b.nom||'','fr');      // à égalité, ordre alphabétique
@@ -22771,12 +22781,14 @@ function renderTimeline(){
       else { pillBg='rgba(231,76,60,.20)'; pillTx='#f87171'; }
     }
     var ouvert=!!window._hrEmpOpen[empId];
+    var _enc=!!(rec&&rec.enc); // ligne d'encadrement (manager/leader du Planning encadrement)
 
     // ── Ligne principale du salarié ──
     const tr=document.createElement('div');tr.className='hr-tl-row';
+    if(_enc){ tr.style.background='rgba(245,166,35,.06)'; }
     const info=document.createElement('div');info.className='hr-tl-i hr-emp-clic';
     info.innerHTML=
-      '<div class="hr-tl-nm"><span class="hr-tl-chev'+(ouvert?' hr-open':'')+'">▶</span>'+(emp.nom||empId)+'</div>'+
+      '<div class="hr-tl-nm"><span class="hr-tl-chev'+(ouvert?' hr-open':'')+'">▶</span>'+(_enc?'⭐ ':'')+(emp.nom||empId)+'</div>'+
       '<div class="hr-tl-hbadge"><span class="hr-tl-hpill" style="background:'+pillBg+';color:'+pillTx+'">'+_fmtHmin(minJour)+'</span>'+
       '<span style="color:var(--mu)">sem '+_fmtHmin(minSem)+(contrat!=null?(' / '+contrat+'h'):'')+'</span></div>';
     info.onclick=function(){ window._hrEmpOpen[empId]=!window._hrEmpOpen[empId]; renderTimeline(); };
