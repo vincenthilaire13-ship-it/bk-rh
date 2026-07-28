@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-27 · v440';
+  var EMBEDDED_VERSION = '2026-07-27 · v446';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1125,7 +1125,7 @@ html,body{overflow-x:hidden;}
         <button class="sev-btn" data-sanc="verbal" onclick="setSanction(this)" style="color:#F5A623;border-color:#F5A623;">📝 Observation orale</button>
         <button class="sev-btn" data-sanc="ecrit" onclick="setSanction(this)" style="color:#5BA3F5;border-color:#5BA3F5;">📄 Observation écrite</button>
         <button class="sev-btn" data-sanc="avert" onclick="setSanction(this)" style="color:#FF8732;border-color:#FF8732;">⚠️ Avertissement</button>
-        <button class="sev-btn" data-sanc="mise" onclick="setSanction(this)" style="color:#D62300;border-color:#D62300;">🔴 Mise en demeure</button>
+        <button class="sev-btn" data-sanc="mise" onclick="setSanction(this)" style="color:#D62300;border-color:#D62300;">🔴 Mise à pied</button>
       </div>
       <div id="sanction-mgr-note" style="display:none;background:#1A1A1A;border:1px solid #333;border-radius:8px;padding:10px 12px;margin-top:8px;font-size:.82rem;color:#F5A623;">📝 Cet incident sera enregistré comme une <strong>observation orale</strong>.</div>
       <label class="flabel" style="margin-top:12px;">Commentaire</label>
@@ -1393,8 +1393,24 @@ html,body{overflow-x:hidden;}
         <div id="dbximp-results"></div>
       </details>
     </div>
+    <div class="card param-card" id="pc-import-rh" style="display:none;">
+      <div class="sec-title">📥 Importer horaires (MyRHIS)</div>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:10px;">Dépose le PDF « Planning employé(e)s » exporté de MyRHIS. L'app reconnaît le restaurant et la semaine, rattache les salariés, reconstitue le planning et <strong>remplace</strong> la semaine importée. Stockage minimal (pas de PDF conservé, pas de Dropbox).</p>
+      <div id="imprh-drop" onclick="var f=document.getElementById('imprh-file');if(f)f.click();" ondragover="event.preventDefault();this.style.borderColor='#F5A623';" ondragleave="this.style.borderColor='#555';" ondrop="imprhDrop(event)" style="border:2px dashed #555;border-radius:12px;padding:20px;text-align:center;color:#9a9a9a;cursor:pointer;background:#0e0e0e;"><div style="font-size:1.8rem;">📄</div><div style="font-size:.9rem;margin-top:4px;">Glisse le PDF MyRHIS, ou clique</div></div>
+      <input type="file" id="imprh-file" accept="application/pdf" style="display:none;" onchange="imprhFilePick(event)">
+      <div id="imprh-preview" style="margin-top:14px;"></div>
+      <div style="margin-top:16px;border-top:1px solid #2a2a2a;padding-top:12px;">
+        <div class="sec-title" style="font-size:.95rem;">🗂️ Semaines importées (horaires externes)</div>
+        <div id="imprh-list" style="margin-top:8px;"></div>
+      </div>
+    </div>
+    <div class="card param-card" id="pc-recap" style="display:none;">
+      <div class="sec-title">🗓️ Récap semaine / mois — contenu</div>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:12px;">Choisis les rubriques qui apparaissent dans le rapport <strong>Récap semaine / mois</strong> (Rapports). Interrupteur vert = rubrique affichée.</p>
+      <div id="recap-cfg-box"></div>
+    </div>
     <div class="card param-card" id="pc-baremes" style="display:none;">
-      <div class="sec-title">⚖️ Barèmes de sanction</div>
+      <div class="sec-title">⚠️ Incident barème</div>
       <p style="font-size:.83rem;color:#aaa;margin-bottom:12px;">Définissez à partir de combien d'incidents, sur quelle période, l'application doit <strong>proposer</strong> un document à préparer. Exemple : <em>3 absences injustifiées sur 2 mois → avertissement</em>. Rien n'est créé automatiquement : les propositions apparaissent dans <strong>Alertes → À sanctionner</strong>, et c'est vous qui validez.</p>
       <div id="baremes-list"></div>
       <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:12px;">
@@ -1589,8 +1605,8 @@ html,body{overflow-x:hidden;}
           <button class="rtab" onclick="setMailTab(this,'renvoi')">⛔ Renvoi</button>
           <button class="rtab" onclick="setMailTab(this,'observation_ecrite')">📝 Observation écrite</button>
           <button class="rtab" onclick="setMailTab(this,'avertissement')">⚠️ Avertissement</button>
-          <button class="rtab" onclick="setMailTab(this,'mise_en_demeure')">🔴 Mise en demeure</button>
-          <button class="rtab" onclick="setMailTab(this,'mise_a_pied')">🚷 Mise à pied</button>
+          <button class="rtab" onclick="setMailTab(this,'mise_en_demeure')">🔴 Mise à pied (courrier)</button>
+          <button class="rtab" onclick="setMailTab(this,'mise_a_pied')">🚷 Mise à pied (absence)</button>
           <button class="rtab" onclick="setMailTab(this,'refus_signature')">✍️ Refus de signature</button>
           <button class="rtab" onclick="setMailTab(this,'signature_ok')">✅ Signature confirmée</button>
         </div>
@@ -2313,7 +2329,7 @@ const SANCTIONS = {
   verbal:{label:'Observation verbale',icon:'📝',color:'#F5A623'},
   ecrit:{label:'Observation écrite',icon:'📄',color:'#5BA3F5'},
   avert:{label:'Avertissement',icon:'⚠️',color:'#FF8732'},
-  mise:{label:'Mise en demeure',icon:'🔴',color:'#D62300'}
+  mise:{label:'Mise à pied',icon:'🔴',color:'#D62300'}
 };
 function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):'';}
 
@@ -2393,6 +2409,8 @@ async function loadAll(light) {
   // leurs traits apparaissent dans les Horaires, le pointage et le Planning du jour
   // même si on n'ouvre pas d'abord la page « Planning encadrement ».
   try{ if(typeof loadPlanning==='function'){ await loadPlanning(); } }catch(e){}
+  try{ if(typeof hrChargerRecapCfg==='function'){ await hrChargerRecapCfg(); } }catch(e){}
+  try{ if(typeof hrChargerExtPlanningSupabase==='function'){ await hrChargerExtPlanningSupabase(); } }catch(e){}
   try{ if(typeof hrChargerModelesSupabase==='function'){ await hrChargerModelesSupabase(); } }catch(e){}
   try{ if(typeof hrChargerSocieteSupabase==='function'){ await hrChargerSocieteSupabase(); } }catch(e){}
   try{ if(typeof hrChargerTelephoneSupabase==='function'){ await hrChargerTelephoneSupabase(); } }catch(e){}
@@ -3471,18 +3489,19 @@ var PARAM_TILES=[
   {ico:'📲', titre:'QR code',       sub:'QR de candidature',            type:'card', card:'pc-qr',          accent:'#16a085'},
   {ico:'🔑', titre:'Codes PIN',     sub:'Accès par profil',             type:'card', card:'pc-pin',         accent:'#c0392b'},
   {ico:'🕐', titre:'Amplitude',     sub:'Plage horaire dispos',         type:'card', card:'pc-amplitude',   accent:'#2980b9'},
-  {ico:'⚠️', titre:'Observations',  sub:'Seuil rappel oral',            type:'card', card:'pc-seuil',       accent:'#d35400'},
   {ico:'🩺', titre:'Visite médicale',sub:'Délais et rappels',            type:'card', card:'pc-visite',      accent:'#c0392b'},
   {ico:'📍', titre:'Pointer',       sub:'Messages du pointage',         type:'card', card:'pc-pointer',     accent:'#D62300'},
   {ico:'💬', titre:'Messagerie',    sub:'Qui peut écrire à qui',        type:'card', card:'pc-messagerie', accent:'#7e57c2'},
   {ico:'🍔', titre:'Nouveaux produits', sub:'Dossiers & fichiers (LTO, On The Grill…)', type:'card', card:'pc-biblio', id:'pc-biblio-produits', fn:"paramBiblio('produits')", accent:'#D62300'},
   {ico:'📦', titre:'Marchandises',  sub:'Dossiers & fichiers (références…)', type:'card', card:'pc-biblio', id:'pc-biblio-march', fn:"paramBiblio('marchandise')", accent:'#8e6a00'},
   {ico:'📊', titre:'État / Consommation', sub:'Base, fichiers, usage',   type:'card', card:'pc-conso',       accent:'#16a085'},
+  {ico:'🗓️', titre:'Récap semaine/mois', sub:'Rubriques du récap',        type:'card', card:'pc-recap',       accent:'#f5a623'},
+  {ico:'📥', titre:'Importer horaires', sub:'PDF MyRHIS → planning',        type:'card', card:'pc-import-rh',   accent:'#5BA3F5'},
   {ico:'👁️', titre:'Aperçu fiche',  sub:'Vue candidat',                 type:'card', card:'rec-apercu-card',accent:'#7f8c8d'},
   {ico:'📧', titre:'Adresses mail', sub:'Expédition RH',                type:'card', card:'pc-adresses',    accent:'#2c3e50'},
   {ico:'✉️', titre:'Modèles mails', sub:'Mails aux candidats',          type:'card', card:'pc-mails',       accent:'#27ae60'},
   {ico:'🗂️', titre:'Ranger des documents', sub:'Glisser-déposer dans une fiche', type:'card', card:'pc-dbximport',   accent:'#5BA3F5'},
-  {ico:'⚖️', titre:'Barèmes',       sub:'Seuils de sanction',           type:'card', card:'pc-baremes',     accent:'#b23a3a'},
+  {ico:'⚠️', titre:'Incident barème',sub:'Seuils de sanction',           type:'card', card:'pc-baremes',     accent:'#b23a3a'},
   {ico:'🏢', titre:'Société',       sub:'Employeur (contrats)',         type:'card', card:'pc-societe',     accent:'#34495e'}
 ];
 function renderParamTiles(){
@@ -3526,6 +3545,8 @@ function paramOuvrir(type, ref){
     if(ref==='pc-dispos'){ try{ renderDisposContratParam(); }catch(_){} }
     if(ref==='pc-messagerie'){ try{ renderMsgReglesParam(); }catch(_){} }
     if(ref==='pc-conso'){ try{ renderConso(); }catch(_){} }
+    if(ref==='pc-recap'){ try{ renderRecapParam(); }catch(_){} }
+    if(ref==='pc-import-rh'){ try{ imprhRenderList(); }catch(_){} }
     if(ref==='pc-biblio'){ try{ renderBiblioParam(); }catch(_){} }
     // bouton retour en tête de page
     var back=document.getElementById('param-back');
@@ -3846,7 +3867,7 @@ window.dbxDropRun=dbxDropRun;
 
 // ══ BARÈMES DE SANCTION ══════════════════════════════════════════════════════
 var _baremesDraft=null;
-var BAREME_DOCS=[['ecrit','Observation écrite'],['avert','Avertissement'],['mise','Mise en demeure']];
+var BAREME_DOCS=[['ecrit','Observation écrite'],['avert','Avertissement'],['mise','Mise à pied']];
 function _baremesGet(){ return (DB.mailSettings&&Array.isArray(DB.mailSettings.baremes))?DB.mailSettings.baremes:[]; }
 function renderBaremes(){
   var box=document.getElementById('baremes-list'); if(!box) return;
@@ -3912,7 +3933,7 @@ async function preparerDocDepuisSuggestion(empId,type,doc){
   var incs=(DB.incidents||[]).filter(function(i){ return i.empId===empId && (!i.sanctionType||i.sanctionType==='verbal') && (i.problems||[]).indexOf(type)>=0; })
     .sort(function(a,b){return new Date(a.datetime||a.createdAt)-new Date(b.datetime||b.createdAt);});
   if(!incs.length){ toast('Plus d\'incidents à sanctionner pour '+e.name+'.','error'); return; }
-  var lib={ecrit:'observation écrite',avert:'avertissement',mise:'mise en demeure'}[doc]||'document';
+  var lib={ecrit:'observation écrite',avert:'avertissement',mise:'mise à pied'}[doc]||'document';
   if(!confirm('Préparer une '+lib+' pour '+e.name+' regroupant '+incs.length+' incident'+(incs.length>1?'s':'')+' ?\n\nLe document ira dans « à faire signer » (rien n\'est envoyé automatiquement).')) return;
   var body=_docBodyMulti(e,incs,doc);
   var reporter=(curUser.role==='directeur')?('Directeur — '+(curUser.name||'')):(curUser.name||'Direction');
@@ -4070,7 +4091,7 @@ function setSanction(btn){
   btn.style.boxShadow='0 4px 16px '+c+'88';
   selSanction=btn.dataset.sanc;
   selSev={verbal:'2',ecrit:'2',avert:'3',mise:'4'}[selSanction]||'2';
-  // Document de sanction : proposé pour les sanctions écrites/avertissement/mise en demeure
+  // Document de sanction : proposé pour les sanctions écrites/avertissement/mise à pied
   var w=document.getElementById('inc-sanction-doc-wrap');
   if(w)w.style.display=(selSanction&&selSanction!=='verbal')?'block':'none';
 }
@@ -4162,7 +4183,7 @@ async function submitInc(){
     toast("Indiquez la date de début de la mise à pied",'error'); return;
   }
   // Tout incident est enregistré comme une observation orale.
-  // Les documents (observation écrite / avertissement / mise en demeure) se créent
+  // Les documents (observation écrite / avertissement / mise à pied) se créent
   // ensuite depuis la liste des incidents, par salarié.
   selSanction='verbal';
   selSev={verbal:'2',ecrit:'2',avert:'3',mise:'4'}[selSanction]||'2';
@@ -4305,7 +4326,7 @@ function renderHistory(){
       var dt=i.datetime?new Date(i.datetime).toLocaleString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
       var sevLbl=sLbls[parseInt(i.severity)]||'';
       var dejaS=(i.sanctionType && i.sanctionType!=='verbal');
-      var sancLbl={ecrit:'Observation écrite',avert:'Avertissement',mise:'Mise en demeure',mise_a_pied:'Mise à pied'}[i.sanctionType]||'sanctionné';
+      var sancLbl={ecrit:'Observation écrite',avert:'Avertissement',mise:'Mise à pied',mise_a_pied:'Mise à pied'}[i.sanctionType]||'sanctionné';
       var pre=canAvert?(dejaS?'<span title="Déjà sanctionné — ne peut pas resservir" style="margin-right:7px;font-size:.68rem;color:#4CAF50;font-weight:700;white-space:nowrap;">✅ '+sancLbl+'</span>':'<input type="checkbox" class="hist-inc-chk" value="'+i.id+'" data-emp="'+eid+'" style="width:15px;height:15px;accent-color:#FF8732;margin-right:7px;vertical-align:middle;">'):'';
       return '<div class="inc-item" data-s="'+i.severity+'" style="margin-bottom:6px;'+(dejaS?'opacity:.7;':'')+'">'
         +'<div class="inc-head">'+pre+'<span class="inc-meta">'+dt+' · '+(i.reporterName||'?')+' · '+sevLbl+'</span></div>'
@@ -4318,7 +4339,7 @@ function renderHistory(){
       +'<span style="font-size:.76rem;color:#888;">Cochez les incidents puis créez :</span>'
       +'<button class="btn btn-gray btn-sm" style="border-color:#3a5a8a;color:#8fc3f5;" onclick="creerDocMulti(\''+eid+'\',\'ecrit\')">📝 Observation écrite</button>'
       +'<button class="btn btn-gray btn-sm" style="border-color:#8a6a2a;color:#F5A623;" onclick="creerDocMulti(\''+eid+'\',\'avert\')">⚠️ Avertissement</button>'
-      +'<button class="btn btn-gray btn-sm" style="border-color:#8a2a2a;color:#e8623a;" onclick="creerDocMulti(\''+eid+'\',\'mise\')">🔴 Mise en demeure</button>'
+      +'<button class="btn btn-gray btn-sm" style="border-color:#8a2a2a;color:#e8623a;" onclick="creerDocMulti(\''+eid+'\',\'mise\')">🔴 Mise à pied</button>'
       +'</div>':'';
     return '<details style="background:#141414;border:1px solid #2a2a2a;border-radius:8px;margin-bottom:8px;padding:8px 12px;">'
       +'<summary style="cursor:pointer;font-weight:600;color:#eee;display:flex;justify-content:space-between;align-items:center;gap:8px;">'
@@ -4353,7 +4374,7 @@ function incidentsGroupedHtml(incs, r){
       var dt=i.datetime?new Date(i.datetime).toLocaleString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
       var sevLbl=sLbls[parseInt(i.severity)]||'';
       var dejaS=(i.sanctionType && i.sanctionType!=='verbal');
-      var sancLbl={ecrit:'Observation écrite',avert:'Avertissement',mise:'Mise en demeure',mise_a_pied:'Mise à pied'}[i.sanctionType]||'sanctionné';
+      var sancLbl={ecrit:'Observation écrite',avert:'Avertissement',mise:'Mise à pied',mise_a_pied:'Mise à pied'}[i.sanctionType]||'sanctionné';
       var pre=canAvert?(dejaS?'<span title="Déjà sanctionné — ne peut pas resservir" style="margin-right:7px;font-size:.68rem;color:#4CAF50;font-weight:700;white-space:nowrap;">✅ '+sancLbl+'</span>':'<input type="checkbox" class="hist-inc-chk" value="'+i.id+'" data-emp="'+eid+'" style="width:15px;height:15px;accent-color:#FF8732;margin-right:7px;vertical-align:middle;">'):'';
       return '<div class="inc-item" data-s="'+i.severity+'" style="margin-bottom:6px;'+(dejaS?'opacity:.7;':'')+'">'
         +'<div class="inc-head">'+pre+'<span class="inc-meta">'+dt+' · '+(i.reporterName||'?')+' · '+sevLbl+'</span></div>'
@@ -4366,7 +4387,7 @@ function incidentsGroupedHtml(incs, r){
       +'<span style="font-size:.76rem;color:#888;">Cochez les incidents puis créez :</span>'
       +'<button class="btn btn-gray btn-sm" style="border-color:#3a5a8a;color:#8fc3f5;" onclick="creerDocMulti(\''+eid+'\',\'ecrit\')">📝 Observation écrite</button>'
       +'<button class="btn btn-gray btn-sm" style="border-color:#8a6a2a;color:#F5A623;" onclick="creerDocMulti(\''+eid+'\',\'avert\')">⚠️ Avertissement</button>'
-      +'<button class="btn btn-gray btn-sm" style="border-color:#8a2a2a;color:#e8623a;" onclick="creerDocMulti(\''+eid+'\',\'mise\')">🔴 Mise en demeure</button>'
+      +'<button class="btn btn-gray btn-sm" style="border-color:#8a2a2a;color:#e8623a;" onclick="creerDocMulti(\''+eid+'\',\'mise\')">🔴 Mise à pied</button>'
       +'</div>':'';
     return '<details style="background:#141414;border:1px solid #2a2a2a;border-radius:8px;margin-bottom:8px;padding:8px 12px;">'
       +'<summary style="cursor:pointer;font-weight:600;color:#eee;display:flex;justify-content:space-between;align-items:center;gap:8px;">'
@@ -4449,6 +4470,7 @@ var RPT_TILES=[
   {id:'sejour', em:'🛂', tt:'Titre de séjour', ds:'Suivi titres + documents', color:'#8e44ad'},
   {id:'incidents', em:'⚠️', tt:'Incidents',       ds:'Suivi disciplinaire', color:'#D62300'},
   {id:'turnover',  em:'🔄', tt:'Entrées / Sorties', ds:'Turnover par mois et par an', color:'#c2185b'},
+  {id:'recap',     em:'🗓️', tt:'Récap semaine / mois', ds:'Synthèse RH sur la période choisie', color:'#f5a623'},
   {id:'biblio_produits', em:'🍔', tt:'Nouveaux produits', ds:'LTO, On The Grill… archivés par dossier', color:'#D62300'},
   {id:'biblio_march',    em:'📦', tt:'Marchandises',      ds:'Références, fournisseurs… archivés', color:'#8e6a00'},
 ];
@@ -4521,6 +4543,7 @@ function rptRefresh(){
   else if(_rptCurrent==='mutuelle'){ genMutuelleReport(); }
   else if(_rptCurrent==='sejour'){ genSejourReport(); }
   else if(_rptCurrent==='turnover'){ genTurnoverReport(); }
+  else if(_rptCurrent==='recap'){ genRecapReport(); }
 }
 // RAPPORT TITRE DE SÉJOUR — suivi des salariés concernés + document consultable.
 function genSejourReport(){
@@ -4736,6 +4759,492 @@ function turnoverPrint(){
   w.document.write('</body></html>'); w.document.close(); setTimeout(function(){try{w.print();}catch(_){}} ,300);
 }
 window.turnoverPrint=turnoverPrint;
+// ══════════════════════════════════════════════════════════════════════════════
+// RAPPORT « RÉCAP SEMAINE / MOIS » — synthèse RH sur la période choisie.
+// Rubriques activables dans Paramètres › Récap semaine/mois.
+// ══════════════════════════════════════════════════════════════════════════════
+var RECAP_SECTIONS=[
+  {id:'effectif',    em:'👥', label:'Effectif'},
+  {id:'entrees',     em:'⬆️', label:'Entrées (embauches)'},
+  {id:'sorties',     em:'⬇️', label:'Sorties (départs)'},
+  {id:'recrutement', em:'📥', label:'Recrutement (candidatures)'},
+  {id:'incidents',   em:'⚠️', label:'Incidents'},
+  {id:'sanctions',   em:'📄', label:'Sanctions / documents'},
+  {id:'absences',    em:'🚫', label:'Absences (maladie, injustifiée, mise à pied)'},
+  {id:'visites',     em:'🩺', label:'Visites médicales'},
+  {id:'mutuelles',   em:'❤️', label:'Mutuelles'},
+  {id:'sejours',     em:'🛂', label:'Titres de séjour'}
+];
+function getRecapCfg(){
+  var c={}; try{ c=JSON.parse(localStorage.getItem('bkrh_recap_cfg')||'{}')||{}; }catch(e){ c={}; }
+  RECAP_SECTIONS.forEach(function(s){ if(c[s.id]===undefined) c[s.id]=true; });
+  return c;
+}
+function saveRecapCfg(c){
+  try{ localStorage.setItem('bkrh_recap_cfg',JSON.stringify(c)); }catch(e){}
+  try{ if(typeof SB!=='undefined'&&SB) SB.from('app_config').upsert({cle:'bkrh_recap_cfg',valeur:c},{onConflict:'cle'}).then(function(){},function(){}); }catch(e){}
+}
+async function hrChargerRecapCfg(){
+  try{ if(typeof SB==='undefined'||!SB) return; var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_recap_cfg').maybeSingle(); if(r&&r.data&&r.data.valeur){ try{ localStorage.setItem('bkrh_recap_cfg',JSON.stringify(r.data.valeur)); }catch(e){} } }catch(e){}
+}
+window.hrChargerRecapCfg=hrChargerRecapCfg;
+function renderRecapParam(){
+  var box=document.getElementById('recap-cfg-box'); if(!box) return;
+  var cfg=getRecapCfg();
+  box.innerHTML='<div class="tel-toggles">'+RECAP_SECTIONS.map(function(s){
+    var on=(cfg[s.id]!==false);
+    return '<div class="tel-tog'+(on?' on':'')+'" onclick="recapToggleSection(\''+s.id+'\')">'
+      +'<div class="tt-em">'+s.em+'</div>'
+      +'<div class="tt-txt"><div class="tt-tt">'+s.label+'</div></div>'
+      +'<div class="tt-sw"></div></div>';
+  }).join('')+'</div>';
+}
+window.renderRecapParam=renderRecapParam;
+function recapToggleSection(id){
+  var cfg=getRecapCfg(); cfg[id]=(cfg[id]===false); saveRecapCfg(cfg); renderRecapParam();
+  try{ toast(cfg[id]?'Rubrique affichée':'Rubrique masquée','success'); }catch(e){}
+}
+window.recapToggleSection=recapToggleSection;
+// État de la période affichée
+var _recapMode='semaine', _recapRef=null;
+function recapSetMode(m){ _recapMode=m; genRecapReport(); }
+function recapNav(dir){ var ref=_recapRef?new Date(_recapRef):new Date(); if(_recapMode==='mois'){ ref.setMonth(ref.getMonth()+dir); } else { ref.setDate(ref.getDate()+dir*7); } _recapRef=ref; genRecapReport(); }
+function recapAujourdhui(){ _recapRef=null; genRecapReport(); }
+window.recapSetMode=recapSetMode; window.recapNav=recapNav; window.recapAujourdhui=recapAujourdhui;
+function _rcpParse(s){ if(!s) return null; if(s instanceof Date) return isNaN(s.getTime())?null:s; var d=new Date(s); return isNaN(d.getTime())?null:d; }
+function _rcpFr(d){ if(!d) return '—'; try{ return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}); }catch(e){ return ''+d; } }
+function _recapBornes(){
+  var MOISN=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var ref=_recapRef?new Date(_recapRef):new Date();
+  var start,end,label;
+  if(_recapMode==='mois'){
+    start=new Date(ref.getFullYear(),ref.getMonth(),1,0,0,0,0);
+    end=new Date(ref.getFullYear(),ref.getMonth()+1,0,23,59,59,999);
+    label=MOISN[ref.getMonth()]+' '+ref.getFullYear();
+  } else {
+    var day=ref.getDay(); var diff=(day===0?-6:1-day);
+    start=new Date(ref); start.setDate(ref.getDate()+diff); start.setHours(0,0,0,0);
+    end=new Date(start); end.setDate(start.getDate()+6); end.setHours(23,59,59,999);
+    label='semaine du '+_rcpFr(start)+' au '+_rcpFr(end);
+  }
+  return {start:start,end:end,label:label};
+}
+function _recapIn(d,b){ return !!(d && d>=b.start && d<=b.end); }
+function genRecapReport(){
+  var out=document.getElementById('rpt-out'); if(!out) return;
+  var cfg=getRecapCfg();
+  var b=_recapBornes();
+  var resto=(curUser.role==='franchise')?((typeof rptTab!=='undefined'&&rptTab!=='all')?rptTab:null):curUser.restoId;
+  var restoL=(''+(resto||'')).toLowerCase();
+  var restoLbl=resto&&RESTOS[resto]?RESTOS[resto].label:'Tous les restaurants';
+  var allEmps=(DB.employees||[]).filter(function(e){ return e.role!=='franchise' && (resto?((''+(e.restoId||'')).toLowerCase()===restoL):true); });
+  var actifs=allEmps.filter(function(e){ return !e.archived; });
+  var empMap={}; allEmps.forEach(function(e){ empMap[e.id]=e; });
+  function nm(e){ return e?e.name:'?'; }
+  function entryDate(e){ var inf=e.infos||{}; return _rcpParse(inf.date_anciennete||inf.date_entree); }
+  function exitDate(e){ return _rcpParse(e.exitDate||e.sortieDate||(e.infos&&e.infos.date_sortie)); }
+  var entrees=allEmps.filter(function(e){ return _recapIn(entryDate(e),b); });
+  var sorties=allEmps.filter(function(e){ return _recapIn(exitDate(e),b); });
+  var incs=(DB.incidents||[]).filter(function(i){ var e=empMap[i.empId]; if(!e) return false; return _recapIn(_rcpParse(i.datetime||i.createdAt||i.created_at),b); });
+  var sanctions=incs.filter(function(i){ return i.sanctionType && i.sanctionType!=='verbal'; });
+  var absMotifs={absence:1,arret_maladie:1,mise_a_pied:1,abandon:1};
+  var absences=incs.filter(function(i){ return (i.problems||[]).some(function(p){ return absMotifs[p]; }); });
+  var cands=(DB.candidatures||[]).filter(function(c){ return resto?((''+(c.restoId||'')).toLowerCase()===restoL):true; });
+  var candRecues=cands.filter(function(c){ return _recapIn(_rcpParse(c.createdAt),b); });
+  var candRefus=cands.filter(function(c){ return _recapIn(_rcpParse(c.refusDate),b); });
+  var candEmb=cands.filter(function(c){ return _recapIn(_rcpParse(c.dateDebut),b); });
+  var visDue=actifs.filter(function(e){ return _recapIn(_rcpParse(e.visiteProchaine),b); });
+  var visFaites=actifs.filter(function(e){ return _recapIn(_rcpParse(e.visiteDate),b); });
+  function docsIn(cat){ return (DB.empDocs||[]).filter(function(d){ if(d.categorie!==cat||!d.link) return false; var e=empMap[d.empId]; if(!e) return false; return _recapIn(_rcpParse(d.createdAt),b); }); }
+  var mutDocs=docsIn('mutuelle');
+  var mutExp=actifs.filter(function(e){ return _recapIn(_rcpParse(e.infos&&e.infos.mutuelle_fin),b); });
+  var sejDocs=docsIn('titre_sejour');
+  var sejExp=actifs.filter(function(e){ return _recapIn(_rcpParse(e.infos&&e.infos.fin_carte_sejour),b); });
+  function probLabel(p){ var m=(typeof PROBS!=='undefined')?PROBS.find(function(x){return x.id===p;}):null; return m?m.label:p; }
+  var sancLblT={ecrit:'Observation écrite',avert:'Avertissement',mise:'Mise à pied',mise_a_pied:'Mise à pied'};
+  var toggle=function(m,txt){ return '<button onclick="recapSetMode(\''+m+'\')" style="'+(_recapMode===m?'background:#f5a623;color:#000;border:1px solid #f5a623;font-weight:800;':'background:#0e0e0e;color:#ddd;border:1px solid #444;')+'border-radius:9px;padding:7px 16px;cursor:pointer;font-family:inherit;font-size:.9rem;">'+txt+'</button>'; };
+  var h='';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">'
+    + toggle('semaine','📅 Semaine') + toggle('mois','🗓️ Mois')
+    + '<span style="width:8px;"></span>'
+    + '<button class="btn btn-gray btn-sm" onclick="recapNav(-1)">◀ Précédent</button>'
+    + '<button class="btn btn-gray btn-sm" onclick="recapAujourdhui()">Aujourd\'hui</button>'
+    + '<button class="btn btn-gray btn-sm" onclick="recapNav(1)">Suivant ▶</button>'
+    + '<button class="btn btn-gray btn-sm" style="margin-left:auto;" onclick="recapPrint()">🖨️ Imprimer / PDF</button>'
+    + '</div>';
+  h+='<div style="text-align:center;padding:14px;background:linear-gradient(135deg,#1A1A1A,#2C2C2C);border-radius:var(--r);margin-bottom:14px;border:1px solid #333;">'
+    + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.4rem;color:var(--yellow);text-transform:uppercase;letter-spacing:2px;">🗓️ Récap '+(_recapMode==='mois'?'mensuel':'hebdomadaire')+'</div>'
+    + '<p style="color:var(--orange);font-size:.86rem;margin-top:4px;text-transform:capitalize;">'+b.label+'</p>'
+    + '<p style="color:#888;font-size:.8rem;margin-top:2px;">🍔 '+restoLbl+'</p></div>';
+  function scard(n,l,c){ return '<div class="stat-card"><div class="stat-n" style="color:'+c+';">'+n+'</div><div class="stat-l">'+l+'</div></div>'; }
+  var stats='';
+  if(cfg.effectif!==false) stats+=scard(actifs.length,'Effectif','#5b9bd5');
+  if(cfg.entrees!==false) stats+=scard(entrees.length,'Entrées','#4CAF50');
+  if(cfg.sorties!==false) stats+=scard(sorties.length,'Sorties','#e57373');
+  if(cfg.incidents!==false) stats+=scard(incs.length,'Incidents','#e8a020');
+  if(cfg.sanctions!==false) stats+=scard(sanctions.length,'Sanctions','#D62300');
+  if(cfg.recrutement!==false) stats+=scard(candRecues.length,'Candidatures','#c2185b');
+  if(stats) h+='<div class="stats-grid" style="margin-bottom:16px;">'+stats+'</div>';
+  function secCard(id,title,em,contentHtml,count){
+    if(cfg[id]===false) return '';
+    return '<div class="card" style="margin-bottom:12px;">'
+      +'<div class="sec-title" style="margin-bottom:8px;">'+em+' '+title+(count!=null?(' <span style="color:#888;font-weight:600;font-size:.82rem;">· '+count+'</span>'):'')+'</div>'
+      +contentHtml+'</div>';
+  }
+  function nameList(arr){ if(!arr.length) return '<div style="color:#777;font-size:.85rem;">Aucun sur la période.</div>'; return '<div style="display:flex;flex-wrap:wrap;gap:6px;">'+arr.map(function(x){ return '<span style="background:#0e0e0e;border:1px solid #333;border-radius:8px;padding:4px 10px;font-size:.82rem;color:#ddd;">'+x+'</span>'; }).join('')+'</div>'; }
+  h+=secCard('effectif','Effectif','👥','<div style="font-size:.9rem;color:#ccc;">'+actifs.length+' salarié'+(actifs.length>1?'s':'')+' actif'+(actifs.length>1?'s':'')+' · solde de la période : <b style="color:'+((entrees.length-sorties.length)>=0?'#4CAF50':'#e57373')+';">'+((entrees.length-sorties.length)>=0?'+':'')+(entrees.length-sorties.length)+'</b></div>');
+  h+=secCard('entrees','Entrées (embauches)','⬆️', nameList(entrees.map(function(e){ return nm(e)+' <span style="color:#888;">('+_rcpFr(entryDate(e))+')</span>'; })), entrees.length);
+  h+=secCard('sorties','Sorties (départs)','⬇️', nameList(sorties.map(function(e){ return nm(e)+' <span style="color:#888;">('+_rcpFr(exitDate(e))+')</span>'; })), sorties.length);
+  if(cfg.recrutement!==false){
+    var recHtml='<div style="font-size:.85rem;color:#ccc;line-height:1.7;">'
+      +'📥 Candidatures reçues : <b>'+candRecues.length+'</b><br>'
+      +'✅ Entrées en poste / essai : <b>'+candEmb.length+'</b><br>'
+      +'❌ Refusées : <b>'+candRefus.length+'</b></div>';
+    if(candRecues.length) recHtml+='<div style="margin-top:8px;">'+nameList(candRecues.map(function(c){ return (((c.prenom||'')+' '+(c.nom||'')).trim()||'Candidat')+(c.poste?(' <span style="color:#888;">'+c.poste+'</span>'):''); }))+'</div>';
+    h+=secCard('recrutement','Recrutement','📥', recHtml, candRecues.length);
+  }
+  if(cfg.incidents!==false){
+    var incHtml = incs.length ? '<div style="display:flex;flex-direction:column;gap:6px;">'+incs.slice().sort(function(a,c){return (''+(c.datetime||'')).localeCompare(''+(a.datetime||''));}).map(function(i){
+      var e=empMap[i.empId]; var d=_rcpParse(i.datetime||i.createdAt); var probs=(i.problems||[]).map(probLabel).join(', ');
+      var sanc=(i.sanctionType&&i.sanctionType!=='verbal')?(' · <span style="color:#e8623a;">'+(sancLblT[i.sanctionType]||'sanction')+'</span>'):'';
+      return '<div style="font-size:.83rem;color:#ddd;border-left:3px solid #e8a020;padding:3px 8px;">'+_rcpFr(d)+' — <b>'+nm(e)+'</b> : '+(probs||'incident')+sanc+'</div>';
+    }).join('')+'</div>' : '<div style="color:#777;font-size:.85rem;">Aucun incident sur la période.</div>';
+    h+=secCard('incidents','Incidents','⚠️', incHtml, incs.length);
+  }
+  if(cfg.sanctions!==false){
+    var byType={}; sanctions.forEach(function(i){ byType[i.sanctionType]=(byType[i.sanctionType]||0)+1; });
+    var sHtml = sanctions.length ? '<div style="font-size:.85rem;color:#ccc;line-height:1.7;">'+Object.keys(byType).map(function(k){ return (sancLblT[k]||k)+' : <b>'+byType[k]+'</b>'; }).join('<br>')+'</div>' : '<div style="color:#777;font-size:.85rem;">Aucune sanction / document sur la période.</div>';
+    h+=secCard('sanctions','Sanctions / documents','📄', sHtml, sanctions.length);
+  }
+  if(cfg.absences!==false){
+    var absHtml = absences.length ? nameList(absences.map(function(i){ var e=empMap[i.empId]; var probs=(i.problems||[]).filter(function(p){return absMotifs[p];}).map(probLabel).join(', '); return nm(e)+' <span style="color:#888;">('+probs+')</span>'; })) : '<div style="color:#777;font-size:.85rem;">Aucune absence sur la période.</div>';
+    h+=secCard('absences','Absences','🚫', absHtml, absences.length);
+  }
+  if(cfg.visites!==false){
+    var vHtml='<div style="font-size:.85rem;color:#ccc;margin-bottom:6px;">🩺 Échéance / à planifier sur la période : <b>'+visDue.length+'</b> · réalisées : <b>'+visFaites.length+'</b></div>';
+    if(visDue.length) vHtml+=nameList(visDue.map(function(e){ return nm(e)+' <span style="color:#e8a020;">(échéance '+_rcpFr(_rcpParse(e.visiteProchaine))+')</span>'; }));
+    h+=secCard('visites','Visites médicales','🩺', vHtml, visDue.length);
+  }
+  if(cfg.mutuelles!==false){
+    var mHtml='<div style="font-size:.85rem;color:#ccc;margin-bottom:6px;">📄 Documents ajoutés : <b>'+mutDocs.length+'</b> · fins de droit sur la période : <b>'+mutExp.length+'</b></div>';
+    if(mutExp.length) mHtml+=nameList(mutExp.map(function(e){ return nm(e)+' <span style="color:#e8a020;">(fin '+_rcpFr(_rcpParse(e.infos&&e.infos.mutuelle_fin))+')</span>'; }));
+    h+=secCard('mutuelles','Mutuelles','❤️', mHtml, mutDocs.length+mutExp.length);
+  }
+  if(cfg.sejours!==false){
+    var tHtml='<div style="font-size:.85rem;color:#ccc;margin-bottom:6px;">📄 Documents ajoutés : <b>'+sejDocs.length+'</b> · expirations sur la période : <b>'+sejExp.length+'</b></div>';
+    if(sejExp.length) tHtml+=nameList(sejExp.map(function(e){ return nm(e)+' <span style="color:#e8623a;">(fin '+_rcpFr(_rcpParse(e.infos&&e.infos.fin_carte_sejour))+')</span>'; }));
+    h+=secCard('sejours','Titres de séjour','🛂', tHtml, sejDocs.length+sejExp.length);
+  }
+  h+='<div style="margin-top:10px;font-size:.75rem;color:#777;">Astuce : choisis les rubriques affichées dans <b>Paramètres › Récap semaine/mois</b>.</div>';
+  out.innerHTML=h;
+}
+window.genRecapReport=genRecapReport;
+function recapPrint(){
+  var el=document.getElementById('rpt-out'); if(!el) return;
+  var w=window.open('','_blank'); if(!w){ try{toast('Autorisez les pop-ups pour imprimer.','error');}catch(_){} return; }
+  w.document.write('<html><head><title>Récap</title><style>body{font-family:Arial,sans-serif;padding:20px;color:#111;}button{display:none!important;}.card{border:1px solid #ccc;border-radius:8px;padding:10px;margin-bottom:10px;}.sec-title{font-weight:700;margin-bottom:6px;}.stats-grid{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}.stat-card{border:1px solid #ccc;border-radius:8px;padding:8px 14px;text-align:center;}.stat-n{font-size:1.4rem;font-weight:800;}.stat-l{font-size:.75rem;color:#555;}span{color:#333!important;}</style></head><body>');
+  w.document.write(el.innerHTML);
+  w.document.write('</body></html>'); w.document.close(); setTimeout(function(){try{w.print();}catch(_){}} ,300);
+}
+window.recapPrint=recapPrint;
+// ══════════════════════════════════════════════════════════════════════════════
+// IMPORT HORAIRES MyRHIS (« Rice ») — lit le PDF « Planning employé(e)s », reconstitue
+// salarié × jour × créneaux, rattache aux fiches, et REMPLACE la semaine importée.
+// Stockage minimal (app_config bkrh_ext_planning), pas de PDF conservé, pas de Dropbox.
+// ══════════════════════════════════════════════════════════════════════════════
+var EXT_PLANNING=null; var _imprhLast=null;
+// Familles de postes MyRHIS (par couleur) → libellé + couleur affichés dans les Horaires.
+var IMP_FAMILIES={
+  cuisine:{l:'CUISINE',   col:'#e8232a'},
+  comptoir:{l:'COMPTOIR', col:'#37b81a'},
+  drive:{l:'DRIVE',       col:'#2d6ff0'},
+  satsalle:{l:'SAT SALLE',col:'#e21ac6'},
+  nonprod:{l:'OUV/FERM',  col:'#e8930f'},
+  opensalle:{l:'OPEN SALLE',col:'#e8a81a'},
+  encadr:{l:'ENCADR.',    col:'#555'},
+  divers:{l:'DIVERS',     col:'#8a8a8a'}
+};
+function _imprhFamily(r,g,b){
+  if(r>205&&g>205&&b>205) return '';            // blanc / vide
+  if(r<70&&g<70&&b<70) return 'encadr';         // noir → encadrement
+  if(r>150&&b>140&&g<115) return 'satsalle';    // magenta → SAT SALLE
+  if(r>150&&g<95&&b<95) return 'cuisine';       // rouge → cuisine
+  if(g>150&&r<135&&b<135) return 'comptoir';    // vert → comptoir/vente
+  if(b>165&&r<125) return 'drive';              // bleu (+ bleu ciel) → drive
+  if(r>210&&g>=178&&b<95) return 'opensalle';   // or/gold → open salle
+  if(r>180&&g>=95&&g<178&&b<95) return 'nonprod'; // orange → ouverture/fermeture/prep
+  if(Math.abs(r-g)<35&&Math.abs(g-b)<35) return 'divers'; // gris → divers
+  return 'nonprod';
+}
+function getExtPlanning(){
+  if(!EXT_PLANNING){ try{ EXT_PLANNING=JSON.parse(localStorage.getItem('bkrh_ext_planning')||'{}')||{}; }catch(e){ EXT_PLANNING={}; } }
+  return EXT_PLANNING;
+}
+function _extSaveLocal(){ try{ localStorage.setItem('bkrh_ext_planning',JSON.stringify(EXT_PLANNING)); }catch(e){} }
+async function saveExtPlanning(){ _extSaveLocal(); try{ if(typeof SB!=='undefined'&&SB) await SB.from('app_config').upsert({cle:'bkrh_ext_planning',valeur:EXT_PLANNING},{onConflict:'cle'}); }catch(e){ console.warn('saveExt',e); } }
+async function hrChargerExtPlanningSupabase(){ try{ if(typeof SB==='undefined'||!SB) return; var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_ext_planning').maybeSingle(); if(r&&r.data&&r.data.valeur){ EXT_PLANNING=r.data.valeur; _extSaveLocal(); } }catch(e){} }
+window.hrChargerExtPlanningSupabase=hrChargerExtPlanningSupabase;
+function _imprhISO(d){ return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+function _imprhLundi(iso){ var d=new Date(iso+'T12:00:00'); var g=d.getDay(); var diff=(g===0?-6:1-g); d.setDate(d.getDate()+diff); return _imprhISO(d); }
+function _imprhToMin(hhmm){ var p=(''+hhmm).match(/(\d{1,2}):(\d{2})/); if(!p) return null; return (+p[1])*60+(+p[2]); }
+function _imprhResto(txt){
+  var u=(txt||'').toUpperCase();
+  if(/CLEMENT|RIVIERE/.test(u)) return 'bk526';
+  if(/VEDAS|V[EÉ]DAS|SAINT.?JEAN|ST.?JEAN/.test(u)) return 'bk509';
+  if(/AR[EÈÉ]NES|PR[EÈÉ]S DES/.test(u)) return 'bk500';
+  return null;
+}
+function imprhFilePick(e){ var f=e.target.files&&e.target.files[0]; if(f) imprhRead(f); }
+function imprhDrop(e){ e.preventDefault(); var d=document.getElementById('imprh-drop'); if(d)d.style.borderColor='#555'; var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) imprhRead(f); }
+window.imprhFilePick=imprhFilePick; window.imprhDrop=imprhDrop;
+function imprhRead(file){
+  var pv=document.getElementById('imprh-preview'); if(pv) pv.innerHTML='<div style="color:#F5A623;">Lecture du PDF…</div>';
+  var rd=new FileReader();
+  rd.onload=function(){ imprhParse(rd.result).then(function(res){ _imprhLast=res; imprhRenderPreview(res); }).catch(function(err){ console.warn('imprh parse',err); if(pv) pv.innerHTML='<div style="color:#e8623a;">Impossible de lire ce PDF. ('+(err&&err.message||err)+')</div>'; }); };
+  rd.readAsDataURL(file);
+}
+async function imprhParse(dataUrl){
+  var lib=await _loadPdfJs();
+  var b64=dataUrl.split(',')[1]; var bin=atob(b64); var a=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);
+  var pdf=await lib.getDocument({data:a}).promise;
+  var colX=null, headerTop=null, allTopText='', emps=[];
+  var JOURS=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  for(var pn=1;pn<=pdf.numPages;pn++){
+    var page=await pdf.getPage(pn);
+    var vp=page.getViewport({scale:1}); var H=vp.height;
+    var tc=await page.getTextContent();
+    // Rendu de la page → lecture de la couleur de fond de chaque créneau (poste).
+    var _img=null,_iw=0,_ih=0,_S=2;
+    try{
+      var cvp=page.getViewport({scale:_S});
+      var cnv=document.createElement('canvas'); cnv.width=Math.ceil(cvp.width); cnv.height=Math.ceil(cvp.height);
+      var cctx=cnv.getContext('2d');
+      await page.render({canvasContext:cctx, viewport:cvp}).promise;
+      _img=cctx.getImageData(0,0,cnv.width,cnv.height).data; _iw=cnv.width; _ih=cnv.height;
+    }catch(e){ _img=null; }
+    function _sampleFam(colXpt, top){
+      if(!_img) return '';
+      var x0=Math.round((colXpt+3)*_S), x1=Math.round((colXpt+80)*_S);
+      var y0=Math.round((top-4)*_S), y1=Math.round((top+9)*_S);
+      var cnt={};
+      for(var y=y0;y<y1;y++){ for(var x=x0;x<x1;x+=2){ if(x<0||y<0||x>=_iw||y>=_ih) continue; var i=(y*_iw+x)*4; var q=(_img[i]>>5)+'_'+(_img[i+1]>>5)+'_'+(_img[i+2]>>5); cnt[q]=(cnt[q]||0)+1; } }
+      var best=null,bn=0; for(var k in cnt){ if(cnt[k]>bn){bn=cnt[k];best=k;} }
+      if(!best) return '';
+      var p=best.split('_').map(function(v){return (+v)*32;});
+      return _imprhFamily(p[0],p[1],p[2]);
+    }
+    var items=tc.items.map(function(it){ return {s:(it.str||'').trim(), x:it.transform[4], top:H-it.transform[5]}; }).filter(function(t){return t.s!=='';});
+    // en-tête jours (cette page) — pdf.js renvoie « Lun 27/07 » d'un bloc
+    var hdr=items.filter(function(t){ return /^(Lun|Mar|Mer|Jeu|Ven|Sam|Dim)\b/.test(t.s); });
+    if(hdr.length>=5){
+      hdr.sort(function(u,v){return u.x-v.x;});
+      var xs=[]; hdr.forEach(function(t){ if(!xs.length||Math.abs(t.x-xs[xs.length-1])>20) xs.push(t.x); });
+      colX=xs.slice(0,7); headerTop=Math.min.apply(null,hdr.map(function(t){return t.top;}));
+    }
+    if(!colX) continue; // pas de repère colonnes → page ignorée
+    var planX = (colX[6]||664) + 78; // début colonne « Plan/Contr »
+    var leftMax = (colX[0]||154) - 14;
+    // ligne « Total » + pied de page → borne basse du contenu
+    var totTok=items.filter(function(t){ return /^Total\b/.test(t.s) && t.x<leftMax && t.top>headerTop; });
+    var totalTop=totTok.length?Math.min.apply(null,totTok.map(function(t){return t.top;})):1e9;
+    // texte d'en-tête (pour resto + semaine) : tokens au-dessus des jours
+    items.forEach(function(t){ if(headerTop!=null && t.top < headerTop-2) allTopText+=' '+t.s; });
+    // 1) blocs salariés = colonne de gauche. Le matricule « (243) » est collé au nom
+    //    (« ACAKPO (243) ») et clôt le salarié courant.
+    var left=items.filter(function(t){ return t.x<leftMax && headerTop!=null && t.top>headerTop+2 && t.top<totalTop-2; }).sort(function(u,v){return u.top-v.top || u.x-v.x;});
+    var groups=[], cur=null;
+    left.forEach(function(t){
+      var mm=t.s.match(/\((\d+)\)/);
+      var nameText=t.s.replace(/\(\s*\d+\s*\)/,'').trim();
+      if(/[A-ZÉÈÀÂÎÔÛ]{2,}/.test(nameText) || mm){
+        if(!cur) cur={names:[], mat:null, top:t.top};
+        if(nameText && !/^(Repos|CP|Total|Signe|Temps|Imprim|page)/i.test(nameText)) cur.names.push(nameText);
+        if(mm){ cur.mat=mm[1]; groups.push(cur); cur=null; }
+      }
+    });
+    groups=groups.filter(function(g){return g.mat && g.names.length;}); // vrais salariés = nom + matricule
+    if(!groups.length) continue;
+    // bandes verticales
+    for(var gi=0; gi<groups.length; gi++){
+      groups[gi].y0=groups[gi].top-5;
+      groups[gi].y1=(gi+1<groups.length)?(groups[gi+1].top-5):1e9;
+      groups[gi].cells={};
+    }
+    function empOf(top){ for(var k=groups.length-1;k>=0;k--){ if(top>=groups[k].y0) return k; } return 0; }
+    function colOf(x){ var c=-1; for(var k=0;k<colX.length;k++){ if(x>=colX[k]-14) c=k; } return c; }
+    // 2) contenu (créneaux / Repos / CP) → cellules
+    items.forEach(function(t){
+      if(headerTop==null || t.top<=headerTop+2) return;
+      if(t.top>=totalTop-2) return;      // ligne Total + pied de page → ignorés
+      if(t.x < leftMax) return;         // colonne noms
+      if(t.x >= planX-8) return;         // colonne Plan/Contr → ignorée
+      var c=colOf(t.x); if(c<0||c>6) return;
+      var e=empOf(t.top); var key=e+'_'+c;
+      (groups[e].cells[key]=groups[e].cells[key]||[]).push(t);
+    });
+    // 3) reconstruire les créneaux par cellule
+    groups.forEach(function(g){
+      var rec={name:g.names.join(' '), mat:g.mat, days:[[],[],[],[],[],[],[]], repos:[false,false,false,false,false,false,false], cp:[false,false,false,false,false,false,false]};
+      for(var c=0;c<7;c++){
+        var toks=(g.cells[groups.indexOf(g)+'_'+c]||[]).slice().sort(function(u,v){return u.top-v.top||u.x-v.x;});
+        var joined=toks.map(function(t){return t.s;}).join(' ');
+        if(/Repos/i.test(joined) && !/\d{1,2}:\d{2}/.test(joined)){ rec.repos[c]=true; continue; }
+        if(/CP/i.test(joined) && !/\d{1,2}:\d{2}/.test(joined)){ rec.cp[c]=true; continue; }
+        // pdf.js renvoie chaque créneau « HH:MM - HH:MM » d'un bloc → 1 token = 1 créneau + sa couleur
+        var gotFull=false;
+        toks.forEach(function(tk){
+          var mm, rr=/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})(\s*\(\*\))?/g;
+          while((mm=rr.exec(tk.s))){
+            var s=_imprhToMin(mm[1]), e2=_imprhToMin(mm[2]); if(s==null||e2==null) continue;
+            if(e2<=s || mm[3]) e2+=1440;
+            if(e2-s<=0 || e2-s>12*60) continue;
+            gotFull=true;
+            rec.days[c].push({s:s,e:e2,fam:_sampleFam(colX[c], tk.top)});
+          }
+        });
+        if(!gotFull){ // repli : créneaux éclatés en plusieurs tokens (sans couleur fiable)
+          var times=[], m, re=/(\d{1,2}:\d{2})(\s*\(\*\))?/g;
+          while((m=re.exec(joined))){ times.push({t:m[1], star:!!m[2]}); }
+          for(var i2=0;i2+1<times.length;i2+=2){
+            var s3=_imprhToMin(times[i2].t), e3=_imprhToMin(times[i2+1].t); if(s3==null||e3==null) continue;
+            if(e3<=s3 || times[i2+1].star) e3+=1440;
+            if(e3-s3<=0 || e3-s3>12*60) continue;
+            rec.days[c].push({s:s3,e:e3,fam:''});
+          }
+        }
+      }
+      rec.total=0; rec.days.forEach(function(arr){ arr.forEach(function(r){ rec.total+=(r.e-r.s); }); });
+      emps.push(rec);
+    });
+  }
+  // resto + semaine
+  var resto=_imprhResto(allTopText) || (window.ACTIVE_RESTO&&window.ACTIVE_RESTO!=='ALL'?window.ACTIVE_RESTO:null) || (curUser&&curUser.restoId) || 'bk526';
+  var dm=(allTopText.match(/du\s+(\d{2})\/(\d{2})\/(\d{4})/i));
+  var lundiISO=null, semLbl='';
+  if(dm){ lundiISO=_imprhLundi(dm[3]+'-'+dm[2]+'-'+dm[1]); }
+  if(dm){ var au=allTopText.match(/au\s+(\d{2})\/(\d{2})\/(\d{4})/i); semLbl='du '+dm[1]+'/'+dm[2]+'/'+dm[3]+(au?(' au '+au[1]+'/'+au[2]+'/'+au[3]):''); }
+  // rattachement salariés
+  emps.forEach(function(rec){ rec.match=_imprhMatch(rec.name, resto); });
+  return {resto:resto, restoLbl:(RESTOS[resto]&&RESTOS[resto].label)||resto, lundiISO:lundiISO, semLbl:semLbl, emps:emps};
+}
+function g_idx(arr,g){ return arr.indexOf(g); }
+function _imprhMatch(name, resto){
+  if(typeof _nomKey!=='function') return null;
+  var k=_nomKey(name); var toks=k.split(' ').filter(Boolean);
+  var pool=(DB.employees||[]).filter(function(e){ return e&&e.name&&!e.archived&&e.role!=='franchise'; });
+  // 1) égalité de clé
+  var exact=pool.filter(function(e){ return _nomKey(e.name)===k; });
+  if(exact.length===1) return {id:exact[0].id, name:exact[0].name};
+  // 2) sous-ensemble de tokens (dans le bon resto en priorité)
+  function sub(e){ var et=_nomKey(e.name).split(' ').filter(Boolean); return toks.every(function(w){return et.indexOf(w)>=0;}) || et.every(function(w){return toks.indexOf(w)>=0;}); }
+  var cands=pool.filter(sub);
+  var sameResto=cands.filter(function(e){ return (''+(e.restoId||'')).toLowerCase()===(''+(resto||'')).toLowerCase(); });
+  if(sameResto.length===1) return {id:sameResto[0].id, name:sameResto[0].name};
+  if(cands.length===1) return {id:cands[0].id, name:cands[0].name};
+  return null;
+}
+function _imprhFmt(min){ var h=Math.floor((min%1440)/60), m=min%60; return (h<10?'0':'')+h+':'+(m<10?'0':'')+m; }
+function imprhRenderPreview(res){
+  var pv=document.getElementById('imprh-preview'); if(!pv) return;
+  if(!res||!res.emps.length){ pv.innerHTML='<div style="color:#e8623a;">Aucun salarié détecté dans ce PDF.</div>'; return; }
+  var nMatch=res.emps.filter(function(e){return e.match;}).length;
+  var JL=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  var h='<div style="background:#141414;border:1px solid #2a2a2a;border-radius:12px;padding:12px;">'
+    +'<div style="font-weight:800;color:#F5A623;font-size:1.05rem;">'+(res.restoLbl)+' · '+(res.semLbl||'semaine ?')+'</div>'
+    +'<div style="font-size:.82rem;color:#aaa;margin:4px 0 10px;">'+res.emps.length+' salarié(s) lus · <b style="color:#3ecf8e;">'+nMatch+' rattaché(s)</b>'+(res.emps.length-nMatch>0?(' · <b style="color:#e8a020;">'+(res.emps.length-nMatch)+' non trouvé(s)</b>'):'')+(res.lundiISO?'':' · <b style="color:#e8623a;">semaine non détectée</b>')+'</div>'
+    +'<div style="max-height:320px;overflow:auto;"><table style="width:100%;border-collapse:collapse;font-size:.72rem;">'
+    +'<thead><tr style="color:#888;text-align:left;"><th style="padding:4px 6px;position:sticky;top:0;background:#141414;">Salarié</th>'+JL.map(function(j){return '<th style="padding:4px 6px;position:sticky;top:0;background:#141414;">'+j+'</th>';}).join('')+'<th style="padding:4px 6px;position:sticky;top:0;background:#141414;">H</th></tr></thead><tbody>';
+  h+=res.emps.map(function(e){
+    var cells=e.days.map(function(arr,c){
+      if(e.repos&&e.repos[c]) return '<td style="padding:3px 6px;color:#666;">Repos</td>';
+      if(e.cp&&e.cp[c]) return '<td style="padding:3px 6px;color:#7e9;">CP</td>';
+      if(!arr.length) return '<td style="padding:3px 6px;color:#444;">—</td>';
+      return '<td style="padding:3px 6px;">'+arr.map(function(r){ var F=IMP_FAMILIES[r.fam]; var col=F?F.col:'#3d6fb4'; return '<span style="display:inline-block;background:'+col+';color:#fff;border-radius:4px;padding:1px 5px;margin:1px 0;white-space:nowrap;">'+_imprhFmt(r.s)+'-'+_imprhFmt(r.e)+'</span>'; }).join('<br>')+'</td>';
+    }).join('');
+    var tot=Math.round(e.total/60*10)/10;
+    return '<tr style="border-top:1px solid #232323;"><td style="padding:3px 6px;color:'+(e.match?'#eee':'#e8a020')+';white-space:nowrap;">'+(e.match?'✓ ':'⚠️ ')+e.name+'</td>'+cells+'<td style="padding:3px 6px;color:#8fc3f5;">'+tot+'</td></tr>';
+  }).join('');
+  h+='</tbody></table></div>';
+  h+='<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'
+    +'<button class="btn btn-red" onclick="imprhImport()"'+((!res.lundiISO)?' disabled title="Semaine non détectée"':'')+'>📥 Importer / remplacer cette semaine</button>'
+    +'<span style="font-size:.75rem;color:#888;">Les salariés ⚠️ non trouvés sont ignorés (nom différent de la fiche).</span></div>';
+  h+='</div>';
+  pv.innerHTML=h;
+}
+async function imprhImport(){
+  var res=_imprhLast; if(!res||!res.lundiISO){ try{toast('Semaine non détectée.','error');}catch(_){} return; }
+  var R=(res.resto||'').toUpperCase();
+  var E=getExtPlanning(); E[R]=E[R]||{};
+  var wk={ u:new Date().toISOString(), lbl:res.semLbl, e:{} };
+  var nb=0;
+  res.emps.forEach(function(emp){
+    if(!emp.match) return;
+    var arr=[];
+    emp.days.forEach(function(dayArr,c){ dayArr.forEach(function(r){ arr.push([c, r.s, r.e, r.fam||'']); }); });
+    if(arr.length){ wk.e[emp.match.id]=arr; nb++; }
+  });
+  E[R][res.lundiISO]=wk;
+  await saveExtPlanning();
+  try{toast('Semaine importée ✔ ('+nb+' salariés)','success');}catch(_){}
+  // rafraîchir les Horaires si on est dessus
+  try{ if(typeof HR_WEEK_LUNDI!=='undefined' && HR_WEEK_LUNDI===res.lundiISO && typeof hrRefreshWeek==='function'){ hrRefreshWeek(); } }catch(_){}
+  _imprhLast=null; var pv=document.getElementById('imprh-preview'); if(pv) pv.innerHTML='<div style="color:#3ecf8e;">✔ Importé. Va dans Horaires → '+(RESTOS[res.resto]&&RESTOS[res.resto].label||res.resto)+' → semaine '+(res.semLbl||'')+'.</div>';
+  imprhRenderList();
+}
+window.imprhImport=imprhImport;
+function imprhRenderList(){
+  var box=document.getElementById('imprh-list'); if(!box) return;
+  var E=getExtPlanning(); var rows=[];
+  Object.keys(E).forEach(function(R){ Object.keys(E[R]||{}).forEach(function(lun){ var wk=E[R][lun]; rows.push({R:R,lun:lun,lbl:(wk&&wk.lbl)||lun,nb:wk&&wk.e?Object.keys(wk.e).length:0}); }); });
+  rows.sort(function(a,b){ return (b.lun||'').localeCompare(a.lun||''); });
+  if(!rows.length){ box.innerHTML='<div style="color:#888;font-size:.82rem;">Aucune semaine importée pour l\'instant.</div>'; return; }
+  box.innerHTML=rows.map(function(r){
+    var lbl=(RESTOS[r.R.toLowerCase()]&&RESTOS[r.R.toLowerCase()].label)||r.R;
+    return '<div class="emp-card"><div style="flex:1;min-width:0;">🍔 '+lbl+' · '+r.lbl+' <span style="color:#888;font-size:.78rem;">· '+r.nb+' salarié'+(r.nb>1?'s':'')+'</span></div><button class="btn-danger" onclick="imprhSuppr(\''+r.R+'\',\''+r.lun+'\')" title="Supprimer">🗑️</button></div>';
+  }).join('');
+}
+window.imprhRenderList=imprhRenderList;
+async function imprhSuppr(R,lun){
+  if(!confirm('Supprimer cette semaine importée ?')) return;
+  var E=getExtPlanning(); if(E[R]) delete E[R][lun];
+  await saveExtPlanning(); imprhRenderList();
+  try{ if(typeof HR_WEEK_LUNDI!=='undefined' && HR_WEEK_LUNDI===lun && typeof hrRefreshWeek==='function'){ hrRefreshWeek(); } }catch(_){}
+}
+window.imprhSuppr=imprhSuppr;
+// Traits importés (MyRHIS) injectés dans les Horaires pour un jour donné.
+function hrTraitsImportPlanning(isoDate){
+  var out=[];
+  try{
+    var resto=(typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:((curUser&&curUser.restoId)||'bk526');
+    var R=(''+resto).toUpperCase();
+    var E=getExtPlanning(); if(!E[R]) return out;
+    var lun=_imprhLundi(isoDate); var wk=E[R][lun]; if(!wk||!wk.e) return out;
+    // index jour → dayIdx
+    var base=new Date(lun+'T12:00:00'); var dayIdx=Math.round((new Date(isoDate+'T12:00:00')-base)/(24*3600*1000));
+    if(dayIdx<0||dayIdx>6) return out;
+    Object.keys(wk.e).forEach(function(empId){
+      var emp=(DB.employees||[]).find(function(x){return x.id===empId;}); var nom=emp?emp.name:'';
+      (wk.e[empId]||[]).forEach(function(tr){
+        if(tr[0]!==dayIdx) return;
+        var F=IMP_FAMILIES[tr[3]]||null;
+        var lab=F?F.l:'MyRHIS'; var col=F?F.col:'#3d6fb4';
+        out.push({ shift:'', bars:[{l:lab, s:tr[1], e:tr[2], emp:nom, empId:empId, col:col, _imp:true}], type:'imp' });
+      });
+    });
+  }catch(e){}
+  return out;
+}
+window.hrTraitsImportPlanning=hrTraitsImportPlanning;
+// Un jour a-t-il un planning importé (MyRHIS) pour le resto affiché ? → on masque alors
+// les créneaux « théoriques » générés par le CA (pas de superposition).
+function _imprhHasDay(isoDate){
+  try{
+    var resto=(typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:((curUser&&curUser.restoId)||'');
+    var R=(''+resto).toUpperCase(); var E=getExtPlanning(); if(!E[R]) return false;
+    return !!E[R][_imprhLundi(isoDate)];
+  }catch(e){ return false; }
+}
+window._imprhHasDay=_imprhHasDay;
 
 // PDF d'une seule semaine transférée (celle affichée dans le rapport)
 function rptPdfPartageSemaine(){
@@ -7268,7 +7777,7 @@ async function createLetterNew(inc){
 }
 
 // DOCUMENT REGROUPANT PLUSIEURS OBSERVATIONS ORALES (direction : franchise / directeur).
-// type = 'ecrit' (observation écrite) | 'avert' (avertissement) | 'mise' (mise en demeure).
+// type = 'ecrit' (observation écrite) | 'avert' (avertissement) | 'mise' (mise à pied).
 // Coche des incidents d'UN salarié -> un seul document, PDF téléchargé + envoi mail proposé.
 function _docBodyMulti(e, incs, type){
   var restoLabel=RESTOS[e.restoId]?RESTOS[e.restoId].label:'Burger King';
@@ -7303,7 +7812,7 @@ async function creerDocMulti(empId, type){
   incs=incs.filter(function(i){ return !(i.sanctionType && i.sanctionType!=='verbal'); });
   if(!incs.length){ toast('Ces incidents ont déjà été sanctionnés — pas de doublon possible.','error'); return; }
   if(window._docEnCours){ return; } // verrou anti double-clic (évite 40 documents identiques)
-  var lib={ecrit:'observation écrite',avert:'avertissement',mise:'mise en demeure'}[type]||'document';
+  var lib={ecrit:'observation écrite',avert:'avertissement',mise:'mise à pied'}[type]||'document';
   if(!confirm('Créer une '+lib+' pour '+e.name+' regroupant '+incs.length+' incident'+(incs.length>1?'s':'')+' ?')) return;
   window._docEnCours=true;
   var body=_docBodyMulti(e, incs, type);
@@ -7889,7 +8398,7 @@ function collectAlertes(restoFiltre){
   try{
     (suggestionsBaremes(restoFiltre)||[]).forEach(function(s){
       var pl=((PROBS.find(function(p){return p.id===s.type;})||{}).label||s.type);
-      var dl={ecrit:'observation écrite',avert:'avertissement',mise:'mise en demeure'}[s.doc]||'document';
+      var dl={ecrit:'observation écrite',avert:'avertissement',mise:'mise à pied'}[s.doc]||'document';
       alerts.push({prio:1,cat:'À sanctionner',icon:'⚖️',col:'#e8623a',
         titre:s.empName+' — '+s.incs.length+' '+(''+pl).toLowerCase()+' → '+dl+' à préparer',
         sub:'Barème atteint ('+s.seuil+' sur '+s.mois+' mois) · '+rlabel(s.restoId),
@@ -10764,8 +11273,8 @@ var MAIL_DEFAULTS={
     corps:'Bonjour {nom},\n\nVeuillez trouver ci-dessous l\'avertissement écrit qui vous est notifié.\n\n{document}\n\n🔗 Pour prendre connaissance et signer ce document en ligne :\n{lien_signature}\n\nCordialement,\nL\'équipe {resto}'
   },
   mise_en_demeure:{
-    sujet:'Mise en demeure — {resto}',
-    corps:'Bonjour {nom},\n\nVeuillez trouver ci-dessous la mise en demeure qui vous est notifiée.\n\n{document}\n\n🔗 Pour prendre connaissance et signer ce document en ligne :\n{lien_signature}\n\nCordialement,\nL\'équipe {resto}'
+    sujet:'Mise à pied — {resto}',
+    corps:'Bonjour {nom},\n\nVeuillez trouver ci-dessous la mise à pied qui vous est notifiée.\n\n{document}\n\n🔗 Pour prendre connaissance et signer ce document en ligne :\n{lien_signature}\n\nCordialement,\nL\'équipe {resto}'
   },
   mise_a_pied:{
     sujet:'Mise à pied — {resto}',
@@ -12765,7 +13274,7 @@ async function sendRefusEmail(lid){
   var restoId=emp?emp.restoId:'';
   var tpl=getMailTpl(restoId);
   var t=tpl.refus_signature||{sujet:'Refus de signature — {resto}',corps:'{document}'};
-  var typeDoc={ecrit:'l\'observation écrite',avert:'l\'avertissement écrit',mise:'la mise en demeure',mise_a_pied:'la mise à pied'}[l.sanctionType]||'le document';
+  var typeDoc={ecrit:'l\'observation écrite',avert:'l\'avertissement écrit',mise:'la mise à pied',mise_a_pied:'la mise à pied'}[l.sanctionType]||'le document';
   var nomComplet=l.empName||(emp&&emp.name)||''; var prenom=(nomComplet.split(' ')[0]||'');
   var restoLbl=RESTOS[restoId]?RESTOS[restoId].label:'Burger King';
   var dRefus=l.refusedAt?new Date(l.refusedAt).toLocaleString('fr-FR'):new Date().toLocaleString('fr-FR');
@@ -12788,7 +13297,7 @@ async function sendSignedEmail(lid){
   var restoId=emp?emp.restoId:'';
   var tpl=getMailTpl(restoId);
   var t=tpl.signature_ok||{sujet:'Confirmation de signature — {resto}',corps:'{document}'};
-  var typeDoc={ecrit:'l\'observation écrite',avert:'l\'avertissement écrit',mise:'la mise en demeure',mise_a_pied:'la mise à pied'}[l.sanctionType]||'le document';
+  var typeDoc={ecrit:'l\'observation écrite',avert:'l\'avertissement écrit',mise:'la mise à pied',mise_a_pied:'la mise à pied'}[l.sanctionType]||'le document';
   var nomComplet=l.empName||(emp&&emp.name)||''; var prenom=(nomComplet.split(' ')[0]||'');
   var restoLbl=RESTOS[restoId]?RESTOS[restoId].label:'Burger King';
   var dSign=l.signedAt?new Date(l.signedAt).toLocaleString('fr-FR'):new Date().toLocaleString('fr-FR');
@@ -16036,12 +16545,21 @@ function hrNpNbPersonnes(nb, dayIdx){
 
 function buildRows(caMap, dayIdx, isoDate){
   const rows=[];
+  // Semaine importée (MyRHIS) pour ce jour → on n'affiche QUE le planning importé
+  // (+ encadrement) et on masque les créneaux « théoriques » du CA (pas de superposition).
+  // On calcule les créneaux importés en premier : leur présence suffit à déclencher
+  // la suppression du théorique (aucune divergence possible avec un test séparé).
+  var _impBars=[];
+  if(isoDate && typeof hrTraitsImportPlanning==='function'){ try{ _impBars=hrTraitsImportPlanning(isoDate)||[]; }catch(e){ _impBars=[]; } }
+  var _impDay = (_impBars.length>0);
+  if(!_impDay && isoDate && typeof _imprhHasDay==='function'){ try{ _impDay=!!_imprhHasDay(isoDate); }catch(e){} }
 
   // 1. Non productifs (tâches fixes indépendantes du CA)
   //    Filtrage par jour : un NP peut être limité à certains jours (élément b[4] =
   //    tableau d'indices 0=lundi … 6=dimanche). Absent/vide = tous les jours.
   //    Filtrage par fréquence : élément b[5] = {type,n,ref|sem} (voir hrNpFreqActive).
   BASE_MIN.filter(b=>b[3]==='np').forEach(b=>{
+    if(_impDay) return; // semaine importée → pas de créneaux théoriques
     if(estTraitEncadrement(b[0])) return; // l'encadrement vient désormais du Planning, plus du NP
     const jours = b[4];
     if(Array.isArray(jours) && jours.length && dayIdx!=null && jours.indexOf(dayIdx)<0) return; // pas ce jour
@@ -16062,6 +16580,7 @@ function buildRows(caMap, dayIdx, isoDate){
   //       dans le Planning et on crée un trait par personne avec ses horaires.
   if(isoDate){
     try{ rows.push.apply(rows, hrTraitsEncadrementPlanning(isoDate)); }catch(e){}
+    if(_impBars.length) rows.push.apply(rows, _impBars);
   }
 
   // 2. Effectif productif par poste, calculé par tranche de 15 min à partir du CA.
@@ -16071,7 +16590,7 @@ function buildRows(caMap, dayIdx, isoDate){
   const tranches=Object.keys(caMap).filter(t=>t!=='00:00').sort();
   if((caMap['00:00']||0)>0) tranches.push('00:00');
 
-  POSTES.forEach(poste=>{
+  if(!_impDay) POSTES.forEach(poste=>{
     // Bornes d'OUVERTURE CLIENT du jour (en minutes, après-minuit compté +24h),
     // pour ne placer le PRODUCTIF que dans cette plage (le CA hors plage est ignoré
     // côté productif). Le non productif n'est pas concerné (généré en partie 1).
@@ -18914,6 +19433,7 @@ function hrReappliquerAffectations(){
       // (empId = personne du planning), PAS des affectations équipiers : on ne doit
       // JAMAIS leur remettre empId=null ici, sinon ils disparaissent des Horaires.
       if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return;
+      if(b._imp) return; // trait importé (MyRHIS) : identité fixe, ne pas réaffecter
       var m=aff.find(function(a){return a.l===b.l && a.s===b.s && a.e===b.e && !a._used;});
       if(m){ b.emp=m.emp; b.empId=m.empId; m._used=true; }
       else { b.emp=null; b.empId=null; }
@@ -18926,6 +19446,7 @@ function hrReappliquerAffectations(){
     // ne touche QUE les bars restés sans nom et n'utilise chaque affectation qu'une fois.
     _bars.forEach(function(b){
       if(b.empId) return;
+      if(b._imp) return;
       if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return; // encadrement : ne pas réaffecter
       var be=(b.e!=null?b.e:b.s+60);
       var best=null, bestScore=Infinity;
