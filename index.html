@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-27 · v438';
+  var EMBEDDED_VERSION = '2026-07-27 · v440';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -18910,6 +18910,10 @@ function hrReappliquerAffectations(){
     // ── PASSE 1 : correspondance EXACTE (même poste + mêmes heures) ──
     // Comportement historique inchangé dans le cas normal.
     _bars.forEach(function(b){
+      // Les traits d'ENCADREMENT tiennent leur identité du Planning d'encadrement
+      // (empId = personne du planning), PAS des affectations équipiers : on ne doit
+      // JAMAIS leur remettre empId=null ici, sinon ils disparaissent des Horaires.
+      if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return;
       var m=aff.find(function(a){return a.l===b.l && a.s===b.s && a.e===b.e && !a._used;});
       if(m){ b.emp=m.emp; b.empId=m.empId; m._used=true; }
       else { b.emp=null; b.empId=null; }
@@ -18922,6 +18926,7 @@ function hrReappliquerAffectations(){
     // ne touche QUE les bars restés sans nom et n'utilise chaque affectation qu'une fois.
     _bars.forEach(function(b){
       if(b.empId) return;
+      if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return; // encadrement : ne pas réaffecter
       var be=(b.e!=null?b.e:b.s+60);
       var best=null, bestScore=Infinity;
       aff.forEach(function(a){
@@ -23040,23 +23045,25 @@ function calcHeures(dayIdx){
 // (postes non productifs : ouverture, fermeture, prép, plonge, managers OUV/CLOSE…).
 // La distinction se fait via hrNpLabels() (libellés type 'np' de la grille du resto).
 function calcHeuresPI(dayIdx){
-  let prodMin=0, impMin=0;
+  let prodMin=0, impMin=0, encMin=0;
   const npSet = (typeof hrNpLabels==='function') ? hrNpLabels() : new Set();
   (ROWS_BY_DAY[dayIdx]||[]).forEach(r=>r.bars.forEach(b=>{
     const dur=(b.e||b.s+60)-b.s;
     const lbl=((b.l||'')).toUpperCase();
+    // Encadrement (managers/leaders du Planning d'encadrement) : compté à part.
+    if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)){ encMin+=dur; return; }
     if(npSet.has(lbl)) impMin+=dur; else prodMin+=dur;
   }));
-  return { prod: Math.round(prodMin/60*10)/10, imp: Math.round(impMin/60*10)/10 };
+  return { prod: Math.round(prodMin/60*10)/10, imp: Math.round(impMin/60*10)/10, enc: Math.round(encMin/60*10)/10 };
 }
 
 function renderMetrics(){
   // Récap semaine
   const hSem = Math.round(DAY_LABELS.reduce((_,__,i)=>_+calcHeures(i),0)*10)/10;
   // Décomposition productif / improductif sur la semaine
-  let hProd=0, hImp=0;
-  for(let i=0;i<7;i++){ const pi=calcHeuresPI(i); hProd+=pi.prod; hImp+=pi.imp; }
-  hProd=Math.round(hProd*10)/10; hImp=Math.round(hImp*10)/10;
+  let hProd=0, hImp=0, hEnc=0;
+  for(let i=0;i<7;i++){ const pi=calcHeuresPI(i); hProd+=pi.prod; hImp+=pi.imp; hEnc+=(pi.enc||0); }
+  hProd=Math.round(hProd*10)/10; hImp=Math.round(hImp*10)/10; hEnc=Math.round(hEnc*10)/10;
   const semLbl = (typeof WEEK_LABEL!=='undefined' && WEEK_LABEL) ? WEEK_LABEL : (DAY_LABELS[0]+' → '+DAY_LABELS[6]);
   // CA affiché dans le planning (= ce qui sert de base aux traits)
   const caBase = DAY_TOTALS.reduce((a,b)=>a+b,0);
@@ -23110,7 +23117,7 @@ function renderMetrics(){
 
   document.getElementById('hrx-mrow').innerHTML=`
     <div class="hr-mc" style="border-color:var(--ac);flex:2"><div class="hr-mc-l" style="color:var(--ac);">💶 CA semaine HT · réf. ${an2025}</div><div class="hr-mc-v">${Math.round(ca2025||caBase).toLocaleString('fr')} €</div>${ligne2026}<div class="hr-mc-s" style="opacity:.6">semaine ${semLbl}</div></div>
-    <div class="hr-mc" style="border-color:#3ecf8e;flex:2"><div class="hr-mc-l" style="color:#3ecf8e;">⏱️ Heures semaine · prévues 2026</div><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px"><div class="hr-mc-v">${hSem} h</div><div style="text-align:right;font-family:'DM Mono',monospace;line-height:1.45;padding-top:4px"><div style="font-size:11px;color:#3ecf8e"><b style="color:#fff">${hProd} h</b> productif</div><div style="font-size:11px;color:#f5a623"><b style="color:#fff">${hImp} h</b> improductif</div></div></div><div class="hr-mc-s">Masse salariale : <b style="color:#fff">${Math.round(masse).toLocaleString('fr')} €</b> (à <input id="hrx-taux-input" type="number" min="1" step="0.5" value="${TAUX_HORAIRE}" onchange="hrSetTaux(this.value)" onfocus="this.select()" title="Taux horaire de ce restaurant — cliquer pour modifier" style="width:62px;background:var(--s2);border:1px solid var(--bd2);border-radius:5px;padding:2px 6px;font-size:11px;color:#3ecf8e;font-family:'DM Mono',monospace;text-align:center;font-weight:600;-moz-appearance:textfield;appearance:textfield"> €/h)</div><div class="hr-mc-s">Soit <b style="color:${pctMasse>30?'#f87171':(pctMasse>25?'#fbbf24':'#3ecf8e')}">${pctMasse.toFixed(1)} %</b> du CA</div></div>
+    <div class="hr-mc" style="border-color:#3ecf8e;flex:2"><div class="hr-mc-l" style="color:#3ecf8e;">⏱️ Heures semaine · prévues 2026</div><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px"><div class="hr-mc-v">${hSem} h</div><div style="text-align:right;font-family:'DM Mono',monospace;line-height:1.45;padding-top:4px"><div style="font-size:11px;color:#c9a0ff"><b style="color:#fff">${hEnc} h</b> ⭐ encadrement</div><div style="font-size:11px;color:#3ecf8e"><b style="color:#fff">${hProd} h</b> productif</div><div style="font-size:11px;color:#f5a623"><b style="color:#fff">${hImp} h</b> improductif</div></div></div><div class="hr-mc-s">Masse salariale : <b style="color:#fff">${Math.round(masse).toLocaleString('fr')} €</b> (à <input id="hrx-taux-input" type="number" min="1" step="0.5" value="${TAUX_HORAIRE}" onchange="hrSetTaux(this.value)" onfocus="this.select()" title="Taux horaire de ce restaurant — cliquer pour modifier" style="width:62px;background:var(--s2);border:1px solid var(--bd2);border-radius:5px;padding:2px 6px;font-size:11px;color:#3ecf8e;font-family:'DM Mono',monospace;text-align:center;font-weight:600;-moz-appearance:textfield;appearance:textfield"> €/h)</div><div class="hr-mc-s">Soit <b style="color:${pctMasse>30?'#f87171':(pctMasse>25?'#fbbf24':'#3ecf8e')}">${pctMasse.toFixed(1)} %</b> du CA</div></div>
     <div class="hr-mc" style="border-color:#60a5fa;flex:2"><div class="hr-mc-l" style="color:#60a5fa;">👤 Personnes · ${labelJourCur}</div><div class="hr-mc-v">${persJourCur}</div><div class="hr-mc-s">Pic simultané : <b style="color:#fff">${picJourCur} pers.</b></div><div class="hr-mc-s">Semaine : <b style="color:#fff">${persSem}</b> shifts</div></div>
   `;
 }
