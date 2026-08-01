@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-01 · v463';
+  var EMBEDDED_VERSION = '2026-08-01 · v465';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -6449,13 +6449,30 @@ function _extFromMime(mime){
 }
 // Nom de fichier « propre » d'une pièce, basé sur SON EMPLACEMENT de dépôt (le type de document),
 // pas sur le nom brut du fichier envoyé (souvent « image.jpg »).
+// Gère les DEUX nommages de la pièce d'identité : « piece_identite_* » (formulaire récent)
+// ET « cni_* » (ancien) — c'est la cause du « Tout télécharger » qui oubliait la CNI.
 function pieceBaseName(key){
-  var base={cni:'Carte_identite_ou_passeport',domicile:'Justificatif_domicile',
+  var full={
+    'piece_identite_recto':'Carte_identite_ou_passeport_Recto',
+    'piece_identite_verso':'Carte_identite_ou_passeport_Verso',
+    'piece_identite':'Carte_identite_ou_passeport',
+    'cni_recto':'Carte_identite_ou_passeport_Recto',
+    'cni_verso':'Carte_identite_ou_passeport_Verso',
+    'cni':'Carte_identite_ou_passeport',
+    'vitale_recto':'Carte_vitale_Recto','vitale_verso':'Carte_vitale_Verso',
+    'domicile':'Justificatif_domicile','hebergement':'Attestation_hebergement',
+    'cpam':'Attestation_CPAM','mutuelle':'Carte_tiers_payant_2026',
+    'rib':'RIB','attestation24h':'Attestation_-24h_signee'
+  };
+  if(full[key]) return full[key];
+  // Repli générique pour toute clé inconnue : base + suffixe Recto/Verso éventuel.
+  var base={cni:'Carte_identite_ou_passeport',piece:'Piece_identite',domicile:'Justificatif_domicile',
     hebergement:'Attestation_hebergement',vitale:'Carte_vitale',cpam:'Attestation_CPAM',
     mutuelle:'Carte_tiers_payant_2026',rib:'RIB',attestation24h:'Attestation_-24h_signee'};
-  var parts=String(key).split('_'); var id=parts[0];
-  var side=parts[1]?('_'+parts[1].charAt(0).toUpperCase()+parts[1].slice(1)):''; // _Recto / _Verso
-  return (base[id]||dbxClean(id))+side;
+  var m=/_(recto|verso)$/i.exec(String(key));
+  var side=m?('_'+m[1].charAt(0).toUpperCase()+m[1].slice(1).toLowerCase()):'';
+  var stem=String(key).replace(/_(recto|verso)$/i,'');
+  return (base[stem]||base[stem.split('_')[0]]||dbxClean(stem))+side;
 }
 // Récupère le blob d'une pièce (data: ou lien Dropbox), avec repli sur le lien direct dl=1.
 async function _pieceBlob(url){
@@ -11189,13 +11206,18 @@ function candDocsHtml(c){
 async function downloadAllCandDocs(candId){
   var c=DB.candidatures.find(function(x){return x.id===candId;}); if(!c) return;
   var items=[], docs=c.documents||{};
-  // Chaque pièce est nommée d'après SON EMPLACEMENT (type de document), pas le nom brut
-  // du fichier envoyé. L'extension est reprise du fichier d'origine ou déduite du contenu.
-  DOC_TYPES.forEach(function(d){
-    function add(key){ var p=docs[key]; if(p&&(p.link||p.data)) items.push({url:p.link||p.data,name:pieceBaseName(key),orig:(p.name||'')}); }
-    if(d.sides){d.sides.forEach(function(s){add(d.id+'_'+s.toLowerCase());});}
-    else add(d.id);
-  });
+  // IMPORTANT : on parcourt les pièces RÉELLEMENT présentes dans le dossier (quelles que
+  // soient leurs clés), et non une liste figée. Sinon les pièces enregistrées sous une clé
+  // différente (ex. « piece_identite_recto » au lieu de « cni_recto ») étaient oubliées.
+  // Chaque pièce est nommée d'après SON EMPLACEMENT (type de document), pas le nom brut du
+  // fichier envoyé. L'extension est reprise du fichier d'origine ou déduite du contenu.
+  // Ordre : d'abord les types connus (DOC_TYPES), puis toute clé supplémentaire.
+  var vus={};
+  function add(key){ if(vus[key]) return; var p=docs[key]; if(p&&(p.link||p.data)){ vus[key]=1; items.push({url:p.link||p.data,name:pieceBaseName(key),orig:(p.name||'')}); } }
+  var ordre=['piece_identite_recto','piece_identite_verso','piece_identite'];
+  DOC_TYPES.forEach(function(d){ if(d.sides){d.sides.forEach(function(s){ordre.push(d.id+'_'+s.toLowerCase());});} else ordre.push(d.id); });
+  ordre.forEach(add);
+  Object.keys(docs).forEach(add); // toute autre clé non prévue ci-dessus
   if(!c.cvData&&c.cvName){ try{ var rows=await sb.get('bks_candidatures','select=cv_data,cv_name&id=eq.'+candId); if(rows&&rows[0]){c.cvData=rows[0].cv_data||''; if(rows[0].cv_name)c.cvName=rows[0].cv_name;} }catch(e){ console.warn('dlAll cv',e); } }
   if(c.cvData) items.push({url:c.cvData,name:'CV_'+dbxClean(c.prenom||'')+'_'+dbxClean(c.nom||''),orig:(c.cvName||''),ext:(_extFromName(c.cvName)||'.pdf')});
   if(c.photo) items.push({url:c.photo,name:'Photo_'+dbxClean(c.prenom||'')+'_'+dbxClean(c.nom||''),orig:''});
@@ -11236,7 +11258,11 @@ async function zipAndDownload(items,nomFichier){
   setTimeout(function(){ try{URL.revokeObjectURL(a.href);document.body.removeChild(a);}catch(e){} },2000);
   try{ toast('Dossier téléchargé : '+ok+' pièce'+(ok>1?'s':'')+(echecs.length?' — '+echecs.length+' manquante'+(echecs.length>1?'s':''):''), echecs.length?'error':'success'); }catch(e){}
   // Signalement explicite : plus de pièce qui disparaît « en silence ».
-  if(echecs.length){ try{ alert('⚠️ Ces pièces n\'ont PAS pu être récupérées et ne sont pas dans le zip :\n\n• '+echecs.join('\n• ')+'\n\nRéessayez, ou re-déposez ces pièces dans la fiche.'); }catch(e){} }
+  if(echecs.length){
+    var astuce='';
+    try{ if(location.protocol==='file:'){ astuce='\n\n⚠️ Vous avez ouvert le FICHIER téléchargé en local. Dans ce mode, le navigateur bloque l\'accès aux pièces Dropbox. Ouvrez l\'application EN LIGNE (bkrh.vercel.app) : les pièces se téléchargeront normalement.'; } }catch(e){}
+    try{ alert('⚠️ Ces pièces n\'ont PAS pu être récupérées et ne sont pas dans le zip :\n\n• '+echecs.join('\n• ')+(astuce||'\n\nRéessayez, ou re-déposez ces pièces dans la fiche.')); }catch(e){}
+  }
 }
 
 function candPhotoZoom(src){
