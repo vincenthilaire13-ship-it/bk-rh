@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-01 · v462';
+  var EMBEDDED_VERSION = '2026-08-01 · v463';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -6431,7 +6431,7 @@ async function _dbxFetchSharedFile(link){
     method:'POST',
     headers:{'Authorization':'Bearer '+tok,'Dropbox-API-Arg':JSON.stringify({url:String(link)})}
   });
-  if(!r.ok){ throw new Error('Dropbox '+r.status); }
+  if(!r.ok){ var t=''; try{t=await r.text();}catch(e){} throw new Error('Dropbox '+r.status+(t?' '+t.slice(0,140):'')); }
   return await r.blob();
 }
 function _zipUniqueName(used,name){
@@ -6440,10 +6440,31 @@ function _zipUniqueName(used,name){
   var dot=n.lastIndexOf('.'); var base=dot>0?n.slice(0,dot):n; var ext=dot>0?n.slice(dot):'';
   var k=2; while(used[base+'_'+k+ext])k++; used[base+'_'+k+ext]=1; return base+'_'+k+ext;
 }
-// Récupère le blob d'une pièce (data: ou lien Dropbox).
+// Extension de fichier depuis un nom (« image.jpg » -> « .jpg ») ou depuis le type MIME.
+function _extFromName(name){ var m=/\.([A-Za-z0-9]{1,5})$/.exec(name||''); return m?('.'+m[1].toLowerCase()):''; }
+function _extFromMime(mime){
+  var map={'application/pdf':'.pdf','image/jpeg':'.jpg','image/jpg':'.jpg','image/png':'.png',
+    'image/webp':'.webp','image/heic':'.heic','image/heif':'.heic','image/gif':'.gif','image/tiff':'.tiff'};
+  return map[String(mime||'').toLowerCase()]||'';
+}
+// Nom de fichier « propre » d'une pièce, basé sur SON EMPLACEMENT de dépôt (le type de document),
+// pas sur le nom brut du fichier envoyé (souvent « image.jpg »).
+function pieceBaseName(key){
+  var base={cni:'Carte_identite_ou_passeport',domicile:'Justificatif_domicile',
+    hebergement:'Attestation_hebergement',vitale:'Carte_vitale',cpam:'Attestation_CPAM',
+    mutuelle:'Carte_tiers_payant_2026',rib:'RIB',attestation24h:'Attestation_-24h_signee'};
+  var parts=String(key).split('_'); var id=parts[0];
+  var side=parts[1]?('_'+parts[1].charAt(0).toUpperCase()+parts[1].slice(1)):''; // _Recto / _Verso
+  return (base[id]||dbxClean(id))+side;
+}
+// Récupère le blob d'une pièce (data: ou lien Dropbox), avec repli sur le lien direct dl=1.
 async function _pieceBlob(url){
   if(String(url).indexOf('data:')===0) return _dataUrlToBlob(url);
-  return await _dbxFetchSharedFile(url);
+  try{ return await _dbxFetchSharedFile(url); }
+  catch(e1){
+    try{ var r=await fetch(dbxDl(url)); if(r&&r.ok) return await r.blob(); }catch(e2){}
+    throw e1;
+  }
 }
 
 var _empDocCtx={empId:null,boxId:'histo-docs'};
@@ -11168,14 +11189,16 @@ function candDocsHtml(c){
 async function downloadAllCandDocs(candId){
   var c=DB.candidatures.find(function(x){return x.id===candId;}); if(!c) return;
   var items=[], docs=c.documents||{};
+  // Chaque pièce est nommée d'après SON EMPLACEMENT (type de document), pas le nom brut
+  // du fichier envoyé. L'extension est reprise du fichier d'origine ou déduite du contenu.
   DOC_TYPES.forEach(function(d){
-    function add(key,lbl){ var p=docs[key]; if(p&&(p.link||p.data)) items.push({url:p.link||p.data,name:p.name||(lbl+'.pdf')}); }
-    if(d.sides){d.sides.forEach(function(s){add(d.id+'_'+s.toLowerCase(),d.label+'_'+s);});}
-    else add(d.id,d.label);
+    function add(key){ var p=docs[key]; if(p&&(p.link||p.data)) items.push({url:p.link||p.data,name:pieceBaseName(key),orig:(p.name||'')}); }
+    if(d.sides){d.sides.forEach(function(s){add(d.id+'_'+s.toLowerCase());});}
+    else add(d.id);
   });
   if(!c.cvData&&c.cvName){ try{ var rows=await sb.get('bks_candidatures','select=cv_data,cv_name&id=eq.'+candId); if(rows&&rows[0]){c.cvData=rows[0].cv_data||''; if(rows[0].cv_name)c.cvName=rows[0].cv_name;} }catch(e){ console.warn('dlAll cv',e); } }
-  if(c.cvData) items.push({url:c.cvData,name:c.cvName||('CV_'+(c.prenom||'')+'_'+(c.nom||'')+'.pdf')});
-  if(c.photo) items.push({url:c.photo,name:'Photo_'+(c.prenom||'')+'_'+(c.nom||'')+'.jpg'});
+  if(c.cvData) items.push({url:c.cvData,name:'CV_'+dbxClean(c.prenom||'')+'_'+dbxClean(c.nom||''),orig:(c.cvName||''),ext:(_extFromName(c.cvName)||'.pdf')});
+  if(c.photo) items.push({url:c.photo,name:'Photo_'+dbxClean(c.prenom||'')+'_'+dbxClean(c.nom||''),orig:''});
   if(!items.length){ try{alert('Aucun document à télécharger.');}catch(e){} return; }
   var nomFichier='Dossier_'+dbxClean(c.prenom||'')+'_'+dbxClean(c.nom||'');
   await zipAndDownload(items,nomFichier);
@@ -11189,27 +11212,31 @@ async function zipAndDownload(items,nomFichier){
   if(!items.length){ try{alert('Aucun document à télécharger.');}catch(e){} return; }
   if(typeof JSZip==='undefined'){
     try{ toast('Téléchargement de '+items.length+' document(s)…',''); }catch(e){}
-    items.forEach(function(it,idx){ setTimeout(function(){ dlDocForce(it.url,it.name); }, idx*350); });
+    items.forEach(function(it,idx){ setTimeout(function(){ dlDocForce(it.url,(it.name||'document')+(it.ext||_extFromName(it.orig)||'')); }, idx*350); });
     return;
   }
-  var zip=new JSZip(), used={}, ok=0, fail=0;
+  var zip=new JSZip(), used={}, ok=0, echecs=[];
   try{ toast('Préparation du dossier ('+items.length+' pièces)…',''); }catch(e){}
   for(var i=0;i<items.length;i++){
     var it=items[i];
     try{
       var blob=await _pieceBlob(it.url);
-      zip.file(_zipUniqueName(used,it.name||('piece_'+(i+1))),blob);
+      var ext=it.ext||_extFromName(it.orig)||_extFromMime(blob.type)||'';
+      zip.file(_zipUniqueName(used,(it.name||('piece_'+(i+1)))+ext),blob);
       ok++;
-    }catch(e){ fail++; console.warn('zip pièce',it&&it.name,e); }
+    }catch(e){ echecs.push(it.name||('pièce '+(i+1))); console.warn('zip pièce',it&&it.name,e); }
   }
-  if(!ok){ try{ toast('Échec : impossible de récupérer les pièces.','error'); }catch(e){} return; }
+  if(!ok){ try{ toast('Échec : impossible de récupérer les pièces.','error'); }catch(e){}
+    try{ alert('Aucune pièce n\'a pu être récupérée depuis Dropbox. Réessayez dans un instant.'); }catch(e){} return; }
   var content=await zip.generateAsync({type:'blob'});
   var a=document.createElement('a');
   a.href=URL.createObjectURL(content);
   a.download=(nomFichier||'Dossier')+'.zip';
   document.body.appendChild(a); a.click();
   setTimeout(function(){ try{URL.revokeObjectURL(a.href);document.body.removeChild(a);}catch(e){} },2000);
-  try{ toast('Dossier téléchargé : '+ok+' pièce'+(ok>1?'s':'')+(fail?' ('+fail+' en échec)':''), fail?'':'success'); }catch(e){}
+  try{ toast('Dossier téléchargé : '+ok+' pièce'+(ok>1?'s':'')+(echecs.length?' — '+echecs.length+' manquante'+(echecs.length>1?'s':''):''), echecs.length?'error':'success'); }catch(e){}
+  // Signalement explicite : plus de pièce qui disparaît « en silence ».
+  if(echecs.length){ try{ alert('⚠️ Ces pièces n\'ont PAS pu être récupérées et ne sont pas dans le zip :\n\n• '+echecs.join('\n• ')+'\n\nRéessayez, ou re-déposez ces pièces dans la fiche.'); }catch(e){} }
 }
 
 function candPhotoZoom(src){
