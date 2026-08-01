@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-01 · v465';
+  var EMBEDDED_VERSION = '2026-08-01 · v467';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1506,7 +1506,52 @@ html,body{overflow-x:hidden;}
         </div>
       </div>
 
+      <div style="background:#141414;border-radius:10px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:.82rem;color:#e87722;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">🏥 AMETRA — médecine du travail</div>
+        <p style="font-size:.78rem;color:#999;margin-bottom:12px;">Adresse à qui envoyer le mail de <strong>retrait des effectifs</strong> (quand un salarié part avant sa visite, pour ne pas être facturé). Le mail se lance depuis les <strong>Alertes</strong> et le <strong>rapport Visites médicales</strong>. Le contenu du mail se modifie dans « Modèles de mail » (onglet 🏥 AMETRA), par restaurant.</p>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:220px;"><label class="flabel">Email AMETRA (destinataire)</label>
+            <input type="email" id="vc-ametra-email" class="fi" placeholder="contact@ametra34.fr"></div>
+          <div><label class="flabel">N° d'adhérent (facultatif)</label>
+            <input type="text" id="vc-ametra-adherent" class="fi" placeholder="ex. 12345" style="width:160px;"></div>
+        </div>
+      </div>
+
       <button class="btn btn-red" onclick="saveVisiteConfig()">💾 Enregistrer les réglages</button>
+    </div>
+    <div class="card param-card" id="pc-photo" style="display:none;">
+      <div class="sec-title">📷 Photo</div>
+      <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Prenez une photo (ou choisissez un fichier) et rangez-la. Pour l'instant : <strong>Photo portrait</strong> — la photo remplace l'avatar d'un salarié dans l'équipe.</p>
+
+      <label class="flabel">Type de photo</label>
+      <select id="photo-type" class="fi" style="margin-bottom:14px;" onchange="photoParamTypeChange()">
+        <option value="portrait">👤 Photo portrait (avatar d'un salarié)</option>
+      </select>
+
+      <div id="photo-portrait-box">
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;">
+          <div style="flex:1;min-width:180px;"><label class="flabel">Restaurant</label>
+            <select id="photo-resto" class="fi" onchange="photoParamRestoChange()"></select></div>
+          <div style="flex:2;min-width:220px;"><label class="flabel">Salarié</label>
+            <select id="photo-emp" class="fi" onchange="photoParamEmpChange()"></select></div>
+        </div>
+
+        <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+          <div>
+            <div id="photo-preview" style="width:130px;height:130px;border-radius:12px;background:#1A1A1A;border:2px dashed #444;display:flex;align-items:center;justify-content:center;font-size:2rem;color:#555;background-size:cover;background-position:center;overflow:hidden;">📷</div>
+          </div>
+          <div style="flex:1;min-width:200px;">
+            <input type="file" id="photo-cam" accept="image/*" capture="user" style="display:none;" onchange="photoParamPick(this)">
+            <input type="file" id="photo-file" accept="image/*" style="display:none;" onchange="photoParamPick(this)">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+              <button type="button" class="btn btn-gray btn-sm" onclick="document.getElementById('photo-cam').click()">📸 Prendre en photo</button>
+              <button type="button" class="btn btn-gray btn-sm" onclick="document.getElementById('photo-file').click()">🖼️ Choisir un fichier</button>
+            </div>
+            <div id="photo-current-note" style="font-size:.76rem;color:#888;margin-bottom:10px;"></div>
+            <button class="btn btn-red" onclick="photoParamSave()">💾 Enregistrer la photo du salarié</button>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="card param-card" id="pc-pointer" style="display:none;">
       <div class="sec-title">📍 Pointer — messages du pointage</div>
@@ -1611,12 +1656,13 @@ html,body{overflow-x:hidden;}
           <button class="rtab" onclick="setMailTab(this,'mise_a_pied')">🚷 Mise à pied (absence)</button>
           <button class="rtab" onclick="setMailTab(this,'refus_signature')">✍️ Refus de signature</button>
           <button class="rtab" onclick="setMailTab(this,'signature_ok')">✅ Signature confirmée</button>
+          <button class="rtab" onclick="setMailTab(this,'ametra')">🏥 AMETRA (retrait effectifs)</button>
         </div>
         <label class="flabel">Objet</label>
         <input type="text" id="mt-sujet" class="fi" style="margin-bottom:10px;">
         <label class="flabel">Message</label>
         <textarea id="mt-corps" class="fi" style="min-height:200px;font-size:.85rem;"></textarea>
-        <p style="font-size:.72rem;color:#666;margin-top:6px;">Variables : {prenom} {nom} {resto} {date} · Documents disciplinaires : <strong>{document}</strong> (texte du document), <strong>{lien_signature}</strong> (lien de signature en ligne) · Refus de signature : <strong>{type_document}</strong> (type du document refusé).</p>
+        <p style="font-size:.72rem;color:#666;margin-top:6px;">Variables : {prenom} {nom} {resto} {date} · Documents disciplinaires : <strong>{document}</strong> (texte du document), <strong>{lien_signature}</strong> (lien de signature en ligne) · Refus de signature : <strong>{type_document}</strong> (type du document refusé) · AMETRA : <strong>{date_naissance}</strong>, <strong>{date_entree}</strong>, <strong>{date_sortie}</strong> (aujourd'hui), <strong>{num_adherent}</strong>.</p>
         <button class="btn btn-red" style="margin-top:12px;" onclick="saveMailTplResto()">💾 Enregistrer les modèles de ce restaurant</button>
       </div>
     </div>
@@ -3493,6 +3539,7 @@ var PARAM_TILES=[
   {ico:'🔑', titre:'Codes PIN',     sub:'Accès par profil',             type:'card', card:'pc-pin',         accent:'#c0392b'},
   {ico:'🕐', titre:'Amplitude',     sub:'Plage horaire dispos',         type:'card', card:'pc-amplitude',   accent:'#2980b9'},
   {ico:'🩺', titre:'Visite médicale',sub:'Délais et rappels',            type:'card', card:'pc-visite',      accent:'#c0392b'},
+  {ico:'📷', titre:'Photo',         sub:'Photo portrait d\'un salarié',  type:'card', card:'pc-photo',       accent:'#e84393'},
   {ico:'📍', titre:'Pointer',       sub:'Messages du pointage',         type:'card', card:'pc-pointer',     accent:'#D62300'},
   {ico:'💬', titre:'Messagerie',    sub:'Qui peut écrire à qui',        type:'card', card:'pc-messagerie', accent:'#7e57c2'},
   {ico:'🍔', titre:'Nouveaux produits', sub:'Dossiers & fichiers (LTO, On The Grill…)', type:'card', card:'pc-biblio', id:'pc-biblio-produits', fn:"paramBiblio('produits')", accent:'#D62300'},
@@ -3547,6 +3594,7 @@ function paramOuvrir(type, ref){
     if(ref==='pc-dbximport'){ try{ dbxDropInit(); }catch(_){} }
     if(ref==='pc-societe'){ try{ renderSocieteForm(); }catch(_){} }
     if(ref==='pc-visite'){ try{ loadVisiteConfig(); }catch(_){} }
+    if(ref==='pc-photo'){ try{ photoParamInit(); }catch(_){} }
     if(ref==='pc-pointer'){ try{ ptgMsgCharger('suivi'); }catch(_){} try{ ptgRenderMsgAdmin(); }catch(_){} }
     if(ref==='pc-dispos'){ try{ renderDisposContratParam(); }catch(_){} }
     if(ref==='pc-messagerie'){ try{ renderMsgReglesParam(); }catch(_){} }
@@ -5959,6 +6007,65 @@ function empPhotoUrl(e){
   return '';
 }
 window.empPhotoUrl=empPhotoUrl;
+
+// ── Paramètres › Photo : prendre/choisir une photo et l'affecter à un salarié ──
+// Pour l'instant : « photo portrait » → remplace l'avatar du salarié (e.infos.photo).
+var _photoPortraitData=null;
+function photoParamInit(){
+  _photoPortraitData=null;
+  var rs=document.getElementById('photo-resto');
+  if(rs){
+    rs.innerHTML=Object.keys(RESTOS).map(function(rid){return '<option value="'+rid+'">'+((RESTOS[rid]&&RESTOS[rid].label)||rid)+'</option>';}).join('');
+    rs.value=(curResto&&RESTOS[curResto])?curResto:Object.keys(RESTOS)[0];
+  }
+  photoParamRestoChange();
+}
+function photoParamRestoChange(){
+  var rid=(document.getElementById('photo-resto')||{}).value;
+  var emps=(DB.employees||[]).filter(function(e){return !e.archived && e.restoId===rid;})
+    .sort(function(a,b){return (a.name||'').localeCompare(b.name||'','fr',{sensitivity:'base'});});
+  var sel=document.getElementById('photo-emp');
+  if(sel){ sel.innerHTML='<option value="">— Choisir un salarié —</option>'+emps.map(function(e){return '<option value="'+e.id+'">'+(e.name||'')+'</option>';}).join(''); }
+  photoParamEmpChange();
+}
+function photoParamEmpChange(){
+  _photoPortraitData=null;
+  var id=(document.getElementById('photo-emp')||{}).value;
+  var e=(DB.employees||[]).find(function(x){return x.id===id;});
+  var pv=document.getElementById('photo-preview');
+  var note=document.getElementById('photo-current-note');
+  var url=e?(typeof empPhotoUrl==='function'?empPhotoUrl(e):((e.infos&&e.infos.photo)||'')):'';
+  if(pv){ if(url){pv.style.backgroundImage='url('+url+')';pv.textContent='';} else {pv.style.backgroundImage='';pv.textContent='📷';} }
+  if(note){ note.textContent=e?(url?'Photo actuelle affichée. Prenez/choisissez une nouvelle photo pour la remplacer.':'Aucune photo pour ce salarié pour l\'instant.'):'Sélectionnez un salarié.'; }
+}
+function photoParamPick(input){
+  var f=input&&input.files&&input.files[0]; if(!f) return;
+  _ptgResizeImage(f,600,0.85,function(dataUrl){
+    _photoPortraitData=dataUrl;
+    var pv=document.getElementById('photo-preview');
+    if(pv){pv.style.backgroundImage='url('+dataUrl+')';pv.textContent='';}
+    var note=document.getElementById('photo-current-note');
+    if(note)note.textContent='Nouvelle photo prête. Cliquez « Enregistrer la photo du salarié ».';
+  });
+  try{ input.value=''; }catch(e){}
+}
+function photoParamTypeChange(){ /* un seul type pour l'instant : portrait */ }
+async function photoParamSave(){
+  var id=(document.getElementById('photo-emp')||{}).value;
+  if(!id){ toast('Choisissez d\'abord un salarié.','error'); return; }
+  if(!_photoPortraitData){ toast('Prenez ou choisissez d\'abord une photo.','error'); return; }
+  var e=(DB.employees||[]).find(function(x){return x.id===id;});
+  if(!e){ toast('Salarié introuvable.','error'); return; }
+  try{
+    e.infos=e.infos||{}; e.infos.photo=_photoPortraitData;
+    await sb.patch('bks_employees','id=eq.'+id,{infos:e.infos});
+    toast('Photo enregistrée pour '+(e.name||'')+' ✔','success');
+    _photoPortraitData=null;
+    try{ if(typeof renderEquipe==='function')renderEquipe(); }catch(_){}
+    photoParamEmpChange();
+  }catch(err){ console.error(err); toast('Erreur lors de l\'enregistrement.','error'); }
+}
+window.photoParamInit=photoParamInit;window.photoParamRestoChange=photoParamRestoChange;window.photoParamEmpChange=photoParamEmpChange;window.photoParamPick=photoParamPick;window.photoParamSave=photoParamSave;window.photoParamTypeChange=photoParamTypeChange;
 // Avatar HTML : photo ronde si disponible, sinon initiales colorées par rôle.
 function empAvatarHtml(e, size, extra){
   var s=size||34, ex=extra||'';
@@ -8357,7 +8464,9 @@ function visiteCfg(){
     embaucheUrgentVal  : n(c.embaucheUrgentVal, urgentMois),
     embaucheUrgentUnit : u(c.embaucheUrgentUnit) || 'mois',
     periodiqueAlerteJours : n(c.periodiqueAlerteJours, VISITE_CFG_DEFAUT.periodiqueAlerteJours),
-    periodiqueDefautAns : n(c.periodiqueDefautAns, VISITE_CFG_DEFAUT.periodiqueDefautAns)
+    periodiqueDefautAns : n(c.periodiqueDefautAns, VISITE_CFG_DEFAUT.periodiqueDefautAns),
+    ametraEmail : (c.ametraEmail||''),
+    ametraAdherent : (c.ametraAdherent||'')
   };
 }
 
@@ -8633,15 +8742,15 @@ function collectAlertes(restoFiltre){
     if(v.etat==='depasse'){
       alerts.push({prio:0,cat:'Recrutement',icon:'📋',col:'#cc5555',
         titre:(c.prenom+' '+c.nom)+' — visite d\'embauche dépassée',
-        sub:'À régulariser · '+resto,candId:c.id});
+        sub:'À régulariser · '+resto,candId:c.id,ametraKind:'cand',ametraId:c.id});
     }else if(v.etat==='rouge'){
       alerts.push({prio:1,cat:'Recrutement',icon:'📋',col:'#cc5555',
         titre:(c.prenom+' '+c.nom)+' — visite d\'embauche urgente',
-        sub:(v.limiteStr?'Avant le '+v.limiteStr:'')+' · '+resto,candId:c.id});
+        sub:(v.limiteStr?'Avant le '+v.limiteStr:'')+' · '+resto,candId:c.id,ametraKind:'cand',ametraId:c.id});
     }else if(v.etat==='orange'){
       alerts.push({prio:2,cat:'Recrutement',icon:'📋',col:'#F5A623',
         titre:(c.prenom+' '+c.nom)+' — visite d\'embauche à planifier',
-        sub:(v.limiteStr?'Avant le '+v.limiteStr:'')+' · '+resto,candId:c.id});
+        sub:(v.limiteStr?'Avant le '+v.limiteStr:'')+' · '+resto,candId:c.id,ametraKind:'cand',ametraId:c.id});
     }
   });
 
@@ -8886,9 +8995,11 @@ function renderAlertes(){
       h+=arr.map(function(a){
         var onclick=a.action?('onclick="'+a.action+'"'):(a.empId?'onclick="openEmpFiche(\''+a.empId+'\')"':(a.candId?'onclick="openCand(\''+a.candId+'\')"':''));
         var clickable=!!(a.action||a.empId||a.candId);
+        var ametraBtn=a.ametraId?('<button class="btn btn-gray btn-sm" style="flex-shrink:0;color:#e8a020;border-color:#5a4420;" onclick="event.stopPropagation();mailAmetra(\''+(a.ametraKind||'cand')+'\',\''+a.ametraId+'\')" title="Prévenir AMETRA du retrait des effectifs">🏥 AMETRA</button>'):'';
         return '<div class="emp-card" style="border-left:4px solid '+a.col+';cursor:'+(clickable?'pointer':'default')+';" '+onclick+'>'
           +'<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:.9rem;">'+a.titre+'</div>'
           +'<div style="font-size:.74rem;color:#888;margin-top:2px;">'+a.sub+'</div></div>'
+          +ametraBtn
           +(clickable?'<span style="color:'+a.col+';font-size:1.3rem;">›</span>':'')+'</div>';
       }).join('');
     }
@@ -10842,6 +10953,7 @@ function renderVisiteList(){
       +'<div style="min-width:0;"><div style="font-weight:600;font-size:.92rem;">'+c.prenom+' '+c.nom+'</div>'
       +'<div style="font-size:.73rem;color:#888;">'+meta+'</div>'
       +'<div style="margin-top:3px;"><span style="background:'+v.col+';color:#fff;border-radius:10px;padding:2px 8px;font-size:.68rem;font-weight:700;">'+v.badge+'</span></div></div></div>'
+      +'<button class="btn btn-gray btn-sm" style="flex-shrink:0;color:#e8a020;border-color:#5a4420;" onclick="event.stopPropagation();mailAmetra(\'cand\',\''+c.id+'\')" title="Prévenir AMETRA du retrait des effectifs">🏥 AMETRA</button>'
       +'<span style="color:'+v.col+';font-size:1.3rem;">›</span>'
       +'</div>';
   }).join('');
@@ -11519,6 +11631,10 @@ var MAIL_DEFAULTS={
   signature_ok:{
     sujet:'Confirmation de signature — {resto}',
     corps:'Bonjour {nom},\n\nNous vous confirmons que vous avez signé le {date}, via notre application, le document suivant : {type_document}.\n\nVous en trouverez une copie ci-dessous.\n\n{document}\n\nCordialement,\nL\'équipe {resto}'
+  },
+  ametra:{
+    sujet:'Sortie des effectifs — {nom} {prenom} — {resto}',
+    corps:'Bonjour,\n\nNous vous informons que le salarié suivant ne fait plus partie des effectifs de notre établissement.\n\nNous vous remercions de bien vouloir le retirer de notre déclaration d\'effectif : aucune visite d\'information et de prévention (VIP) n\'est à programmer, et nous vous demandons de retirer la facturation correspondante.\n\n• Nom et prénom : {prenom} {nom}\n• Date de naissance : {date_naissance}\n• Date d\'entrée : {date_entree}\n• Date de sortie des effectifs : {date_sortie}\n• Établissement : {resto}\n• N° d\'adhérent : {num_adherent}\n\nNous restons à votre disposition pour toute information complémentaire.\n\nCordialement,\n{resto}'
   }
 };
 // Modèles de mails — PAR RESTAURANT si défini, sinon modèle commun, sinon défaut.
@@ -11544,7 +11660,8 @@ function getMailTpl(restoId){
     mise_en_demeure:pick('mise_en_demeure'),
     mise_a_pied:pick('mise_a_pied'),
     refus_signature:pick('refus_signature'),
-    signature_ok:pick('signature_ok')
+    signature_ok:pick('signature_ok'),
+    ametra:pick('ametra')
   };
 }
 function _restoLabel(c){return RESTOS[c.restoId]?RESTOS[c.restoId].label:'Burger King';}
@@ -11620,6 +11737,59 @@ function mailRupture(){
   var tpl=getMailTpl(c.restoId);
   _mailto(c,_fillTpl(tpl.rupture.sujet,c),_fillTpl(tpl.rupture.corps,c));
 }
+
+// ── AMETRA (médecine du travail) : mail de retrait des effectifs ──────────────
+// Destinataire = adresse AMETRA réglée dans Paramètres › Visite médicale (PAS le salarié).
+function _mailtoTo(dest,restoId,subject,body){
+  var tpl=getMailTpl(restoId);
+  var ccArr=[]; if(tpl.expediteur)ccArr.push(tpl.expediteur);
+  var mode=(DB.mailSettings&&DB.mailSettings.mailMode)||'gmail';
+  if(mode==='gmail'){
+    var g='https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(dest||'')
+      +'&su='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+    if(ccArr.length)g+='&cc='+encodeURIComponent(ccArr.join(','));
+    var w=window.open(g,'_blank');
+    if(!w){toast('Autorisez les fenêtres pop-up pour ouvrir Gmail.','error');}
+    else{toast('Mail AMETRA ouvert — vérifiez puis envoyez ✔','success');}
+    return;
+  }
+  var params='subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  if(ccArr.length)params+='&cc='+encodeURIComponent(ccArr.join(','));
+  window.location.href='mailto:'+(dest||'')+'?'+params;
+}
+function _fillTplAmetra(txt,p){
+  function fd(d){ if(!d) return '(à préciser)'; var s=''+d; var x=new Date(s.length<=10?s+'T12:00:00':s); return isNaN(x.getTime())?'(à préciser)':x.toLocaleDateString('fr-FR'); }
+  var resto=RESTOS[p.restoId]?RESTOS[p.restoId].label:(p.restoId||'Burger King');
+  var adh=(DB.mailSettings&&DB.mailSettings.visiteConfig&&DB.mailSettings.visiteConfig.ametraAdherent)||'__________';
+  return (txt||'')
+    .replace(/{prenom}/g,p.prenom||'')
+    .replace(/{nom}/g,p.nom||'')
+    .replace(/{resto}/g,resto)
+    .replace(/{date_naissance}/g,fd(p.dateNaissance))
+    .replace(/{date_entree}/g,fd(p.dateDebut))
+    .replace(/{date_sortie}/g,new Date().toLocaleDateString('fr-FR'))
+    .replace(/{num_adherent}/g,adh);
+}
+// kind: 'cand' (candidat en essai) ou 'emp' (salarié). id = identifiant correspondant.
+function mailAmetra(kind,id){
+  var p=null;
+  if(kind==='emp'){
+    var e=(DB.employees||[]).find(function(x){return x.id===id;});
+    if(e){ var parts=(e.name||'').trim().split(/\s+/); p={prenom:parts.slice(0,-1).join(' ')||parts[0]||'',nom:(parts.length>1?parts.slice(-1)[0]:''),restoId:e.restoId,dateDebut:e.dateDebut||(e.infos&&e.infos.date_entree)||'',dateNaissance:(e.infos&&e.infos.date_naissance)||''}; }
+  }else{
+    var c=(DB.candidatures||[]).find(function(x){return x.id===id;});
+    if(c){ p={prenom:c.prenom,nom:c.nom,restoId:c.restoId,dateDebut:c.dateDebut,dateNaissance:c.dateNaissance||''}; }
+  }
+  if(!p){ try{toast('Personne introuvable','error');}catch(e){} return; }
+  var email=((DB.mailSettings&&DB.mailSettings.visiteConfig&&DB.mailSettings.visiteConfig.ametraEmail)||'').trim();
+  if(!email){
+    var ok=false; try{ ok=confirm('Aucune adresse AMETRA enregistrée (Paramètres › Visite médicale).\n\nOuvrir quand même le mail ? Vous saisirez l\'adresse dans Gmail.'); }catch(e){ ok=true; }
+    if(!ok) return;
+  }
+  var tpl=getMailTpl(p.restoId).ametra||MAIL_DEFAULTS.ametra;
+  _mailtoTo(email,p.restoId,_fillTplAmetra(tpl.sujet,p),_fillTplAmetra(tpl.corps,p));
+}
+window.mailAmetra=mailAmetra;
 
 // ── ACTIONS : RETENU (intégration) ────────────────────────────────────────────
 async function _candUpdate(patch,msg,after){
@@ -13678,6 +13848,8 @@ function loadVisiteConfig(){
   set('vc-emb-urgent-unit',c.embaucheUrgentUnit);
   set('vc-per-defaut',c.periodiqueDefautAns);
   set('vc-per-alerte',c.periodiqueAlerteJours);
+  set('vc-ametra-email',c.ametraEmail||'');
+  set('vc-ametra-adherent',c.ametraAdherent||'');
 }
 async function saveVisiteConfig(){
   var num=function(id){var el=document.getElementById(id);return el?parseInt(el.value):NaN;};
@@ -13699,7 +13871,9 @@ async function saveVisiteConfig(){
     // On garde aussi les champs « …Mois » (compat. anciennes lectures) : en mois = la valeur, sinon converti.
     embaucheAlerteMois:(alU==='mois'?al:Math.max(1,Math.round(al/30.44))),
     embaucheUrgentMois:(urU==='mois'?ur:Math.max(1,Math.round(ur/30.44))),
-    periodiqueDefautAns:pd, periodiqueAlerteJours:pa};
+    periodiqueDefautAns:pd, periodiqueAlerteJours:pa,
+    ametraEmail:(val('vc-ametra-email')||'').trim(),
+    ametraAdherent:(val('vc-ametra-adherent')||'').trim()};
   await saveDB();
   toast('Réglages de visite médicale enregistrés ✔','success');
   try{ if(typeof renderVisiteStatTiles==='function')renderVisiteStatTiles(); if(typeof renderVisiteList==='function')renderVisiteList(); }catch(_){}
