@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-07-27 · v458';
+  var EMBEDDED_VERSION = '2026-08-01 · v462';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -45,6 +45,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <title>BKRH</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap');
@@ -1487,9 +1488,9 @@ html,body{overflow-x:hidden;}
           <div><label class="flabel">Délai maximum après l'entrée</label>
             <div style="display:flex;align-items:center;gap:6px;"><input type="number" id="vc-emb-limite" class="fi" min="1" max="36" style="width:80px;" value="6"><span style="font-size:.8rem;color:#aaa;">mois</span></div></div>
           <div><label class="flabel">Alerte « à planifier » 🟠</label>
-            <div style="display:flex;align-items:center;gap:6px;"><input type="number" id="vc-emb-alerte" class="fi" min="1" max="36" style="width:80px;" value="4"><span style="font-size:.8rem;color:#aaa;">mois avant l'échéance</span></div></div>
+            <div style="display:flex;align-items:center;gap:6px;"><input type="number" id="vc-emb-alerte" class="fi" min="1" max="365" style="width:80px;" value="4"><select id="vc-emb-alerte-unit" class="fi" style="width:auto;"><option value="mois">mois</option><option value="jours">jours</option></select><span style="font-size:.8rem;color:#aaa;">avant l'échéance</span></div></div>
           <div><label class="flabel">Alerte « urgent » 🔴</label>
-            <div style="display:flex;align-items:center;gap:6px;"><input type="number" id="vc-emb-urgent" class="fi" min="1" max="36" style="width:80px;" value="2"><span style="font-size:.8rem;color:#aaa;">mois avant l'échéance</span></div></div>
+            <div style="display:flex;align-items:center;gap:6px;"><input type="number" id="vc-emb-urgent" class="fi" min="1" max="365" style="width:80px;" value="2"><select id="vc-emb-urgent-unit" class="fi" style="width:auto;"><option value="mois">mois</option><option value="jours">jours</option></select><span style="font-size:.8rem;color:#aaa;">avant l'échéance</span></div></div>
         </div>
       </div>
 
@@ -6390,6 +6391,60 @@ function dlDoc(link,name){
   if(isData){ a.download=name||'document'; } else { a.target='_blank'; }
   document.body.appendChild(a); a.click(); setTimeout(function(){ try{document.body.removeChild(a);}catch(e){} },200);
 }
+// Téléchargement « forcé » utilisé pour « Tout télécharger ».
+// CLÉ DU CORRECTIF : on n'ouvre JAMAIS de nouvel onglet.
+//  - data: (CV en base64)        -> <a download> classique.
+//  - lien distant (Dropbox dl=1) -> <a href=...dl=1> SANS target="_blank".
+//    Comme Dropbox renvoie le fichier en « pièce jointe » (Content-Disposition),
+//    le clic télécharge le fichier EN PLACE, sans changer de page ni ouvrir d'onglet.
+// Avant, chaque doc Dropbox ouvrait un onglet (a.target="_blank") : le navigateur
+// bloquait cette ouverture répétée comme un pop-up, donc seul le CV (data:) passait.
+function dlDocForce(link,name){
+  if(!link) return;
+  var isData=String(link).indexOf('data:')===0;
+  var u=isData?link:dbxDl(link);
+  var a=document.createElement('a');
+  a.href=u;
+  a.download=name||'document';
+  a.rel='noopener';
+  // PAS de a.target : indispensable pour éviter le blocage pop-up sur les liens Dropbox.
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ try{document.body.removeChild(a);}catch(e){} },300);
+}
+// ── ZIP « Tout télécharger » : un SEUL fichier .zip contenant toutes les pièces ──
+// data: (base64) -> converti en binaire ; lien Dropbox -> récupéré via l'API Dropbox
+// (content.dropboxapi.com/2/sharing/get_shared_link_file, compatible navigateur/CORS,
+//  avec le même token que les uploads). On assemble tout avec JSZip et on télécharge
+//  un unique « Dossier_Prenom_Nom.zip ». => plus de téléchargements multiples.
+function _dataUrlToBlob(durl){
+  var parts=String(durl).split(','); var meta=parts[0]||''; var b64=parts.slice(1).join(',');
+  var mime=(meta.match(/data:([^;]+)/)||[])[1]||'application/octet-stream';
+  var bin; try{ bin=atob(b64); }catch(e){ bin=''; }
+  var len=bin.length, arr=new Uint8Array(len);
+  for(var i=0;i<len;i++)arr[i]=bin.charCodeAt(i);
+  return new Blob([arr],{type:mime});
+}
+async function _dbxFetchSharedFile(link){
+  var tok=await dbxToken();
+  var r=await fetch('https://content.dropboxapi.com/2/sharing/get_shared_link_file',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+tok,'Dropbox-API-Arg':JSON.stringify({url:String(link)})}
+  });
+  if(!r.ok){ throw new Error('Dropbox '+r.status); }
+  return await r.blob();
+}
+function _zipUniqueName(used,name){
+  var n=(name||'piece').replace(/[\/\\:*?"<>|]/g,'_');
+  if(!used[n]){ used[n]=1; return n; }
+  var dot=n.lastIndexOf('.'); var base=dot>0?n.slice(0,dot):n; var ext=dot>0?n.slice(dot):'';
+  var k=2; while(used[base+'_'+k+ext])k++; used[base+'_'+k+ext]=1; return base+'_'+k+ext;
+}
+// Récupère le blob d'une pièce (data: ou lien Dropbox).
+async function _pieceBlob(url){
+  if(String(url).indexOf('data:')===0) return _dataUrlToBlob(url);
+  return await _dbxFetchSharedFile(url);
+}
 
 var _empDocCtx={empId:null,boxId:'histo-docs'};
 function renderEmpDocs(empId,boxId){
@@ -8245,13 +8300,24 @@ function essaiInfo(c){
 // ── Réglages VISITE MÉDICALE (configurables dans Paramètres › Visite médicale) ──
 // Délais paramétrables ; valeurs par défaut = comportement historique.
 var VISITE_CFG_DEFAUT={embaucheLimiteMois:6, embaucheAlerteMois:4, embaucheUrgentMois:2, periodiqueAlerteJours:30, periodiqueDefautAns:2};
+// Convertit un couple (valeur, unité) en NOMBRE DE JOURS. 1 mois ≈ 30,44 jours.
+function visiteEnJours(val,unit){ val=parseInt(val)||0; return unit==='jours'?val:Math.round(val*30.44); }
 function visiteCfg(){
   var c=(DB&&DB.mailSettings&&DB.mailSettings.visiteConfig)||{};
   function n(v,d){ v=parseInt(v); return (isNaN(v)||v<0)?d:v; }
+  function u(v){ return (v==='jours'||v==='mois')?v:null; }
+  var alerteMois=n(c.embaucheAlerteMois, VISITE_CFG_DEFAUT.embaucheAlerteMois);
+  var urgentMois=n(c.embaucheUrgentMois, VISITE_CFG_DEFAUT.embaucheUrgentMois);
   return {
     embaucheLimiteMois : n(c.embaucheLimiteMois, VISITE_CFG_DEFAUT.embaucheLimiteMois),
-    embaucheAlerteMois : n(c.embaucheAlerteMois, VISITE_CFG_DEFAUT.embaucheAlerteMois),
-    embaucheUrgentMois : n(c.embaucheUrgentMois, VISITE_CFG_DEFAUT.embaucheUrgentMois),
+    embaucheAlerteMois : alerteMois, // conservé (compat.) — vaut la valeur en mois si l'unité est « mois »
+    embaucheUrgentMois : urgentMois,
+    // Nouveau : alerte « à planifier » / « urgent » exprimables en jours OU en mois.
+    // Rétro-compat : si non défini, on reprend l'ancienne valeur en mois.
+    embaucheAlerteVal  : n(c.embaucheAlerteVal, alerteMois),
+    embaucheAlerteUnit : u(c.embaucheAlerteUnit) || 'mois',
+    embaucheUrgentVal  : n(c.embaucheUrgentVal, urgentMois),
+    embaucheUrgentUnit : u(c.embaucheUrgentUnit) || 'mois',
     periodiqueAlerteJours : n(c.periodiqueAlerteJours, VISITE_CFG_DEFAUT.periodiqueAlerteJours),
     periodiqueDefautAns : n(c.periodiqueDefautAns, VISITE_CFG_DEFAUT.periodiqueDefautAns)
   };
@@ -8292,11 +8358,14 @@ function visiteInfo(c){
   var mois=(now-entree)/(30.44*24*3600*1000);
   var limite=new Date(entree);limite.setMonth(limite.getMonth()+cfg.embaucheLimiteMois); // au plus tard N mois (paramétrable)
   var limiteStr=limite.toLocaleDateString('fr-FR');
-  var reste=cfg.embaucheLimiteMois-mois; // mois restants avant l'échéance
+  // Comparaison en JOURS pour gérer indifféremment des seuils en jours ou en mois.
+  var joursRestants=Math.round((limite-now)/(24*3600*1000)); // jours avant l'échéance
+  var urgentJ=visiteEnJours(cfg.embaucheUrgentVal,cfg.embaucheUrgentUnit);
+  var alerteJ=visiteEnJours(cfg.embaucheAlerteVal,cfg.embaucheAlerteUnit);
   var col,badge,etat;
-  if(reste<0){col='#cc5555';badge='⛔ DÉPASSÉ (limite '+limiteStr+')';etat='depasse';}
-  else if(reste<=cfg.embaucheUrgentMois){col='#cc5555';badge='🔴 Urgent — avant le '+limiteStr+' !';etat='rouge';}
-  else if(reste<=cfg.embaucheAlerteMois){col='#F5A623';badge='🟠 À planifier (avant le '+limiteStr+')';etat='orange';}
+  if(joursRestants<0){col='#cc5555';badge='⛔ DÉPASSÉ (limite '+limiteStr+')';etat='depasse';}
+  else if(joursRestants<=urgentJ){col='#cc5555';badge='🔴 Urgent — avant le '+limiteStr+' !';etat='rouge';}
+  else if(joursRestants<=alerteJ){col='#F5A623';badge='🟠 À planifier (avant le '+limiteStr+')';etat='orange';}
   else{col='#4CAF50';badge='🟢 OK — à prévoir (avant le '+limiteStr+')';etat='ok';}
   return {fait:false,col:col,badge:badge,etat:etat,entree:entree,limite:limite,limiteStr:limiteStr};
 }
@@ -11108,8 +11177,39 @@ async function downloadAllCandDocs(candId){
   if(c.cvData) items.push({url:c.cvData,name:c.cvName||('CV_'+(c.prenom||'')+'_'+(c.nom||'')+'.pdf')});
   if(c.photo) items.push({url:c.photo,name:'Photo_'+(c.prenom||'')+'_'+(c.nom||'')+'.jpg'});
   if(!items.length){ try{alert('Aucun document à télécharger.');}catch(e){} return; }
-  items.forEach(function(it,idx){ setTimeout(function(){ dlDoc(it.url,it.name); }, idx*700); });
-  try{ toast('Téléchargement de '+items.length+' document(s)…',''); }catch(e){}
+  var nomFichier='Dossier_'+dbxClean(c.prenom||'')+'_'+dbxClean(c.nom||'');
+  await zipAndDownload(items,nomFichier);
+}
+
+// Assemble une liste de pièces {url,name} dans UN SEUL fichier .zip et le télécharge.
+// url = data: (base64) ou lien de partage Dropbox. Si JSZip indisponible, on retombe
+// sur l'ancien mode (un fichier par pièce) pour ne jamais bloquer l'utilisateur.
+async function zipAndDownload(items,nomFichier){
+  items=(items||[]).filter(function(it){return it&&it.url;});
+  if(!items.length){ try{alert('Aucun document à télécharger.');}catch(e){} return; }
+  if(typeof JSZip==='undefined'){
+    try{ toast('Téléchargement de '+items.length+' document(s)…',''); }catch(e){}
+    items.forEach(function(it,idx){ setTimeout(function(){ dlDocForce(it.url,it.name); }, idx*350); });
+    return;
+  }
+  var zip=new JSZip(), used={}, ok=0, fail=0;
+  try{ toast('Préparation du dossier ('+items.length+' pièces)…',''); }catch(e){}
+  for(var i=0;i<items.length;i++){
+    var it=items[i];
+    try{
+      var blob=await _pieceBlob(it.url);
+      zip.file(_zipUniqueName(used,it.name||('piece_'+(i+1))),blob);
+      ok++;
+    }catch(e){ fail++; console.warn('zip pièce',it&&it.name,e); }
+  }
+  if(!ok){ try{ toast('Échec : impossible de récupérer les pièces.','error'); }catch(e){} return; }
+  var content=await zip.generateAsync({type:'blob'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(content);
+  a.download=(nomFichier||'Dossier')+'.zip';
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ try{URL.revokeObjectURL(a.href);document.body.removeChild(a);}catch(e){} },2000);
+  try{ toast('Dossier téléchargé : '+ok+' pièce'+(ok>1?'s':'')+(fail?' ('+fail+' en échec)':''), fail?'':'success'); }catch(e){}
 }
 
 function candPhotoZoom(src){
@@ -13519,20 +13619,34 @@ function loadVisiteConfig(){
   var c=visiteCfg();
   var set=function(id,v){var el=document.getElementById(id);if(el)el.value=v;};
   set('vc-emb-limite',c.embaucheLimiteMois);
-  set('vc-emb-alerte',c.embaucheAlerteMois);
-  set('vc-emb-urgent',c.embaucheUrgentMois);
+  set('vc-emb-alerte',c.embaucheAlerteVal);
+  set('vc-emb-alerte-unit',c.embaucheAlerteUnit);
+  set('vc-emb-urgent',c.embaucheUrgentVal);
+  set('vc-emb-urgent-unit',c.embaucheUrgentUnit);
   set('vc-per-defaut',c.periodiqueDefautAns);
   set('vc-per-alerte',c.periodiqueAlerteJours);
 }
 async function saveVisiteConfig(){
   var num=function(id){var el=document.getElementById(id);return el?parseInt(el.value):NaN;};
+  var val=function(id){var el=document.getElementById(id);return el?el.value:'';};
   var lim=num('vc-emb-limite'), al=num('vc-emb-alerte'), ur=num('vc-emb-urgent'),
       pd=num('vc-per-defaut'), pa=num('vc-per-alerte');
+  var alU=(val('vc-emb-alerte-unit')==='jours')?'jours':'mois';
+  var urU=(val('vc-emb-urgent-unit')==='jours')?'jours':'mois';
   if(!(lim>0)||!(al>0)||!(ur>0)||!(pd>0)||!(pa>0)){toast('Renseignez des valeurs valides (supérieures à 0).','error');return;}
-  if(ur>al){toast('Le seuil « urgent » doit être inférieur ou égal au seuil « à planifier ».','error');return;}
-  if(al>lim){toast('Le seuil « à planifier » ne peut pas dépasser le délai maximum.','error');return;}
+  // Comparaisons en jours car les seuils peuvent être en jours OU en mois.
+  var limJ=visiteEnJours(lim,'mois'), alJ=visiteEnJours(al,alU), urJ=visiteEnJours(ur,urU);
+  if(urJ>alJ){toast('Le seuil « urgent » doit être inférieur ou égal au seuil « à planifier ».','error');return;}
+  if(alJ>limJ){toast('Le seuil « à planifier » ne peut pas dépasser le délai maximum.','error');return;}
   if(!DB.mailSettings)DB.mailSettings={};
-  DB.mailSettings.visiteConfig={embaucheLimiteMois:lim,embaucheAlerteMois:al,embaucheUrgentMois:ur,periodiqueDefautAns:pd,periodiqueAlerteJours:pa};
+  DB.mailSettings.visiteConfig={
+    embaucheLimiteMois:lim,
+    embaucheAlerteVal:al, embaucheAlerteUnit:alU,
+    embaucheUrgentVal:ur, embaucheUrgentUnit:urU,
+    // On garde aussi les champs « …Mois » (compat. anciennes lectures) : en mois = la valeur, sinon converti.
+    embaucheAlerteMois:(alU==='mois'?al:Math.max(1,Math.round(al/30.44))),
+    embaucheUrgentMois:(urU==='mois'?ur:Math.max(1,Math.round(ur/30.44))),
+    periodiqueDefautAns:pd, periodiqueAlerteJours:pa};
   await saveDB();
   toast('Réglages de visite médicale enregistrés ✔','success');
   try{ if(typeof renderVisiteStatTiles==='function')renderVisiteStatTiles(); if(typeof renderVisiteList==='function')renderVisiteList(); }catch(_){}
@@ -21692,6 +21806,73 @@ function _hrCelluleEtatOuRepos(empId, isoDate){
 }
 function _hhmmFromMin(min){ var h=Math.floor(min/60),m=min%60; return m?(h+'h'+String(m).padStart(2,'0')):(h+'h'); }
 
+// ── ANALYSE D'UNE SEMAINE IMPORTÉE (MyRHIS) ──────────────────────────────────
+// Si la semaine affichée (resto + lundi) a un planning importé, on renvoie :
+//   - workedPerDay[7] : heures RÉELLEMENT travaillées par jour (têtes × durée, hors encadrement)
+//   - overPerDay / underPerDay [7] : écart au BESOIN théorique du CA au ¼ d'heure
+//         over  = on a MIS PLUS de monde que ce que le CA demande (sureffectif)
+//         under = on a MIS MOINS de monde que ce que le CA demande (sous-effectif)
+//   - detail[7] : par heure, l'écart cumulé (en minutes-têtes) → pour lister les heures
+// Renvoie null si la semaine n'est pas importée (comportement normal conservé).
+function _hrAnalyseImport(resto, lundiIso, dates){
+  try{
+    var R=(''+(resto||'')).toUpperCase();
+    var E=(typeof getExtPlanning==='function')?getExtPlanning():null;
+    if(!E||!E[R]) return null;
+    var key=lundiIso;
+    if(!(E[R][key]&&E[R][key].e) && typeof _imprhLundi==='function'){ try{ key=_imprhLundi(lundiIso); }catch(_){} }
+    if(!E[R][key]||!E[R][key].e) return null;
+    var raw=E[R][key].e; // {empId:[[dayIdx,s,e,fam],...]}
+    var workedPerDay=[0,0,0,0,0,0,0], workedTot=0;
+    var presMin=[{},{},{},{},{},{},{}];   // présence têtes par créneau 15 min (hors encadrement)
+    Object.keys(raw).forEach(function(empId){
+      (raw[empId]||[]).forEach(function(tr){
+        var d=tr[0], s=tr[1], e=tr[2], fam=tr[3]||'';
+        if(fam==='encadr') return;               // on ne compte QUE les équipiers
+        if(d<0||d>6||!(e>s)) return;
+        workedPerDay[d]+=(e-s); workedTot+=(e-s);
+        for(var m=s;m<e;m+=15){ presMin[d][m]=(presMin[d][m]||0)+1; }
+      });
+    });
+    // Besoin théorique du CA par créneau 15 min, borné aux horaires d'ouverture.
+    var needMin=[{},{},{},{},{},{},{}];
+    var Rg=(typeof getReglement==='function')?getReglement():{};
+    var ho=(Rg&&Rg.horairesOuverture)||null;
+    var JKK=['lun','mar','mer','jeu','ven','sam','dim'];
+    for(var d3=0;d3<7;d3++){
+      var iso=dates[d3].getFullYear()+'-'+String(dates[d3].getMonth()+1).padStart(2,'0')+'-'+String(dates[d3].getDate()).padStart(2,'0');
+      var cj=(typeof hrCourbeJour==='function')?hrCourbeJour(iso):{ca:{}};
+      var ca=(cj&&cj.ca)?cj.ca:{};
+      var ouv=null,fer=null;
+      try{ if(ho&&ho[JKK[d3]]){ var po=(''+ho[JKK[d3]].o).split(':').map(Number),pf=(''+ho[JKK[d3]].f).split(':').map(Number); ouv=po[0]*60+po[1]; if(po[0]<5)ouv+=1440; fer=pf[0]*60+pf[1]; if(pf[0]<5)fer+=1440; if(fer<=ouv)fer+=1440; } }catch(_){}
+      Object.keys(ca).forEach(function(t){
+        var ca15=ca[t]||0; if(ca15<=0) return;
+        var p=(''+t).split(':').map(Number); var mv=p[0]<5?p[0]*60+p[1]+1440:p[0]*60+p[1];
+        if(ouv!=null&&fer!=null&&(mv<ouv||mv>=fer)) return;
+        var eff=(typeof getEff==='function')?getEff(ca15):null;
+        needMin[d3][mv]=(eff&&eff._eff)||0;
+      });
+    }
+    var overPerDay=[0,0,0,0,0,0,0], underPerDay=[0,0,0,0,0,0,0], overTot=0, underTot=0, detail=[];
+    for(var d4=0;d4<7;d4++){
+      var slots={};
+      Object.keys(presMin[d4]).forEach(function(k){slots[k]=1;});
+      Object.keys(needMin[d4]).forEach(function(k){slots[k]=1;});
+      var hourAgg={};
+      Object.keys(slots).forEach(function(k){
+        var m=+k, pr=presMin[d4][m]||0, nd=needMin[d4][m]||0, diff=pr-nd;
+        if(diff>0){ overPerDay[d4]+=diff*15; overTot+=diff*15; }
+        else if(diff<0){ underPerDay[d4]+=(-diff)*15; underTot+=(-diff)*15; }
+        var hr=Math.floor((m%1440)/60);
+        hourAgg[hr]=(hourAgg[hr]||0)+diff; // en têtes (moyenne sur l'heure ensuite)
+      });
+      detail[d4]=hourAgg;
+    }
+    return {imp:true, workedPerDay:workedPerDay, workedTot:workedTot, overPerDay:overPerDay, underPerDay:underPerDay, overTot:overTot, underTot:underTot, detail:detail};
+  }catch(e){ return null; }
+}
+window._hrAnalyseImport=_hrAnalyseImport;
+
 // Construit le tableau (document blanc) d'UNE semaine pour un resto donné, à partir des placements sauvegardés
 function hrTableauSemaine(resto, lundiIso, affOverride){
   var aff=affOverride||_hrAffectSauve(resto);
@@ -21702,6 +21883,10 @@ function hrTableauSemaine(resto, lundiIso, affOverride){
   function jjmm(d){ return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0'); }
   function hhmm(min){ var h=Math.floor(min/60)%24,m=min%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
   function fmtHC(min){ var h=Math.floor(min/60),m=min%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
+  function fhh(min){ var h=Math.floor(min/60),m=Math.round(min%60); return h+'h'+(m?String(m).padStart(2,'0'):''); }
+  // Semaine importée (MyRHIS) ? → on reproduit EXACTEMENT le planning importé et on
+  // remplace « Créneaux restant à prendre » par une analyse PLUS/MOINS vs besoin CA.
+  var _imp=_hrAnalyseImport(resto, lundiIso, dates);
   // rassembler par salarié sur les 7 jours
   var parEmp={}; // id -> {name, jours:[7][], totalMin}
   for(var dd=0;dd<7;dd++){
@@ -21738,6 +21923,19 @@ function hrTableauSemaine(resto, lundiIso, affOverride){
   h+='<div style="font-size:12.5px;color:#D62300;font-weight:600;margin-top:2px;">du '+jjmm(dates[0])+'/'+dates[0].getFullYear()+' au '+jjmm(dates[6])+'/'+dates[6].getFullYear()+'</div>';
   h+='<div style="font-size:12px;color:#666;margin-top:2px;">'+(RESTOS[resto.toLowerCase()]?RESTOS[resto.toLowerCase()].label:resto)+'</div>';
   h+='</div>';
+  // ── BANDEAU IMPORTÉ : pour une semaine MyRHIS on n'affiche PAS le diagnostic de
+  //    placement (qui n'a pas de sens : on reproduit un planning réel, pas un besoin
+  //    à pourvoir). On montre le total travaillé + l'écart global au besoin du CA.
+  if(_imp){
+    var _wt=_imp.workedTot, _ov=_imp.overTot, _un=_imp.underTot;
+    h+='<div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;background:#eef6ff;border:1px solid #cfe3fb;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12.5px;">';
+    h+='<div><span style="color:#2563EB;font-weight:700;">📥 Planning importé (MyRHIS)</span></div>';
+    h+='<div style="border-left:1px solid #bcd4f0;padding-left:16px;"><span style="color:#666;">Total travaillé :</span> <b style="color:#111;">'+fhh(_wt)+'</b></div>';
+    h+='<div><span style="color:#666;">Sur-effectif (＋) :</span> <b style="color:'+(_ov>60?'#D62300':'#1A9850')+';">'+fhh(_ov)+'</b></div>';
+    h+='<div><span style="color:#666;">Sous-effectif (－) :</span> <b style="color:'+(_un>60?'#E08600':'#1A9850')+';">'+fhh(_un)+'</b></div>';
+    h+='</div>';
+    h+='<div style="font-size:11px;color:#888;text-align:center;margin:-8px 0 14px;">Écarts calculés au ¼ d\'heure entre l\'effectif réellement présent et le besoin théorique du CA.</div>';
+  } else
   // ── BANDEAU DIAGNOSTIC : voir d'un coup d'œil s'il y a un problème de placement ──
   // 4 chiffres : besoin (traits), placé, traits encore LIBRES, et heures de CONTRAT
   // non atteintes (somme sur tous les équipiers du resto). Permet de distinguer un
@@ -21859,6 +22057,44 @@ function hrTableauSemaine(resto, lundiIso, affOverride){
   h+='<td colspan="7" style="padding:8px;border:1px solid #e2e2e6;text-align:right;color:#555;font-weight:600;font-size:10.5px;">Heures prises / contrats →</td>';
   h+='<td style="padding:8px;border:1px solid #333;text-align:center;color:#1A4FFF;white-space:nowrap;">'+fmtHC(_ftPrisSem)+' / '+fmtHC(_ftContSem)+'<br><span style="font-size:9px;color:#888;font-weight:600;">semaine</span></td>';
   h+='<td style="padding:8px;border:1px solid #333;text-align:center;color:#1A4FFF;white-space:nowrap;">'+fmtHC(_ftPrisMois)+' / '+fmtHC(_ftContMois)+'<br><span style="font-size:9px;color:#888;font-weight:600;">mois (cumulé)</span></td></tr>';
+  // ── Ligne : TOTAL PAR JOUR d'heures travaillées (somme de la colonne) ──────────
+  (function(){
+    var perJ=[0,0,0,0,0,0,0], tj=0;
+    liste.forEach(function(e){ var pe=parEmp[e.id]; if(!pe) return;
+      for(var d=0;d<7;d++){ (pe.jours[d]||[]).forEach(function(b){ perJ[d]+=(b.e-b.s); }); }
+    });
+    h+='<tr style="border-top:2px solid #333;background:#f3fbf5;font-weight:800;">';
+    h+='<td style="padding:8px;border:1px solid #333;color:#111;white-space:nowrap;">⏱️ Total / jour</td>';
+    for(var d2=0;d2<7;d2++){ tj+=perJ[d2]; h+='<td style="padding:7px 6px;border:1px solid #e2e2e6;text-align:center;color:#0f7a34;font-weight:800;white-space:nowrap;">'+(perJ[d2]?fhh(perJ[d2]):'<span style="color:#bbb;">—</span>')+'</td>'; }
+    h+='<td style="padding:8px;border:1px solid #333;text-align:center;color:#0f7a34;white-space:nowrap;">'+fhh(tj)+'<br><span style="font-size:9px;color:#888;font-weight:600;">heures travaillées</span></td>';
+    h+='<td style="border:1px solid #e2e2e6;"></td></tr>';
+  })();
+  // ── Ligne : PLUS / MOINS d'heures vs BESOIN CA (semaine importée uniquement) ────
+  // Remplace « Créneaux restant à prendre » quand on affiche un planning importé :
+  // on ne place pas des traits, on CONSTATE l'écart au besoin du CA (¼ d'heure).
+  if(_imp){
+    h+='<tr style="border-top:2px solid #333;background:#f7f9ff;">';
+    h+='<td style="padding:8px 10px;font-weight:700;color:#2563EB;white-space:nowrap;vertical-align:top;border:1px solid #e2e2e6;">📊 Écart au besoin CA<br><span style="font-size:10px;color:#999;font-weight:400;">＋ trop / － pas assez</span></td>';
+    for(var jI=0;jI<7;jI++){
+      var ov=_imp.overPerDay[jI], un=_imp.underPerDay[jI];
+      // heures de la journée où c'est le plus déséquilibré (détail par heure)
+      var det=_imp.detail[jI]||{}; var hOver=[], hUnder=[];
+      Object.keys(det).map(Number).sort(function(a,b){return a-b;}).forEach(function(hr){
+        var v=det[hr]; // écart moyen en têtes sur l'heure (somme des 4 ¼h en têtes)
+        if(v>=2) hOver.push(hr); else if(v<=-2) hUnder.push(hr);
+      });
+      function _plage(list){ if(!list.length) return ''; var seg=[],a=list[0],p=list[0]; for(var i=1;i<list.length;i++){ if(list[i]===p+1){p=list[i];} else {seg.push(a===p?(a+'h'):(a+'h–'+(p+1)+'h'));a=list[i];p=list[i];} } seg.push(a===p?(a+'h'):(a+'h–'+(p+1)+'h')); return seg.join(', '); }
+      var cell='';
+      if(!ov && !un){ cell='<span style="color:#1A9850;">✓</span>'; }
+      else {
+        if(ov){ cell+='<div style="color:#D62300;font-size:10.5px;white-space:nowrap;">＋'+fhh(ov)+(hOver.length?' <span style="color:#999;">('+_plage(hOver)+')</span>':'')+'</div>'; }
+        if(un){ cell+='<div style="color:#E08600;font-size:10.5px;white-space:nowrap;">－'+fhh(un)+(hUnder.length?' <span style="color:#999;">('+_plage(hUnder)+')</span>':'')+'</div>'; }
+      }
+      h+='<td style="padding:6px 6px;text-align:center;vertical-align:top;border:1px solid #e2e2e6;">'+cell+'</td>';
+    }
+    h+='<td style="padding:7px 10px;text-align:center;font-weight:700;color:#2563EB;border:1px solid #e2e2e6;white-space:nowrap;">＋'+fhh(_imp.overTot)+' / －'+fhh(_imp.underTot)+'<br><span style="font-size:9px;color:#888;font-weight:600;">sur / sous-effectif</span></td>';
+    h+='<td style="border:1px solid #e2e2e6;"></td></tr>';
+  }
   // ── Ligne : CRÉNEAUX RESTANT À PRENDRE (traits vides) par jour, avec la CAUSE ──
   // Visible TOUTES les semaines (placement hebdo). On lit les traits vides depuis
   // ROWS_BY_DAY si on est sur la semaine affichée ; sinon on ne peut pas les lister.
@@ -21868,7 +22104,7 @@ function hrTableauSemaine(resto, lundiIso, affOverride){
   // au changement de semaine et faire « disparaître » la ligne créneaux + totaux).
   var _memeSemaineReste=false;
   try{ _memeSemaineReste=(typeof ROWS_BY_DAY!=='undefined' && ROWS_BY_DAY && ROWS_BY_DAY.length===7); }catch(e){}
-  if(_memeSemaineReste){
+  if(_memeSemaineReste && !_imp){
     var _eqResto=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&(e.restoId||'').toLowerCase()===(resto||'').toLowerCase();});
     // busy par jour reconstruit depuis les traits posés (pour savoir qui est déjà occupé)
     var _busyJ={};
@@ -21921,6 +22157,28 @@ function hrTableauSemaine(resto, lundiIso, affOverride){
     window._hrDiagCauses=causeGlobale;
   }
   h+='</tbody></table></div>';
+
+  // ── RÉCAP IMPORTÉ : synthèse sur/sous-effectif vs besoin CA (semaine MyRHIS) ────
+  if(_imp){
+    var _net=_imp.overTot-_imp.underTot;
+    h+='<div style="display:flex;justify-content:flex-end;margin-top:16px;">';
+    h+='<table style="border-collapse:collapse;font-size:12.5px;min-width:360px;">';
+    h+='<tr><td style="padding:6px 12px;color:#111;font-weight:700;border:1px solid #333;background:#f4f4f5;">Total heures travaillées (semaine)</td><td style="padding:6px 12px;text-align:right;font-weight:700;color:#111;border:1px solid #333;background:#f4f4f5;">'+fhh(_imp.workedTot)+'</td></tr>';
+    h+='<tr><td style="padding:6px 12px;color:#555;border:1px solid #e2e2e6;">Heures en SUR-effectif (＋ vs besoin CA)</td><td style="padding:6px 12px;text-align:right;font-weight:700;color:#D62300;border:1px solid #e2e2e6;">'+fhh(_imp.overTot)+'</td></tr>';
+    h+='<tr><td style="padding:6px 12px;color:#555;border:1px solid #e2e2e6;">Heures en SOUS-effectif (－ vs besoin CA)</td><td style="padding:6px 12px;text-align:right;font-weight:700;color:#E08600;border:1px solid #e2e2e6;">'+fhh(_imp.underTot)+'</td></tr>';
+    h+='<tr><td style="padding:6px 12px;color:#111;font-weight:700;border:1px solid #333;background:#fff7ed;">Écart net</td><td style="padding:6px 12px;text-align:right;font-weight:700;color:'+(_net>=0?'#D62300':'#E08600')+';border:1px solid #333;background:#fff7ed;">'+(_net>=0?'＋':'－')+fhh(Math.abs(_net))+'</td></tr>';
+    h+='</table></div>';
+    var _dg = (_imp.overTot>_imp.underTot+120)
+        ? '⚠️ Sur-effectif global : plus d\'heures posées que le CA n\'en demande (masse salariale au-dessus du besoin).'
+        : (_imp.underTot>_imp.overTot+120)
+        ? '⚠️ Sous-effectif global : moins d\'heures posées que le besoin du CA (risque de service tendu).'
+        : '✅ Effectif globalement aligné sur le besoin du CA.';
+    var _dgc=(_imp.overTot>_imp.underTot+120)?'#D62300':(_imp.underTot>_imp.overTot+120?'#E08600':'#1A9850');
+    h+='<div style="text-align:right;font-size:11.5px;color:'+_dgc+';margin-top:8px;font-weight:600;">'+_dg+'</div>';
+    h+='<div style="font-size:10.5px;color:#888;margin-top:10px;">Planning importé depuis MyRHIS, reproduit à l\'identique. Les écarts ＋/－ comparent, au ¼ d\'heure, l\'effectif réellement présent au besoin théorique calculé sur le CA. ⏱️ Total / jour = heures travaillées chaque jour.</div>';
+    h+='</div>';
+    return h;
+  }
 
   // ── RÉCAP : heures de traits / contrats / RESTE À PLACER ──────────────────────
   // Permet de voir si « personne n'a son contrat » vient d'un MANQUE DE TRAITS
