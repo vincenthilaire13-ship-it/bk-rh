@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-02 · v468';
+  var EMBEDDED_VERSION = '2026-08-02 · v469';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -558,13 +558,9 @@ html,body{overflow-x:hidden;}
     <button onclick="backToResto()" style="background:rgba(255,255,255,.1);border:1px solid #555;color:#aaa;padding:5px 14px;border-radius:18px;cursor:pointer;font-size:.8rem;margin-bottom:18px;">← Retour</button>
     <div id="resto-title" style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.8rem;color:var(--yellow);text-transform:uppercase;letter-spacing:3px;margin-bottom:6px;text-align:center;"></div>
     <p style="color:#888;font-size:.82rem;margin-bottom:24px;">Sélectionnez votre profil</p>
-    <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-bottom:12px;">
+    <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;">
       <div class="tile tile-dir" onclick="pickProfile('directeur')" id="tile-dir"><div class="tile-icon">👔</div><div class="tile-label">Directeur</div><div class="tile-sub" id="dir-sub">Directeur</div></div>
-      <div class="tile tile-tv" onclick="pickTV(curResto)" style="border-color:#42a5f5;"><div class="tile-icon">📺</div><div class="tile-label">Écran TV</div><div class="tile-sub">Dashboard du restaurant</div></div>
-    </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
       <div class="tile tile-mgr" onclick="pickManagerDirect()"><div class="tile-icon">⭐</div><div class="tile-label">Manager</div><div class="tile-sub">Signaler un incident</div></div>
-      <div class="tile tile-equipier" onclick="equipierPortail()"><div class="tile-icon">👤</div><div class="tile-label">Espace équipier</div><div class="tile-sub">Mon téléphone équipe</div></div>
     </div>
   </div>
 
@@ -2349,6 +2345,27 @@ function _gmAuth(){
   catch(e){ return ''; }
 }
 window._gmAuth = _gmAuth;
+// Seed unique (v469) : superviseures Gaëlle/Camille/Emilie + directeurs par resto.
+function _seedDefaultsV469(){
+  if(!DB.mailSettings) DB.mailSettings={};
+  if(DB.mailSettings.seeded_v469) return false;
+  if(!Array.isArray(DB.mailSettings.supervisors) || !DB.mailSettings.supervisors.length){
+    DB.mailSettings.supervisors=[
+      {id:'sup_gaelle',  name:'Gaëlle',   pin:'', email:''},
+      {id:'sup_camille', name:'Camille',  pin:'', email:''},
+      {id:'sup_emilie',  name:'Emilie',   pin:'', email:''}
+    ];
+  }
+  var dirs={bk500:'Joris', bk509:'Thomas', bk526:'Laetitia'};
+  if(!DB.restoNames) DB.restoNames={};
+  Object.keys(dirs).forEach(function(rid){
+    if(!DB.restoNames[rid]) DB.restoNames[rid]={};
+    if(!DB.restoNames[rid].directeur) DB.restoNames[rid].directeur=dirs[rid];
+  });
+  DB.mailSettings.seeded_v469=true;
+  return true;
+}
+window._seedDefaultsV469=_seedDefaultsV469;
 var pinProf = null;
 var pinVal = '';
 var curResto = null;
@@ -2485,6 +2502,9 @@ async function loadAll(light) {
     if (sett.resto_names) DB.restoNames = sett.resto_names;
     if (sett.mail_settings) DB.mailSettings = sett.mail_settings;
   }
+  // Valeurs par défaut v469 : superviseures nommées + directeurs par restaurant.
+  // Ne remplit que ce qui est vide, et une seule fois (drapeau seeded_v469).
+  try{ if(_seedDefaultsV469()){ await saveDB(); } }catch(e){}
   // Réglages partagés (tous appareils) depuis Supabase — RIEN ne reste en local seul.
   try{ if(typeof hrChargerReglementSupabase==='function'){ await hrChargerReglementSupabase(); } }catch(e){}
   try{ if(typeof hrChargerSalairesSupabase==='function'){ await hrChargerSalairesSupabase(); } }catch(e){}
