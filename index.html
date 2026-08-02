@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-02 · v470';
+  var EMBEDDED_VERSION = '2026-08-02 · v471';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -11499,7 +11499,9 @@ function candConvoquer(){
   if(!dv){toast('Choisissez une date d\'entretien','error');return;}
   if(!hv)hv='10:00';
   var iso=new Date(dv+'T'+hv+':00').toISOString();
-  _candUpdate({statut:'entretien',entretien_date:iso,note_interne:document.getElementById('cand-note').value.trim()},'Candidat convoqué ✔',function(){mailConvocation();});
+  // Ouvrir le brouillon TOUT DE SUITE (dans le clic) pour éviter le blocage pop-up du navigateur.
+  try{ var _c=curCand(); if(_c) _c.entretienDate=iso; mailConvocation(); }catch(e){ console.warn('mailConvocation',e); }
+  _candUpdate({statut:'entretien',entretien_date:iso,note_interne:document.getElementById('cand-note').value.trim()},'Candidat convoqué ✔');
 }
 function candReprogrammer(){var r=document.getElementById('cand-reprog');if(r)r.style.display='block';}
 
@@ -11507,7 +11509,9 @@ function candRetenir(){
   var c=curCand();if(!c)return;
   if(!confirm('Retenir '+c.prenom+' '+c.nom+' ?\n\nLe mail de sélection (avec le lien de dépôt des documents) va être préparé.'))return;
   var note=document.getElementById('cand-note');
-  _candUpdate({statut:'retenu',note_interne:note?note.value.trim():''},'Candidat retenu ✔',function(){mailDocuments();});
+  // Ouvrir le brouillon TOUT DE SUITE (dans le clic) pour éviter le blocage pop-up du navigateur.
+  try{ mailDocuments(); }catch(e){ console.warn('mailDocuments',e); }
+  _candUpdate({statut:'retenu',note_interne:note?note.value.trim():''},'Candidat retenu ✔');
 }
 
 function candRefuser(){
@@ -11516,7 +11520,9 @@ function candRefuser(){
   if(!confirm('Refuser '+((c.prenom||'')+' '+(c.nom||'')).trim()+' ?\n\nUn mail de refus va être préparé (à valider avant envoi).')) return;
   // La « NOTE INTERNE RH » de la fiche sert de motif de suivi si elle est remplie (facultatif).
   var _n=document.getElementById('cand-note'); var _note=_n?_n.value.trim():'';
-  _candUpdate({statut:'refuse',refus_motif:_note,note_interne:_note},'Candidature refusée',function(){mailRefus();});
+  // Ouvrir le brouillon TOUT DE SUITE (dans le clic) pour éviter le blocage pop-up du navigateur.
+  try{ mailRefus(); }catch(e){ console.warn('mailRefus',e); }
+  _candUpdate({statut:'refuse',refus_motif:_note,note_interne:_note},'Candidature refusée');
 }
 // L'entretien a eu lieu mais le candidat NE S'EST PAS PRÉSENTÉ (no-show).
 function candNonPresente(){
@@ -12210,7 +12216,9 @@ function essaiDecision(d){
   if(d==='valide'){_candUpdate({statut:'retenu',onboarding:Object.assign({},curCand().onboarding,{essai_valide:true})},'Embauche confirmée ✅ — période d\'essai validée');}
   else{
     if(!confirm('Confirmer la rupture de la période d\'essai ?\n\nUn mail de notification va s\'ouvrir (modifiable avant envoi). Pensez à respecter le délai de prévenance légal.'))return;
-    _candUpdate({statut:'refuse',refus_motif:'Rupture période d\'essai'},'Période d\'essai rompue',function(){mailRupture();});
+    // Ouvrir le brouillon TOUT DE SUITE (dans le clic) pour éviter le blocage pop-up du navigateur.
+    try{ mailRupture(); }catch(e){ console.warn('mailRupture',e); }
+    _candUpdate({statut:'refuse',refus_motif:'Rupture période d\'essai'},'Période d\'essai rompue');
   }
 }
 
