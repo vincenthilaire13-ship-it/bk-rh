@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-01 · v467';
+  var EMBEDDED_VERSION = '2026-08-02 · v469';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -2992,7 +2992,9 @@ function checkPin() {
     // ── FRANCHISE (multi-restos) : on choisit d'abord LE restaurant de travail ──
     // Tout le reste de l'app sera verrouillé sur ce resto (plus de re-sélection page par page).
     if (r==='franchise') {
-      showStep('step-resto-actif');
+      // Admin / Superviseure : plus d'écran « Choisir le restaurant ».
+      // Entrée directe sur BK 500 — changeable ensuite via les onglets en haut de l'écran.
+      choisirRestoActif('bk500');
       return;
     }
 
@@ -8164,7 +8166,7 @@ async function sendLetterEmail(lid){
   var subj=fill(t.sujet), body=fill(t.corps);
   var mode=(ms.mailMode)||'gmail';
   if(mode==='gmail'){
-    var g='https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);
+    var g=_gmailBase(tpl.expediteur)+'&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);
     window.open(g,'_blank');
   } else {
     window.open('mailto:'+l.empEmail+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank');
@@ -10890,7 +10892,7 @@ async function sendContratEmail(lid){
   var body='Bonjour '+prenom+',\n\nVeuillez trouver ci-dessous votre contrat de travail. Merci de le lire attentivement et de le signer en ligne via le lien ci-dessous :\n\n🔗 '+sigUrl+'\n\n———\n'+(l.text||'')+'\n———\n\nCordialement,\n'+restoLbl;
   var ms=DB.mailSettings||{}; var cc=(ms.ccRecipients||[]).concat((ms.recipients||[]).map(function(r){return r.email;})).filter(Boolean).join(',');
   var mode=(ms.mailMode)||'gmail';
-  if(mode==='gmail'){ window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
+  if(mode==='gmail'){ window.open(_gmailBase()+'&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
   else { window.open('mailto:'+l.empEmail+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
   try{ await sb.patch('bks_letters','id=eq.'+lid,{sent_at:new Date().toISOString()}); await loadAll(); }catch(_){}
   toast('Mail du contrat prêt (brouillon à valider avant envoi).','success');
@@ -11578,6 +11580,17 @@ function saveEditCand(){
 }
 
 // ── MAILS (modèles éditables + adresse expéditrice, s'ouvrent dans le client mail) ──
+// SÉCURITÉ ENVOI : force la fenêtre de composition Gmail à s'ouvrir SUR le compte RH
+// (rh.bkmontpellier@gmail.com), quel que soit l'ordinateur ou la personne. Si ce compte
+// n'est pas connecté sur le poste, Gmail demande de s'y connecter → impossible d'envoyer
+// depuis un compte perso par erreur. Le paramètre /u/<email>/ cible le bon compte même si
+// plusieurs comptes Google sont connectés en même temps.
+function _gmailBase(acct){
+  var a=((acct||(typeof MAIL_DEFAULTS!=='undefined'&&MAIL_DEFAULTS.expediteur)||'')+'').trim();
+  return a
+    ? 'https://mail.google.com/mail/u/'+encodeURIComponent(a)+'/?view=cm&fs=1'
+    : 'https://mail.google.com/mail/?view=cm&fs=1';
+}
 var MAIL_DEFAULTS={
   expediteur:'rh.bkmontpellier@gmail.com',
   entretien:{
@@ -11691,7 +11704,7 @@ function _mailto(c,subject,body){
   var mode=(DB.mailSettings&&DB.mailSettings.mailMode)||'gmail';
   if(mode==='gmail'){
     // Fenêtre de composition Gmail — part du compte Gmail connecté (l'adresse RH)
-    var g='https://mail.google.com/mail/?view=cm&fs=1'
+    var g=_gmailBase(tpl.expediteur)
       +'&to='+encodeURIComponent(dest)
       +'&su='+encodeURIComponent(subject)
       +'&body='+encodeURIComponent(body);
@@ -11745,7 +11758,7 @@ function _mailtoTo(dest,restoId,subject,body){
   var ccArr=[]; if(tpl.expediteur)ccArr.push(tpl.expediteur);
   var mode=(DB.mailSettings&&DB.mailSettings.mailMode)||'gmail';
   if(mode==='gmail'){
-    var g='https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(dest||'')
+    var g=_gmailBase(tpl.expediteur)+'&to='+encodeURIComponent(dest||'')
       +'&su='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
     if(ccArr.length)g+='&cc='+encodeURIComponent(ccArr.join(','));
     var w=window.open(g,'_blank');
@@ -13684,7 +13697,7 @@ async function sendRefusEmail(lid){
   var subj=fill(t.sujet), body=fill(t.corps);
   var ms=DB.mailSettings||{}; var cc=(ms.ccRecipients||[]).concat((ms.recipients||[]).map(function(r){return r.email;})).filter(Boolean).join(',');
   var mode=(ms.mailMode)||'gmail';
-  if(mode==='gmail'){ window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
+  if(mode==='gmail'){ window.open(_gmailBase()+'&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
   else { window.open('mailto:'+l.empEmail+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
   try{ await sb.patch('bks_letters','id=eq.'+lid,{sent_at:new Date().toISOString()}); await loadAll(); }catch(e){}
   toast('Attestation de refus prête (brouillon à valider avant envoi).','success');
@@ -13707,7 +13720,7 @@ async function sendSignedEmail(lid){
   var subj=fill(t.sujet), body=fill(t.corps);
   var ms=DB.mailSettings||{}; var cc=(ms.ccRecipients||[]).concat((ms.recipients||[]).map(function(r){return r.email;})).filter(Boolean).join(',');
   var mode=(ms.mailMode)||'gmail';
-  if(mode==='gmail'){ window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
+  if(mode==='gmail'){ window.open(_gmailBase()+'&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
   else { window.open('mailto:'+l.empEmail+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
   toast('Confirmation de signature prête (brouillon à valider avant envoi).','success');
 }
@@ -14107,7 +14120,7 @@ function sendReportEmail(period){
   var ccArr=to.slice(1);
   var mode=(ms.mailMode)||'gmail';
   if(mode==='gmail'){
-    var g='https://mail.google.com/mail/?view=cm&fs=1'
+    var g=_gmailBase(tpl.expediteur)
       +'&to='+encodeURIComponent(dest)
       +'&su='+encodeURIComponent(subj)
       +'&body='+encodeURIComponent(body);
