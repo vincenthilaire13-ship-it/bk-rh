@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-02 · v469';
+  var EMBEDDED_VERSION = '2026-08-02 · v470';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -11511,12 +11511,12 @@ function candRetenir(){
 }
 
 function candRefuser(){
-  var motif=prompt('Pourquoi refusez-vous ce profil ? (commentaire INTERNE — non envoyé au candidat, sert à votre suivi)','');
-  if(motif===null)return;
-  motif=(motif||'').trim();
-  if(!motif){ try{toast('Indiquez d\'abord un motif de refus (interne).','error');}catch(_){} return; }
+  var c=curCand(); if(!c) return;
+  // Plus de motif obligatoire : refus direct + préparation du mail (à valider avant envoi).
+  if(!confirm('Refuser '+((c.prenom||'')+' '+(c.nom||'')).trim()+' ?\n\nUn mail de refus va être préparé (à valider avant envoi).')) return;
+  // La « NOTE INTERNE RH » de la fiche sert de motif de suivi si elle est remplie (facultatif).
   var _n=document.getElementById('cand-note'); var _note=_n?_n.value.trim():'';
-  _candUpdate({statut:'refuse',refus_motif:motif,note_interne:_note},'Candidature refusée',function(){mailRefus();});
+  _candUpdate({statut:'refuse',refus_motif:_note,note_interne:_note},'Candidature refusée',function(){mailRefus();});
 }
 // L'entretien a eu lieu mais le candidat NE S'EST PAS PRÉSENTÉ (no-show).
 function candNonPresente(){
