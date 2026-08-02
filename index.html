@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-02 · v469';
+  var EMBEDDED_VERSION = '2026-08-01 · v467';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -558,17 +558,14 @@ html,body{overflow-x:hidden;}
     <button onclick="backToResto()" style="background:rgba(255,255,255,.1);border:1px solid #555;color:#aaa;padding:5px 14px;border-radius:18px;cursor:pointer;font-size:.8rem;margin-bottom:18px;">← Retour</button>
     <div id="resto-title" style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.8rem;color:var(--yellow);text-transform:uppercase;letter-spacing:3px;margin-bottom:6px;text-align:center;"></div>
     <p style="color:#888;font-size:.82rem;margin-bottom:24px;">Sélectionnez votre profil</p>
-    <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;">
+    <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-bottom:12px;">
       <div class="tile tile-dir" onclick="pickProfile('directeur')" id="tile-dir"><div class="tile-icon">👔</div><div class="tile-label">Directeur</div><div class="tile-sub" id="dir-sub">Directeur</div></div>
-      <div class="tile tile-mgr" onclick="pickManagerDirect()"><div class="tile-icon">⭐</div><div class="tile-label">Manager</div><div class="tile-sub">Signaler un incident</div></div>
+      <div class="tile tile-tv" onclick="pickTV(curResto)" style="border-color:#42a5f5;"><div class="tile-icon">📺</div><div class="tile-label">Écran TV</div><div class="tile-sub">Dashboard du restaurant</div></div>
     </div>
-  </div>
-
-  <div class="login-step" id="step-supervisors" style="display:none;">
-    <button onclick="showStep('step-resto')" style="background:rgba(255,255,255,.1);border:1px solid #555;color:#aaa;padding:5px 14px;border-radius:18px;cursor:pointer;font-size:.8rem;margin-bottom:18px;">← Retour</button>
-    <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.8rem;color:var(--yellow);text-transform:uppercase;letter-spacing:3px;margin-bottom:6px;text-align:center;">👩‍💼 Superviseure</div>
-    <p style="color:#888;font-size:.82rem;margin-bottom:24px;">Sélectionnez votre nom — vous entrerez ensuite votre code personnel</p>
-    <div id="sup-choose-list" style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+      <div class="tile tile-mgr" onclick="pickManagerDirect()"><div class="tile-icon">⭐</div><div class="tile-label">Manager</div><div class="tile-sub">Signaler un incident</div></div>
+      <div class="tile tile-equipier" onclick="equipierPortail()"><div class="tile-icon">👤</div><div class="tile-label">Espace équipier</div><div class="tile-sub">Mon téléphone équipe</div></div>
+    </div>
   </div>
 
   <div class="login-step" id="step-pin" style="display:none;">
@@ -1457,20 +1454,6 @@ html,body{overflow-x:hidden;}
       <div class="sec-title">🔑 Codes PIN</div>
       <div id="pin-settings" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:11px;"></div>
       <button class="btn btn-red" style="margin-top:14px;" onclick="savePins()">💾 Enregistrer les PIN</button>
-
-      <div style="height:1px;background:#333;margin:22px 0 16px;"></div>
-      <div class="sec-title" style="margin-bottom:6px;">👩‍💼 Superviseures (accès individuel)</div>
-      <p style="font-size:.8rem;color:#aaa;margin-bottom:14px;">Chaque superviseure a <strong>son propre code</strong> et <strong>sa propre adresse mail</strong>. À la connexion, elle choisit son nom puis tape son code. Quand elle envoie un mail à un salarié, il part <strong>de sa boîte Gmail</strong> (elle doit y être connectée dans le navigateur). Tant qu'aucune superviseure n'est ajoutée ici, l'ancien code partagé « Superviseure » reste actif.</p>
-      <div id="sup-settings" style="display:flex;flex-direction:column;gap:9px;margin-bottom:12px;"></div>
-      <div style="background:#141414;border-radius:8px;padding:11px;">
-        <div style="font-size:.82rem;color:#ddd;margin-bottom:8px;">➕ Ajouter une superviseure</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end;">
-          <div style="flex:2;min-width:130px;"><div style="font-size:.7rem;color:#888;margin-bottom:3px;">Nom</div><input type="text" id="sup-new-name" class="fi" placeholder="Camille"></div>
-          <div style="flex:1;min-width:90px;"><div style="font-size:.7rem;color:#888;margin-bottom:3px;">Code (4 chiffres)</div><input type="text" id="sup-new-pin" class="fi" maxlength="4" inputmode="numeric" placeholder="1234"></div>
-          <div style="flex:2;min-width:170px;"><div style="font-size:.7rem;color:#888;margin-bottom:3px;">Adresse mail</div><input type="email" id="sup-new-email" class="fi" placeholder="camille@domaine.fr"></div>
-        </div>
-        <button class="btn btn-red btn-sm" style="margin-top:9px;" onclick="addSupervisor()">➕ Ajouter</button>
-      </div>
     </div>
     <div class="card param-card" id="pc-amplitude" style="display:none;">
       <div class="sec-title">🕐 Amplitude horaire des disponibilités</div>
@@ -1605,7 +1588,6 @@ html,body{overflow-x:hidden;}
     <div class="card param-card" id="pc-adresses" style="display:none;">
       <div class="sec-title">📧 Adresses d'expédition</div>
       <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Le destinataire est toujours le candidat. Indiquez ici l'<strong>adresse RH</strong> depuis laquelle les mails doivent partir : elle sera ajoutée à chaque mail (en copie) pour qu'ils soient bien rattachés au compte RH. Vous pouvez aussi ajouter des adresses en <strong>copie cachée</strong> (le candidat ne les voit pas), chacune rattachée à un restaurant ou à « tous ».</p>
-      <p style="font-size:.78rem;color:#7ACA7A;background:#12210f;border:1px solid #2f4a24;border-radius:8px;padding:9px 11px;margin-bottom:14px;">💡 Si vous avez configuré des <strong>superviseures individuelles</strong> (Paramètres › Codes PIN), chaque mail s'ouvre automatiquement dans la <strong>boîte Gmail de la personne connectée</strong> : il part donc de son adresse. Il suffit qu'elle soit connectée à son Gmail dans le navigateur.</p>
       <label class="flabel">Adresse RH (expéditrice)</label>
       <input type="email" id="mt-exp" class="fi" placeholder="recrutement@votredomaine.fr" style="margin-bottom:12px;">
       <label class="flabel">Ouvrir les mails dans</label>
@@ -2330,42 +2312,6 @@ var DB = {
 };
 
 var curUser = null;
-// ── SUPERVISEURES : accès individuel (nom + code PIN + adresse mail) ─────────────
-// Stockées dans DB.mailSettings.supervisors = [{id,name,pin,email}]
-function getSupervisors(){
-  try{ return (DB.mailSettings && Array.isArray(DB.mailSettings.supervisors)) ? DB.mailSettings.supervisors : []; }
-  catch(e){ return []; }
-}
-window.getSupervisors = getSupervisors;
-// Ajoute &authuser=<adresse de la personne connectée> pour que Gmail ouvre la
-// rédaction DANS SA boîte (donc le mail part de son adresse). Sans effet si aucune
-// adresse (retour à l'ancien comportement : le compte Gmail ouvert du navigateur).
-function _gmAuth(){
-  try{ return (curUser && curUser.email) ? ('&authuser=' + encodeURIComponent(curUser.email)) : ''; }
-  catch(e){ return ''; }
-}
-window._gmAuth = _gmAuth;
-// Seed unique (v469) : superviseures Gaëlle/Camille/Emilie + directeurs par resto.
-function _seedDefaultsV469(){
-  if(!DB.mailSettings) DB.mailSettings={};
-  if(DB.mailSettings.seeded_v469) return false;
-  if(!Array.isArray(DB.mailSettings.supervisors) || !DB.mailSettings.supervisors.length){
-    DB.mailSettings.supervisors=[
-      {id:'sup_gaelle',  name:'Gaëlle',   pin:'', email:''},
-      {id:'sup_camille', name:'Camille',  pin:'', email:''},
-      {id:'sup_emilie',  name:'Emilie',   pin:'', email:''}
-    ];
-  }
-  var dirs={bk500:'Joris', bk509:'Thomas', bk526:'Laetitia'};
-  if(!DB.restoNames) DB.restoNames={};
-  Object.keys(dirs).forEach(function(rid){
-    if(!DB.restoNames[rid]) DB.restoNames[rid]={};
-    if(!DB.restoNames[rid].directeur) DB.restoNames[rid].directeur=dirs[rid];
-  });
-  DB.mailSettings.seeded_v469=true;
-  return true;
-}
-window._seedDefaultsV469=_seedDefaultsV469;
 var pinProf = null;
 var pinVal = '';
 var curResto = null;
@@ -2502,9 +2448,6 @@ async function loadAll(light) {
     if (sett.resto_names) DB.restoNames = sett.resto_names;
     if (sett.mail_settings) DB.mailSettings = sett.mail_settings;
   }
-  // Valeurs par défaut v469 : superviseures nommées + directeurs par restaurant.
-  // Ne remplit que ce qui est vide, et une seule fois (drapeau seeded_v469).
-  try{ if(_seedDefaultsV469()){ await saveDB(); } }catch(e){}
   // Réglages partagés (tous appareils) depuis Supabase — RIEN ne reste en local seul.
   try{ if(typeof hrChargerReglementSupabase==='function'){ await hrChargerReglementSupabase(); } }catch(e){}
   try{ if(typeof hrChargerSalairesSupabase==='function'){ await hrChargerSalairesSupabase(); } }catch(e){}
@@ -2833,37 +2776,9 @@ function showStep(id) {
 function pickGlobal(key) {
   curResto = null;
   var g = GLOBALS[key];
-  // Accès Superviseure : s'il existe des superviseures individuelles, on affiche
-  // d'abord la liste (chacune a son code + son adresse mail). Sinon, ancien code partagé.
-  if(key==='rh' && getSupervisors().length){ showSupervisorChooser(); return; }
   pinProf = {key:key,icon:g.icon,title:g.title,sub:g.sub,role:g.role,pin:DB.globalPins[key]||'0000'};
   openPin();
 }
-
-// Écran « Qui es-tu ? » : une tuile par superviseure.
-function showSupervisorChooser(){
-  var box=document.getElementById('sup-choose-list');
-  if(box){
-    box.innerHTML=getSupervisors().map(function(s){
-      var initiale=(s.name||'?').trim().charAt(0).toUpperCase();
-      return '<div class="tile tile-rh" onclick="pickSupervisor(\''+s.id+'\')">'
-        +'<div class="tile-icon">👩‍💼</div>'
-        +'<div class="tile-label">'+(s.name||'Superviseure')+'</div>'
-        +'<div class="tile-sub">'+(s.email||'Code personnel')+'</div></div>';
-    }).join('');
-  }
-  showStep('step-supervisors');
-}
-window.showSupervisorChooser=showSupervisorChooser;
-
-function pickSupervisor(id){
-  var s=getSupervisors().find(function(x){return x.id===id;}); if(!s)return;
-  var g=GLOBALS.rh;
-  pinProf={key:'sup_'+id, icon:g.icon, title:s.name||g.title, sub:g.sub, role:g.role,
-           pin:s.pin||DB.globalPins.rh||'0000', email:s.email||'', supId:id};
-  openPin();
-}
-window.pickSupervisor=pickSupervisor;
 
 function pickTV(restoId) {
   // Écran TV d'un restaurant : code 0000, ouvre directement le dashboard du resto
@@ -2920,8 +2835,7 @@ function openPin() {
 
 function backToResto() { showStep('step-resto'); }
 function backFromPin() {
-  if (pinProf && pinProf.supId) showStep('step-supervisors');
-  else if (curResto) showStep('step-profiles');
+  if (curResto) showStep('step-profiles');
   else showStep('step-resto');
 }
 
@@ -3060,7 +2974,7 @@ window.stopPreview=stopPreview;
 function checkPin() {
   if (pinVal === pinProf.pin) {
     var r = pinProf.role;
-    curUser = {id:pinProf.key,name:pinProf.title,role:r,restoId:pinProf.restoId||null,email:pinProf.email||null,supId:pinProf.supId||null};
+    curUser = {id:pinProf.key,name:pinProf.title,role:r,restoId:pinProf.restoId||null};
 
     // ── MODE ÉCRAN TV : dashboard d'un resto, sans menu ──
     if (r==='tv') {
@@ -8250,7 +8164,7 @@ async function sendLetterEmail(lid){
   var subj=fill(t.sujet), body=fill(t.corps);
   var mode=(ms.mailMode)||'gmail';
   if(mode==='gmail'){
-    var g='https://mail.google.com/mail/?view=cm&fs=1'+_gmAuth()+'&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);
+    var g='https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);
     window.open(g,'_blank');
   } else {
     window.open('mailto:'+l.empEmail+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank');
@@ -10976,7 +10890,7 @@ async function sendContratEmail(lid){
   var body='Bonjour '+prenom+',\n\nVeuillez trouver ci-dessous votre contrat de travail. Merci de le lire attentivement et de le signer en ligne via le lien ci-dessous :\n\n🔗 '+sigUrl+'\n\n———\n'+(l.text||'')+'\n———\n\nCordialement,\n'+restoLbl;
   var ms=DB.mailSettings||{}; var cc=(ms.ccRecipients||[]).concat((ms.recipients||[]).map(function(r){return r.email;})).filter(Boolean).join(',');
   var mode=(ms.mailMode)||'gmail';
-  if(mode==='gmail'){ window.open('https://mail.google.com/mail/?view=cm&fs=1'+_gmAuth()+'&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
+  if(mode==='gmail'){ window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
   else { window.open('mailto:'+l.empEmail+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
   try{ await sb.patch('bks_letters','id=eq.'+lid,{sent_at:new Date().toISOString()}); await loadAll(); }catch(_){}
   toast('Mail du contrat prêt (brouillon à valider avant envoi).','success');
@@ -11777,7 +11691,7 @@ function _mailto(c,subject,body){
   var mode=(DB.mailSettings&&DB.mailSettings.mailMode)||'gmail';
   if(mode==='gmail'){
     // Fenêtre de composition Gmail — part du compte Gmail connecté (l'adresse RH)
-    var g='https://mail.google.com/mail/?view=cm&fs=1'+_gmAuth()
+    var g='https://mail.google.com/mail/?view=cm&fs=1'
       +'&to='+encodeURIComponent(dest)
       +'&su='+encodeURIComponent(subject)
       +'&body='+encodeURIComponent(body);
@@ -11831,7 +11745,7 @@ function _mailtoTo(dest,restoId,subject,body){
   var ccArr=[]; if(tpl.expediteur)ccArr.push(tpl.expediteur);
   var mode=(DB.mailSettings&&DB.mailSettings.mailMode)||'gmail';
   if(mode==='gmail'){
-    var g='https://mail.google.com/mail/?view=cm&fs=1'+_gmAuth()+'&to='+encodeURIComponent(dest||'')
+    var g='https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(dest||'')
       +'&su='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
     if(ccArr.length)g+='&cc='+encodeURIComponent(ccArr.join(','));
     var w=window.open(g,'_blank');
@@ -13770,7 +13684,7 @@ async function sendRefusEmail(lid){
   var subj=fill(t.sujet), body=fill(t.corps);
   var ms=DB.mailSettings||{}; var cc=(ms.ccRecipients||[]).concat((ms.recipients||[]).map(function(r){return r.email;})).filter(Boolean).join(',');
   var mode=(ms.mailMode)||'gmail';
-  if(mode==='gmail'){ window.open('https://mail.google.com/mail/?view=cm&fs=1'+_gmAuth()+'&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
+  if(mode==='gmail'){ window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
   else { window.open('mailto:'+l.empEmail+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
   try{ await sb.patch('bks_letters','id=eq.'+lid,{sent_at:new Date().toISOString()}); await loadAll(); }catch(e){}
   toast('Attestation de refus prête (brouillon à valider avant envoi).','success');
@@ -13793,7 +13707,7 @@ async function sendSignedEmail(lid){
   var subj=fill(t.sujet), body=fill(t.corps);
   var ms=DB.mailSettings||{}; var cc=(ms.ccRecipients||[]).concat((ms.recipients||[]).map(function(r){return r.email;})).filter(Boolean).join(',');
   var mode=(ms.mailMode)||'gmail';
-  if(mode==='gmail'){ window.open('https://mail.google.com/mail/?view=cm&fs=1'+_gmAuth()+'&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
+  if(mode==='gmail'){ window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
   else { window.open('mailto:'+l.empEmail+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
   toast('Confirmation de signature prête (brouillon à valider avant envoi).','success');
 }
@@ -13881,7 +13795,6 @@ function renderPinSettings(){
     +'</div>'
     +'<p style="font-size:.75rem;color:#555;margin-top:8px;">💡 Les codes PIN des directeurs et managers se modifient directement dans l\'onglet Équipe (✏️ sur leur fiche)</p>';
   c.innerHTML=h;
-  try{ renderSupSettings(); }catch(e){}
 }
 
 async function savePins(){
@@ -13891,56 +13804,6 @@ async function savePins(){
   if(inp_rh&&/^\d{4}$/.test(inp_rh.value)) DB.globalPins.rh=inp_rh.value;
   await saveDB();toast('Codes PIN enregistrés ✔','success');
 }
-
-// ── GESTION DES SUPERVISEURES (nom + code + mail) ────────────────────────────────
-function _supEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function renderSupSettings(){
-  var c=document.getElementById('sup-settings'); if(!c)return;
-  var list=getSupervisors();
-  if(!list.length){ c.innerHTML='<p style="font-size:.78rem;color:#666;">Aucune superviseure pour l\'instant — l\'accès « Superviseure » utilise le code partagé ci-dessus.</p>'; return; }
-  c.innerHTML=list.map(function(s,i){
-    return '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end;background:#1A1A1A;border-radius:8px;padding:10px;">'
-      +'<div style="flex:2;min-width:120px;"><div style="font-size:.68rem;color:#888;margin-bottom:3px;">Nom</div><input type="text" class="fi" value="'+_supEsc(s.name)+'" onchange="editSupervisor('+i+',\'name\',this.value)"></div>'
-      +'<div style="flex:1;min-width:80px;"><div style="font-size:.68rem;color:#888;margin-bottom:3px;">Code</div><input type="text" class="fi" maxlength="4" inputmode="numeric" value="'+_supEsc(s.pin)+'" onchange="editSupervisor('+i+',\'pin\',this.value)"></div>'
-      +'<div style="flex:2;min-width:160px;"><div style="font-size:.68rem;color:#888;margin-bottom:3px;">Adresse mail</div><input type="email" class="fi" value="'+_supEsc(s.email)+'" onchange="editSupervisor('+i+',\'email\',this.value)"></div>'
-      +'<button class="btn-danger" style="padding:6px 10px;" onclick="delSupervisor('+i+')">🗑️</button>'
-      +'</div>';
-  }).join('');
-}
-window.renderSupSettings=renderSupSettings;
-function _ensureSupArray(){ if(!DB.mailSettings)DB.mailSettings={}; if(!Array.isArray(DB.mailSettings.supervisors))DB.mailSettings.supervisors=[]; return DB.mailSettings.supervisors; }
-async function addSupervisor(){
-  var name=(document.getElementById('sup-new-name').value||'').trim();
-  var pin=(document.getElementById('sup-new-pin').value||'').trim();
-  var email=(document.getElementById('sup-new-email').value||'').trim();
-  if(!name){ toast('Entrez un nom','error'); return; }
-  if(!/^\d{4}$/.test(pin)){ toast('Le code doit faire 4 chiffres','error'); return; }
-  if(email&&email.indexOf('@')<0){ toast('Adresse mail invalide','error'); return; }
-  var arr=_ensureSupArray();
-  var id='sup_'+Date.now().toString(36)+Math.floor(Math.random()*1000);
-  arr.push({id:id,name:name,pin:pin,email:email});
-  document.getElementById('sup-new-name').value='';
-  document.getElementById('sup-new-pin').value='';
-  document.getElementById('sup-new-email').value='';
-  await saveDB(); renderSupSettings(); toast('Superviseure ajoutée ✔','success');
-}
-window.addSupervisor=addSupervisor;
-async function editSupervisor(i,field,val){
-  var arr=_ensureSupArray(); if(!arr[i])return;
-  val=(val||'').trim();
-  if(field==='pin'&&val&&!/^\d{4}$/.test(val)){ toast('Le code doit faire 4 chiffres','error'); renderSupSettings(); return; }
-  if(field==='email'&&val&&val.indexOf('@')<0){ toast('Adresse mail invalide','error'); renderSupSettings(); return; }
-  arr[i][field]=val;
-  await saveDB();
-}
-window.editSupervisor=editSupervisor;
-async function delSupervisor(i){
-  var arr=_ensureSupArray(); if(!arr[i])return;
-  if(!confirm('Supprimer « '+(arr[i].name||'cette superviseure')+' » ?'))return;
-  arr.splice(i,1);
-  await saveDB(); renderSupSettings(); toast('Superviseure supprimée','success');
-}
-window.delSupervisor=delSupervisor;
 
 function loadAmplitudeSettings(){
   var amp=getAmplitude();
@@ -14244,7 +14107,7 @@ function sendReportEmail(period){
   var ccArr=to.slice(1);
   var mode=(ms.mailMode)||'gmail';
   if(mode==='gmail'){
-    var g='https://mail.google.com/mail/?view=cm&fs=1'+_gmAuth()
+    var g='https://mail.google.com/mail/?view=cm&fs=1'
       +'&to='+encodeURIComponent(dest)
       +'&su='+encodeURIComponent(subj)
       +'&body='+encodeURIComponent(body);
@@ -14426,7 +14289,6 @@ async function confirmAnnulation(){
   var pin = document.getElementById('cancel-pin-val').value;
   var ok = false;
   if(pin === (DB.globalPins.admin||'0000') || pin === (DB.globalPins.rh||'0000')) ok = true;
-  if(!ok){ getSupervisors().forEach(function(s){ if(s.pin && s.pin===pin) ok=true; }); }
   if(!ok){
     Object.keys(DB.restoPins||{}).forEach(function(rid){
       Object.values(DB.restoPins[rid]||{}).forEach(function(p){if(p===pin)ok=true;});
@@ -24747,7 +24609,6 @@ function verifierCodeSuite(intitule){
     const codes = (typeof getCodes==='function') ? getCodes() : null;
     if(codes){ if(codes.admin) attendus.push(String(codes.admin)); if(codes.superviseur) attendus.push(String(codes.superviseur)); }
   }catch(e){}
-  try{ getSupervisors().forEach(function(s){ if(s.pin) attendus.push(String(s.pin)); }); }catch(e){}
   const saisi = prompt('🔐 '+(intitule||'Action protégée')+'\n\nEntrez le code pour confirmer (par défaut : 0000) :');
   if(saisi===null) return false;
   if(!attendus.includes(String(saisi).trim())){
