@@ -50,6 +50,101 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap');
 :root{--red:#D62300;--orange:#FF8732;--yellow:#F5A623;--dark:#1A1A1A;--gray:#2C2C2C;--r:8px;}
+/* ════ THÈME CLAIR (bascule réversible) — CIBLÉ ════
+   On éclaircit UNIQUEMENT les fonds sombres neutres et on fonce le texte neutre.
+   Les éléments COLORÉS (rouge, dégradés, tuiles, planning, badges) ne sont PAS touchés
+   → les couleurs vives restent vives. */
+html.theme-light body{ background:#e9eaee !important; color:#23262c !important; }
+/* Fonds sombres neutres -> blanc */
+html.theme-light [style*="background:#1A1A1A"],html.theme-light [style*="background:#1a1a1a"],
+html.theme-light [style*="background:#141414"],html.theme-light [style*="background:#111"],
+html.theme-light [style*="background:#161616"],html.theme-light [style*="background:#181818"],
+html.theme-light [style*="background:#1f1f1f"],html.theme-light [style*="background:#1F1F1F"],
+html.theme-light [style*="background:#0f0f0f"],html.theme-light [style*="background:#0F0F0F"],
+html.theme-light [style*="background:#151515"],html.theme-light [style*="background:#1b1b1b"],
+html.theme-light [style*="background:#1c1c1c"],html.theme-light [style*="background:#101010"],
+html.theme-light [style*="background:#121212"],html.theme-light [style*="background:#1E1E1E"]
+{ background:#ffffff !important; }
+/* Fonds sombres neutres un peu plus clairs -> gris très clair */
+html.theme-light [style*="background:#222"],html.theme-light [style*="background:#242424"],
+html.theme-light [style*="background:#2A2A2A"],html.theme-light [style*="background:#2a2a2a"],
+html.theme-light [style*="background:#2C2C2C"],html.theme-light [style*="background:#2c2c2c"],
+html.theme-light [style*="background:#2E2E2E"],html.theme-light [style*="background:#282828"],
+html.theme-light [style*="background:#333"],html.theme-light [style*="background:#3a3a3a"]
+{ background:#edeef1 !important; }
+/* Composants (classes) sombres -> clair */
+html.theme-light .card,html.theme-light .emp-card,html.theme-light .stat-card,
+html.theme-light .letter-card,html.theme-light .inc-item,html.theme-light .prob-check,
+html.theme-light .prob-extra,html.theme-light .fi,html.theme-light .filters select,
+html.theme-light .filters input,html.theme-light .ptg-search,html.theme-light .ptg-recap,
+html.theme-light .cal-cell,html.theme-light .tbl th,html.theme-light .pl-name,
+html.theme-light select.fi option{
+  background:#ffffff !important; color:#23262c !important; border-color:#d7d8de !important;
+}
+html.theme-light .rtab{ background:#eceef2 !important; color:#606670 !important; border-color:#cfd2d8 !important; }
+html.theme-light .btn-gray{ background:#e6e7eb !important; color:#333 !important; border-color:#c9ccd3 !important; }
+html.theme-light .dash-tile{ background:linear-gradient(155deg,#ffffff,#eceef3) !important; border-color:#d7d8de !important; }
+html.theme-light .dash-tile .dt-tt{ color:#23262c !important; }
+html.theme-light .dash-tile .dt-ds{ color:#6a6f77 !important; }
+/* Textes clairs neutres -> foncés (les couleurs vives restent) */
+html.theme-light [style*="color:#fff"],html.theme-light [style*="color:#FFF"],
+html.theme-light [style*="color:#F5F0E8"],html.theme-light [style*="color:#f5f0e8"],
+html.theme-light [style*="color:#eee"],html.theme-light [style*="color:#eaeaea"],
+html.theme-light [style*="color:#e5e5e5"],html.theme-light [style*="color:#fafafa"]
+{ color:#23262c !important; }
+html.theme-light [style*="color:#ddd"],html.theme-light [style*="color:#ccc"],
+html.theme-light [style*="color:#bbb"],html.theme-light [style*="color:#aaa"],
+html.theme-light [style*="color:#999"],html.theme-light [style*="color:#9a9a9a"],
+html.theme-light [style*="color:#888"],html.theme-light [style*="color:#777"]
+{ color:#5c616a !important; }
+/* Bordures sombres -> claires */
+html.theme-light [style*="solid #333"],html.theme-light [style*="solid #444"],
+html.theme-light [style*="solid #2A2A2A"],html.theme-light [style*="solid #2a2a2a"],
+html.theme-light [style*="solid #555"],html.theme-light [style*="solid #2e2e2e"]
+{ border-color:#d7d8de !important; }
+/* Garder le TEXTE BLANC sur les éléments colorés (boutons rouges, dégradés, badges) */
+html.theme-light .btn-red,html.theme-light .btn-red *,
+html.theme-light [style*="linear-gradient(135deg,#C01E00"],html.theme-light [style*="linear-gradient(135deg,#C01E00"] *,
+html.theme-light [style*="linear-gradient(135deg,var(--red)"],
+html.theme-light [style*="background:#D62300"],html.theme-light [style*="background:var(--red)"]
+{ color:#fff !important; }
+/* HORAIRES / PLANNING -> fond blanc, en gardant la COULEUR des créneaux (barres) */
+html.theme-light #page-horaires,html.theme-light #sec-horaires,html.theme-light .hr-sec,
+html.theme-light .pl-table,html.theme-light #plan-grid-dir,html.theme-light #plan-grid-enc{
+  background:#ffffff !important;
+}
+html.theme-light .pl-name{ background:#ffffff !important; color:#23262c !important; }
+html.theme-light .pl-total{ background:#f0f1f4 !important; color:#23262c !important; }
+html.theme-light .pl-dayhead{ color:#6a6f77 !important; }
+html.theme-light .pl-dayhead.we{ background:#eef0f3 !important; color:#98a0a8 !important; }
+html.theme-light .pl-cell.we{ background:#f2f3f6 !important; }
+/* Créneaux (barres colorées) : on NE touche PAS leur couleur ni leur texte blanc. */
+/* Le module HORAIRES a ses propres variables -> on les repasse en clair d'un seul coup
+   (cartes résumé, timeline, en-têtes). Les barres de créneaux gardent leur couleur. */
+html.theme-light #sec-horaires{ --bg:#ffffff; --s1:#f5f6f8; --s2:#eceef2; --bd:#dcdee3; --bd2:#cbced5; --tx:#23262c; --mu:#6b7078; --ac:#c99700; }
+/* TOUS les champs de formulaire -> blancs (formulaire Actualité, etc.) */
+html.theme-light input,html.theme-light textarea,html.theme-light select{
+  background:#ffffff !important; color:#23262c !important; border-color:#cfd2d8 !important;
+}
+html.theme-light input::placeholder,html.theme-light textarea::placeholder{ color:#9aa0a8 !important; }
+/* Fonds sombres supplémentaires (champs/boutons Actualité en #0e0e0e, panneaux) */
+html.theme-light [style*="background:#0e0e0e"],html.theme-light [style*="background:#0b0b0b"],
+html.theme-light [style*="background:#0c0c0d"],html.theme-light [style*="background:#0d0d0d"],
+html.theme-light [style*="background:#0a0a0a"],html.theme-light [style*="background:#202020"],
+html.theme-light [style*="background:#232323"],html.theme-light [style*="background:#242424"],
+html.theme-light [style*="background:#131313"],html.theme-light [style*="background:#171717"],
+html.theme-light [style*="background:#191919"],html.theme-light [style*="background:#0f0f11"]
+{ background:#ffffff !important; }
+/* Dégradés sombres NEUTRES (tuiles État équipe #1c1c1c/#262626, actu-item…) -> clair */
+html.theme-light [style*="linear-gradient(135deg,#1c1c1c"],
+html.theme-light [style*="linear-gradient(155deg,#232323"],
+html.theme-light .actu-item,html.theme-light .dash-actu,html.theme-light .dash-actu-h,
+html.theme-light .rpt-table,html.theme-light .tel-tv-actu,html.theme-light .tel-note{
+  background:#ffffff !important; color:#23262c !important;
+}
+#theme-toggle{ position:fixed; z-index:2147483000; bottom:18px; left:18px; width:46px; height:46px;
+  border-radius:50%; border:1px solid #b9bcc4; cursor:pointer; font-size:1.25rem; line-height:1;
+  background:#1A1A1A; color:#F5A623; box-shadow:0 3px 12px rgba(0,0,0,.28); }
 /* ════ POINTAGE — écran d'accueil salarié ════ */
 #page-pointage{max-width:1000px;margin:0 auto;}
 .ptg-hero{background:linear-gradient(135deg,#D62300 0%,#FF8732 100%);border-radius:22px;padding:26px 30px;color:#fff;box-shadow:0 10px 30px rgba(214,35,0,.28);margin-bottom:22px;}
@@ -1413,7 +1508,7 @@ html,body{overflow-x:hidden;}
     </div>
     <div class="card param-card" id="pc-baremes" style="display:none;">
       <div class="sec-title">⚠️ Incident barème</div>
-      <p style="font-size:.83rem;color:#aaa;margin-bottom:12px;">Définissez à partir de combien d'incidents, sur quelle période, l'application doit <strong>proposer</strong> un document à préparer. Exemple : <em>3 absences injustifiées sur 2 mois → avertissement</em>. Rien n'est créé automatiquement : les propositions apparaissent dans <strong>Alertes → À sanctionner</strong>, et c'est vous qui validez.</p>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:12px;">Définissez à partir de combien d'incidents, sur quelle période, l'application doit <strong>proposer</strong> un document à préparer. Exemple : <em>3 absences injustifiées sur 2 mois → avertissement</em>. Rien n'est créé automatiquement : les propositions apparaissent dans <strong>Alertes → Incident à sanctionner</strong>, et c'est vous qui validez.</p>
       <div id="baremes-list"></div>
       <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:12px;">
         <button class="btn btn-gray btn-sm" onclick="baremeAdd()">➕ Ajouter une règle</button>
@@ -1468,15 +1563,8 @@ html,body{overflow-x:hidden;}
       </label>
       <button class="btn btn-red" onclick="saveAmplitude()">💾 Enregistrer l'amplitude</button>
     </div>
-    <div class="card param-card" id="pc-seuil" style="display:none;">
-      <div class="sec-title">⚠️ Rappel observations orales</div>
-      <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Quand un salarié atteint ce nombre d'observations orales, un rappel s'affiche dans Incidents (pour les directeurs et l'admin) suggérant de passer à une observation écrite.</p>
-      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
-        <div><label class="flabel">Seuil (nombre d'observations orales)</label>
-          <input type="number" id="seuil-oral" class="fi" min="1" max="20" style="width:120px;" value="3"></div>
-        <button class="btn btn-red" onclick="saveSeuilOral()">💾 Enregistrer le seuil</button>
-      </div>
-    </div>
+    <!-- Carte « Rappel observations orales » retirée (v472) : plus de seuil codé en dur.
+         La seule règle de discipline vient de « Incident barème » (Paramètres). -->
     <div class="card param-card" id="pc-visite" style="display:none;">
       <div class="sec-title">🩺 Visite médicale — délais et rappels</div>
       <p style="font-size:.82rem;color:#aaa;margin-bottom:16px;">Réglez ici <strong>quand</strong> les visites médicales doivent avoir lieu et <strong>à partir de quand</strong> l'application affiche une alerte. Ces réglages s'appliquent partout (tuiles de suivi, fiches salariés, alertes).</p>
@@ -3265,7 +3353,7 @@ function goPage(id, btn) {
   if (id==='pointage'){ if(curUser.role==='franchise'){ bkEntrerPage('pointage'); } else { window.__ptgRestoActif=null; ptgInit(); } }
   if (id==='suivipointage'){ if(curUser.role==='franchise'){ bkEntrerPage('suivipointage'); } else { window.__ptgRestoActif=null; ptgSuiviInit(); } }
   if (id==='planning'){openPlanning();}
-  if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();loadSeuilOral();loadMailTpl();renderQr();renderApercuForm();var av=document.getElementById('app-version-badge');if(av){var _now=new Date();var _hd=_now.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})+' à '+String(_now.getHours()).padStart(2,'0')+'h'+String(_now.getMinutes()).padStart(2,'0');av.innerHTML='✓ À jour — '+formatMajDate(APP_VERSION)+' <span style="color:#888;font-weight:400;">· consulté le '+_hd+'</span>';av.style.color='#4CAF50';av.style.borderColor='#2E5E33';} renderParamTiles(); }
+  if (id==='parametres'){renderPinSettings();loadAmplitudeSettings();loadMailTpl();renderQr();renderApercuForm();var av=document.getElementById('app-version-badge');if(av){var _now=new Date();var _hd=_now.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})+' à '+String(_now.getHours()).padStart(2,'0')+'h'+String(_now.getMinutes()).padStart(2,'0');av.innerHTML='✓ À jour — '+formatMajDate(APP_VERSION)+' <span style="color:#888;font-weight:400;">· consulté le '+_hd+'</span>';av.style.color='#4CAF50';av.style.borderColor='#2E5E33';} renderParamTiles(); }
   // Rafraîchir le bandeau "restaurant actif" sur chaque page
   try{ majBadgeRestoActif(); }catch(e){}
 }
@@ -3992,7 +4080,7 @@ async function preparerDocDepuisSuggestion(empId,type,doc){
   var lib={ecrit:'observation écrite',avert:'avertissement',mise:'mise à pied'}[doc]||'document';
   if(!confirm('Préparer une '+lib+' pour '+e.name+' regroupant '+incs.length+' incident'+(incs.length>1?'s':'')+' ?\n\nLe document ira dans « à faire signer » (rien n\'est envoyé automatiquement).')) return;
   var body=_docBodyMulti(e,incs,doc);
-  var reporter=(curUser.role==='directeur')?('Directeur — '+(curUser.name||'')):(curUser.name||'Direction');
+  var reporter=(curUser.role==='directeur')?('Directeur — '+(curUser.name||'')):'La Direction';
   var lid='letM_'+Date.now();
   try{
     await sb.insert('bks_letters',{id:lid,incident_id:incs.map(function(i){return i.id;}).join(','),emp_id:empId,emp_name:e.name,emp_email:e.email||'',sanction_type:doc,type:doc,status:'pending',sig_status:'pending',body:body,created_by:reporter,created_at:new Date().toISOString()});
@@ -5770,11 +5858,12 @@ window.rptOpen=rptOpen;window.rptClosePanel=rptClosePanel;window.rptRefresh=rptR
 // Détail des incidents d'un salarié (déplié au clic sur son nom dans « Vue par salarié ») :
 // pour CHAQUE incident → date, catégorie(s) + date d'absence associée, et qui l'a déclaré.
 function _incEmpDetail(mInc){
-  var arr=(mInc||[]).slice().sort(function(a,b){return (''+(b.datetime||b.createdAt||'')).localeCompare(''+(a.datetime||a.createdAt||''));});
+  var arr=(mInc||[]).slice();
   if(!arr.length) return '<div style="padding:10px;color:#888;">Aucun détail.</div>';
   var SEV=['','🟢 léger','🟡 modéré','🟠 sérieux','🔴 grave'];
   var SANC={ecrit:'Observation écrite',avert:'Avertissement',mise:'Mise à pied',mise_a_pied:'Mise à pied'};
-  return '<div style="padding:2px 0;">'+arr.map(function(i){
+  // Rendu d'un incident (une observation)
+  var renderInc=function(i){
     var dt=i.datetime?new Date(i.datetime):(i.createdAt?new Date(i.createdAt):null);
     var dtxt=(dt&&!isNaN(dt.getTime()))?(dt.toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'})+' à '+dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}).replace(':','h')):'date inconnue';
     var probs=(i.problems||[]).map(function(pid){
@@ -5785,13 +5874,43 @@ function _incEmpDetail(mInc){
     }).join(' · ')||'incident';
     var sev=SEV[parseInt(i.severity)||0]||'';
     var decl=_msgEsc(i.reporterName||'—');
-    var sanc=(i.sanctionType&&i.sanctionType!=='verbal')?(' <span style="color:#e8623a;">· '+(SANC[i.sanctionType]||'sanction')+'</span>'):'';
     var note=i.note?('<div style="color:#bbb;font-size:.8rem;margin-top:3px;">📝 '+_msgEsc(i.note)+'</div>'):'';
     return '<div style="padding:9px 14px;border-bottom:1px solid #1f1f1f;">'
-      +'<div style="font-size:.86rem;color:#eee;">📅 <b>'+dtxt+'</b> · '+probs+sanc+'</div>'
+      +'<div style="font-size:.86rem;color:#eee;">📅 <b>'+dtxt+'</b> · '+probs+'</div>'
       +'<div style="font-size:.79rem;color:#999;margin-top:3px;">'+(sev?sev+' · ':'')+'🧑‍💼 déclaré par <b style="color:#8fc3f5;">'+decl+'</b></div>'
       +note+'</div>';
-  }).join('')+'</div>';
+  };
+  var byAsc=function(a,b){return new Date(a.datetime||a.createdAt)-new Date(b.datetime||b.createdAt);};
+  var byDesc=function(a,b){return new Date(b.datetime||b.createdAt)-new Date(a.datetime||a.createdAt);};
+  // ── Regroupement : chaque avertissement affiché avec les observations sélectionnées ──
+  var empId=arr[0].empId;
+  var discLets=(DB.letters||[]).filter(function(l){ return l.empId===empId && l.type!=='contrat' && l.sanctionType!=='contrat'; })
+    .sort(function(a,b){return new Date(a.createdAt)-new Date(b.createdAt);}); // chronologique
+  var grouped={};
+  discLets.forEach(function(l){ (''+(l.incidentId||'')).split(',').forEach(function(s){ s=s.trim(); if(s) grouped[s]=true; }); });
+  var html='';
+  discLets.forEach(function(l){
+    var ids=(''+(l.incidentId||'')).split(',').map(function(s){return s.trim();}).filter(Boolean);
+    var obs=arr.filter(function(i){ return ids.indexOf(i.id)>=0; }).sort(byAsc);
+    if(!obs.length) return; // aucune observation de ce document dans la période affichée
+    var st=SANCTIONS[l.sanctionType]||{label:(SANC[l.sanctionType]||'Document'),color:'#e8623a'};
+    var dt=new Date(l.createdAt).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+    var sig=(l.sigStatus==='signed')?'<span style="color:#4CAF50;">✔ signé'+(l.signedAt?(' le '+new Date(l.signedAt).toLocaleDateString('fr-FR')):'')+'</span>'
+           :(l.sigStatus==='refused')?'<span style="color:#e8623a;">✗ refusé'+(l.refusedAt?(' le '+new Date(l.refusedAt).toLocaleDateString('fr-FR')):'')+'</span>'
+           :'<span style="color:#F5A623;">⏳ à faire signer</span>';
+    html+='<div style="margin:8px 12px;border:1px solid #4a2a2a;border-radius:8px;overflow:hidden;">'
+      +'<div onclick="voirCourrier(\''+l.id+'\')" title="Ouvrir le document" style="background:#241414;padding:8px 12px;font-size:.85rem;font-weight:700;color:#e8a020;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;cursor:pointer;">'
+      +'<span>⚖️ '+(st.label||'Document').toUpperCase()+' — '+dt+' <span style="color:#8fc3f5;font-weight:400;font-size:.78rem;">👆 ouvrir</span></span>'
+      +'<span style="font-weight:400;font-size:.78rem;">'+obs.length+' observation'+(obs.length>1?'s':'')+' · '+sig+'</span></div>'
+      +obs.map(renderInc).join('')+'</div>';
+  });
+  // ── Incidents non regroupés (observations orales seules) ──
+  var solo=arr.filter(function(i){ return !grouped[i.id]; }).sort(byAsc); // ordre chronologique
+  if(solo.length){
+    if(html) html+='<div style="padding:8px 14px 2px;color:#888;font-size:.76rem;text-transform:uppercase;letter-spacing:.5px;">Observations orales seules</div>';
+    html+=solo.map(renderInc).join('');
+  }
+  return '<div style="padding:2px 0;">'+(html||'<div style="padding:10px;color:#888;">Aucun détail.</div>')+'</div>';
 }
 function incRptToggleEmp(id){ var el=document.getElementById('incrpt-det-'+id); if(!el) return; var open=el.style.display!=='none'; el.style.display=open?'none':''; var ch=document.getElementById('incrpt-chev-'+id); if(ch) ch.textContent=open?'▸':'▾'; }
 window.incRptToggleEmp=incRptToggleEmp;
@@ -7861,21 +7980,47 @@ function renderEmpFicheHisto(id){
           +'</div>';
       }).join('');
     }
-    if(incs.length){
-      h+='<div style="font-size:.78rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;font-weight:700;">⚠️ Incidents</div>';
-      h+=incs.map(function(i){
-        var tags=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});return p?'<span class="tag">'+p.icon+' '+p.label+'</span>':'';}).join('');
-        var sanc=SANCTIONS[i.sanctionType];
-        var dt=i.datetime?new Date(i.datetime).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
-        var declTxt=i.reporterName?(' · 👤 '+i.reporterName):'';
-        return '<div class="inc-item" data-s="'+(i.severity||'2')+'" style="margin-bottom:7px;"><div class="inc-head"><span style="font-size:.8rem;color:#aaa;">'+dt+declTxt+'</span>'
-          +(sanc?'<span style="border:1px solid '+sanc.color+';color:'+sanc.color+';padding:1px 7px;border-radius:10px;font-size:.7rem;">'+sanc.icon+' '+sanc.label+'</span>':'')+'</div>'
-          +'<div class="inc-tags">'+tags+'</div>'+(i.note?'<div class="inc-note">💬 '+i.note+'</div>':'')+'</div>';
+    // ── Discipline : chaque avertissement/sanction regroupe SES observations. ──
+    // Les incidents déjà rattachés à un document ne sont plus affichés en double :
+    // ils apparaissent imbriqués sous leur document. Les observations orales « seules »
+    // (non sanctionnées) restent listées à part, en dessous.
+    var _incSecTitle=function(txt){ return '<div style="font-size:.78rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;font-weight:700;">'+txt+'</div>'; };
+    var _incItem=function(i){
+      var tags=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});return p?'<span class="tag">'+p.icon+' '+p.label+'</span>':'';}).join('');
+      var sanc=SANCTIONS[i.sanctionType];
+      var dt=i.datetime?new Date(i.datetime).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+      var declTxt=i.reporterName?(' · 👤 '+i.reporterName):'';
+      return '<div class="inc-item" data-s="'+(i.severity||'2')+'" style="margin-bottom:7px;"><div class="inc-head"><span style="font-size:.8rem;color:#aaa;">'+dt+declTxt+'</span>'
+        +(sanc?'<span style="border:1px solid '+sanc.color+';color:'+sanc.color+';padding:1px 7px;border-radius:10px;font-size:.7rem;">'+sanc.icon+' '+sanc.label+'</span>':'')+'</div>'
+        +'<div class="inc-tags">'+tags+'</div>'+(i.note?'<div class="inc-note">💬 '+i.note+'</div>':'')+'</div>';
+    };
+    // Courriers de discipline (observation écrite / avertissement / mise à pied) vs autres (contrat…)
+    var discLets=lets.filter(function(l){ return l.type!=='contrat' && l.sanctionType!=='contrat'; });
+    var autresLets=lets.filter(function(l){ return l.type==='contrat' || l.sanctionType==='contrat'; });
+    // Incidents déjà regroupés sous un document (à ne pas ré-afficher seuls)
+    var groupedIds={};
+    discLets.forEach(function(l){ (''+(l.incidentId||'')).split(',').forEach(function(s){ s=s.trim(); if(s) groupedIds[s]=true; }); });
+    var soloIncs=incs.filter(function(i){ return !groupedIds[i.id]; });
+    var canDir=!!(curUser&&(curUser.role==='franchise'||curUser.role==='directeur'));
+    // 1) Avertissements & sanctions — chacun avec ses observations imbriquées (+ annulation)
+    if(discLets.length){
+      h+=_incSecTitle('⚖️ Avertissements &amp; sanctions');
+      h+=discLets.map(function(l){
+        var annuler=canDir?('<div style="margin:-3px 0 10px;padding-left:3px;">'
+          +'<button class="btn btn-sm" style="background:#3a1a1a;border:1px solid #cc5555;color:#cc5555;" onclick="annulerAvertissement(\''+l.id+'\')">🗑️ Annuler ce document</button></div>'):'';
+        return _courrierCardHtml(l)+annuler;
       }).join('');
     }
-    if(lets.length){
-      h+='<div style="font-size:.78rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;font-weight:700;">📄 Courriers</div>';
-      h+=lets.map(_courrierCardHtml).join('');
+    // 2) Observations orales seules (incidents non rattachés à un document)
+    if(soloIncs.length){
+      h+=_incSecTitle('⚠️ Observations orales seules');
+      h+='<div style="font-size:.72rem;color:#888;margin:-4px 0 8px;">Incidents enregistrés, non rattachés à un avertissement.</div>';
+      h+=soloIncs.map(_incItem).join('');
+    }
+    // 3) Autres courriers (contrats…)
+    if(autresLets.length){
+      h+=_incSecTitle('📄 Autres courriers');
+      h+=autresLets.map(_courrierCardHtml).join('');
     }
   }
   h+='</div>';
@@ -8060,7 +8205,7 @@ async function createLetterNew(inc){
 // Coche des incidents d'UN salarié -> un seul document, PDF téléchargé + envoi mail proposé.
 function _docBodyMulti(e, incs, type){
   var restoLabel=RESTOS[e.restoId]?RESTOS[e.restoId].label:'Burger King';
-  var reporter=(curUser.role==='directeur')?('Directeur — '+(curUser.name||'')):(curUser.name||'Direction');
+  var reporter=(curUser.role==='directeur')?('Directeur — '+(curUser.name||'')):'La Direction';
   var titre={ecrit:'OBSERVATION ÉCRITE',avert:'AVERTISSEMENT ÉCRIT',mise:'MISE EN DEMEURE'}[type]||'OBSERVATION';
   var intro={ecrit:'Nous avons constaté les faits suivants :',
              avert:'Nous avons constaté à votre encontre les manquements suivants :',
@@ -8095,7 +8240,7 @@ async function creerDocMulti(empId, type){
   if(!confirm('Créer une '+lib+' pour '+e.name+' regroupant '+incs.length+' incident'+(incs.length>1?'s':'')+' ?')) return;
   window._docEnCours=true;
   var body=_docBodyMulti(e, incs, type);
-  var reporter=(curUser.role==='directeur')?('Directeur — '+(curUser.name||'')):(curUser.name||'Direction');
+  var reporter=(curUser.role==='directeur')?('Directeur — '+(curUser.name||'')):'La Direction';
   var lid='letM_'+Date.now();
   try{
     // incident_id contient TOUS les incidents couverts (séparés par des virgules) -> le courrier les relie
@@ -8105,13 +8250,10 @@ async function creerDocMulti(empId, type){
     await loadAll(); try{ updateVBadge(); }catch(_){}
     var titre={ecrit:'OBSERVATION ÉCRITE',avert:'AVERTISSEMENT',mise:'MISE EN DEMEURE'}[type]||'DOCUMENT';
     try{ avertPdf(e, body, titre, lib); }catch(pe){ console.error('avertPdf',pe); }
-    toast(lib.charAt(0).toUpperCase()+lib.slice(1)+' créée pour '+e.name+'. PDF téléchargé.','success');
-    // Choix : faire signer sur la tablette (main propre) OU envoyer par mail
-    if(confirm('Faire signer '+e.name+' directement sur la tablette (remise en main propre) ?\n\nOK = signer maintenant sur la tablette\nAnnuler = plus tard / par mail')){
-      try{ signerSurPlace(lid); }catch(_){}
-    } else if(e.email && confirm('Envoyer le document par mail à '+e.email+' ?\n(le mail ouvre un brouillon que vous validez avant envoi ; il inclut le lien de signature)')){
-      try{ sendLetterEmail(lid); }catch(_){}
-    }
+    // Le document N'EST PAS signé ici. Il part directement dans « Alertes → Incident à
+    // faire signer » : c'est là que le salarié le lira, puis signera ou refusera (tablette
+    // ou lien). On ne déclenche donc AUCUNE signature ni mail à la création.
+    toast(lib.charAt(0).toUpperCase()+lib.slice(1)+' créée pour '+e.name+' → à faire signer dans Alertes › Incident à faire signer.','success');
     try{ if(typeof _rptCurrent!=='undefined' && _rptCurrent==='incidents'){ genReport(); } else { renderHistory(); } }catch(_){}
   }catch(err){ toast('Erreur création du document','error'); console.error('creerDocMulti',err); }
   finally{ window._docEnCours=false; }
@@ -8125,20 +8267,109 @@ async function creerAvertMulti(){
 window.creerAvertMulti=creerAvertMulti;
 
 // Génère le PDF d'un document disciplinaire à partir de son texte.
-function avertPdf(emp, body, titre, fnLabel){
+// Nettoie un texte pour l'affichage PDF (jsPDF/WinAnsi ne gère pas tous les Unicode) :
+// retire les traits « box-drawing » (─ → rien, on trace de vraies lignes), remplace les
+// flèches ➤ par « > », normalise apostrophes/guillemets courbes. Garde •, accents, etc.
+function _pdfSafe(s){
+  return String(s==null?'':s)
+    .replace(/\n*<<<SIG(?:IMG|URL):[^>]*>>>/g,'')
+    .replace(/[─-╿]+/g,'')
+    .replace(/[➔➤→▶►⇾‣⁃]/g,'>')
+    .replace(/[‘’]/g,"'").replace(/[“”]/g,'"')
+    .replace(/…/g,'...').replace(/ /g,' ');
+}
+// Génère le PDF d'un document. Si le corps contient le gabarit « Signature de
+// l'employé(e) », on le remplace par un vrai bloc signature selon le statut :
+//   sig={status:'signed'|'refused'|undefined, name, date}
+//   - signé   : nom en écriture manuscrite (times italic, bleu) + « Pris connaissance »
+//   - refusé  : croix + « REFUSÉ DE SIGNER » en rouge + mention de consignation
+//   - sinon   : lignes vierges à signer
+function avertPdf(emp, body, titre, fnLabel, sig){
   try{
     var JS=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF; if(!JS){ return; }
     var doc=new JS({unit:'mm',format:'a4'});
     var M=18, W=210, y=22;
-    doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.text(String(titre||'DOCUMENT'), M, y); y+=10;
+    doc.setTextColor(17,17,17);
+    doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.text(_pdfSafe(String(titre||'DOCUMENT')), M, y); y+=10;
     doc.setFont('helvetica','normal'); doc.setFontSize(10.5);
-    var lines=doc.splitTextToSize(body, W-2*M);
-    for(var i=0;i<lines.length;i++){ if(y>282){ doc.addPage(); y=20; } doc.text(lines[i], M, y); y+=5.6; }
-    var pre=(fnLabel?fnLabel.replace(/\s+/g,'_'):'Document');
-    doc.save(pre+'_'+dbxClean(emp.name)+'_'+new Date().toISOString().slice(0,10)+'.pdf');
+    var corps=_pdfSafe(String(body||''));
+    var _si=corps.indexOf("Signature de l'employ");
+    var hasSig=(_si>=0);
+    if(hasSig){ corps=corps.slice(0,_si).replace(/[\s─]+$/,''); }
+    var lines=doc.splitTextToSize(corps, W-2*M);
+    for(var i=0;i<lines.length;i++){ if(y>276){ doc.addPage(); y=20; } doc.text(lines[i], M, y); y+=5.6; }
+    if(hasSig){
+      var status=sig&&sig.status;
+      var nom=(sig&&sig.name)||(emp&&emp.name)||'';
+      var dstr=(sig&&sig.date)?new Date(sig.date).toLocaleString('fr-FR'):'';
+      y+=6; if(y>256){ doc.addPage(); y=24; }
+      doc.setDrawColor(170,170,170); doc.line(M,y,W-M,y); y+=8;
+      doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(90,90,90);
+      doc.text("SIGNATURE DE L'EMPLOYÉ(E)", M, y); y+=9;
+      if(status==='signed'){
+        doc.setFont('times','italic'); doc.setFontSize(24); doc.setTextColor(20,49,92);
+        doc.text(String(nom), M, y); y+=8;
+        if(sig&&sig.img){ try{ if(y>238){ doc.addPage(); y=24; } doc.addImage(sig.img,'PNG',M,y,68,26); y+=30; }catch(e){} }
+        doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(46,125,50);
+        doc.text('[X] Pris connaissance - signé le '+dstr, M, y); y+=6;
+      } else if(status==='refused'){
+        doc.setFont('helvetica','bold'); doc.setFontSize(22); doc.setTextColor(192,30,0);
+        doc.text('X', M, y);
+        doc.setFontSize(13); doc.text('REFUSÉ DE SIGNER - le '+dstr, M+10, y-1); y+=8;
+        doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(120,42,42);
+        var rl=doc.splitTextToSize('Document présenté au salarié ; refus consigné. Le document reste valable et versé au dossier.', W-2*M);
+        for(var r=0;r<rl.length;r++){ doc.text(rl[r], M, y); y+=5; }
+      } else {
+        doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.setTextColor(17,17,17);
+        doc.text('Signature : ______________________________', M, y); y+=8;
+        doc.text('[  ] Pris connaissance        [  ] Refusé de signer', M, y); y+=6;
+      }
+      doc.setTextColor(17,17,17);
+    }
+    if(sig&&sig.blob){ try{ return doc.output('blob'); }catch(e){ return null; } }
+    var pre=(fnLabel?String(fnLabel).replace(/\s+/g,'_'):'Document');
+    var suf=(sig&&sig.status==='signed')?'_SIGNE':(sig&&sig.status==='refused')?'_REFUS':'';
+    doc.save(pre+suf+'_'+dbxClean((emp&&emp.name)||'doc')+'_'+new Date().toISOString().slice(0,10)+'.pdf');
   }catch(e){ console.error('avertPdf',e); }
 }
 window.avertPdf=avertPdf;
+// Re-télécharge le PDF d'un courrier existant, AVEC le statut de signature actuel.
+function telechargerPdfCourrier(lid){
+  var l=(DB.letters||[]).find(function(x){return x.id===lid;}); if(!l){ toast('Document introuvable','error'); return; }
+  var emp=(DB.employees||[]).find(function(e){return e.id===l.empId;})||{name:l.empName||'Salarié'};
+  var st=SANCTIONS[l.sanctionType]||{label:l.type||'Document'};
+  var titre=({ecrit:'OBSERVATION ÉCRITE',avert:'AVERTISSEMENT ÉCRIT',mise:'MISE EN DEMEURE'}[l.sanctionType])||String(st.label||'DOCUMENT').toUpperCase();
+  var date=(l.sigStatus==='signed')?(l.signedAt||null):((l.sigStatus==='refused')?(l.refusedAt||null):null);
+  avertPdf(emp, l.text||'', titre, st.label||'Document', {status:l.sigStatus, name:l.empName||emp.name, date:date, img:_sigImg(l)});
+}
+window.telechargerPdfCourrier=telechargerPdfCourrier;
+// Archive le PDF signé / refusé (AVEC la signature manuscrite) dans le dossier Dropbox
+// du salarié — comme les contrats. La base ne garde que le statut ; le document probant
+// (utile en cas de litige) est le PDF rangé dans Dropbox + référencé dans ses Documents.
+async function _archiveDocSigne(l, sigPng){
+  try{
+    if(typeof dbxEstPret!=='function' || !dbxEstPret()) return '';
+    var e=(DB.employees||[]).find(function(x){return x.id===l.empId;}); if(!e) return '';
+    var st=SANCTIONS[l.sanctionType]||{label:'Document'};
+    var titre=({ecrit:'OBSERVATION ÉCRITE',avert:'AVERTISSEMENT ÉCRIT',mise:'MISE EN DEMEURE'}[l.sanctionType])||String(st.label||'DOCUMENT').toUpperCase();
+    var refused=(l.sigStatus==='refused');
+    var date=refused?(l.refusedAt||new Date().toISOString()):(l.signedAt||new Date().toISOString());
+    var blob=avertPdf(e, l.text||'', titre, st.label||'Document', {status:l.sigStatus, name:l.empName||e.name, date:date, img:sigPng||'', blob:true});
+    if(!blob) return '';
+    try{ if(typeof dbxMigrerEquipe==='function') await dbxMigrerEquipe(e); }catch(_){}
+    var ds=new Date().toISOString().slice(0,10);
+    var lbl=dbxClean(st.label||'Document');
+    var dest=dbxEmpFolder(e)+'/'+lbl+'_'+(refused?'refus':'signe')+'_'+ds+'.pdf';
+    var link=await dbxUpload(dest, blob);
+    await sb.insert('bks_emp_docs',{id:'ds'+Date.now(),emp_id:e.id,categorie:'sanction',
+      label:(st.label||'Document')+(refused?' — refus de signer ':' — signé ')+'le '+new Date(date).toLocaleDateString('fr-FR'),
+      link:link,name:lbl+'_'+(refused?'refus':'signe')+'_'+ds+'.pdf',dbx_path:dest});
+    await loadAll();
+    try{ _refreshCourriers(); }catch(_){}
+    return link;
+  }catch(err){ console.error('_archiveDocSigne',err); return ''; }
+}
+window._archiveDocSigne=_archiveDocSigne;
 
 function updateVBadge(){
   var n=(DB.letters||[]).filter(function(l){return (l.type!=='contrat'&&l.sanctionType!=='contrat')&&(l.sigStatus==='pending'||l.status==='pending');}).length;
@@ -8164,6 +8395,7 @@ async function sendLetterEmail(lid){
       .replace(/{resto}/g,restoLbl).replace(/{date}/g,new Date().toLocaleDateString('fr-FR'))
       .replace(/{document}/g,l.text||'').replace(/{lien_signature}/g,sigUrl); }
   var subj=fill(t.sujet), body=fill(t.corps);
+  if(_sigDocLink[lid]){ body+='\n\n📎 Document (PDF) à télécharger : '+_sigDocLink[lid]; }
   var mode=(ms.mailMode)||'gmail';
   if(mode==='gmail'){
     var g=_gmailBase(tpl.expediteur)+'&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);
@@ -8694,7 +8926,7 @@ function collectAlertes(restoFiltre){
     (suggestionsBaremes(restoFiltre)||[]).forEach(function(s){
       var pl=((PROBS.find(function(p){return p.id===s.type;})||{}).label||s.type);
       var dl={ecrit:'observation écrite',avert:'avertissement',mise:'mise à pied'}[s.doc]||'document';
-      alerts.push({prio:1,cat:'À sanctionner',icon:'⚖️',col:'#e8623a',
+      alerts.push({prio:1,cat:'Incident à sanctionner',icon:'⚖️',col:'#e8623a',
         titre:s.empName+' — '+s.incs.length+' '+(''+pl).toLowerCase()+' → '+dl+' à préparer',
         sub:'Barème atteint ('+s.seuil+' sur '+s.mois+' mois) · '+rlabel(s.restoId),
         empId:s.empId,
@@ -8715,7 +8947,7 @@ function collectAlertes(restoFiltre){
       var covered=incIds.map(function(iid){return (DB.incidents||[]).find(function(x){return x.id===iid;});}).filter(Boolean);
       var mset={}; covered.forEach(function(i){ (i.problems||[]).forEach(function(pid){ var p=PROBS.find(function(x){return x.id===pid;}); mset[p?p.label:pid]=1; }); });
       var motifs=Object.keys(mset).join(', ');
-      alerts.push({prio:(jours>7?1:2),cat:'À faire signer',icon:'✍️',col:(jours>7?'#cc5555':'#F5A623'),
+      alerts.push({prio:(jours>7?1:2),cat:'Incident à faire signer',icon:'✍️',col:(jours>7?'#cc5555':'#F5A623'),
         titre:e.name+' — '+st.label+(covered.length?(' ('+covered.length+' incident'+(covered.length>1?'s':'')+')'):''),
         sub:(motifs?('Motif : '+motifs+' · '):'')+'créé le '+_frDate((''+(l.createdAt||'')).slice(0,10))+(jours>0?(' · depuis '+jours+' j'):'')+' · '+rlabel(e.restoId),
         action:"signerSurPlace('"+l.id+"')"});
@@ -8779,29 +9011,13 @@ function collectAlertes(restoFiltre){
       sub:'En attente : '+manque.join(' + ')+' · '+resto,candId:c.id});
   });
 
-  // ── 5) INCIDENTS récents (30 derniers jours) ──
-  var incs=(DB.incidents||[]).slice();
-  var filtreInc=function(i){
-    if(isDir && i.restoId!==curUser.restoId) return false;
-    if(restoFiltre&&restoFiltre!=='all' && i.restoId!==restoFiltre) return false;
-    return true;
-  };
-  var now=new Date();
-  incs.filter(filtreInc).forEach(function(i){
-    var d=new Date(i.datetime||i.createdAt);
-    var jours=Math.floor((now-d)/(24*3600*1000));
-    if(isNaN(jours)||jours<0||jours>30) return; // garder le récent
-    var emp=(DB.employees||[]).find(function(e){return e.id===i.empId;});
-    var nom=emp?emp.name:'Salarié';
-    var resto=rlabel(i.restoId);
-    var grave=(String(i.severity)==='3');
-    var dt=d.toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
-    var motifs=(i.problems||[]).map(function(pid){var p=PROBS.find(function(x){return x.id===pid;});return p?p.label:pid;}).slice(0,3).join(', ')||'Incident signalé';
-    // Suivi par incident (date + heure) — NON cliquable (pas de profil)
-    alerts.push({prio:grave?1:3,cat:'Incidents',icon:'⚠️',col:grave?'#cc5555':'#F5A623',
-      titre:nom+' — incident'+(grave?' grave':''),
-      sub:'📅 '+dt+' · '+motifs+' · '+resto});
-  });
+  // ── 5) INCIDENTS ──
+  // L'alerte « Incidents » brute a été retirée : un incident déclaré reste une
+  // observation orale enregistrée (visible dans la fiche salarié) et ne crée plus
+  // d'alerte permanente. C'est désormais le BARÈME qui pilote les alertes :
+  // seuil atteint → « Incident à sanctionner » → document préparé → « Incident à faire signer ».
+  // Pour qu'un incident grave isolé alerte tout de suite, créer une règle de barème
+  // avec seuil = 1 pour ce type (ex. 1 abandon de poste → mise en demeure).
 
   // ── Congés & indisponibilités : demandes des équipiers EN ATTENTE de validation ──
   emps.forEach(function(e){
@@ -8867,7 +9083,7 @@ window._alertesApply=_alertesApply; window.alertesTab=alertesTab;
 // ORDRE LOGIQUE (parcours du salarié) demandé par la direction :
 // Recrutement → Dossiers incomplets → Contrats à signer → Période d'essai →
 // Contrats (échéances) → Visite médicale → Mutuelle → Titre de séjour →
-// Congés & indispos → Incidents → À sanctionner → À faire signer.
+// Congés & indispos → Incident à sanctionner → Incident à faire signer.
 var ALERT_CATS=[
   // ── 1) Recrutement & intégration ───────────────────────
   {cat:'Recrutement',icon:'🎯',desc:'Candidatures, visites d\'embauche, dossiers candidats'},
@@ -8883,9 +9099,9 @@ var ALERT_CATS=[
   // ── 4) Demandes des équipiers ──────────────────────────
   {cat:'Congés & indispos',icon:'🏖️',desc:'Demandes de congés / indisponibilités des équipiers à valider (✓ valider · ✕ refuser)'},
   // ── 5) Discipline ──────────────────────────────────────
-  {cat:'Incidents',icon:'⚠️',desc:'Suivi des incidents signalés'},
-  {cat:'À sanctionner',icon:'⚖️',desc:'Salariés à sanctionner (selon barèmes)'},
-  {cat:'À faire signer',icon:'✍️',desc:'Avertissements / sanctions à faire signer'}
+  // (Tuile « Incidents » retirée : les alertes de discipline sont pilotées par le barème.)
+  {cat:'Incident à sanctionner',icon:'⚖️',desc:'Incidents ayant atteint le barème → document à préparer'},
+  {cat:'Incident à faire signer',icon:'✍️',desc:'Avertissements / sanctions à faire signer'}
 ];
 // Incidents REGROUPÉS PAR JOUR (repliables) — pour construire une remontée :
 // combien d'incidents ce jour-là, et quel manager / leader les a déclarés.
@@ -8951,7 +9167,7 @@ function renderAlertes(){
   var box=document.getElementById('alertes-list');if(!box)return;
   var alerts=collectAlertes(window.__alertResto);
   var cats={};alerts.forEach(function(a){(cats[a.cat]=cats[a.cat]||[]).push(a);});
-  var accents={'Recrutement':'#2e7d32','À sanctionner':'#c0392b','À faire signer':'#e8a020','Contrats à signer':'#c2185b','Visite médicale':'#e87722','Mutuelle':'#c0392b','Titre de séjour':'#8e44ad','Contrats':'#8e44ad','Visite d\'embauche':'#16a085','Période d\'essai':'#2980b9','Dossiers incomplets':'#d35400','Incidents':'#c0392b','Congés & indispos':'#1565c0'};
+  var accents={'Recrutement':'#2e7d32','Incident à sanctionner':'#c0392b','Incident à faire signer':'#e8a020','Contrats à signer':'#c2185b','Visite médicale':'#e87722','Mutuelle':'#c0392b','Titre de séjour':'#8e44ad','Contrats':'#8e44ad','Visite d\'embauche':'#16a085','Période d\'essai':'#2980b9','Dossiers incomplets':'#d35400','Incidents':'#c0392b','Congés & indispos':'#1565c0'};
   // ordre canonique (toutes les tuiles) + catégories imprévues éventuelles ajoutées à la fin
   var order=ALERT_CATS.map(function(c){return c.cat;});
   Object.keys(cats).forEach(function(c){ if(order.indexOf(c)<0) order.push(c); });
@@ -8988,10 +9204,7 @@ function renderAlertes(){
     h+='<div id="alrt-sec-'+slug+'" style="display:none;margin-bottom:10px;">'
       +'<div style="font-size:.82rem;color:var(--orange);font-weight:700;margin-bottom:2px;">'+iconOf(cat)+' '+cat+' ('+arr.length+')</div>'
       +'<div style="font-size:.74rem;color:#888;margin-bottom:8px;">'+descOf(cat)+'</div>';
-    if(cat==='Incidents'){
-      // Incidents : vue REGROUPÉE PAR JOUR (repliable). Le reste des catégories garde l'affichage classique.
-      h+=_alrtIncidentsParJour();
-    } else if(!arr.length){
+    if(!arr.length){
       h+='<div style="font-size:.82rem;color:#666;padding:10px 2px;background:#141414;border-radius:8px;">Rien à signaler dans cette catégorie pour le moment. ✅</div>';
     } else {
       h+=arr.map(function(a){
@@ -10865,7 +11078,7 @@ async function contratGenAction(mode){
   if(mode==='mail' && !e.email){ toast('Ce salarié n\'a pas d\'email renseigné (à renseigner dans la fiche).','error'); return; }
   if(window._contratEnCours) return; window._contratEnCours=true;
   var lid='letC_'+Date.now();
-  var reporter=(curUser.role==='directeur')?('Directeur — '+(curUser.name||'')):(curUser.name||'Direction');
+  var reporter=(curUser.role==='directeur')?('Directeur — '+(curUser.name||'')):'La Direction';
   try{
     await sb.insert('bks_letters',{id:lid,incident_id:'',emp_id:e.id,emp_name:e.name,emp_email:e.email||'',sanction_type:'contrat',type:'contrat',status:'pending',sig_status:'pending',body:texte,created_by:reporter,created_at:new Date().toISOString()});
     await loadAll(); try{ updateVBadge(); }catch(_){}
@@ -13616,20 +13829,50 @@ function showSignPage(lid){
   var done='';
   if(l.sigStatus==='signed')done='<div style="text-align:center;padding:40px;"><div style="font-size:3rem;">✅</div><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.4rem;font-weight:700;color:#4CAF50;margin-top:10px;">Document signé le '+new Date(l.signedAt).toLocaleDateString('fr-FR')+'</div></div>';
   else if(l.sigStatus==='refused')done='<div style="text-align:center;padding:40px;"><div style="font-size:3rem;">❌</div><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.4rem;font-weight:700;color:#cc5555;margin-top:10px;">Refus enregistré</div></div>';
-  var actions=done||'<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px;"><button onclick="doSign(\''+lid+'\')" style="background:linear-gradient(135deg,#4CAF50,#2E7D32);color:#fff;border:none;padding:12px 28px;border-radius:8px;font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:1rem;text-transform:uppercase;letter-spacing:2px;cursor:pointer;">✅ Je signe ce document</button><button onclick="doRefuse(\''+lid+'\')" style="background:#333;color:#ccc;border:1px solid #555;padding:12px 28px;border-radius:8px;font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:1rem;text-transform:uppercase;letter-spacing:2px;cursor:pointer;">❌ Je refuse de signer</button></div>';
-  sb2.innerHTML='<div style="text-align:center;margin:20px 0;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;color:#F5A623;">'+st.label+'</div><div style="color:#aaa;margin-top:5px;">Destinataire : <strong style="color:#fff;">'+l.empName+'</strong></div></div><div style="background:#fafafa;color:#111;border-radius:8px;padding:28px;font-family:Georgia,serif;line-height:1.75;white-space:pre-wrap;margin:20px 0;font-size:.88rem;">'+l.text+'</div>'+actions;
+  var actions=done||'<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px;"><button onclick="doSignStart(\''+lid+'\')" style="background:linear-gradient(135deg,#4CAF50,#2E7D32);color:#fff;border:none;padding:12px 28px;border-radius:8px;font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:1rem;text-transform:uppercase;letter-spacing:2px;cursor:pointer;">✅ Je signe ce document</button><button onclick="doRefuse(\''+lid+'\')" style="background:#333;color:#ccc;border:1px solid #555;padding:12px 28px;border-radius:8px;font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:1rem;text-transform:uppercase;letter-spacing:2px;cursor:pointer;">❌ Je refuse de signer</button></div>';
+  sb2.innerHTML='<div style="text-align:center;margin:20px 0;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;color:#F5A623;">'+st.label+'</div><div style="color:#aaa;margin-top:5px;">Destinataire : <strong style="color:#fff;">'+l.empName+'</strong></div></div><div style="background:#fafafa;color:#111;border-radius:8px;padding:28px;font-family:Georgia,serif;line-height:1.75;white-space:pre-wrap;margin:20px 0;font-size:.88rem;">'+_sigStripText(l.text)+'</div>'+actions;
 }
 
-async function doSign(lid){
+// Page de signature par lien (téléphone) : affiche le document (défilable) + pavé au doigt.
+function doSignStart(lid){
+  var l=DB.letters.find(function(x){return x.id===lid;}); if(!l) return;
+  var b=document.getElementById('sig-body'); if(!b) return;
+  var st=SANCTIONS[l.sanctionType]||{label:'Document'};
+  b.innerHTML='<div style="text-align:center;margin:6px 0 12px;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.5rem;font-weight:900;color:#F5A623;">'+st.label+'</div><div style="color:#aaa;margin-top:4px;">'+(l.empName||'')+'</div></div>'
+    +'<div style="background:#fafafa;color:#111;border-radius:8px;padding:20px;font-family:Georgia,serif;line-height:1.7;white-space:pre-wrap;font-size:.86rem;margin:10px 0;-webkit-overflow-scrolling:touch;">'+_sigStripText(l.text)+'</div>'
+    +'<div style="color:#F5A623;text-align:center;margin:14px 0 6px;font-weight:700;">✍️ Signez ci-dessous avec le doigt</div>'
+    +_sigPadMarkup('sigpad-link')
+    +'<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:16px 0 30px;">'
+    +'<button onclick="_sigClear(\'sigpad-link\')" style="background:#333;color:#ccc;border:1px solid #555;padding:12px 22px;border-radius:8px;font-weight:700;cursor:pointer;">↺ Effacer</button>'
+    +'<button onclick="doSignConfirm(\''+lid+'\')" style="background:linear-gradient(135deg,#4CAF50,#2E7D32);color:#fff;border:none;padding:12px 26px;border-radius:8px;font-weight:700;cursor:pointer;">✅ Valider ma signature</button>'
+    +'</div>';
+  window.scrollTo(0,0);
+  setTimeout(function(){ _sigInit('sigpad-link'); },40);
+}
+async function doSignConfirm(lid){
+  if(!_sigDrawn('sigpad-link')){ alert('Merci de signer dans le cadre avec votre doigt.'); return; }
+  await doSign(lid, _sigData('sigpad-link'));
+}
+window.doSignStart=doSignStart; window.doSignConfirm=doSignConfirm;
+async function doSign(lid, sigPng){
   var l=DB.letters.find(function(x){return x.id===lid;});if(!l)return;
-  try{await sb.patch('bks_letters','id=eq.'+lid,{sig_status:'signed',signed_at:new Date().toISOString()});document.getElementById('sig-body').innerHTML='<div style="text-align:center;padding:40px;"><div style="font-size:3rem;">✅</div><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.4rem;font-weight:700;color:#4CAF50;margin-top:10px;">Signature enregistrée. Merci !</div></div>';}
-  catch(e){alert('Erreur');}
+  if(sigPng) _sigMem[lid]=sigPng;
+  var ok=false;
+  try{ ok=await sb.patch('bks_letters','id=eq.'+lid,{sig_status:'signed',signed_at:new Date().toISOString()}); }catch(e){ console.error(e); }
+  if(ok===false){ alert('Signature non enregistrée. Vérifiez la connexion et réessayez.'); return; }
+  try{ await loadAll(); }catch(_){}
+  try{ var _l2=DB.letters.find(function(x){return x.id===lid;}); if(_l2 && _l2.type!=='contrat' && _l2.sanctionType!=='contrat'){ _archiveDocSigne(_l2, sigPng||'').then(function(k){ if(k) _sigDocLink[lid]=k; }); } }catch(_){}
+  document.getElementById('sig-body').innerHTML='<div style="text-align:center;padding:40px;"><div style="font-size:3rem;">✅</div><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.4rem;font-weight:700;color:#4CAF50;margin-top:10px;">Signature enregistrée. Merci !</div><div style="color:#aaa;font-size:.85rem;margin-top:8px;">Le document signé est enregistré dans votre dossier.</div></div>';
 }
 async function doRefuse(lid){
   if(!confirm('Confirmer le refus de signature ?'))return;
   var l=DB.letters.find(function(x){return x.id===lid;});if(!l)return;
-  try{await sb.patch('bks_letters','id=eq.'+lid,{sig_status:'refused',refused_at:new Date().toISOString()});document.getElementById('sig-body').innerHTML='<div style="text-align:center;padding:40px;"><div style="font-size:3rem;">❌</div><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.4rem;font-weight:700;color:#cc5555;margin-top:10px;">Refus enregistré.</div></div>';}
-  catch(e){alert('Erreur');}
+  var ok=false;
+  try{ ok=await sb.patch('bks_letters','id=eq.'+lid,{sig_status:'refused',refused_at:new Date().toISOString()}); }catch(e){ console.error(e); }
+  if(ok===false){ alert('Refus non enregistré. Vérifiez la connexion et réessayez.'); return; }
+  try{ await loadAll(); }catch(_){}
+  try{ var _l2=DB.letters.find(function(x){return x.id===lid;}); if(_l2 && _l2.type!=='contrat' && _l2.sanctionType!=='contrat'){ _archiveDocSigne(_l2,'').then(function(k){ if(k) _sigDocLink[lid]=k; }); } }catch(_){}
+  document.getElementById('sig-body').innerHTML='<div style="text-align:center;padding:40px;"><div style="font-size:3rem;">❌</div><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.4rem;font-weight:700;color:#cc5555;margin-top:10px;">Refus enregistré.</div></div>';
 }
 
 // Rafraîchit l'affichage des courriers après une signature / un refus (met à jour le statut).
@@ -13644,6 +13887,39 @@ window._refreshCourriers=_refreshCourriers;
 // ── SIGNATURE SUR LA TABLETTE (remise en main propre) ────────────────────────
 // Le directeur présente le document au salarié sur la tablette : il signe, ou il
 // refuse. En cas de refus, on propose d'envoyer l'attestation de refus par mail.
+// ── PAVÉ DE SIGNATURE AU DOIGT (canvas tactile) ──────────────────────────────
+// La signature dessinée est stockée dans le corps du courrier via un marqueur
+// <<<SIGIMG:dataURL>>> (aucune colonne SQL à ajouter). Ce marqueur est retiré de
+// TOUS les rendus texte (email, PDF, aperçu) et l'image est affichée à part.
+var _sigState={};
+function _sigPadMarkup(cid){
+  return '<div style="background:#fff;border-radius:10px;padding:8px;">'
+    +'<canvas id="'+cid+'" style="width:100%;height:200px;border:1px dashed #bbb;border-radius:8px;touch-action:none;display:block;cursor:crosshair;"></canvas>'
+    +'<div style="text-align:center;color:#999;font-size:.72rem;margin-top:4px;">✍️ Signez ici avec le doigt</div></div>';
+}
+function _sigInit(cid){
+  var c=document.getElementById(cid); if(!c) return;
+  var r=window.devicePixelRatio||1; var rect=c.getBoundingClientRect();
+  c.width=Math.max(300,Math.round((rect.width||480)*r)); c.height=Math.round((rect.height||200)*r);
+  var ctx=c.getContext('2d'); ctx.scale(r,r); ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#14315c';
+  var S={ctx:ctx,drawn:false,last:null}; _sigState[cid]=S;
+  var pos=function(e){ var rc=c.getBoundingClientRect(); return {x:(e.clientX-rc.left),y:(e.clientY-rc.top)}; };
+  c.addEventListener('pointerdown',function(e){ e.preventDefault(); try{c.setPointerCapture(e.pointerId);}catch(_){} S.last=pos(e); });
+  c.addEventListener('pointermove',function(e){ if(!S.last) return; e.preventDefault(); var p=pos(e); ctx.beginPath(); ctx.moveTo(S.last.x,S.last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); S.last=p; S.drawn=true; });
+  var end=function(){ S.last=null; };
+  c.addEventListener('pointerup',end); c.addEventListener('pointercancel',end);
+}
+function _sigClear(cid){ var c=document.getElementById(cid),S=_sigState[cid]; if(c&&S){ S.ctx.clearRect(0,0,c.width,c.height); S.drawn=false; S.last=null; } }
+function _sigDrawn(cid){ return !!(_sigState[cid]&&_sigState[cid].drawn); }
+function _sigData(cid){ var c=document.getElementById(cid); try{ return c?c.toDataURL('image/png'):''; }catch(e){ return ''; } }
+// Image de signature gardée EN MÉMOIRE de session uniquement (jamais en base — économie).
+var _sigMem={};
+// Lien Dropbox du PDF signé/refusé (par courrier) — ajouté au mail après archivage.
+var _sigDocLink={};
+function _sigImg(l){ return (l&&_sigMem[l.id])||''; }
+function _sigStripText(t){ return String(t==null?'':t).replace(/\n*<<<SIG(?:IMG|URL):[^>]*>>>/g,''); }
+window._sigClear=_sigClear;
+
 function signerSurPlace(lid){
   var l=DB.letters.find(function(x){return x.id===lid;}); if(!l){ toast('Document introuvable','error'); return; }
   var st=SANCTIONS[l.sanctionType]||{label:'Document'};
@@ -13654,9 +13930,9 @@ function signerSurPlace(lid){
     +'<div style="background:linear-gradient(135deg,#C01E00,#8B1500);padding:14px 20px;text-align:center;border-radius:12px 12px 0 0;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.3rem;color:#F5A623;text-transform:uppercase;letter-spacing:2px;">Signature — '+st.label+'</div></div>'
     +'<div id="signplace-inner" style="padding:20px;">'
     +'<div style="color:#aaa;text-align:center;margin-bottom:12px;">Présenté à : <strong style="color:#fff;">'+l.empName+'</strong></div>'
-    +'<div style="background:#fafafa;color:#111;border-radius:8px;padding:22px;font-family:Georgia,serif;line-height:1.7;white-space:pre-wrap;font-size:.85rem;max-height:42vh;overflow:auto;">'+l.text+'</div>'
+    +'<div style="background:#fafafa;color:#111;border-radius:8px;padding:22px;font-family:Georgia,serif;line-height:1.7;white-space:pre-wrap;font-size:.85rem;max-height:42vh;overflow:auto;">'+_sigStripText(l.text)+'</div>'
     +'<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;">'
-    +'<button onclick="signPlaceSign(\''+lid+'\')" style="background:linear-gradient(135deg,#4CAF50,#2E7D32);color:#fff;border:none;padding:12px 24px;border-radius:8px;font-weight:700;cursor:pointer;">✅ Je signe</button>'
+    +'<button onclick="signPlaceSignStart(\''+lid+'\')" style="background:linear-gradient(135deg,#4CAF50,#2E7D32);color:#fff;border:none;padding:12px 24px;border-radius:8px;font-weight:700;cursor:pointer;">✅ Je signe</button>'
     +'<button onclick="signPlaceRefuse(\''+lid+'\')" style="background:#333;color:#ccc;border:1px solid #555;padding:12px 24px;border-radius:8px;font-weight:700;cursor:pointer;">❌ Je refuse de signer</button>'
     +'</div>'
     +'<div style="text-align:center;margin-top:14px;"><button onclick="document.getElementById(\'signplace-ov\').remove()" style="background:none;border:none;color:#888;cursor:pointer;font-size:.82rem;">Fermer</button></div>'
@@ -13664,27 +13940,56 @@ function signerSurPlace(lid){
   document.body.appendChild(ov);
 }
 window.signerSurPlace=signerSurPlace;
-async function signPlaceSign(lid){
-  try{ await sb.patch('bks_letters','id=eq.'+lid,{sig_status:'signed',signed_at:new Date().toISOString()}); await loadAll(); }catch(e){}
+// Étape « je signe » sur la tablette : on affiche le pavé de signature au doigt.
+function signPlaceSignStart(lid){
+  var inner=document.getElementById('signplace-inner'); if(!inner) return;
+  var l=DB.letters.find(function(x){return x.id===lid;})||{};
+  inner.innerHTML='<div style="color:#aaa;text-align:center;margin-bottom:8px;">Document présenté à <strong style="color:#fff;">'+(l.empName||'')+'</strong> — relisez, puis signez</div>'
+    +'<div style="background:#fafafa;color:#111;border-radius:8px;padding:16px;font-family:Georgia,serif;line-height:1.6;white-space:pre-wrap;font-size:.82rem;max-height:34vh;overflow:auto;margin-bottom:12px;-webkit-overflow-scrolling:touch;">'+_sigStripText(l.text)+'</div>'
+    +'<div style="color:#F5A623;text-align:center;margin:6px 0;font-weight:700;font-size:.9rem;">✍️ Signez ci-dessous avec le doigt</div>'
+    +_sigPadMarkup('sigpad-place')
+    +'<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px;">'
+    +'<button onclick="_sigClear(\'sigpad-place\')" style="background:#333;color:#ccc;border:1px solid #555;padding:10px 18px;border-radius:8px;font-weight:700;cursor:pointer;">↺ Effacer</button>'
+    +'<button onclick="signPlaceSignConfirm(\''+lid+'\')" style="background:linear-gradient(135deg,#4CAF50,#2E7D32);color:#fff;border:none;padding:10px 22px;border-radius:8px;font-weight:700;cursor:pointer;">✅ Valider ma signature</button>'
+    +'</div><div style="text-align:center;margin-top:10px;"><button onclick="signerSurPlace(\''+lid+'\')" style="background:none;border:none;color:#888;cursor:pointer;">← Retour</button></div>';
+  setTimeout(function(){ _sigInit('sigpad-place'); },30);
+}
+async function signPlaceSignConfirm(lid){
+  if(!_sigDrawn('sigpad-place')){ toast('Merci de signer dans le cadre.','error'); return; }
+  await signPlaceSign(lid, _sigData('sigpad-place'));
+}
+window.signPlaceSignStart=signPlaceSignStart; window.signPlaceSignConfirm=signPlaceSignConfirm;
+async function signPlaceSign(lid, sigPng){
+  if(sigPng) _sigMem[lid]=sigPng;   // image gardée en mémoire — PAS en base (seul le statut est enregistré)
+  var ok=false;
+  try{ ok=await sb.patch('bks_letters','id=eq.'+lid,{sig_status:'signed',signed_at:new Date().toISOString()}); await loadAll(); }catch(e){ console.error('signPlaceSign',e); }
+  if(ok===false){ toast('⚠️ Signature non enregistrée (connexion ?). Réessayez.','error'); return; }
   try{ _refreshCourriers(); }catch(_){}
-  // contrat signé → on archive le PDF dans le dossier Dropbox du salarié
-  try{ var _lc=(DB.letters||[]).find(function(x){return x.id===lid;}); if(_lc && (_lc.type==='contrat'||_lc.sanctionType==='contrat')){ _archiveContrat(_lc); } }catch(_){}
+  // Archivage Dropbox (dossier du salarié) : contrat → archive contrat ; sinon → PDF signé (avec signature)
+  try{ var _lc=(DB.letters||[]).find(function(x){return x.id===lid;});
+       if(_lc && (_lc.type==='contrat'||_lc.sanctionType==='contrat')){ _archiveContrat(_lc); }
+       else if(_lc){ _archiveDocSigne(_lc, _sigMem[lid]||'').then(function(k){ if(k) _sigDocLink[lid]=k; }); } }catch(_){}
   var inner=document.getElementById('signplace-inner');
   if(inner) inner.innerHTML='<div style="text-align:center;padding:22px;"><div style="font-size:2.6rem;">✅</div><div style="color:#4CAF50;font-weight:700;margin-top:8px;">Signature enregistrée le '+new Date().toLocaleDateString('fr-FR')+'. Merci !</div>'
     +'<div style="color:#aaa;font-size:.84rem;margin:12px 0;">Vous pouvez envoyer au salarié la confirmation de signature par mail.</div>'
     +'<button onclick="sendSignedEmail(\''+lid+'\')" style="background:linear-gradient(135deg,#2E7D32,#1B5E20);color:#fff;border:none;padding:11px 22px;border-radius:8px;font-weight:700;cursor:pointer;">✉️ Envoyer la confirmation de signature</button>'
+    +'<div style="margin-top:10px;"><button onclick="telechargerPdfCourrier(\''+lid+'\')" style="background:#8B1500;color:#fff;border:none;padding:10px 20px;border-radius:8px;font-weight:700;cursor:pointer;">📄 Télécharger le PDF signé</button></div>'
     +'<div style="margin-top:12px;"><button onclick="document.getElementById(\'signplace-ov\').remove()" style="background:none;border:none;color:#888;cursor:pointer;">Fermer</button></div></div>';
   toast('Document signé ✔','success');
 }
 window.signPlaceSign=signPlaceSign;
 async function signPlaceRefuse(lid){
   if(!confirm('Le salarié refuse de signer ?\n\nLe refus sera daté à maintenant. Le document reste valable et versé au dossier.')) return;
-  try{ await sb.patch('bks_letters','id=eq.'+lid,{sig_status:'refused',refused_at:new Date().toISOString()}); await loadAll(); }catch(e){}
+  var ok=false;
+  try{ ok=await sb.patch('bks_letters','id=eq.'+lid,{sig_status:'refused',refused_at:new Date().toISOString()}); await loadAll(); }catch(e){ console.error(e); }
+  if(ok===false){ toast('⚠️ Refus non enregistré (connexion ?). Réessayez.','error'); return; }
   try{ _refreshCourriers(); }catch(_){}
+  try{ var _lr=(DB.letters||[]).find(function(x){return x.id===lid;}); if(_lr && _lr.type!=='contrat' && _lr.sanctionType!=='contrat'){ _archiveDocSigne(_lr,'').then(function(k){ if(k) _sigDocLink[lid]=k; }); } }catch(_){}
   var inner=document.getElementById('signplace-inner');
   if(inner) inner.innerHTML='<div style="text-align:center;padding:18px;"><div style="font-size:2.6rem;">❌</div><div style="color:#cc5555;font-weight:700;margin-top:8px;">Refus de signer enregistré le '+new Date().toLocaleDateString('fr-FR')+'.</div>'
     +'<div style="color:#aaa;font-size:.84rem;margin:12px 0;">Le document reste valable et versé au dossier. Vous pouvez envoyer au salarié l\'attestation de refus par mail (elle atteste qu\'il a été présenté et refusé).</div>'
     +'<button onclick="sendRefusEmail(\''+lid+'\')" style="background:linear-gradient(135deg,#D62300,#8B1500);color:#fff;border:none;padding:11px 22px;border-radius:8px;font-weight:700;cursor:pointer;">✉️ Envoyer l\'attestation de refus</button>'
+    +'<div style="margin-top:10px;"><button onclick="telechargerPdfCourrier(\''+lid+'\')" style="background:#333;color:#fff;border:1px solid #7a2a2a;padding:10px 20px;border-radius:8px;font-weight:700;cursor:pointer;">📄 Télécharger le PDF (refus consigné)</button></div>'
     +'<div style="margin-top:12px;"><button onclick="document.getElementById(\'signplace-ov\').remove()" style="background:none;border:none;color:#888;cursor:pointer;">Fermer</button></div></div>';
   toast('Refus enregistré','');
 }
@@ -13703,11 +14008,13 @@ async function sendRefusEmail(lid){
   var dRefus=l.refusedAt?new Date(l.refusedAt).toLocaleString('fr-FR'):new Date().toLocaleString('fr-FR');
   function fill(s){ return (s||'').replace(/{prenom}/g,prenom).replace(/{nom}/g,nomComplet).replace(/{resto}/g,restoLbl).replace(/{date}/g,dRefus).replace(/{type_document}/g,typeDoc).replace(/{document}/g,_docTexteAvecStatut(l)); }
   var subj=fill(t.sujet), body=fill(t.corps);
+  if(_sigDocLink[lid]){ body+='\n\n📎 Document (PDF) à télécharger : '+_sigDocLink[lid]; }
   var ms=DB.mailSettings||{}; var cc=(ms.ccRecipients||[]).concat((ms.recipients||[]).map(function(r){return r.email;})).filter(Boolean).join(',');
   var mode=(ms.mailMode)||'gmail';
   if(mode==='gmail'){ window.open(_gmailBase()+'&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
   else { window.open('mailto:'+l.empEmail+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
   try{ await sb.patch('bks_letters','id=eq.'+lid,{sent_at:new Date().toISOString()}); await loadAll(); }catch(e){}
+  try{ var _spov=document.getElementById('signplace-ov'); if(_spov) _spov.remove(); }catch(_){}
   toast('Attestation de refus prête (brouillon à valider avant envoi).','success');
 }
 window.sendRefusEmail=sendRefusEmail;
@@ -13726,10 +14033,12 @@ async function sendSignedEmail(lid){
   var dSign=l.signedAt?new Date(l.signedAt).toLocaleString('fr-FR'):new Date().toLocaleString('fr-FR');
   function fill(s){ return (s||'').replace(/{prenom}/g,prenom).replace(/{nom}/g,nomComplet).replace(/{resto}/g,restoLbl).replace(/{date}/g,dSign).replace(/{type_document}/g,typeDoc).replace(/{document}/g,_docTexteAvecStatut(l)); }
   var subj=fill(t.sujet), body=fill(t.corps);
+  if(_sigDocLink[lid]){ body+='\n\n📎 Document (PDF) à télécharger : '+_sigDocLink[lid]; }
   var ms=DB.mailSettings||{}; var cc=(ms.ccRecipients||[]).concat((ms.recipients||[]).map(function(r){return r.email;})).filter(Boolean).join(',');
   var mode=(ms.mailMode)||'gmail';
   if(mode==='gmail'){ window.open(_gmailBase()+'&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
   else { window.open('mailto:'+l.empEmail+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
+  try{ var _spov=document.getElementById('signplace-ov'); if(_spov) _spov.remove(); }catch(_){}
   toast('Confirmation de signature prête (brouillon à valider avant envoi).','success');
 }
 window.sendSignedEmail=sendSignedEmail;
@@ -13737,14 +14046,18 @@ window.sendSignedEmail=sendSignedEmail;
 // (signé / refusé le JJ/MM/AAAA à HH:MM), pour l'inclure dans les mails.
 function _docTexteAvecStatut(l){
   var txt=l.text||'';
-  var idx=txt.indexOf("Signature de l'employé");
-  if(idx<0) return txt;
-  var head=txt.slice(0,idx);
+  var idx=txt.indexOf("Signature de l'employ");
+  var head=(idx<0)?txt:txt.slice(0,idx).replace(/[\s─]+$/,'')+'\n\n';
+  var d=function(v){return v?new Date(v).toLocaleString('fr-FR'):new Date().toLocaleString('fr-FR');};
   if(l.sigStatus==='signed'){
-    return head+'✍️ Document SIGNÉ le '+(l.signedAt?new Date(l.signedAt).toLocaleString('fr-FR'):new Date().toLocaleString('fr-FR'))+' (via l\'application).';
+    return head+'SIGNATURE DE L\'EMPLOYÉ(E)\n'
+      +'Signé électroniquement par : '+(l.empName||'')+'\n'
+      +'✔ Pris connaissance — signé le '+d(l.signedAt)+' (via l\'application).';
   }
   if(l.sigStatus==='refused'){
-    return head+'❌ Le salarié a REFUSÉ DE SIGNER le '+(l.refusedAt?new Date(l.refusedAt).toLocaleString('fr-FR'):new Date().toLocaleString('fr-FR'))+'. Le document reste valable et versé au dossier.';
+    return head+'SIGNATURE DE L\'EMPLOYÉ(E)\n'
+      +'✗ REFUSÉ DE SIGNER — le '+d(l.refusedAt)+'\n'
+      +'Document présenté au salarié ; refus consigné. Le document reste valable et versé au dossier.';
   }
   return txt;
 }
@@ -13769,7 +14082,8 @@ function _courrierCardHtml(l){
   }
   var canMail=(curUser&&(curUser.role==='franchise'||curUser.role==='directeur'));
   var btns='<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">'
-    +'<button class="btn btn-gray btn-sm" onclick="voirCourrier(\''+l.id+'\')">👁️ Voir le document</button>';
+    +'<button class="btn btn-gray btn-sm" onclick="voirCourrier(\''+l.id+'\')">👁️ Voir le document</button>'
+    +'<button class="btn btn-gray btn-sm" onclick="telechargerPdfCourrier(\''+l.id+'\')">📄 PDF</button>';
   if(canMail){
     if(l.sigStatus==='signed'){
       btns+='<button class="btn btn-gray btn-sm" style="color:#4CAF50;border-color:#2e5e33;" onclick="sendSignedEmail(\''+l.id+'\')">✉️ Mail « a signé »</button>';
@@ -13791,16 +14105,72 @@ window._courrierCardHtml=_courrierCardHtml;
 function voirCourrier(lid){
   var l=DB.letters.find(function(x){return x.id===lid;}); if(!l) return;
   var st=SANCTIONS[l.sanctionType]||{label:'Document'};
+  var _esc=function(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+  var d=function(v){return v?new Date(v).toLocaleString('fr-FR'):'';};
+  var txt=l.text||''; var idx=txt.indexOf("Signature de l'employ");
+  var corps=(idx<0)?txt:txt.slice(0,idx).replace(/[\s─]+$/,'');
+  // ── Bloc signature visuel selon le statut ──
+  var sigHtml;
+  if(l.sigStatus==='signed'){
+    var _im=_sigImg(l);
+    sigHtml='<div style="margin-top:16px;border-top:1px dashed #bbb;padding-top:12px;">'
+      +'<div style="font-size:.7rem;letter-spacing:1px;color:#777;text-transform:uppercase;">Signature de l\'employé(e)</div>'
+      +'<div style="font-family:\'Segoe Script\',\'Snell Roundhand\',\'Brush Script MT\',cursive;font-size:2.1rem;color:#14315c;line-height:1.1;margin:6px 0 2px;">'+_esc(l.empName||'')+'</div>'
+      +(_im?'<div style="margin:4px 0 6px;"><img src="'+_im+'" alt="signature manuscrite" style="max-width:300px;max-height:130px;background:#fff;border:1px solid #eee;border-radius:6px;"></div>':'')
+      +'<div style="color:#2e7d32;font-weight:700;font-size:.85rem;">✔ Pris connaissance — signé le '+d(l.signedAt)+'</div></div>';
+  } else if(l.sigStatus==='refused'){
+    sigHtml='<div style="margin-top:16px;border-top:1px dashed #bbb;padding-top:12px;">'
+      +'<div style="font-size:.7rem;letter-spacing:1px;color:#777;text-transform:uppercase;">Signature de l\'employé(e)</div>'
+      +'<div style="display:flex;align-items:center;gap:10px;margin:8px 0 4px;">'
+      +'<span style="font-size:2.1rem;color:#c01e00;font-weight:900;line-height:1;">✗</span>'
+      +'<span style="color:#c01e00;font-weight:800;font-size:1.05rem;">Refusé de signer — le '+d(l.refusedAt)+'</span></div>'
+      +'<div style="color:#8a2a2a;font-size:.8rem;">Document présenté au salarié ; refus consigné. Le document reste valable et versé au dossier.</div></div>';
+  } else {
+    sigHtml='<div style="margin-top:16px;border-top:1px dashed #bbb;padding-top:12px;color:#555;">'
+      +'<div style="font-size:.7rem;letter-spacing:1px;color:#777;text-transform:uppercase;margin-bottom:10px;">Signature de l\'employé(e)</div>'
+      +'Signature : _______________________________<br><br>☐ Pris connaissance &nbsp;&nbsp;&nbsp;&nbsp; ☐ Refusé de signer</div>';
+  }
   var old=document.getElementById('voircourrier-ov'); if(old) old.remove();
   var ov=document.createElement('div'); ov.id='voircourrier-ov';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;';
   ov.innerHTML='<div style="background:#1A1A1A;border:1px solid #444;border-radius:12px;max-width:640px;width:100%;max-height:92vh;overflow:auto;">'
     +'<div style="background:linear-gradient(135deg,#C01E00,#8B1500);padding:12px 18px;text-align:center;border-radius:12px 12px 0 0;color:#F5A623;font-weight:700;font-family:\'Barlow Condensed\',sans-serif;letter-spacing:2px;text-transform:uppercase;">'+st.label+'</div>'
-    +'<div style="padding:18px;"><div style="background:#fafafa;color:#111;border-radius:8px;padding:22px;font-family:Georgia,serif;line-height:1.7;white-space:pre-wrap;font-size:.85rem;">'+l.text+'</div>'
-    +'<div style="text-align:center;margin-top:14px;"><button onclick="document.getElementById(\'voircourrier-ov\').remove()" style="background:#333;color:#ccc;border:1px solid #555;padding:9px 20px;border-radius:8px;cursor:pointer;">Fermer</button></div></div></div>';
+    +'<div style="padding:18px;"><div style="background:#fafafa;color:#111;border-radius:8px;padding:22px;font-family:Georgia,serif;line-height:1.7;font-size:.85rem;">'
+      +'<div style="white-space:pre-wrap;">'+_esc(corps)+'</div>'+sigHtml+'</div>'
+    +'<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px;">'
+      +'<button onclick="telechargerPdfCourrier(\''+l.id+'\')" style="background:#8B1500;color:#fff;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-weight:700;">📄 Télécharger le PDF</button>'
+      +'<button onclick="document.getElementById(\'voircourrier-ov\').remove()" style="background:#333;color:#ccc;border:1px solid #555;padding:9px 20px;border-radius:8px;cursor:pointer;">Fermer</button>'
+    +'</div></div></div>';
   document.body.appendChild(ov);
 }
 window.voirCourrier=voirCourrier;
+
+// Annuler un avertissement / document de sanction depuis la fiche salarié.
+// Supprime le courrier et remet ses incidents en OBSERVATION ORALE (verbal),
+// de sorte qu'ils réapparaissent « seuls » dans la fiche et — si le barème
+// l'exige — dans « À sanctionner ». Utile quand le document a été créé par erreur.
+async function annulerAvertissement(lid){
+  if(!(curUser&&(curUser.role==='franchise'||curUser.role==='directeur'))){ toast('Réservé à la direction.','error'); return; }
+  var l=(DB.letters||[]).find(function(x){return x.id===lid;}); if(!l){ toast('Document introuvable','error'); return; }
+  var lib=(SANCTIONS[l.sanctionType]||{}).label||l.type||'document';
+  var incIds=(''+(l.incidentId||'')).split(',').map(function(s){return s.trim();}).filter(Boolean);
+  var n=incIds.length;
+  var msg='Annuler « '+lib+' » ?\n\n'
+    +(n?('Les '+n+' observation'+(n>1?'s':'')+' rattachée'+(n>1?'s':'')+' redeviendr'+(n>1?'ont':'a')+' des observations orales seules.')
+        :'Aucune observation n\'est rattachée à ce document.')
+    +'\n\nLe document sera supprimé. Cette action est irréversible.';
+  if(!confirm(msg)) return;
+  try{
+    await sb.del('bks_letters','id=eq.'+l.id);
+    for(var q=0;q<incIds.length;q++){ try{ await sb.patch('bks_incidents','id=eq.'+incIds[q],{sanction_type:'verbal'}); }catch(_){} }
+    await loadAll();
+    try{ if(typeof _empfId!=='undefined' && _empfId){ renderEmpFicheHisto(_empfId); } }catch(_){}
+    try{ updateVBadge(); updateAlBadge(); }catch(_){}
+    try{ if(typeof renderAlertes==='function') renderAlertes(); }catch(_){}
+    toast('Document annulé — observations rétablies.','success');
+  }catch(err){ console.error('annulerAvertissement',err); toast('Erreur lors de l\'annulation','error'); }
+}
+window.annulerAvertissement=annulerAvertissement;
 
 // ── PARAMÈTRES ────────────────────────────────────────────────────────────────
 function renderPinSettings(){
@@ -13848,15 +14218,9 @@ async function saveAmplitude(){
   await saveDB();toast('Amplitude enregistrée ✔','success');
 }
 
-function getSeuilOral(){var v=DB.mailSettings&&DB.mailSettings.seuilOral;return v?parseInt(v):3;}
-function loadSeuilOral(){var el=document.getElementById('seuil-oral');if(el)el.value=getSeuilOral();}
-async function saveSeuilOral(){
-  var v=parseInt(document.getElementById('seuil-oral').value);
-  if(!v||v<1){toast('Entrez un nombre valide','error');return;}
-  if(!DB.mailSettings)DB.mailSettings={};
-  DB.mailSettings.seuilOral=v;
-  await saveDB();toast('Seuil enregistré ✔','success');
-}
+// « Rappel observations orales » (seuil codé en dur = 3) retiré en v472.
+// La discipline est pilotée uniquement par « Incident barème » (Paramètres) :
+// c'est le barème qui déclenche « Incident à sanctionner » puis « Incident à faire signer ».
 
 // ── Réglages visite médicale ─────────────────────────────────────────────────
 function loadVisiteConfig(){
@@ -14206,17 +14570,10 @@ function selectEmp(id){
   document.getElementById('sel-emp-name').textContent=e.name;
   var rLbl=RESTOS[e.restoId]?' · '+RESTOS[e.restoId].label:'';
   document.getElementById('sel-emp-info').textContent=(e.email||'')+(e.phone?' · '+e.phone:'')+rLbl;
-  // Rappel observations orales (directeurs + admin)
+  // Rappel « observations orales » (seuil codé en dur) retiré en v472 :
+  // la règle vient désormais de « Incident barème ». On masque l'ancien encart.
   var rap=document.getElementById('oral-rappel');
-  if(rap){
-    var canSee=curUser&&(curUser.role==='franchise'||curUser.role==='directeur');
-    var nbOral=DB.incidents.filter(function(i){return i.empId===id&&i.sanctionType==='verbal';}).length;
-    var seuil=getSeuilOral();
-    if(canSee&&nbOral>=seuil){
-      rap.style.display='block';
-      rap.innerHTML='<div style="background:#3A2E00;border:1px solid #7A6A00;border-radius:8px;padding:10px 12px;font-size:.83rem;color:#F5A623;">⚠️ <strong>'+e.name+'</strong> a déjà <strong>'+nbOral+' observation'+(nbOral>1?'s':'')+' orale'+(nbOral>1?'s':'')+'</strong> (seuil : '+seuil+'). Vous pouvez envisager une <strong>observation écrite</strong>.</div>';
-    }else{rap.style.display='none';rap.innerHTML='';}
-  }
+  if(rap){ rap.style.display='none'; rap.innerHTML=''; }
 }
 function clearEmpSel(){
   document.getElementById('sel-emp').value='';
@@ -27722,6 +28079,29 @@ async function hrParsePDF(arrayBuffer){
 
 window.hrParsePDF=hrParsePDF;
 
+})();
+</script>
+<script>
+/* Bascule thème clair / sombre (clair par défaut). Réversible, préférence mémorisée. */
+(function(){
+  function apply(t){
+    var d=document.documentElement;
+    if(t==='light'){ d.classList.add('theme-light'); } else { d.classList.remove('theme-light'); }
+    var b=document.getElementById('theme-toggle'); if(b) b.textContent=(t==='light')?'🌙':'☀️';
+  }
+  function get(){ try{ return localStorage.getItem('bkrh_theme')||'light'; }catch(e){ return 'light'; } }
+  function set(t){ try{ localStorage.setItem('bkrh_theme',t); }catch(e){} apply(t); }
+  window.bkrhToggleTheme=function(){ set(get()==='light'?'dark':'light'); };
+  function init(){
+    if(!document.getElementById('theme-toggle')){
+      var b=document.createElement('button');
+      b.id='theme-toggle'; b.type='button'; b.title='Basculer clair / sombre';
+      b.onclick=window.bkrhToggleTheme;
+      document.body.appendChild(b);
+    }
+    apply(get());
+  }
+  if(document.body){ init(); } else { document.addEventListener('DOMContentLoaded',init); }
 })();
 </script>
 </body>
