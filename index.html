@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-02 · v471';
+  var EMBEDDED_VERSION = '2026-08-05 · v472';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -118,6 +118,9 @@ html.theme-light .pl-total{ background:#f0f1f4 !important; color:#23262c !import
 html.theme-light .pl-dayhead{ color:#6a6f77 !important; }
 html.theme-light .pl-dayhead.we{ background:#eef0f3 !important; color:#98a0a8 !important; }
 html.theme-light .pl-cell.we{ background:#f2f3f6 !important; }
+/* Tuiles État équipe : thémées par CLASSE (robuste au survol qui réécrit le style en ligne) */
+html.theme-light .ee-tuile{ background:#ffffff !important; }
+html.theme-light .ee-tuile div{ color:#23262c !important; }
 /* Créneaux (barres colorées) : on NE touche PAS leur couleur ni leur texte blanc. */
 /* Le module HORAIRES a ses propres variables -> on les repasse en clair d'un seul coup
    (cartes résumé, timeline, en-têtes). Les barres de créneaux gardent leur couleur. */
@@ -799,6 +802,7 @@ html,body{overflow-x:hidden;}
     <button onclick="goPage('etatequipe',this)">🧑‍🤝‍🧑 État équipe <span id="eebadge" style="background:var(--orange);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
     <button onclick="goPage('horaires',this)">🕐 Horaires</button>
     <button onclick="goPage('planning',this)">🗓️ Planning encadrement</button>
+    <button class="desktop-only" onclick="goPage('semaines',this)">📅 Semaines</button>
     <!-- Onglet « Visite médicale » retiré de la barre : accessible via Rapports › Visite médicale. Page conservée (#page-visite). Badge vbadge supprimé (le compteur reste dans Alertes / Rapports). -->
     <!-- Onglet « Incidents » retiré de la barre du haut : accessible via Paramètres › Incidents. Page conservée (#page-incidents). Le badge « incbadge » reste dans le DOM pour le compteur. -->
     <button onclick="goPage('incidents',this)" style="display:none;">📋 Incidents <span id="incbadge" style="background:var(--red);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
@@ -806,6 +810,11 @@ html,body{overflow-x:hidden;}
     <button class="desktop-only" onclick="goPage('parametres',this)">⚙️ Paramètres</button>
     <button class="desktop-only" onclick="goPage('alertes',this)">🔔 Alertes <span id="albadge" style="background:var(--red);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
   </nav>
+
+  <!-- ════════ SEMAINES — horaires officiels (validés) + base du dépannage ════════ -->
+  <div class="page" id="page-semaines">
+    <div id="semaines-content"></div>
+  </div>
 
   <!-- ════════ DASHBOARD / ACCUEIL ÉQUIPE ════════ -->
   <div class="page" id="page-dashboard">
@@ -1525,6 +1534,22 @@ html,body{overflow-x:hidden;}
         <div><div class="flabel">N° URSSAF</div><input type="text" id="soc-urssaf" class="fi" placeholder="Ex : 337 1234567890"></div>
         <div><button class="btn btn-red btn-sm" onclick="saveSociete()">💾 Enregistrer</button> <span id="soc-status" style="font-size:.78rem;color:#888;"></span></div>
       </div>
+    </div>
+    <div class="card param-card" id="pc-signature" style="display:none;">
+      <div class="sec-title">✍️ Ma signature (direction)</div>
+      <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Dessinez votre signature <strong>une seule fois</strong>. Elle sera <strong>apposée automatiquement sur les contrats</strong> (côté entreprise) : le contrat part déjà signé par la direction ; le salarié n'a plus qu'à ajouter la sienne. <span style="color:#888;">Réservé à l'administration.</span></p>
+      <div id="sig-dir-preview" style="margin-bottom:10px;"></div>
+      <div id="sig-dir-padwrap"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+        <button class="btn btn-gray btn-sm" onclick="_sigClear('sigpad-dir')">↺ Effacer</button>
+        <button class="btn btn-red btn-sm" onclick="saveSignatureDir()">💾 Enregistrer ma signature</button>
+        <button class="btn btn-gray btn-sm" id="sig-dir-suppr" style="display:none;" onclick="supprSignatureDir()">🗑️ Retirer</button>
+      </div>
+    </div>
+    <div class="card param-card" id="pc-paye" style="display:none;">
+      <div class="sec-title">💰 Paye</div>
+      <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Réglages liés à la préparation des payes. La paye elle-même se fait dans <strong>Rapports → 💰 Paye</strong> (heures pointées mois par mois + bons repas → export CSV pour le logiciel de paye).</p>
+      <div id="pc-paye-body"></div>
     </div>
     <div class="card param-card" id="pc-qr" style="display:none;">
       <div class="sec-title">📲 QR code de candidature</div>
@@ -2554,6 +2579,9 @@ async function loadAll(light) {
   try{ if(typeof hrChargerDashboardSupabase==='function'){ await hrChargerDashboardSupabase(); } }catch(e){}
   try{ if(typeof hrChargerVisibiliteSupabase==='function'){ await hrChargerVisibiliteSupabase(); } }catch(e){}
   try{ if(typeof hrChargerDisposContratSupabase==='function'){ await hrChargerDisposContratSupabase(); } }catch(e){}
+  try{ if(typeof depCharger==='function'){ await depCharger(false); } }catch(e){}
+  try{ if(typeof hrChargerPayeRepas==='function'){ await hrChargerPayeRepas(); } }catch(e){}
+  try{ if(typeof hrChargerPayeCfg==='function'){ await hrChargerPayeCfg(); } }catch(e){}
 }
 
 async function saveDB() {
@@ -3288,6 +3316,81 @@ function _restoVerrouille(){
 }
 window._restoVerrouille=_restoVerrouille;
 
+// ══════ SEMAINES — horaires officiels (validés/transférés), lecture jour par jour ══════
+// Source : HR_PLANNING_BY_RESTO[RESTO][lundiISO].jours[jourISO] = créneaux {empId,emp,s,e,l}.
+function _semResto(){ return (curUser&&curUser.role==='franchise')?((window.ACTIVE_RESTO&&window.ACTIVE_RESTO!=='ALL')?window.ACTIVE_RESTO:'bk500'):((curUser&&curUser.restoId)||'bk500'); }
+function _semIso(d){ return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+function _semFmtMin(m){ try{ if(typeof _hrMinToHHMM==='function' && m!=null) return _hrMinToHHMM(m); }catch(_){} m=parseInt(m)||0; var h=Math.floor(m/60),mn=m%60; return (h<10?'0':'')+h+'h'+(mn<10?'0':'')+mn; }
+function _semDateFr(d){ var J=['dim.','lun.','mar.','mer.','jeu.','ven.','sam.']; var M=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.']; return J[d.getDay()]+' '+d.getDate()+' '+M[d.getMonth()]; }
+function _semWeeks(resto){
+  var up=(''+(resto||'')).toUpperCase();
+  var snap=(typeof HR_PLANNING_BY_RESTO!=='undefined' && HR_PLANNING_BY_RESTO[up])?HR_PLANNING_BY_RESTO[up]:null;
+  if(!snap) return [];
+  return Object.keys(snap).filter(function(lun){ return snap[lun] && snap[lun].jours; }).sort().reverse().map(function(lun){
+    var jours=snap[lun].jours||{}, nb=0;
+    Object.keys(jours).forEach(function(d){ if(Array.isArray(jours[d])) nb+=jours[d].length; });
+    return {lundi:lun, nb:nb};
+  });
+}
+function renderSemaines(){
+  var box=document.getElementById('semaines-content'); if(!box) return;
+  var resto=_semResto(); var up=(''+resto).toUpperCase();
+  var rlab=(typeof RESTOS!=='undefined'&&RESTOS[resto])?RESTOS[resto].label:resto;
+  if(!(typeof HR_PLANNING_BY_RESTO!=='undefined' && HR_PLANNING_BY_RESTO[up]) && typeof _chLoadPlanning==='function'){
+    box.innerHTML='<div style="padding:20px;color:#888;">Chargement des horaires…</div>';
+    _chLoadPlanning(resto, function(){ try{ renderSemaines(); }catch(_){} }); return;
+  }
+  var weeks=_semWeeks(resto);
+  var h='<div class="sec-title">📅 Semaines — horaires officiels · '+rlab+'</div>'
+    +'<p style="font-size:.82rem;color:#888;margin-bottom:14px;">Les semaines dont les horaires ont été faits. Cliquez sur une semaine pour voir le détail jour par jour. <span style="color:#666;">(Contrôle des pointages et dépannage : prochaines étapes.)</span></p>';
+  if(!weeks.length){ box.innerHTML=h+'<div style="background:#141414;border-radius:10px;padding:16px;color:#888;">Aucune semaine enregistrée pour ce restaurant pour le moment.</div>'; return; }
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;">';
+  weeks.forEach(function(w){
+    var d=new Date(w.lundi+'T12:00:00'); var fin=new Date(d.getTime()+6*86400000);
+    h+='<div onclick="renderSemaineDetail(\''+w.lundi+'\')" style="cursor:pointer;background:#1A1A1A;border:1px solid #2a2a2a;border-left:4px solid #F5A623;border-radius:12px;padding:14px;">'
+      +'<div style="font-weight:800;font-size:1.02rem;color:#F5A623;">'+_semDateFr(d)+' → '+_semDateFr(fin)+'</div>'
+      +'<div style="font-size:.8rem;color:#aaa;margin-top:4px;">'+w.nb+' créneau'+(w.nb>1?'x':'')+'</div>'
+      +'<div style="font-size:.78rem;color:#8fc3f5;margin-top:6px;">👆 Voir le détail</div></div>';
+  });
+  box.innerHTML=h+'</div>';
+}
+function _semCol(l){
+  try{ if(typeof col==='function'){ var c=col(l); if(c&&c.bg) return c.bg; } }catch(_){}
+  try{ if(window.col && typeof window.col==='function'){ var c2=window.col(l); if(c2&&c2.bg) return c2.bg; } }catch(_){}
+  var u=(''+(l||'')).toUpperCase();
+  if(/CUISIN|FRIT|SNACK|BROIL|BOARD/.test(u)) return '#e53935';           // rouge
+  if(/DRIVE|TABLET|CABINE|CAISSE/.test(u)) return '#1565c0';              // bleu
+  if(/BORNE|EMPORT|UBER|SALLE|COMPTOIR/.test(u)) return '#2e7d32';        // vert
+  if(/PLONGE|PREP|FILT|MARCH|\bRH\b|LIVR|FERM|MANA|OUVERT|NON ?PROD|ENCAD|CLOSE|OPEN/.test(u)) return '#607d8b'; // gris
+  return '#e8a020';
+}
+function renderSemaineDetail(lundi, dayIdx){
+  var box=document.getElementById('semaines-content'); if(!box) return;
+  dayIdx=dayIdx||0; window._SEM_CUR={lundi:lundi,day:dayIdx};
+  var resto=_semResto(); try{ PTGS_RESTO=resto; }catch(_){}
+  var d0=new Date(lundi+'T12:00:00');
+  var JN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  var JS=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  var h='<div style="margin-bottom:10px;"><button class="btn btn-gray btn-sm" onclick="renderSemaines()">← Semaines</button></div>'
+    +'<div class="sec-title">📅 Semaine du '+_semDateFr(d0)+'</div>';
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 12px;">';
+  for(var t=0;t<7;t++){
+    var td=new Date(d0.getTime()+t*86400000); var on=(t===dayIdx);
+    h+='<button onclick="renderSemaineDetail(\''+lundi+'\','+t+')" style="cursor:pointer;border-radius:8px;padding:7px 12px;font-weight:700;font-size:.82rem;border:1px solid '+(on?'#F5A623':'#3a3a3a')+';background:'+(on?'#F5A623':'#1A1A1A')+';color:'+(on?'#111':'#ccc')+';">'+JS[t]+' '+td.getDate()+'</button>';
+  }
+  h+='</div>';
+  var dd=new Date(d0.getTime()+dayIdx*86400000); var iso=_semIso(dd);
+  h+='<div style="font-weight:700;color:#F5A623;font-size:1.05rem;margin-bottom:4px;">'+JN[dayIdx]+' '+dd.getDate()+'/'+('0'+(dd.getMonth()+1)).slice(-2)+'</div>'
+    +'<p style="font-size:.76rem;color:#888;margin-bottom:8px;">Prévu (traits par poste) + <b>pointé</b> (vert conforme / orange écart) + <b>heures</b> par salarié. 👆 Clique sur un salarié pour saisir le pointage ou le marquer <b>absent</b> (arrêt maladie, CP, absence injustifiée…).</p>';
+  var emps=[]; try{ emps=(DB.employees||[]).filter(function(e){ return e && !e.archived && (''+(e.restoId||'')).toLowerCase()===(''+resto).toLowerCase() && ['equipier','leader','manager'].indexOf(e.role)>=0; }); }catch(_){ emps=[]; }
+  var tl=''; try{ tl=(typeof ptgCtrlTimeline==='function')?ptgCtrlTimeline(iso, emps):''; }catch(e){ console.error('ptgCtrlTimeline',e); tl=''; }
+  h+=(tl||'<div style="background:#141414;border-radius:8px;padding:12px;color:#777;">Aucune donnée ce jour-là.</div>');
+  box.innerHTML=h;
+}
+function _semRefreshIfActive(){ try{ var p=document.getElementById('page-semaines'); if(p&&p.classList.contains('active')&&window._SEM_CUR){ renderSemaineDetail(window._SEM_CUR.lundi, window._SEM_CUR.day); } }catch(_){} }
+window._semRefreshIfActive=_semRefreshIfActive;
+window.renderSemaines=renderSemaines; window.renderSemaineDetail=renderSemaineDetail;
+
 function goPage(id, btn) {
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.querySelectorAll('nav button').forEach(function(b){b.classList.remove('active');});
@@ -3309,6 +3412,7 @@ function goPage(id, btn) {
       bkEntrerPage('rapports');
     }
   }
+  if (id==='semaines'){ try{ renderSemaines(); }catch(e){ console.error('semaines',e); } }
   if (id==='equipe'){
     if(curUser.role==='franchise'){
       var ra=window.ACTIVE_RESTO;
@@ -3619,6 +3723,39 @@ function renderDisposContratParam(){
 }
 window.renderDisposContratParam=renderDisposContratParam;
 
+// ── MA SIGNATURE (direction) — enregistrée UNE fois, apposée sur les contrats ──
+// Stockée dans les réglages (DB.mailSettings.signatureDir), pas par contrat.
+function loadSignatureDir(){
+  var cur=(DB.mailSettings&&DB.mailSettings.signatureDir)||'';
+  var prev=document.getElementById('sig-dir-preview');
+  if(prev){ prev.innerHTML = cur
+    ? '<div style="font-size:.76rem;color:#4CAF50;font-weight:700;margin-bottom:6px;">✔ Signature enregistrée :</div><img src="'+cur+'" alt="signature direction" style="max-width:280px;max-height:120px;background:#fff;border:1px solid #ddd;border-radius:8px;padding:4px;">'
+    : '<div style="font-size:.82rem;color:#888;">Aucune signature enregistrée pour le moment.</div>'; }
+  var sup=document.getElementById('sig-dir-suppr'); if(sup) sup.style.display=cur?'':'none';
+  var wrap=document.getElementById('sig-dir-padwrap');
+  if(wrap){
+    wrap.innerHTML='<div style="font-size:.78rem;color:#F5A623;font-weight:700;margin-bottom:6px;">'+(cur?'Redessiner pour remplacer :':'Dessinez votre signature ci-dessous :')+'</div>'+_sigPadMarkup('sigpad-dir');
+    setTimeout(function(){ try{ _sigInit('sigpad-dir'); }catch(_){} },40);
+  }
+}
+async function saveSignatureDir(){
+  if(!_sigDrawn('sigpad-dir')){ toast('Dessinez d\'abord votre signature.','error'); return; }
+  var cur=(DB.mailSettings&&DB.mailSettings.signatureDir)||'';
+  if(cur && !confirm('Remplacer la signature déjà enregistrée ?')) return;
+  var png=_sigData('sigpad-dir'); if(!png){ toast('Erreur','error'); return; }
+  if(!DB.mailSettings) DB.mailSettings={};
+  DB.mailSettings.signatureDir=png;
+  try{ await saveDB(); toast('Signature enregistrée ✔ — elle s\'appliquera aux nouveaux contrats.','success'); loadSignatureDir(); }
+  catch(e){ console.error('saveSignatureDir',e); toast('Erreur enregistrement','error'); }
+}
+async function supprSignatureDir(){
+  if(!confirm('Retirer votre signature enregistrée ?\n\nLes nouveaux contrats ne seront plus pré-signés par la direction.')) return;
+  if(DB.mailSettings) delete DB.mailSettings.signatureDir;
+  try{ await saveDB(); toast('Signature retirée.','success'); loadSignatureDir(); }
+  catch(e){ toast('Erreur','error'); }
+}
+window.loadSignatureDir=loadSignatureDir; window.saveSignatureDir=saveSignatureDir; window.supprSignatureDir=supprSignatureDir;
+
 var PARAM_TILES=[
   {ico:'📋', titre:'Incidents',     sub:'Suivi disciplinaire',          type:'page', page:'incidents',      accent:'#D62300'},
   {ico:'📅', titre:'Disponibilité contrat',sub:'Base des contrats (import Excel)', type:'card', card:'pc-dispos',      accent:'#1565c0'},
@@ -3642,7 +3779,9 @@ var PARAM_TILES=[
   {ico:'✉️', titre:'Modèles mails', sub:'Mails aux candidats',          type:'card', card:'pc-mails',       accent:'#27ae60'},
   {ico:'🗂️', titre:'Ranger des documents', sub:'Glisser-déposer dans une fiche', type:'card', card:'pc-dbximport',   accent:'#5BA3F5'},
   {ico:'⚠️', titre:'Incident barème',sub:'Seuils de sanction',           type:'card', card:'pc-baremes',     accent:'#b23a3a'},
-  {ico:'🏢', titre:'Société',       sub:'Employeur (contrats)',         type:'card', card:'pc-societe',     accent:'#34495e'}
+  {ico:'🏢', titre:'Société',       sub:'Employeur (contrats)',         type:'card', card:'pc-societe',     accent:'#34495e'},
+  {ico:'✍️', titre:'Ma signature',  sub:'Signature direction (contrats)', type:'card', card:'pc-signature',  accent:'#c0392b'},
+  {ico:'💰', titre:'Paye',          sub:'Bons repas & format export',    type:'card', card:'pc-paye',       accent:'#1d7a3a'}
 ];
 function renderParamTiles(){
   var page=document.getElementById('page-parametres'); if(page) page.classList.add('bk-tiles-mode');
@@ -3683,6 +3822,8 @@ function paramOuvrir(type, ref){
     if(ref==='pc-baremes'){ try{ _baremesDraft=null; renderBaremes(); }catch(_){} }
     if(ref==='pc-dbximport'){ try{ dbxDropInit(); }catch(_){} }
     if(ref==='pc-societe'){ try{ renderSocieteForm(); }catch(_){} }
+    if(ref==='pc-signature'){ try{ loadSignatureDir(); }catch(_){} }
+    if(ref==='pc-paye'){ try{ renderPayeParam(); }catch(_){} }
     if(ref==='pc-visite'){ try{ loadVisiteConfig(); }catch(_){} }
     if(ref==='pc-photo'){ try{ photoParamInit(); }catch(_){} }
     if(ref==='pc-pointer'){ try{ ptgMsgCharger('suivi'); }catch(_){} try{ ptgRenderMsgAdmin(); }catch(_){} }
@@ -4608,6 +4749,7 @@ var RPT_TILES=[
   {id:'planhebdo', em:'🗓️', tt:'Planning de la semaine', ds:'Qui travaille quand (planning fait)', color:'#00897b'},
   {id:'planpartage', em:'📤', tt:'Plannings transférés', ds:'Semaines transférées aux employés (imprimables)', color:'#0277bd'},
   {id:'suivipointage', em:'⏱️', tt:'Contrôle pointage', ds:'Prévu vs pointé + heures réelles', color:'#6d4aad'},
+  {id:'paye',      em:'💰', tt:'Paye', ds:'Heures du mois + bons repas → export paye', color:'#1d7a3a'},
   {id:'visitemed', em:'🩺', tt:'Visite médicale', ds:'Suivi des visites médicales', color:'#e67e22'},
   {id:'mutuelle', em:'❤️', tt:'Mutuelle', ds:'Suivi mutuelles + documents', color:'#c0392b'},
   {id:'sejour', em:'🛂', tt:'Titre de séjour', ds:'Suivi titres + documents', color:'#8e44ad'},
@@ -4711,6 +4853,10 @@ function rptOpen(type){
   document.getElementById('rpt-opt-period-wrap').style.display=showPeriod?'block':'none';
   document.getElementById('rpt-opt-person-wrap').style.display=showPerson?'block':'none';
   document.getElementById('rpt-pdf-btn').style.display=showPdf?'inline-block':'none';
+  // Paye : mise en page autonome (sélecteur de mois + exports dans le corps du rapport).
+  var isPaye=(type==='paye');
+  try{ var optC=document.getElementById('rpt-options'); if(optC) optC.style.display=isPaye?'none':''; }catch(_){}
+  try{ var xlsB=document.getElementById('rpt-xls-btn'); if(xlsB) xlsB.style.display=isPaye?'none':''; }catch(_){}
   rptRefresh();
 }
 function rptClosePanel(){
@@ -4729,6 +4875,7 @@ function rptRefresh(){
   else if(_rptCurrent==='sejour'){ genSejourReport(); }
   else if(_rptCurrent==='turnover'){ genTurnoverReport(); }
   else if(_rptCurrent==='recap'){ genRecapReport(); }
+  else if(_rptCurrent==='paye'){ genPayeReport(); }
 }
 // RAPPORT TITRE DE SÉJOUR — suivi des salariés concernés + document consultable.
 function genSejourReport(){
@@ -5854,6 +6001,263 @@ function exportRowsToExcel(rows, sheetName, filename){
   toast('Export CSV (ouvrable dans Excel)','success');
 }
 window.rptOpen=rptOpen;window.rptClosePanel=rptClosePanel;window.rptRefresh=rptRefresh;window.rptExportExcel=rptExportExcel;window.renderRptTiles=renderRptTiles;
+
+/* ════════════════════════ PAYE (Rapports → 💰 Paye) ════════════════════════
+ * Point de départ des payes : mois par mois, on additionne les HEURES RÉELLEMENT
+ * POINTÉES par salarié (à partir des pointages), on liste les absences par type,
+ * et on compte les BONS REPAS (juste un nombre, AUCUN calcul — sert seulement à
+ * compléter le CSV envoyé au logiciel de paye officiel). Exports : CSV (format
+ * provisoire, à caler avec le logiciel), liste des bons repas (Excel), récap PDF.
+ * Le « solde de tout compte » se prépare ICI, par salarié (bouton sur sa ligne). */
+var _payeMonth=null;                 // 'YYYY-MM'
+var PAYE_REPAS=null;                 // { 'YYYY-MM': { empId: nbBonsRepas } } — surcharges manuelles
+function _payeMoisCourant(){ var d=new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2); }
+function _payeGetMonth(){ if(!_payeMonth) _payeMonth=_payeMoisCourant(); return _payeMonth; }
+function getPayeRepas(){ if(PAYE_REPAS) return PAYE_REPAS; try{ var r=localStorage.getItem('bkrh_paye_repas'); PAYE_REPAS=r?JSON.parse(r):{}; }catch(e){ PAYE_REPAS={}; } if(!PAYE_REPAS||typeof PAYE_REPAS!=='object') PAYE_REPAS={}; return PAYE_REPAS; }
+function savePayeRepas(){ var o=getPayeRepas(); try{ localStorage.setItem('bkrh_paye_repas',JSON.stringify(o)); }catch(e){} try{ if(typeof SB!=='undefined'&&SB) SB.from('app_config').upsert({cle:'bkrh_paye_repas',valeur:o},{onConflict:'cle'}).then(function(){},function(){}); }catch(e){} }
+async function hrChargerPayeRepas(){ try{ if(typeof SB==='undefined'||!SB) return; var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_paye_repas').maybeSingle(); if(r&&r.data&&r.data.valeur){ PAYE_REPAS=r.data.valeur; try{localStorage.setItem('bkrh_paye_repas',JSON.stringify(PAYE_REPAS));}catch(e){} } }catch(e){} }
+window.hrChargerPayeRepas=hrChargerPayeRepas;
+// Config Paye (Paramètres) : réglage simple, sans calcul de montant.
+var PAYE_CFG=null;
+function payeCfgDefault(){ return { repasAuto:true }; } // 1 bon repas par jour travaillé, par défaut
+function getPayeCfg(){ if(PAYE_CFG) return PAYE_CFG; try{ var r=localStorage.getItem('bkrh_paye_config'); PAYE_CFG=r?Object.assign(payeCfgDefault(),JSON.parse(r)):payeCfgDefault(); }catch(e){ PAYE_CFG=payeCfgDefault(); } return PAYE_CFG; }
+function savePayeCfg(){ var o=getPayeCfg(); try{ localStorage.setItem('bkrh_paye_config',JSON.stringify(o)); }catch(e){} try{ if(typeof SB!=='undefined'&&SB) SB.from('app_config').upsert({cle:'bkrh_paye_config',valeur:o},{onConflict:'cle'}).then(function(){},function(){}); }catch(e){} }
+async function hrChargerPayeCfg(){ try{ if(typeof SB==='undefined'||!SB) return; var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_paye_config').maybeSingle(); if(r&&r.data&&r.data.valeur){ PAYE_CFG=Object.assign(payeCfgDefault(),r.data.valeur); try{localStorage.setItem('bkrh_paye_config',JSON.stringify(PAYE_CFG));}catch(e){} } }catch(e){} }
+window.hrChargerPayeCfg=hrChargerPayeCfg;
+
+function _payeJoursDuMois(ym){
+  var p=(ym||'').split('-'); if(p.length<2) return [];
+  var y=+p[0], m=+p[1]; var out=[]; var nb=new Date(y, m, 0).getDate();
+  for(var d=1; d<=nb; d++){ out.push(y+'-'+('0'+m).slice(-2)+'-'+('0'+d).slice(-2)); }
+  return out;
+}
+function _payeMoisFr(ym){ try{ var p=ym.split('-'); return new Date(+p[0], +p[1]-1, 1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'}); }catch(_){ return ym; } }
+function _payeRestoTag(){ return (curUser.role==='franchise'&&rptTab!=='all')?('_'+rptTab):''; }
+// Calcul par salarié pour un mois : jours travaillés, heures pointées, heures
+// prévues, absences par type (en jours) et bons repas (nombre).
+function _payeCalcEmp(emp, ym){
+  var days=_payeJoursDuMois(ym); var all=(typeof ptgGetAll==='function')?ptgGetAll():{};
+  var resto=((emp.restoId||emp.resto_id||'')+'').toLowerCase();
+  var joursTrav=0, hReel=0, hPrevu=0;
+  var abs={cp:0, maladie:0, injustifiee:0, absence:0, css:0, indispo:0};
+  days.forEach(function(iso){
+    var rec=all[emp.id+'_'+iso];
+    var rh=null; try{ rh=rec?ptgHeuresTravaillees(rec):null; }catch(_){}
+    if(rh!=null && rh>0){ joursTrav++; hReel+=rh; }
+    var segs=[]; try{ segs=_chPlanSegs(emp, iso, resto); }catch(_){}
+    (segs||[]).forEach(function(s){ hPrevu+=(s.e-s.s)/60; });
+    var ab=null; try{ ab=hrAbsenceDuJour(emp.id, iso); }catch(_){}
+    if(ab){ var mo=ab.motif||'absence'; if(abs[mo]!=null) abs[mo]++; else abs.absence++; }
+  });
+  var totAbs=abs.cp+abs.maladie+abs.injustifiee+abs.absence+abs.css+abs.indispo;
+  // bons repas : surcharge manuelle si présente, sinon auto = jours travaillés (réglable).
+  var ov=(getPayeRepas()[ym]||{})[emp.id];
+  var repasAuto=(getPayeCfg().repasAuto!==false)?joursTrav:0;
+  var repas=(ov!=null && ov!=='')?(+ov):repasAuto;
+  return { emp:emp, joursTrav:joursTrav, hReel:hReel, hPrevu:hPrevu, abs:abs, totAbs:totAbs, repas:repas, repasAuto:repasAuto, repasOverride:(ov!=null&&ov!=='') };
+}
+function _payeData(ym){
+  var emps=(typeof rptTargets==='function')?rptTargets().slice():[];
+  emps=sortByRoleThenName(emps);
+  return emps.map(function(e){ return _payeCalcEmp(e, ym); });
+}
+function _payeH(x){ return (Math.round((x||0)*100)/100).toFixed(2).replace('.',','); }
+function genPayeReport(){
+  var out=document.getElementById('rpt-out'); if(!out) return;
+  var ym=_payeGetMonth();
+  var data=_payeData(ym);
+  var restoLbl=(curUser.role==='franchise')?(rptTab==='all'?'Tous restaurants':((RESTOS[rptTab]&&RESTOS[rptTab].label)||rptTab)):((RESTOS[curUser.restoId]&&RESTOS[curUser.restoId].label)||'');
+  var h='';
+  // barre : mois + exports
+  h+='<div class="card" style="margin-bottom:14px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">'
+    +'<div><label class="flabel">Mois de paye</label><input type="month" id="paye-month" value="'+ym+'" class="fi" style="width:auto;" onchange="_payeMonth=this.value;genPayeReport();"></div>'
+    +'<div style="flex:1;"></div>'
+    +'<button class="btn btn-sm" style="background:#1d7a3a;border-color:#1d7a3a;color:#fff;" onclick="payeExportCsv()">⬇️ CSV paye</button>'
+    +'<button class="btn btn-gray btn-sm" onclick="payeExportRepas()">🍽️ Bons repas (Excel)</button>'
+    +'<button class="btn btn-gray btn-sm" onclick="payePdf()">📄 Récap PDF</button>'
+  +'</div>';
+  h+='<div style="font-size:.82rem;color:#888;margin-bottom:10px;">💰 Heures <b>réellement pointées</b> sur <b style="color:#ccc;text-transform:capitalize;">'+_payeMoisFr(ym)+'</b> — '+restoLbl+'. Les bons repas sont un simple nombre (modifiable), à reporter dans le CSV. <span style="color:#c99;">Le format du CSV sera calé avec ton logiciel de paye.</span></div>';
+  if(!data.length){ out.innerHTML=h+'<div style="color:#aaa;padding:14px;">Aucun salarié pour ce périmètre.</div>'; return; }
+  // totaux
+  var T={jt:0,hr:0,hp:0,cp:0,mal:0,inj:0,aut:0,rep:0};
+  h+='<div style="overflow-x:auto;"><table class="tbl" style="width:100%;border-collapse:collapse;font-size:.82rem;min-width:820px;">'
+    +'<thead><tr style="background:#161616;color:#bbb;text-align:left;">'
+      +'<th style="padding:8px;">Salarié</th>'
+      +(curUser.role==='franchise'&&rptTab==='all'?'<th style="padding:8px;">Resto</th>':'')
+      +'<th style="padding:8px;text-align:center;">Jours trav.</th>'
+      +'<th style="padding:8px;text-align:center;">Heures pointées</th>'
+      +'<th style="padding:8px;text-align:center;">(prévu)</th>'
+      +'<th style="padding:8px;text-align:center;">CP</th>'
+      +'<th style="padding:8px;text-align:center;">Maladie</th>'
+      +'<th style="padding:8px;text-align:center;">Injust.</th>'
+      +'<th style="padding:8px;text-align:center;">Autres abs.</th>'
+      +'<th style="padding:8px;text-align:center;">🍽️ Bons repas</th>'
+      +'<th style="padding:8px;text-align:center;">STC</th>'
+    +'</tr></thead><tbody>';
+  data.forEach(function(r){
+    var autres=r.abs.absence+r.abs.css+r.abs.indispo;
+    T.jt+=r.joursTrav; T.hr+=r.hReel; T.hp+=r.hPrevu; T.cp+=r.abs.cp; T.mal+=r.abs.maladie; T.inj+=r.abs.injustifiee; T.aut+=autres; T.rep+=(+r.repas||0);
+    h+='<tr style="border-bottom:1px solid #232323;">'
+      +'<td style="padding:8px;font-weight:700;color:#eee;">'+_ptgEsc(r.emp.name)+'<div style="font-size:.7rem;color:#777;font-weight:400;">'+ptgRoleLabel(r.emp.role)+'</div></td>'
+      +(curUser.role==='franchise'&&rptTab==='all'?('<td style="padding:8px;color:#aaa;">'+((RESTOS[r.emp.restoId]&&RESTOS[r.emp.restoId].label)||r.emp.restoId||'')+'</td>'):'')
+      +'<td style="padding:8px;text-align:center;color:#ccc;">'+r.joursTrav+'</td>'
+      +'<td style="padding:8px;text-align:center;font-weight:800;color:#3ecf8e;">'+_payeH(r.hReel)+' h</td>'
+      +'<td style="padding:8px;text-align:center;color:#888;">'+_payeH(r.hPrevu)+' h</td>'
+      +'<td style="padding:8px;text-align:center;color:'+(r.abs.cp?'#2e9fe0':'#555')+';">'+(r.abs.cp||'')+'</td>'
+      +'<td style="padding:8px;text-align:center;color:'+(r.abs.maladie?'#e06666':'#555')+';">'+(r.abs.maladie||'')+'</td>'
+      +'<td style="padding:8px;text-align:center;color:'+(r.abs.injustifiee?'#e8623a':'#555')+';">'+(r.abs.injustifiee||'')+'</td>'
+      +'<td style="padding:8px;text-align:center;color:'+(autres?'#d9a441':'#555')+';">'+(autres||'')+'</td>'
+      +'<td style="padding:8px;text-align:center;"><input type="number" min="0" step="1" value="'+(+r.repas||0)+'" onchange="_payeSetRepas(\''+r.emp.id+'\',this.value)" title="'+(r.repasOverride?'Valeur saisie à la main':'Auto = jours travaillés')+'" style="width:56px;text-align:center;background:'+(r.repasOverride?'#173a24':'#141414')+';border:1px solid '+(r.repasOverride?'#2e7d46':'#333')+';color:#fff;border-radius:7px;padding:5px;"></td>'
+      +'<td style="padding:8px;text-align:center;"><button class="btn btn-gray btn-sm" style="padding:4px 8px;font-size:.72rem;" onclick="payeSTC(\''+r.emp.id+'\')" title="Préparer le solde de tout compte">📄</button></td>'
+    +'</tr>';
+  });
+  var colspanName=(curUser.role==='franchise'&&rptTab==='all')?2:1;
+  h+='</tbody><tfoot><tr style="background:#111;font-weight:800;color:#fff;border-top:2px solid #333;">'
+    +'<td style="padding:9px;" colspan="'+colspanName+'">TOTAL ('+data.length+')</td>'
+    +'<td style="padding:9px;text-align:center;">'+T.jt+'</td>'
+    +'<td style="padding:9px;text-align:center;color:#3ecf8e;">'+_payeH(T.hr)+' h</td>'
+    +'<td style="padding:9px;text-align:center;color:#888;">'+_payeH(T.hp)+' h</td>'
+    +'<td style="padding:9px;text-align:center;">'+(T.cp||'')+'</td>'
+    +'<td style="padding:9px;text-align:center;">'+(T.mal||'')+'</td>'
+    +'<td style="padding:9px;text-align:center;">'+(T.inj||'')+'</td>'
+    +'<td style="padding:9px;text-align:center;">'+(T.aut||'')+'</td>'
+    +'<td style="padding:9px;text-align:center;">'+T.rep+'</td>'
+    +'<td></td>'
+  +'</tr></tfoot></table></div>';
+  out.innerHTML=h;
+}
+window.genPayeReport=genPayeReport;
+function _payeSetRepas(empId, val){
+  var ym=_payeGetMonth(); var o=getPayeRepas(); if(!o[ym]) o[ym]={};
+  if(val===''||val==null){ delete o[ym][empId]; } else { o[ym][empId]=Math.max(0, Math.round(+val)||0); }
+  savePayeRepas();
+}
+window._payeSetRepas=_payeSetRepas;
+// Export CSV paye — format PROVISOIRE (colonnes à caler avec le logiciel de paye).
+function payeExportCsv(){
+  var ym=_payeGetMonth(); var data=_payeData(ym);
+  var rows=[['Restaurant','Salarie','Role','Mois','Jours_travailles','Heures_pointees','Heures_prevues','CP_jours','Maladie_jours','Injustifiee_jours','Autres_absences_jours','Bons_repas']];
+  data.forEach(function(r){
+    var autres=r.abs.absence+r.abs.css+r.abs.indispo;
+    rows.push([ (RESTOS[r.emp.restoId]&&RESTOS[r.emp.restoId].label)||r.emp.restoId||'', r.emp.name||'', ptgRoleLabel(r.emp.role), ym, r.joursTrav, _payeH(r.hReel), _payeH(r.hPrevu), r.abs.cp, r.abs.maladie, r.abs.injustifiee, autres, (+r.repas||0) ]);
+  });
+  var csv=rows.map(function(r){ return r.map(function(c){ c=(c==null?'':String(c)); return '"'+c.replace(/"/g,'""')+'"'; }).join(';'); }).join('\r\n');
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='paye_'+ym+_payeRestoTag()+'.csv'; a.click();
+  try{ toast('CSV paye exporté (format provisoire)','success'); }catch(_){}
+}
+window.payeExportCsv=payeExportCsv;
+// Liste des bons repas (Excel) — juste le nombre par salarié, pour compléter le fichier.
+function payeExportRepas(){
+  var ym=_payeGetMonth(); var data=_payeData(ym);
+  var rows=[['Restaurant','Salarié','Mois','Bons repas']];
+  data.forEach(function(r){ rows.push([ (RESTOS[r.emp.restoId]&&RESTOS[r.emp.restoId].label)||r.emp.restoId||'', r.emp.name||'', ym, (+r.repas||0) ]); });
+  try{ exportRowsToExcel(rows, 'Bons repas', 'bons_repas_'+ym+_payeRestoTag()+'.xlsx'); }catch(_){}
+}
+window.payeExportRepas=payeExportRepas;
+// Récap PDF du mois (tableau global).
+function payePdf(){
+  try{
+    var ym=_payeGetMonth(); var data=_payeData(ym);
+    var restoLbl=(curUser.role==='franchise')?(rptTab==='all'?'Tous restaurants':((RESTOS[rptTab]&&RESTOS[rptTab].label)||rptTab)):((RESTOS[curUser.restoId]&&RESTOS[curUser.restoId].label)||'');
+    var doc=_pdfDoc('landscape'); var W=297,M=10,y=16;
+    doc.setFillColor(29,122,58); doc.rect(0,0,W,12,'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(13);
+    doc.text('PAYE — HEURES DU MOIS',M,8);
+    doc.setFontSize(9); doc.setFont('helvetica','normal');
+    doc.text(_strip(_payeMoisFr(ym))+'  ·  '+_strip(restoLbl),W-M,8,{align:'right'});
+    y=20; doc.setTextColor(30,30,30); doc.setFontSize(8); doc.setFont('helvetica','bold');
+    var cols=[['Salarié',60],['Jours',16],['H. pointées',22],['H. prévu',20],['CP',12],['Maladie',18],['Injust.',16],['Autres',16],['Bons repas',22]];
+    var x=M; cols.forEach(function(c){ doc.text(c[0], x, y); x+=c[1]; });
+    y+=2; doc.setDrawColor(180,180,180); doc.line(M,y,W-M,y); y+=4; doc.setFont('helvetica','normal');
+    var T={jt:0,hr:0,hp:0,cp:0,mal:0,inj:0,aut:0,rep:0};
+    data.forEach(function(r){
+      var autres=r.abs.absence+r.abs.css+r.abs.indispo;
+      T.jt+=r.joursTrav;T.hr+=r.hReel;T.hp+=r.hPrevu;T.cp+=r.abs.cp;T.mal+=r.abs.maladie;T.inj+=r.abs.injustifiee;T.aut+=autres;T.rep+=(+r.repas||0);
+      if(y>195){ doc.addPage('a4','landscape'); y=16; }
+      var xx=M; var vals=[ _strip(r.emp.name).slice(0,34), String(r.joursTrav), _payeH(r.hReel)+' h', _payeH(r.hPrevu)+' h', String(r.abs.cp||''), String(r.abs.maladie||''), String(r.abs.injustifiee||''), String(autres||''), String(+r.repas||0) ];
+      vals.forEach(function(v,i){ doc.text(v, cols[i][0]==='Salarié'?xx:xx, y); xx+=cols[i][1]; });
+      y+=5;
+    });
+    y+=1; doc.setDrawColor(120,120,120); doc.line(M,y,W-M,y); y+=5; doc.setFont('helvetica','bold');
+    var xt=M; var tv=['TOTAL ('+data.length+')', String(T.jt), _payeH(T.hr)+' h', _payeH(T.hp)+' h', String(T.cp||''), String(T.mal||''), String(T.inj||''), String(T.aut||''), String(T.rep)];
+    tv.forEach(function(v,i){ doc.text(v, xt, y); xt+=cols[i][1]; });
+    doc.save('paye_'+ym+_payeRestoTag()+'.pdf');
+    try{ toast('Récap PDF généré','success'); }catch(_){}
+  }catch(e){ console.warn('payePdf',e); try{ toast('PDF impossible','error'); }catch(_){} }
+}
+window.payePdf=payePdf;
+// ── Solde de tout compte (préparé ICI, dans Paye, par salarié) ──
+// Point de départ : rassemble les heures pointées du mois choisi comme base ;
+// les indemnités légales seront ajoutées quand on aura défini le format avec toi.
+function payeSTC(empId){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  var ym=_payeGetMonth(); var r=_payeCalcEmp(e, ym);
+  var ov=document.getElementById('paye-stc-ov'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='paye-stc-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.66);z-index:10001;display:flex;align-items:flex-start;justify-content:center;padding:44px 16px;overflow:auto;font-family:Barlow,sans-serif;';
+  ov.onclick=function(ev){ if(ev.target===ov) ov.remove(); };
+  ov.innerHTML='<div style="background:#1c1c1f;border:1px solid #555;border-radius:16px;max-width:460px;width:100%;padding:22px;">'
+    +'<button onclick="document.getElementById(\'paye-stc-ov\').remove()" style="float:right;background:none;border:none;color:#aaa;font-size:1.6rem;cursor:pointer;line-height:1;">×</button>'
+    +'<div style="font-weight:800;font-size:1.12rem;color:#fff;">📄 Solde de tout compte</div>'
+    +'<div style="color:#F5A623;font-size:.9rem;margin-bottom:4px;">'+_ptgEsc(e.name)+'</div>'
+    +'<div style="color:#999;font-size:.8rem;margin-bottom:14px;">Base : '+_ptgEsc(_payeMoisFr(ym))+' — heures réellement pointées.</div>'
+    +'<div style="background:#141414;border-radius:10px;padding:14px;font-size:.86rem;color:#ddd;line-height:1.7;">'
+      +'Jours travaillés : <b>'+r.joursTrav+'</b><br>'
+      +'Heures pointées : <b style="color:#3ecf8e;">'+_payeH(r.hReel)+' h</b><br>'
+      +'CP posés ce mois : <b>'+(r.abs.cp||0)+'</b> · Maladie : <b>'+(r.abs.maladie||0)+'</b><br>'
+      +'Bons repas : <b>'+(+r.repas||0)+'</b>'
+    +'</div>'
+    +'<div style="background:#2a2410;border:1px solid #5a4d1a;border-radius:10px;padding:11px;margin-top:12px;font-size:.78rem;color:#e8d9a0;">ℹ️ Brouillon : les indemnités (CP restants, préavis, indemnité de rupture…) seront ajoutées quand on aura défini le format avec ton logiciel de paye. Pour l\'instant, tu récupères la base d\'heures.</div>'
+    +'<button class="btn btn-red btn-sm" style="margin-top:14px;" onclick="payeSTCPdf(\''+e.id+'\')">📄 Télécharger le brouillon (PDF)</button>'
+  +'</div>';
+  document.body.appendChild(ov);
+}
+window.payeSTC=payeSTC;
+function payeSTCPdf(empId){
+  try{
+    var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+    var ym=_payeGetMonth(); var r=_payeCalcEmp(e, ym);
+    var doc=_pdfDoc('portrait'); var W=210,M=16,y=20;
+    doc.setFillColor(29,122,58); doc.rect(0,0,W,16,'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(14);
+    doc.text('SOLDE DE TOUT COMPTE (brouillon)',M,11);
+    y=30; doc.setTextColor(20,20,20); doc.setFont('helvetica','bold'); doc.setFontSize(12);
+    doc.text(_strip(e.name),M,y); y+=7;
+    doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(70,70,70);
+    doc.text('Restaurant : '+_strip((RESTOS[e.restoId]&&RESTOS[e.restoId].label)||e.restoId||''),M,y); y+=6;
+    doc.text('Base : '+_strip(_payeMoisFr(ym))+' (heures reellement pointees)',M,y); y+=10;
+    doc.setDrawColor(200,200,200); doc.line(M,y,W-M,y); y+=8;
+    doc.setTextColor(20,20,20); doc.setFontSize(11);
+    [['Jours travailles', String(r.joursTrav)],
+     ['Heures pointees', _payeH(r.hReel)+' h'],
+     ['Heures prevues (planning)', _payeH(r.hPrevu)+' h'],
+     ['Conges payes poses ce mois', String(r.abs.cp||0)],
+     ['Arret maladie (jours)', String(r.abs.maladie||0)],
+     ['Bons repas', String(+r.repas||0)]
+    ].forEach(function(l){ doc.setFont('helvetica','normal'); doc.text(l[0]+' :',M,y); doc.setFont('helvetica','bold'); doc.text(l[1],W-M,y,{align:'right'}); y+=8; });
+    y+=6; doc.setDrawColor(200,200,200); doc.line(M,y,W-M,y); y+=8;
+    doc.setFont('helvetica','italic'); doc.setFontSize(9); doc.setTextColor(120,90,20);
+    var note=doc.splitTextToSize('Brouillon. Les indemnites legales (conges payes restants, preavis, indemnite de rupture, primes) seront ajoutees ulterieurement, selon le format du logiciel de paye. Ce document sert de base de preparation.', W-2*M);
+    doc.text(note,M,y);
+    doc.save('STC_'+_strip(e.name).replace(/\s+/g,'_')+'_'+ym+'.pdf');
+    try{ toast('Brouillon STC téléchargé','success'); }catch(_){}
+  }catch(err){ console.warn('payeSTCPdf',err); try{ toast('PDF impossible','error'); }catch(_){} }
+}
+window.payeSTCPdf=payeSTCPdf;
+// Paramètres → Paye : réglage simple (auto bons repas), sans calcul de montant.
+function renderPayeParam(){
+  var box=document.getElementById('pc-paye-body'); if(!box) return;
+  var cfg=getPayeCfg();
+  box.innerHTML='<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:.9rem;color:#ddd;margin-bottom:12px;">'
+      +'<input type="checkbox" '+(cfg.repasAuto!==false?'checked':'')+' onchange="getPayeCfg().repasAuto=this.checked;savePayeCfg();">'
+      +'<span>Compter <b>1 bon repas par jour travaillé</b> automatiquement (modifiable à la main dans le tableau Paye).</span></label>'
+    +'<div style="background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:12px;font-size:.8rem;color:#9a9a9a;line-height:1.6;">'
+      +'La <b>Paye</b> se prépare dans <b>Rapports → 💰 Paye</b> : heures réellement pointées, mois par mois, + le nombre de bons repas. '
+      +'Le <b>format du CSV</b> (colonnes attendues par ton logiciel de paye) sera ajouté ici quand tu me l\'auras transmis — on le calera ensemble.'
+    +'</div>';
+}
+window.renderPayeParam=renderPayeParam;
 
 // Détail des incidents d'un salarié (déplié au clic sur son nom dans « Vue par salarié ») :
 // pour CHAQUE incident → date, catégorie(s) + date d'absence associée, et qui l'a déclaré.
@@ -8295,15 +8699,27 @@ function avertPdf(emp, body, titre, fnLabel, sig){
     var corps=_pdfSafe(String(body||''));
     var _si=corps.indexOf("Signature de l'employ");
     var hasSig=(_si>=0);
+    // Contrats : pas de gabarit « Signature de l'employé » dans le corps, mais on ajoute
+    // quand même le bloc signature si un statut/tracé est fourni.
+    var wantSig=hasSig || (sig && (sig.status||sig.img||sig.contrat));
     if(hasSig){ corps=corps.slice(0,_si).replace(/[\s─]+$/,''); }
     var lines=doc.splitTextToSize(corps, W-2*M);
     for(var i=0;i<lines.length;i++){ if(y>276){ doc.addPage(); y=20; } doc.text(lines[i], M, y); y+=5.6; }
-    if(hasSig){
+    if(wantSig){
       var status=sig&&sig.status;
       var nom=(sig&&sig.name)||(emp&&emp.name)||'';
       var dstr=(sig&&sig.date)?new Date(sig.date).toLocaleString('fr-FR'):'';
       y+=6; if(y>256){ doc.addPage(); y=24; }
       doc.setDrawColor(170,170,170); doc.line(M,y,W-M,y); y+=8;
+      // Contrat : signature de l'ENTREPRISE, pré-apposée depuis les réglages (« Ma signature »)
+      if(sig&&sig.contrat){
+        doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(90,90,90);
+        doc.text("POUR L'ENTREPRISE — LA DIRECTION", M, y); y+=8;
+        if(sig.dirImg){ try{ if(y>236){ doc.addPage(); y=24; } doc.addImage(sig.dirImg,'PNG',M,y,58,22); y+=26; }catch(e){ y+=2; } }
+        else { doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.setTextColor(17,17,17); doc.text('Signature : ______________________________', M, y); y+=10; }
+        if(y>248){ doc.addPage(); y=24; }
+        doc.setDrawColor(215,215,215); doc.line(M,y-1,W-M,y-1); y+=5;
+      }
       doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(90,90,90);
       doc.text("SIGNATURE DE L'EMPLOYÉ(E)", M, y); y+=9;
       if(status==='signed'){
@@ -8311,7 +8727,7 @@ function avertPdf(emp, body, titre, fnLabel, sig){
         doc.text(String(nom), M, y); y+=8;
         if(sig&&sig.img){ try{ if(y>238){ doc.addPage(); y=24; } doc.addImage(sig.img,'PNG',M,y,68,26); y+=30; }catch(e){} }
         doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(46,125,50);
-        doc.text('[X] Pris connaissance - signé le '+dstr, M, y); y+=6;
+        doc.text(((sig&&sig.contrat)?'[X] Lu et approuvé - signé le ':'[X] Pris connaissance - signé le ')+dstr, M, y); y+=6;
       } else if(status==='refused'){
         doc.setFont('helvetica','bold'); doc.setFontSize(22); doc.setTextColor(192,30,0);
         doc.text('X', M, y);
@@ -8337,10 +8753,11 @@ window.avertPdf=avertPdf;
 function telechargerPdfCourrier(lid){
   var l=(DB.letters||[]).find(function(x){return x.id===lid;}); if(!l){ toast('Document introuvable','error'); return; }
   var emp=(DB.employees||[]).find(function(e){return e.id===l.empId;})||{name:l.empName||'Salarié'};
-  var st=SANCTIONS[l.sanctionType]||{label:l.type||'Document'};
-  var titre=({ecrit:'OBSERVATION ÉCRITE',avert:'AVERTISSEMENT ÉCRIT',mise:'MISE EN DEMEURE'}[l.sanctionType])||String(st.label||'DOCUMENT').toUpperCase();
+  var isC=(l.type==='contrat'||l.sanctionType==='contrat');
+  var st=SANCTIONS[l.sanctionType]||{label:(isC?'Contrat':(l.type||'Document'))};
+  var titre=isC?'CONTRAT DE TRAVAIL':(({ecrit:'OBSERVATION ÉCRITE',avert:'AVERTISSEMENT ÉCRIT',mise:'MISE EN DEMEURE'}[l.sanctionType])||String(st.label||'DOCUMENT').toUpperCase());
   var date=(l.sigStatus==='signed')?(l.signedAt||null):((l.sigStatus==='refused')?(l.refusedAt||null):null);
-  avertPdf(emp, l.text||'', titre, st.label||'Document', {status:l.sigStatus, name:l.empName||emp.name, date:date, img:_sigImg(l)});
+  avertPdf(emp, l.text||'', titre, isC?'Contrat':(st.label||'Document'), {status:l.sigStatus, name:l.empName||emp.name, date:date, img:_sigImg(l), contrat:isC, dirImg:isC?((DB.mailSettings&&DB.mailSettings.signatureDir)||''):''});
 }
 window.telechargerPdfCourrier=telechargerPdfCourrier;
 // Archive le PDF signé / refusé (AVEC la signature manuscrite) dans le dossier Dropbox
@@ -8350,19 +8767,20 @@ async function _archiveDocSigne(l, sigPng){
   try{
     if(typeof dbxEstPret!=='function' || !dbxEstPret()) return '';
     var e=(DB.employees||[]).find(function(x){return x.id===l.empId;}); if(!e) return '';
-    var st=SANCTIONS[l.sanctionType]||{label:'Document'};
-    var titre=({ecrit:'OBSERVATION ÉCRITE',avert:'AVERTISSEMENT ÉCRIT',mise:'MISE EN DEMEURE'}[l.sanctionType])||String(st.label||'DOCUMENT').toUpperCase();
+    var isContrat=(l.type==='contrat'||l.sanctionType==='contrat');
+    var st=SANCTIONS[l.sanctionType]||{label:(isContrat?'Contrat':'Document')};
+    var titre=isContrat?'CONTRAT DE TRAVAIL':(({ecrit:'OBSERVATION ÉCRITE',avert:'AVERTISSEMENT ÉCRIT',mise:'MISE EN DEMEURE'}[l.sanctionType])||String(st.label||'DOCUMENT').toUpperCase());
     var refused=(l.sigStatus==='refused');
     var date=refused?(l.refusedAt||new Date().toISOString()):(l.signedAt||new Date().toISOString());
-    var blob=avertPdf(e, l.text||'', titre, st.label||'Document', {status:l.sigStatus, name:l.empName||e.name, date:date, img:sigPng||'', blob:true});
+    var blob=avertPdf(e, l.text||'', titre, isContrat?'Contrat':(st.label||'Document'), {status:l.sigStatus, name:l.empName||e.name, date:date, img:sigPng||'', blob:true, contrat:isContrat, dirImg:isContrat?((DB.mailSettings&&DB.mailSettings.signatureDir)||''):''});
     if(!blob) return '';
     try{ if(typeof dbxMigrerEquipe==='function') await dbxMigrerEquipe(e); }catch(_){}
     var ds=new Date().toISOString().slice(0,10);
-    var lbl=dbxClean(st.label||'Document');
+    var lbl=isContrat?'Contrat':dbxClean(st.label||'Document');
     var dest=dbxEmpFolder(e)+'/'+lbl+'_'+(refused?'refus':'signe')+'_'+ds+'.pdf';
     var link=await dbxUpload(dest, blob);
-    await sb.insert('bks_emp_docs',{id:'ds'+Date.now(),emp_id:e.id,categorie:'sanction',
-      label:(st.label||'Document')+(refused?' — refus de signer ':' — signé ')+'le '+new Date(date).toLocaleDateString('fr-FR'),
+    await sb.insert('bks_emp_docs',{id:'ds'+Date.now(),emp_id:e.id,categorie:(isContrat?'contrat':'sanction'),
+      label:(isContrat?'Contrat':(st.label||'Document'))+(refused?' — refus de signer ':' — signé ')+'le '+new Date(date).toLocaleDateString('fr-FR'),
       link:link,name:lbl+'_'+(refused?'refus':'signe')+'_'+ds+'.pdf',dbx_path:dest});
     await loadAll();
     try{ _refreshCourriers(); }catch(_){}
@@ -10225,7 +10643,7 @@ function ptgCtrlTimeline(dateISO, emps){
     var prevuH=0; segs.forEach(function(s){ prevuH+=(s.e-s.s); }); prevuH=prevuH/60;
     var reelH=null; try{ reelH=rec?ptgHeuresTravaillees(rec):null; }catch(_){}
     var sub=(segs.length?('prévu '+(Math.round(prevuH*10)/10)+'h'):'—')+(reelH!=null?(' · pointé '+(Math.round(reelH*10)/10)+'h'):'');
-    return '<div onclick="ptgEditJour(\''+e.id+'\')" title="Cliquer pour saisir le pointage ou marquer une absence" style="display:flex;align-items:stretch;border-bottom:1px solid #ececec;cursor:pointer;" onmouseover="this.style.background=\'#eef4ff\'" onmouseout="this.style.background=\'\'">'
+    return '<div onclick="ptgEditJour(\''+e.id+'\',\''+dateISO+'\')" title="Cliquer pour saisir le pointage ou marquer une absence" style="display:flex;align-items:stretch;border-bottom:1px solid #ececec;cursor:pointer;" onmouseover="this.style.background=\'#eef4ff\'" onmouseout="this.style.background=\'\'">'
       +'<div style="flex:0 0 '+NAMEW+';padding:6px 8px;min-width:0;">'
         +'<div style="font-weight:700;color:#1c1c1c;font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_ptgEsc(e.name)+'</div>'
         +'<div style="color:#888;font-size:.6rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+sub+'</div>'
@@ -10257,12 +10675,14 @@ function ptgEditAbsence(empId,dateISO,motif){
   HR_ABSENCES[empId].push({from:dateISO,to:dateISO,motif:motif,statut:'valide'});
   try{ hrSauverAbsences(); }catch(_){}
   try{ var ctx=ptgRec(empId,dateISO); ctx.rec.arrivee=''; ctx.rec.depart=''; ctx.rec.pauses=[]; ptgSaveAll(ctx.all); }catch(_){}
-  ptgEditFermer(); try{ ptgRenderSuivi(); }catch(_){} try{ updateAlBadge(); }catch(_){}
+  ptgEditFermer(); try{ ptgRenderSuivi(); }catch(_){} try{ updateAlBadge(); }catch(_){} try{ _semRefreshIfActive(); }catch(_){}
+  try{ semDepannageOnAbsence(empId,dateISO,motif); }catch(_){}
   try{ toast('Absence enregistrée : '+_etatMotifInfo(motif).court,'success'); }catch(_){}
 }
 function ptgEditPresent(empId,dateISO){
   _ptgAbsRetirerJour(empId,dateISO); try{ hrSauverAbsences(); }catch(_){}
-  ptgEditFermer(); try{ ptgRenderSuivi(); }catch(_){}
+  ptgEditFermer(); try{ ptgRenderSuivi(); }catch(_){} try{ _semRefreshIfActive(); }catch(_){}
+  try{ semDepannageRetirer(empId,dateISO); }catch(_){}
   try{ toast('Absence retirée — présent','success'); }catch(_){}
 }
 function ptgEditSavePointage(empId,dateISO){
@@ -10270,12 +10690,12 @@ function ptgEditSavePointage(empId,dateISO){
   var d=((document.getElementById('pe-dep')||{}).value||'').trim();
   try{ var ctx=ptgRec(empId,dateISO); ctx.rec.arrivee=a; ctx.rec.depart=d; ptgSaveAll(ctx.all); }catch(_){}
   if(a){ _ptgAbsRetirerJour(empId,dateISO); try{ hrSauverAbsences(); }catch(_){} }
-  ptgEditFermer(); try{ ptgRenderSuivi(); }catch(_){}
+  ptgEditFermer(); try{ ptgRenderSuivi(); }catch(_){} try{ _semRefreshIfActive(); }catch(_){}
   try{ toast('Pointage enregistré','success'); }catch(_){}
 }
 window.ptgEditAbsence=ptgEditAbsence; window.ptgEditPresent=ptgEditPresent; window.ptgEditSavePointage=ptgEditSavePointage;
-function ptgEditJour(empId){
-  var dateISO=((document.getElementById('ptgs-date')||{}).value)||ptgTodayISO();
+function ptgEditJour(empId, dateISO){
+  dateISO = dateISO || ((document.getElementById('ptgs-date')||{}).value) || ptgTodayISO();
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
   var rec=ptgGetAll()[empId+'_'+dateISO]||{};
   var prevu=null; try{ prevu=ptgPrevuDe(e,dateISO); }catch(_){}
@@ -10315,6 +10735,209 @@ function ptgEditJour(empId){
   document.body.appendChild(ov);
 }
 window.ptgEditJour=ptgEditJour;
+
+/* ════════ DÉPANNAGE / SOS — remplacement automatique des absents ════════
+ * Quand un salarié est marqué absent dans « Semaines » (ou dans le suivi des
+ * pointages), ses créneaux prévus ce jour-là partent AUTOMATIQUEMENT dans un
+ * pool « dépannage » (aucune validation humaine). Les équipiers COMPÉTENTS du
+ * MÊME restaurant les voient dans la tuile 🆘 Dépannage (Écran télé + Téléphone
+ * équipe) et peuvent « prendre » un créneau : le 1er qui clique l'obtient.
+ * Stockage LÉGER dans app_config (clé bkrh_depannage) — rien de lourd en base,
+ * comme les pointages. Aucun base64, aucun PDF : juste la liste des créneaux. */
+function depStoreKey(){ return 'bkrh_depannage'; }
+function depGetAll(){ try{ var v=JSON.parse(localStorage.getItem(depStoreKey())||'[]'); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
+function depSaveAll(arr){
+  try{ localStorage.setItem(depStoreKey(), JSON.stringify(arr||[])); }catch(e){}
+  try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:'bkrh_depannage', valeur:arr||[]},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
+}
+// Charge le pool partagé depuis Supabase puis rafraîchit l'affichage éventuel.
+async function depCharger(reRender){
+  try{
+    if(typeof SB==='undefined' || !SB) return;
+    var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_depannage').maybeSingle();
+    if(r && r.data && Array.isArray(r.data.valeur)){ try{ localStorage.setItem(depStoreKey(), JSON.stringify(r.data.valeur)); }catch(_){} }
+  }catch(e){ console.warn('dep charger',e); }
+  if(reRender){ try{ depRefreshUI(); }catch(_){} }
+}
+window.depCharger=depCharger;
+function depRefreshUI(){
+  try{ var ov=document.getElementById('dep-overlay'); if(ov && ov._empId){ depOpenOverlayById(ov._empId, true); } }catch(_){}
+  try{ if(_dashOpenTile==='dashOpenDepannage') dashOpenDepannage(); }catch(_){}
+}
+function _depMin2hm(m){ m=((m%1440)+1440)%1440; var h=Math.floor(m/60),mm=m%60; return (h<10?'0':'')+h+':'+(mm<10?'0':'')+mm; }
+function _depDateFr(iso){ try{ return new Date(iso+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long'}); }catch(_){ return iso; } }
+function _depPoste(l){ try{ return (typeof _ptgPosteLabel==='function')?_ptgPosteLabel(l):l; }catch(_){ return l; } }
+function _depCol(l){ try{ if(typeof colFor==='function'){ var c=colFor(l); return (c&&c.bg)||'#1565c0'; } }catch(_){} return '#1565c0'; }
+// Un salarié est-il éligible pour dépanner ce créneau ? (même resto, compétent,
+// pas la personne absente, pas archivé). Hors disponibilité (règle verrouillée).
+function depEligible(emp, slot){
+  if(!emp || emp.archived) return false;
+  if(String(emp.id)===String(slot.absId)) return false;
+  var r=((emp.restoId||emp.resto_id||'')+'').toLowerCase();
+  if(r!==((slot.resto||'')+'').toLowerCase()) return false;
+  try{ if(typeof hrSaitFaire==='function' && !hrSaitFaire(emp, slot.l)) return false; }catch(_){}
+  return true;
+}
+// AUTO : un salarié devient absent → ses créneaux du jour partent en dépannage.
+function semDepannageOnAbsence(empId, dateISO, motif){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  var resto=((e.restoId||e.resto_id||'')+'').toLowerCase(); if(!resto) return;
+  var segs=[]; try{ segs=_chPlanSegs(e, dateISO, resto); }catch(_){}
+  // on ne dépanne pas les créneaux d'encadrement
+  segs=(segs||[]).filter(function(s){ try{ return !estTraitEncadrement(s.l); }catch(_){ return true; } });
+  if(!segs.length) return;
+  var all=depGetAll(); var added=0;
+  segs.forEach(function(s){
+    var dup=all.some(function(d){ return String(d.absId)===String(empId) && d.jour===dateISO && d.s===s.s && d.e===s.e && d.status!=='annule'; });
+    if(dup) return;
+    all.push({ id:'dep_'+Date.now()+'_'+Math.round(Math.random()*1e6), resto:resto, absId:empId, absNom:e.name||'', jour:dateISO, s:s.s, e:s.e, l:s.l||'', motif:motif||'', status:'ouvert', prisId:'', prisNom:'', ts:Date.now() });
+    added++;
+  });
+  if(added){ depSaveAll(all); try{ toast(added+' créneau(x) envoyé(s) en dépannage 🆘','info'); }catch(_){} try{ depRefreshUI(); }catch(_){} }
+}
+window.semDepannageOnAbsence=semDepannageOnAbsence;
+// AUTO : l'absence est retirée (présent) → on retire ses créneaux encore ouverts.
+function semDepannageRetirer(empId, dateISO){
+  var all=depGetAll(); var before=all.length;
+  var kept=all.filter(function(d){ return !(String(d.absId)===String(empId) && d.jour===dateISO && d.status==='ouvert'); });
+  if(kept.length!==before){ depSaveAll(kept); try{ depRefreshUI(); }catch(_){} }
+}
+window.semDepannageRetirer=semDepannageRetirer;
+// Combien de créneaux ouverts pour un resto (badge de la tuile).
+function depNbOuverts(resto){ var r=((resto||'')+'').toLowerCase(); return depGetAll().filter(function(d){ return d.status==='ouvert' && (''+d.resto).toLowerCase()===r; }).length; }
+window.depNbOuverts=depNbOuverts;
+// Un salarié « prend » un créneau (attribution immédiate, 1er arrivé). Renvoie true/false.
+function depPrendre(slotId, emp){
+  if(!emp) return false;
+  var all=depGetAll(); var slot=all.find(function(d){ return d.id===slotId; });
+  if(!slot){ try{ toast('Créneau introuvable','error'); }catch(_){} return false; }
+  if(slot.status!=='ouvert'){ try{ toast('Ce créneau vient d\'être pris par un(e) collègue.','error'); }catch(_){} return false; }
+  if(!depEligible(emp, slot)){ try{ toast('Tu n\'as pas la compétence requise pour ce créneau.','error'); }catch(_){} return false; }
+  slot.status='pris'; slot.prisId=emp.id; slot.prisNom=emp.name||''; slot.takenTs=Date.now();
+  depSaveAll(all);
+  try{ toast('Merci '+(emp.name||'')+' ! Créneau pris 💪','success'); }catch(_){}
+  try{ depRefreshUI(); }catch(_){}
+  return true;
+}
+window.depPrendre=depPrendre;
+
+/* ── Overlay 🆘 Dépannage pour UN salarié connecté (téléphone / portail) ── */
+function depOpenOverlayById(empId, keepScroll){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  depOpenOverlay(e, keepScroll);
+}
+function depOpenOverlay(emp, keepScroll){
+  if(!emp) return;
+  var resto=((emp.restoId||emp.resto_id||'')+'').toLowerCase();
+  var all=depGetAll();
+  var mine=all.filter(function(d){ return d.status==='pris' && String(d.prisId)===String(emp.id); });
+  var open=all.filter(function(d){ return d.status==='ouvert' && depEligible(emp, d); });
+  open.sort(function(a,b){ return (a.jour<b.jour?-1:a.jour>b.jour?1:0) || (a.s-b.s); });
+  mine.sort(function(a,b){ return (a.jour<b.jour?-1:a.jour>b.jour?1:0) || (a.s-b.s); });
+  var ov=document.getElementById('dep-overlay'); var prevScroll=0;
+  if(ov){ try{ var sc=ov.querySelector('#dep-scroll'); if(sc) prevScroll=sc.scrollTop; }catch(_){} ov.remove(); }
+  ov=document.createElement('div'); ov.id='dep-overlay'; ov._empId=emp.id;
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:12050;display:flex;align-items:flex-start;justify-content:center;padding:34px 14px;overflow:auto;font-family:Barlow,sans-serif;';
+  ov.onclick=function(ev){ if(ev.target===ov) ov.remove(); };
+  function card(d, prise){
+    var col=_depCol(d.l);
+    return '<div style="background:#fff;border:1px solid #e2e2e2;border-left:5px solid '+col+';border-radius:12px;padding:12px 14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.08);">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">'
+        +'<div>'
+          +'<div style="font-weight:800;color:#1a1a1a;font-size:.96rem;text-transform:capitalize;">'+_depDateFr(d.jour)+'</div>'
+          +'<div style="color:#444;font-size:.88rem;margin-top:2px;"><span style="display:inline-block;background:'+col+';color:#fff;border-radius:5px;padding:1px 8px;font-size:.78rem;font-weight:700;">'+_ptgEsc(_depPoste(d.l))+'</span> '+_depMin2hm(d.s)+' → '+_depMin2hm(d.e)+'</div>'
+          +'<div style="color:#888;font-size:.76rem;margin-top:3px;">Remplace '+_ptgEsc(d.absNom||'—')+'</div>'
+        +'</div>'
+        +(prise
+          ? '<div style="color:#2e9e4a;font-weight:800;font-size:.86rem;">✅ Pris</div>'
+          : '<button onclick="if(depPrendre(\''+d.id+'\',(DB.employees||[]).find(function(x){return String(x.id)===String(\''+emp.id+'\');}))){}" style="background:#D62300;border:none;color:#fff;font-weight:800;border-radius:9px;padding:10px 16px;font-size:.9rem;cursor:pointer;">✋ Je prends</button>')
+      +'</div></div>';
+  }
+  var body='';
+  body+='<div style="font-size:.82rem;color:#666;margin-bottom:12px;">Créneaux à couvrir dans ton restaurant, sur les postes que tu sais faire. Le premier qui prend l\'obtient — aucune validation nécessaire.</div>';
+  if(open.length){ body+='<div style="font-weight:800;color:#D62300;font-size:.9rem;margin:6px 0 8px;">🆘 '+open.length+' créneau'+(open.length>1?'x':'')+' à dépanner</div>'+open.map(function(d){return card(d,false);}).join(''); }
+  else { body+='<div style="background:#f2f7f2;border:1px solid #cfe6cf;border-radius:12px;padding:16px;color:#2e7d32;font-size:.9rem;text-align:center;margin-bottom:12px;">👍 Aucun créneau à dépanner pour le moment.</div>'; }
+  if(mine.length){ body+='<div style="font-weight:800;color:#2e7d32;font-size:.9rem;margin:14px 0 8px;">✅ Mes dépannages acceptés</div>'+mine.map(function(d){return card(d,true);}).join(''); }
+  ov.innerHTML='<div style="background:#f6f6f6;border-radius:18px;max-width:520px;width:100%;padding:20px;max-height:88vh;display:flex;flex-direction:column;">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
+      +'<div style="font-size:1.2rem;font-weight:900;color:#1a1a1a;">🆘 Dépannage</div>'
+      +'<button onclick="document.getElementById(\'dep-overlay\').remove()" style="background:none;border:none;color:#888;font-size:1.7rem;cursor:pointer;line-height:1;">×</button>'
+    +'</div>'
+    +'<div style="font-size:.85rem;color:#555;margin-bottom:6px;">'+_ptgEsc(emp.name||'')+'</div>'
+    +'<div id="dep-scroll" style="overflow-y:auto;-webkit-overflow-scrolling:touch;padding-right:4px;">'+body+'</div>'
+  +'</div>';
+  document.body.appendChild(ov);
+  if(keepScroll){ try{ var sc2=ov.querySelector('#dep-scroll'); if(sc2) sc2.scrollTop=prevScroll; }catch(_){} }
+  try{ depCharger(false); }catch(_){}
+}
+window.depOpenOverlay=depOpenOverlay; window.depOpenOverlayById=depOpenOverlayById;
+
+/* ── Écran télé : tuile 🆘 Dépannage → panneau listant les créneaux ouverts.
+ * Comme la TV n'est liée à personne, « Je prends » demande le salarié + code. ── */
+function dashOpenDepannage(){
+  _dashOpenTile='dashOpenDepannage';
+  var resto=DASH_RESTO;
+  if(!resto){ if(typeof toast==='function') toast('Choisis d\'abord un restaurant','error'); return; }
+  var lbl=(dashRestoList().find(function(x){return x.id===resto;})||{}).label||'';
+  var body=dashOpenPanel('🆘 Dépannage — '+lbl);
+  var open=depGetAll().filter(function(d){ return d.status==='ouvert' && (''+d.resto).toLowerCase()===(''+resto).toLowerCase(); });
+  open.sort(function(a,b){ return (a.jour<b.jour?-1:a.jour>b.jour?1:0) || (a.s-b.s); });
+  var h='<div style="font-size:.85rem;color:#555;margin-bottom:12px;">Créneaux à couvrir suite à une absence. Un équipier compétent choisit un créneau, saisit son code, et l\'obtient immédiatement.</div>';
+  if(!open.length){ h+='<div style="background:#f2f7f2;border:1px solid #cfe6cf;border-radius:12px;padding:18px;color:#2e7d32;font-size:.94rem;text-align:center;">👍 Aucun créneau à dépanner pour le moment.</div>'; }
+  else {
+    h+=open.map(function(d){
+      var col=_depCol(d.l);
+      return '<div style="background:#fff;border:1px solid #e2e2e2;border-left:5px solid '+col+';border-radius:12px;padding:12px 14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">'
+        +'<div><div style="font-weight:800;color:#1a1a1a;text-transform:capitalize;">'+_depDateFr(d.jour)+'</div>'
+        +'<div style="color:#444;font-size:.88rem;margin-top:2px;"><span style="display:inline-block;background:'+col+';color:#fff;border-radius:5px;padding:1px 8px;font-size:.78rem;font-weight:700;">'+_ptgEsc(_depPoste(d.l))+'</span> '+_depMin2hm(d.s)+' → '+_depMin2hm(d.e)+'</div>'
+        +'<div style="color:#888;font-size:.76rem;margin-top:3px;">Remplace '+_ptgEsc(d.absNom||'—')+'</div></div>'
+        +'<button onclick="depPrendreEcran(\''+d.id+'\')" style="background:#D62300;border:none;color:#fff;font-weight:800;border-radius:9px;padding:10px 16px;font-size:.9rem;cursor:pointer;">✋ Je prends</button>'
+      +'</div>';
+    }).join('');
+  }
+  body.innerHTML=h;
+  try{ depCharger(true); }catch(_){}
+}
+window.dashOpenDepannage=dashOpenDepannage;
+// Écran télé : « Je prends » → choisir le salarié compétent puis saisir son code.
+function depPrendreEcran(slotId){
+  var all=depGetAll(); var slot=all.find(function(d){return d.id===slotId;});
+  if(!slot || slot.status!=='ouvert'){ try{ toast('Ce créneau n\'est plus disponible.','error'); }catch(_){} dashOpenDepannage(); return; }
+  var elig=(DB.employees||[]).filter(function(e){ return depEligible(e, slot); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+  var ov=document.getElementById('dep-pick-ov'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='dep-pick-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:12100;display:flex;align-items:flex-start;justify-content:center;padding:44px 16px;overflow:auto;font-family:Barlow,sans-serif;';
+  ov.onclick=function(ev){ if(ev.target===ov) ov.remove(); };
+  var col=_depCol(slot.l);
+  var opts='<option value="">— Choisir —</option>'+elig.map(function(e){return '<option value="'+e.id+'">'+_ptgEsc(e.name)+'</option>';}).join('');
+  ov.innerHTML='<div style="background:#fff;border-radius:16px;max-width:420px;width:100%;padding:22px;text-align:center;">'
+    +'<button onclick="document.getElementById(\'dep-pick-ov\').remove()" style="float:right;background:none;border:none;color:#999;font-size:1.5rem;cursor:pointer;line-height:1;">×</button>'
+    +'<div style="font-size:1.1rem;font-weight:900;color:#1a1a1a;margin-bottom:4px;">✋ Prendre ce créneau</div>'
+    +'<div style="color:#444;font-size:.9rem;margin-bottom:14px;text-transform:capitalize;">'+_depDateFr(slot.jour)+' · <span style="background:'+col+';color:#fff;border-radius:5px;padding:1px 8px;font-size:.8rem;font-weight:700;">'+_ptgEsc(_depPoste(slot.l))+'</span> '+_depMin2hm(slot.s)+'–'+_depMin2hm(slot.e)+'</div>'
+    +(elig.length
+      ? '<div style="text-align:left;color:#555;font-size:.82rem;margin-bottom:6px;">Qui prend le créneau ?</div>'
+        +'<select id="dep-pick-emp" class="fi" style="width:100%;margin-bottom:12px;">'+opts+'</select>'
+        +'<div style="text-align:left;color:#555;font-size:.82rem;margin-bottom:6px;">Ton code (jour + mois de naissance, ex. 0309)</div>'
+        +'<input id="dep-pick-pin" type="tel" inputmode="numeric" maxlength="4" placeholder="••••" style="width:140px;background:#f2f2f2;border:1px solid #ccc;color:#111;border-radius:10px;padding:11px;font-size:1.3rem;letter-spacing:.35em;text-align:center;margin-bottom:6px;" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');">'
+        +'<div id="dep-pick-msg" style="font-size:.82rem;min-height:18px;margin:6px 0;"></div>'
+        +'<button onclick="depPrendreEcranValider(\''+slotId+'\')" style="width:100%;background:#D62300;border:none;color:#fff;font-weight:800;border-radius:10px;padding:12px;font-size:1rem;cursor:pointer;">Valider</button>'
+      : '<div style="background:#fff4f0;border:1px solid #f2c4b4;border-radius:10px;padding:14px;color:#b03a1a;font-size:.9rem;">Aucun équipier compétent disponible dans ce restaurant pour ce poste.</div>')
+  +'</div>';
+  document.body.appendChild(ov);
+}
+window.depPrendreEcran=depPrendreEcran;
+function depPrendreEcranValider(slotId){
+  var sel=document.getElementById('dep-pick-emp'); var pin=((document.getElementById('dep-pick-pin')||{}).value||'').trim();
+  var msg=document.getElementById('dep-pick-msg');
+  function ko(t){ if(msg){ msg.style.color='#c0392b'; msg.textContent=t; } }
+  var empId=sel&&sel.value; if(!empId){ ko('Choisis ton nom.'); return; }
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e){ ko('Salarié introuvable.'); return; }
+  if(!empCodeMatch(e, pin)){ ko('Code incorrect.'); return; }
+  if(depPrendre(slotId, e)){ var ov=document.getElementById('dep-pick-ov'); if(ov) ov.remove(); dashOpenDepannage(); }
+  else { ko('Impossible de prendre ce créneau.'); }
+}
+window.depPrendreEcranValider=depPrendreEcranValider;
+
 function ptgRenderSuivi(){
   var box=document.getElementById('ptg-suivi'); if(!box) return;
   var dateISO=((document.getElementById('ptgs-date')||{}).value)||ptgTodayISO();
@@ -11082,7 +11705,7 @@ async function contratGenAction(mode){
   try{
     await sb.insert('bks_letters',{id:lid,incident_id:'',emp_id:e.id,emp_name:e.name,emp_email:e.email||'',sanction_type:'contrat',type:'contrat',status:'pending',sig_status:'pending',body:texte,created_by:reporter,created_at:new Date().toISOString()});
     await loadAll(); try{ updateVBadge(); }catch(_){}
-    try{ avertPdf(e, texte, 'CONTRAT DE TRAVAIL', 'Contrat'); }catch(_){}
+    try{ avertPdf(e, texte, 'CONTRAT DE TRAVAIL', 'Contrat', {contrat:true, dirImg:(DB.mailSettings&&DB.mailSettings.signatureDir)||''}); }catch(_){}
     var ov=document.getElementById('contratgen-ov'); if(ov) ov.remove();
     if(mode==='tablette'){ try{ signerSurPlace(lid); }catch(_){} }
     else { try{ await sendContratEmail(lid); }catch(_){} }
@@ -13861,7 +14484,7 @@ async function doSign(lid, sigPng){
   try{ ok=await sb.patch('bks_letters','id=eq.'+lid,{sig_status:'signed',signed_at:new Date().toISOString()}); }catch(e){ console.error(e); }
   if(ok===false){ alert('Signature non enregistrée. Vérifiez la connexion et réessayez.'); return; }
   try{ await loadAll(); }catch(_){}
-  try{ var _l2=DB.letters.find(function(x){return x.id===lid;}); if(_l2 && _l2.type!=='contrat' && _l2.sanctionType!=='contrat'){ _archiveDocSigne(_l2, sigPng||'').then(function(k){ if(k) _sigDocLink[lid]=k; }); } }catch(_){}
+  try{ var _l2=DB.letters.find(function(x){return x.id===lid;}); if(_l2){ _archiveDocSigne(_l2, sigPng||'').then(function(k){ if(k) _sigDocLink[lid]=k; }); } }catch(_){}
   document.getElementById('sig-body').innerHTML='<div style="text-align:center;padding:40px;"><div style="font-size:3rem;">✅</div><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.4rem;font-weight:700;color:#4CAF50;margin-top:10px;">Signature enregistrée. Merci !</div><div style="color:#aaa;font-size:.85rem;margin-top:8px;">Le document signé est enregistré dans votre dossier.</div></div>';
 }
 async function doRefuse(lid){
@@ -13871,7 +14494,7 @@ async function doRefuse(lid){
   try{ ok=await sb.patch('bks_letters','id=eq.'+lid,{sig_status:'refused',refused_at:new Date().toISOString()}); }catch(e){ console.error(e); }
   if(ok===false){ alert('Refus non enregistré. Vérifiez la connexion et réessayez.'); return; }
   try{ await loadAll(); }catch(_){}
-  try{ var _l2=DB.letters.find(function(x){return x.id===lid;}); if(_l2 && _l2.type!=='contrat' && _l2.sanctionType!=='contrat'){ _archiveDocSigne(_l2,'').then(function(k){ if(k) _sigDocLink[lid]=k; }); } }catch(_){}
+  try{ var _l2=DB.letters.find(function(x){return x.id===lid;}); if(_l2){ _archiveDocSigne(_l2,'').then(function(k){ if(k) _sigDocLink[lid]=k; }); } }catch(_){}
   document.getElementById('sig-body').innerHTML='<div style="text-align:center;padding:40px;"><div style="font-size:3rem;">❌</div><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.4rem;font-weight:700;color:#cc5555;margin-top:10px;">Refus enregistré.</div></div>';
 }
 
@@ -13966,9 +14589,9 @@ async function signPlaceSign(lid, sigPng){
   if(ok===false){ toast('⚠️ Signature non enregistrée (connexion ?). Réessayez.','error'); return; }
   try{ _refreshCourriers(); }catch(_){}
   // Archivage Dropbox (dossier du salarié) : contrat → archive contrat ; sinon → PDF signé (avec signature)
+  // Archivage Dropbox AVEC la signature manuscrite — même flux pour sanctions ET contrats.
   try{ var _lc=(DB.letters||[]).find(function(x){return x.id===lid;});
-       if(_lc && (_lc.type==='contrat'||_lc.sanctionType==='contrat')){ _archiveContrat(_lc); }
-       else if(_lc){ _archiveDocSigne(_lc, _sigMem[lid]||'').then(function(k){ if(k) _sigDocLink[lid]=k; }); } }catch(_){}
+       if(_lc){ _archiveDocSigne(_lc, _sigMem[lid]||'').then(function(k){ if(k) _sigDocLink[lid]=k; }); } }catch(_){}
   var inner=document.getElementById('signplace-inner');
   if(inner) inner.innerHTML='<div style="text-align:center;padding:22px;"><div style="font-size:2.6rem;">✅</div><div style="color:#4CAF50;font-weight:700;margin-top:8px;">Signature enregistrée le '+new Date().toLocaleDateString('fr-FR')+'. Merci !</div>'
     +'<div style="color:#aaa;font-size:.84rem;margin:12px 0;">Vous pouvez envoyer au salarié la confirmation de signature par mail.</div>'
@@ -13984,7 +14607,7 @@ async function signPlaceRefuse(lid){
   try{ ok=await sb.patch('bks_letters','id=eq.'+lid,{sig_status:'refused',refused_at:new Date().toISOString()}); await loadAll(); }catch(e){ console.error(e); }
   if(ok===false){ toast('⚠️ Refus non enregistré (connexion ?). Réessayez.','error'); return; }
   try{ _refreshCourriers(); }catch(_){}
-  try{ var _lr=(DB.letters||[]).find(function(x){return x.id===lid;}); if(_lr && _lr.type!=='contrat' && _lr.sanctionType!=='contrat'){ _archiveDocSigne(_lr,'').then(function(k){ if(k) _sigDocLink[lid]=k; }); } }catch(_){}
+  try{ var _lr=(DB.letters||[]).find(function(x){return x.id===lid;}); if(_lr){ _archiveDocSigne(_lr,'').then(function(k){ if(k) _sigDocLink[lid]=k; }); } }catch(_){}
   var inner=document.getElementById('signplace-inner');
   if(inner) inner.innerHTML='<div style="text-align:center;padding:18px;"><div style="font-size:2.6rem;">❌</div><div style="color:#cc5555;font-weight:700;margin-top:8px;">Refus de signer enregistré le '+new Date().toLocaleDateString('fr-FR')+'.</div>'
     +'<div style="color:#aaa;font-size:.84rem;margin:12px 0;">Le document reste valable et versé au dossier. Vous pouvez envoyer au salarié l\'attestation de refus par mail (elle atteste qu\'il a été présenté et refusé).</div>'
@@ -14117,7 +14740,7 @@ function voirCourrier(lid){
       +'<div style="font-size:.7rem;letter-spacing:1px;color:#777;text-transform:uppercase;">Signature de l\'employé(e)</div>'
       +'<div style="font-family:\'Segoe Script\',\'Snell Roundhand\',\'Brush Script MT\',cursive;font-size:2.1rem;color:#14315c;line-height:1.1;margin:6px 0 2px;">'+_esc(l.empName||'')+'</div>'
       +(_im?'<div style="margin:4px 0 6px;"><img src="'+_im+'" alt="signature manuscrite" style="max-width:300px;max-height:130px;background:#fff;border:1px solid #eee;border-radius:6px;"></div>':'')
-      +'<div style="color:#2e7d32;font-weight:700;font-size:.85rem;">✔ Pris connaissance — signé le '+d(l.signedAt)+'</div></div>';
+      +'<div style="color:#2e7d32;font-weight:700;font-size:.85rem;">✔ '+(((l.type==='contrat')||(l.sanctionType==='contrat'))?'Signé (lu et approuvé) le ':'Pris connaissance — signé le ')+d(l.signedAt)+'</div></div>';
   } else if(l.sigStatus==='refused'){
     sigHtml='<div style="margin-top:16px;border-top:1px dashed #bbb;padding-top:12px;">'
       +'<div style="font-size:.7rem;letter-spacing:1px;color:#777;text-transform:uppercase;">Signature de l\'employé(e)</div>'
@@ -14790,6 +15413,7 @@ var DASH_RESTO=null,_dashClockTm=null,_dashRefreshTm=null,_dashOpenTile=null;
 var DASH_TILES=[
   {id:'horaires',  em:'🗓️', tt:'Mes horaires',     ds:'Planning de la semaine', color:'#1565c0', action:'dashOpenHoraires'},
   {id:'planningjour',em:'📋', tt:'Planning du jour', ds:"Les traits de l'équipe aujourd'hui", color:'#0097a7', action:'dashOpenPlanningJour'},
+  {id:'depannage', em:'🆘', tt:'Dépannage',          ds:'Créneaux à couvrir (absences)', color:'#D62300', action:'dashOpenDepannage'},
   {id:'pointer',   em:'⏱️', tt:'Pointer',           ds:'Arrivée / départ',       color:'#2e7d32', action:'dashOpenPointer'},
   {id:'conges',    em:'🏖️', tt:'Mes congés',        ds:'Demander des vacances',  color:'#F5A623', action:'dashOpenConges'},
   {id:'indispo',   em:'🚫', tt:'Indisponibilités', ds:'Jours où je ne peux pas',color:'#FF8732', action:'dashOpenIndispo'},
@@ -16118,6 +16742,7 @@ function telPreviewTile(kind){
     var em=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
     try{ msgOpenOverlay(em); }catch(err){console.warn(err);}
   }
+  else if(kind==='depannage'){ try{ depOpenOverlayById(empId); }catch(err){console.warn(err);} var od2=document.getElementById('dep-overlay'); if(od2)od2.style.zIndex='11900'; }
   else if(kind==='produits'){ try{ biblioOpen('produits', resto); }catch(err){console.warn(err);} }
   else if(kind==='marchandise'){ try{ biblioOpen('marchandise', resto); }catch(err){console.warn(err);} }
   else { _dashDemType=kind; try{dashDemOpen(empId,true);}catch(e){console.warn(e);} var o2=document.getElementById('dash-dem-ov'); if(o2)o2.style.zIndex='11800'; }
@@ -16312,6 +16937,7 @@ function eqOpenTile(kind){
   if(kind==='horaires'){ try{ dashHorairesOpen(e.id, true); }catch(err){console.warn(err);} var o=document.getElementById('dash-hor-ov'); if(o)o.style.zIndex='12000'; }
   else if(kind==='conges'){ _dashDemType='conges'; try{ dashDemOpen(e.id, true); }catch(err){console.warn(err);} var o2=document.getElementById('dash-dem-ov'); if(o2)o2.style.zIndex='12000'; }
   else if(kind==='indispo'){ _dashDemType='indispo'; try{ dashDemOpen(e.id, true); }catch(err){console.warn(err);} var o3=document.getElementById('dash-dem-ov'); if(o3)o3.style.zIndex='12000'; }
+  else if(kind==='depannage'){ try{ depOpenOverlay(e); }catch(err){console.warn(err);} var od=document.getElementById('dep-overlay'); if(od)od.style.zIndex='12500'; }
   else if(kind==='actu'){ eqOpenActu(); }
   else if(kind==='msg'){ try{ msgOpenOverlay(e); }catch(err){console.warn(err);} }
   else if(kind==='produits'){ try{ biblioOpen('produits', e.restoId||e.resto_id); }catch(err){console.warn(err);} }
@@ -19692,7 +20318,7 @@ function hrEERenderTuiles(){
   html+='<div style="font-size:.84rem;color:#aaa;margin-bottom:14px;">Restaurant : <b style="color:#fff;">'+_hrEERestoLabel()+'</b> · '+eq.length+' équipier(s). Choisis ce que tu veux gérer.</div>';
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;">';
   tuiles.forEach(function(t){
-    html+='<div onclick="hrEEOuvrir(\''+t.vue+'\')"'+(typeof tileDragAttrs==='function'?tileDragAttrs('etatequipe',t.vue):'')+' style="cursor:pointer;background:linear-gradient(135deg,#1c1c1c,#262626);border:1px solid #383838;border-left:4px solid '+t.col+';border-radius:14px;padding:18px;transition:transform .1s,border-color .15s;position:relative;" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.borderColor=\''+t.col+'\';" onmouseout="this.style.transform=\'\';this.style.borderColor=\'#383838\';">'
+    html+='<div class="ee-tuile" onclick="hrEEOuvrir(\''+t.vue+'\')"'+(typeof tileDragAttrs==='function'?tileDragAttrs('etatequipe',t.vue):'')+' style="cursor:pointer;background:linear-gradient(135deg,#1c1c1c,#262626);border:1px solid #383838;border-left:4px solid '+t.col+';border-radius:14px;padding:18px;transition:transform .1s,border-color .15s;position:relative;" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.borderColor=\''+t.col+'\';" onmouseout="this.style.transform=\'\';this.style.borderColor=\'#383838\';">'
       +(t.badge?'<span style="position:absolute;top:12px;right:12px;background:#b8860b;color:#000;font-weight:800;border-radius:50%;min-width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.74rem;padding:0 5px;">'+t.badge+'</span>':'')
       +'<div style="font-size:2rem;line-height:1;margin-bottom:10px;">'+t.ico+'</div>'
       +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:800;font-size:1.25rem;color:#fff;text-transform:uppercase;letter-spacing:.5px;">'+t.titre+'</div>'
