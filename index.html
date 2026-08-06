@@ -20155,7 +20155,7 @@ function hrSauverAffect(){
   var clean={};
   Object.keys(HR_AFFECT||{}).forEach(function(iso){
     var arr=HR_AFFECT[iso]; if(!arr||!arr.length) return;
-    clean[iso]=arr.map(function(a){return {l:a.l,s:a.s,e:a.e,emp:a.emp,empId:a.empId};});
+    clean[iso]=arr.map(function(a){var o={l:a.l,s:a.s,e:a.e,emp:a.emp,empId:a.empId};var _t=(a._integration?'int':(a._complement?'cmp':a.t));if(_t)o.t=_t;if(a.col)o.col=a.col;return o;});
   });
   HR_AFFECT_BY_RESTO[resto]=clean;
   var cle='hr_affect_'+resto;
@@ -20673,7 +20673,7 @@ function hrComplementContrats(){
   var joursParCA=[0,1,2,3,4,5,6].slice().sort(function(a,b){ return ((typeof DAY_TOTALS!=='undefined'&&DAY_TOTALS[b])||0)-((typeof DAY_TOTALS!=='undefined'&&DAY_TOTALS[a])||0); });
   var ajouts=[], nonPlaces=[];
   function poser(e,d,s,en,poste){
-    var bar={l:poste,s:s,e:en,empId:e.id,emp:e.name,col:((typeof col==='function')?col(poste).bg:'#1d7a3a'),_complement:true};
+    var bar={l:poste,s:s,e:en,empId:e.id,emp:e.name,col:COL_COMPLEMENT,_complement:true,t:'cmp'};
     (ROWS_BY_DAY[d]=ROWS_BY_DAY[d]||[]).push({bars:[bar],_complement:true});
     (busy[e.id][d]=busy[e.id][d]||[]).push({s:s,e:en}); placed[e.id]+=(en-s);
     ajouts.push({nom:e.name,jour:_cmpJoursN[d],poste:poste,h:_cmpHM(s)+'–'+_cmpHM(en)});
@@ -20712,7 +20712,7 @@ function hrComplementContrats(){
   });
   // Réécrire HR_AFFECT depuis ROWS_BY_DAY + sauvegarder + réafficher
   try{
-    for(var d3=0; d3<7; d3++){ var iso=DAY_DATES[d3]; if(!iso) continue; var arr=[]; (ROWS_BY_DAY[d3]||[]).forEach(function(r){ (r.bars||[]).forEach(function(b){ if(b.empId!=null) arr.push({l:b.l,s:b.s,e:b.e,emp:b.emp,empId:b.empId}); }); }); HR_AFFECT[iso]=arr; }
+    for(var d3=0; d3<7; d3++){ var iso=DAY_DATES[d3]; if(!iso) continue; var arr=[]; (ROWS_BY_DAY[d3]||[]).forEach(function(r){ (r.bars||[]).forEach(function(b){ if(b.empId!=null){ var _o={l:b.l,s:b.s,e:b.e,emp:b.emp,empId:b.empId}; var _t=(b._integration?'int':(b._complement?'cmp':b.t)); if(_t)_o.t=_t; if(b.col)_o.col=b.col; arr.push(_o); } }); }); HR_AFFECT[iso]=arr; }
     if(typeof hrSauverAffect==='function') hrSauverAffect();
   }catch(_e){ console.warn('cmp save',_e); }
   try{ if(typeof renderTimeline==='function') renderTimeline(); }catch(_){}
@@ -20739,9 +20739,9 @@ window.hrComplementContrats=hrComplementContrats;
  * jours-là. Après, elle entre dans les horaires comme tout le monde (bouche-trous).
  * Paramétrage : Paramètres → Semaine intégration. Application : État équipe → Semaine intégration. */
 var INTEG=null;
-function getInteg(){ if(INTEG) return INTEG; try{ var r=localStorage.getItem('bkrh_integration'); INTEG=r?JSON.parse(r):null; }catch(e){ INTEG=null; } if(!INTEG||typeof INTEG!=='object') INTEG={modeles:[],affect:{}}; if(!INTEG.modeles) INTEG.modeles=[]; if(!INTEG.affect) INTEG.affect={}; return INTEG; }
+function getInteg(){ if(INTEG) return INTEG; try{ var r=localStorage.getItem('bkrh_integration'); INTEG=r?JSON.parse(r):null; }catch(e){ INTEG=null; } if(!INTEG||typeof INTEG!=='object') INTEG={modeles:[],affect:{}}; if(!INTEG.modeles) INTEG.modeles=[]; if(!INTEG.affect) INTEG.affect={}; if(!INTEG.accompagnateurs) INTEG.accompagnateurs=[]; return INTEG; }
 function saveInteg(){ var o=getInteg(); try{ localStorage.setItem('bkrh_integration',JSON.stringify(o)); }catch(e){} try{ if(typeof SB!=='undefined'&&SB) SB.from('app_config').upsert({cle:'bkrh_integration',valeur:o},{onConflict:'cle'}).then(function(){},function(){}); }catch(e){} }
-async function hrChargerInteg(){ try{ if(typeof SB==='undefined'||!SB) return; var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_integration').maybeSingle(); if(r&&r.data&&r.data.valeur){ INTEG=r.data.valeur; if(!INTEG.modeles)INTEG.modeles=[]; if(!INTEG.affect)INTEG.affect={}; try{localStorage.setItem('bkrh_integration',JSON.stringify(INTEG));}catch(e){} } }catch(e){} }
+async function hrChargerInteg(){ try{ if(typeof SB==='undefined'||!SB) return; var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_integration').maybeSingle(); if(r&&r.data&&r.data.valeur){ INTEG=r.data.valeur; if(!INTEG.modeles)INTEG.modeles=[]; if(!INTEG.affect)INTEG.affect={}; if(!INTEG.accompagnateurs)INTEG.accompagnateurs=[]; try{localStorage.setItem('bkrh_integration',JSON.stringify(INTEG));}catch(e){} } }catch(e){} }
 window.hrChargerInteg=hrChargerInteg;
 function _intISO(d){ return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
 function _intNextId(){ var n=0; getInteg().modeles.forEach(function(m){ var k=parseInt((''+m.id).replace(/\D/g,''),10); if(!isNaN(k)&&k>n)n=k; }); return 'mod'+(n+1); }
@@ -20758,7 +20758,28 @@ window.hrEnIntegration=hrEnIntegration;
 function renderIntegrationParam(){
   var box=document.getElementById('pc-integration-body'); if(!box) return;
   var data=getInteg(); var modeles=data.modeles||[]; var postes=_cmpPostes();
-  var h='<div style="margin-bottom:12px;"><button class="btn btn-red btn-sm" onclick="integAddModele()">➕ Nouveau modèle</button></div>';
+  // ── Accompagnateurs (parrains d'intégration) : salariés de l'équipe qui peuvent accompagner une recrue ──
+  var acc=data.accompagnateurs||[];
+  var _resto=(typeof _cmpRestoActif==='function')?_cmpRestoActif():null;
+  var team=(DB.employees||[]).filter(function(e){ return e && !e.archived
+      && (!_resto||_resto==='all'||String(e.restoId||'').toLowerCase()===String(_resto).toLowerCase())
+      && (e.role==='equipier'||e.role==='leader'||e.role==='directeur'); })
+    .sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+  var accH='<div style="background:#161616;border:1px solid #3a2a4a;border-radius:12px;padding:14px;margin-bottom:16px;">'
+    +'<div style="font-weight:800;color:#c39bd3;margin-bottom:4px;">👥 Accompagnateurs (parrains d\'intégration)</div>'
+    +'<p style="font-size:.78rem;color:#9a9a9a;margin-bottom:10px;line-height:1.5;">Coche les salariés qui peuvent <b>accompagner</b> une nouvelle recrue. Ensuite, dans <b>État équipe → Semaine intégration</b>, tu affectes une recrue à un accompagnateur : elle prendra <b>les mêmes horaires</b> que lui (modifiables), affichés en <b>violet</b> dans le planning.</p>';
+  if(!team.length){ accH+='<div style="color:#777;font-size:.82rem;">Aucun salarié dans l\'équipe pour ce restaurant.</div>'; }
+  else {
+    accH+='<div style="display:flex;flex-wrap:wrap;gap:8px;">'+team.map(function(e){
+      var on=acc.indexOf(e.id)>=0;
+      return '<label style="display:flex;align-items:center;gap:6px;background:'+(on?'#2a1e3a':'#111')+';border:1px solid '+(on?'#8e44ad':'#333')+';border-radius:8px;padding:6px 10px;cursor:pointer;font-size:.82rem;color:#eee;">'
+        +'<input type="checkbox" '+(on?'checked':'')+' onchange="integToggleAccompagnateur(\''+e.id+'\')" style="width:15px;height:15px;accent-color:#8e44ad;"> '+((e.name||'').replace(/</g,'&lt;'))+'</label>';
+    }).join('')+'</div>';
+  }
+  accH+='</div>';
+  var h=accH
+    +'<div style="font-weight:800;color:#ddd;margin-bottom:6px;">📋 Modèles d\'intégration (optionnel)</div>'
+    +'<div style="margin-bottom:12px;"><button class="btn btn-red btn-sm" onclick="integAddModele()">➕ Nouveau modèle</button></div>';
   h+='<p style="font-size:.8rem;color:#9a9a9a;margin-bottom:14px;line-height:1.6;">Crée des modèles d\'intégration réutilisables (ex. « Cuisine », « Drive », « Nuit », « Fermeture »). Chaque modèle est une suite de <b>journées-type</b> (poste + heures) : J1, J2, J3… La recrue sera placée <b>en doublon</b> sur ces journées. Tu appliques un modèle à un salarié dans <b>État équipe → Semaine intégration</b>.</p>';
   if(!modeles.length){ box.innerHTML=h+'<div style="background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:16px;color:#888;">Aucun modèle. Clique « ➕ Nouveau modèle ».</div>'; return; }
   modeles.forEach(function(m,mi){
@@ -20796,6 +20817,8 @@ function integAddJour(id){ var d=getInteg(); var m=d.modeles.find(function(x){re
 function integDelJour(id,ji){ var d=getInteg(); var m=d.modeles.find(function(x){return x.id===id;}); if(m&&m.jours){ m.jours.splice(ji,1); saveInteg(); renderIntegrationParam(); } }
 function integSetJour(id,ji,field,val){ var d=getInteg(); var m=d.modeles.find(function(x){return x.id===id;}); if(!m||!m.jours||!m.jours[ji]) return; var j=m.jours[ji]; if(field==='poste')j.poste=val; else if(field==='debut')j.debut=_cmpMin(val); else if(field==='fin')j.fin=_cmpMin(val); saveInteg(); }
 window.integAddModele=integAddModele; window.integDelModele=integDelModele; window.integSetNom=integSetNom; window.integAddJour=integAddJour; window.integDelJour=integDelJour; window.integSetJour=integSetJour;
+function integToggleAccompagnateur(empId){ var d=getInteg(); if(!d.accompagnateurs)d.accompagnateurs=[]; var i=d.accompagnateurs.indexOf(empId); if(i>=0)d.accompagnateurs.splice(i,1); else d.accompagnateurs.push(empId); saveInteg(); renderIntegrationParam(); }
+window.integToggleAccompagnateur=integToggleAccompagnateur;
 
 /* ── État équipe → Semaine intégration (application par salarié) ── */
 function hrEERenderIntegration(){
@@ -20804,29 +20827,62 @@ function hrEERenderIntegration(){
   var data=getInteg(); var modeles=data.modeles||[]; var affect=data.affect||{};
   var eqs=(DB.employees||[]).filter(function(e){return e && !e.archived && e.restoId===resto && e.role==='equipier';}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
   var h=(typeof _hrEEHeader==='function')?_hrEEHeader('🎓 Semaine intégration'):'<div style="margin-bottom:10px;"><button onclick="hrEERetour()" class="btn btn-gray btn-sm">← Retour</button></div><div style="font-weight:800;font-size:1.2rem;color:#fff;margin-bottom:8px;">🎓 Semaine intégration</div>';
-  h+='<div style="font-size:.84rem;color:#aaa;margin-bottom:12px;line-height:1.6;">Applique un <b>modèle d\'intégration</b> (défini dans Paramètres) à une nouvelle recrue : elle sera placée <b>en doublon</b> les premiers jours (pour se former) et <b>exclue de la rotation normale</b> ces jours-là. Après, elle entre dans les horaires comme tout le monde.</div>';
-  if(!modeles.length){
-    h+='<div style="background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:16px;color:#888;">Aucun modèle d\'intégration. Crée-en dans <b>Paramètres → Semaine intégration</b>.</div>';
+  h+='<div style="font-size:.84rem;color:#aaa;margin-bottom:12px;line-height:1.6;">Affecte une nouvelle recrue à un <b>accompagnateur</b> (elle prend ses horaires, en <b>violet</b>) ou applique un <b>modèle</b>. Elle est placée <b>en doublon</b> les premiers jours pour se former, puis entre dans la rotation normale. Ouvre la semaine dans <b>Horaires</b> puis clique « Placer les intégrations ».</div>';
+  // Accompagnateurs configurés dans Paramètres (parrains), présents dans ce resto.
+  var mentors=(DB.employees||[]).filter(function(e){ return e && !e.archived && e.restoId===resto && (data.accompagnateurs||[]).indexOf(e.id)>=0; }).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+  if(!modeles.length && !mentors.length){
+    h+='<div style="background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:16px;color:#888;">Rien de configuré. Va dans <b>Paramètres → Semaine intégration</b> pour cocher des <b>accompagnateurs</b> (recommandé) ou créer un <b>modèle</b>.</div>';
     box.innerHTML=h; return;
   }
-  // Formulaire d'ajout
-  h+='<div style="background:#161616;border:1px solid #2a2a2a;border-radius:12px;padding:14px;margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">'
-    +'<div><label class="flabel">Salarié</label><select id="int-emp" class="fi" style="width:auto;">'+eqs.map(function(e){return '<option value="'+e.id+'">'+(e.name||'')+'</option>';}).join('')+'</select></div>'
-    +'<div><label class="flabel">Modèle</label><select id="int-mod" class="fi" style="width:auto;">'+modeles.map(function(m){return '<option value="'+m.id+'">'+(m.nom||'')+' ('+(m.jours||[]).length+' j)</option>';}).join('')+'</select></div>'
-    +'<div><label class="flabel">1er jour</label><input type="date" id="int-date" class="fi" style="width:auto;"></div>'
-    +'<div><label class="flabel">Nb jours</label><input type="number" id="int-nb" min="1" max="15" value="4" class="fi" style="width:70px;"></div>'
-    +'<button class="btn btn-red btn-sm" onclick="integAjouter()">Ajouter</button>'
-  +'</div>';
+  // ── Formulaire A : intégration ACCOMPAGNÉE (mêmes horaires qu'un salarié) ──
+  if(mentors.length){
+    h+='<div style="background:#161616;border:1px solid #3a2a4a;border-radius:12px;padding:14px;margin-bottom:14px;">'
+      +'<div style="font-weight:800;color:#c39bd3;margin-bottom:8px;">👥 Intégration accompagnée — mêmes horaires qu\'un salarié</div>'
+      +'<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">'
+        +'<div><label class="flabel">Recrue</label><select id="int-acc-emp" class="fi" style="width:auto;">'+eqs.map(function(e){return '<option value="'+e.id+'">'+((e.name||'').replace(/</g,'&lt;'))+'</option>';}).join('')+'</select></div>'
+        +'<div><label class="flabel">Accompagnateur</label><select id="int-acc-mentor" class="fi" style="width:auto;">'+mentors.map(function(e){return '<option value="'+e.id+'">'+((e.name||'').replace(/</g,'&lt;'))+'</option>';}).join('')+'</select></div>'
+        +'<div><label class="flabel">1er jour</label><input type="date" id="int-acc-date" class="fi" style="width:auto;"></div>'
+        +'<div><label class="flabel">Nb jours</label><input type="number" id="int-acc-nb" min="1" max="15" value="4" class="fi" style="width:70px;"></div>'
+        +'<button class="btn btn-red btn-sm" style="background:#8e44ad;border-color:#8e44ad;" onclick="integAjouterAccompagne()">Ajouter</button>'
+      +'</div>'
+      +'<p style="font-size:.72rem;color:#777;margin-top:8px;">La recrue reprend les mêmes créneaux que l\'accompagnateur (en <b>violet</b>, en doublon). Tu pourras ensuite les modifier directement dans le planning.</p>'
+    +'</div>';
+  } else {
+    h+='<div style="background:#161616;border:1px solid #2a2a2a;border-radius:10px;padding:12px;color:#888;font-size:.82rem;margin-bottom:14px;">👥 Aucun accompagnateur coché. Va dans <b>Paramètres → Semaine intégration</b> pour en choisir (intégration « mêmes horaires »).</div>';
+  }
+  // ── Formulaire B : intégration par MODÈLE (optionnel, existant) ──
+  if(modeles.length){
+    h+='<div style="background:#161616;border:1px solid #2a2a2a;border-radius:12px;padding:14px;margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">'
+      +'<div style="width:100%;font-weight:700;color:#ddd;font-size:.85rem;">📋 Ou via un modèle</div>'
+      +'<div><label class="flabel">Salarié</label><select id="int-emp" class="fi" style="width:auto;">'+eqs.map(function(e){return '<option value="'+e.id+'">'+(e.name||'')+'</option>';}).join('')+'</select></div>'
+      +'<div><label class="flabel">Modèle</label><select id="int-mod" class="fi" style="width:auto;">'+modeles.map(function(m){return '<option value="'+m.id+'">'+(m.nom||'')+' ('+(m.jours||[]).length+' j)</option>';}).join('')+'</select></div>'
+      +'<div><label class="flabel">1er jour</label><input type="date" id="int-date" class="fi" style="width:auto;"></div>'
+      +'<div><label class="flabel">Nb jours</label><input type="number" id="int-nb" min="1" max="15" value="4" class="fi" style="width:70px;"></div>'
+      +'<button class="btn btn-red btn-sm" onclick="integAjouter()">Ajouter</button>'
+    +'</div>';
+  }
   // Liste des intégrations en cours pour ce resto
   var lignes=Object.keys(affect).map(function(empId){
     var e=eqs.find(function(x){return String(x.id)===String(empId);}); if(!e) return '';
-    var a=affect[empId]; var m=modeles.find(function(x){return x.id===a.modeleId;});
+    var a=affect[empId];
     var fin=''; try{ var d0=new Date(a.dateDebut+'T12:00:00'); fin=_intISO(new Date(d0.getTime()+((a.nbJours||1)-1)*86400000)); }catch(_){}
-    return '<div style="display:flex;align-items:center;gap:10px;background:#141414;border:1px solid #2a2a2a;border-radius:8px;padding:8px 12px;margin-bottom:6px;">'
-      +'<span style="color:#fff;font-weight:700;">'+(e.name||'')+'</span>'
-      +'<span style="color:#9a9a9a;font-size:.82rem;">'+((m&&m.nom)||'?')+' · du '+(a.dateDebut||'?')+' au '+(fin||'?')+' · '+(a.nbJours||'?')+' j en doublon</span>'
-      +'<span style="flex:1;"></span>'
-      +'<button onclick="integRetirer(\''+empId+'\')" style="background:#3a1616;border:1px solid #6a2a2a;color:#e88;border-radius:6px;cursor:pointer;padding:4px 9px;font-size:.78rem;">Retirer</button>'
+    var desc, apercu='';
+    if(a.mentorId){
+      var mt=(DB.employees||[]).find(function(x){return String(x.id)===String(a.mentorId);});
+      desc='👥 avec '+(((mt&&mt.name)||'?').replace(/</g,'&lt;'))+' (mêmes horaires)';
+      apercu=_integApercuMentor(a.mentorId, a.dateDebut, a.nbJours||1);
+    } else {
+      var m=modeles.find(function(x){return x.id===a.modeleId;});
+      desc='📋 '+(((m&&m.nom)||'?').replace(/</g,'&lt;'));
+    }
+    return '<div style="background:#141414;border:1px solid #2a2a2a;border-radius:8px;padding:8px 12px;margin-bottom:6px;">'
+      +'<div style="display:flex;align-items:center;gap:10px;">'
+        +'<span style="color:#fff;font-weight:700;">'+((e.name||'').replace(/</g,'&lt;'))+'</span>'
+        +'<span style="color:#9a9a9a;font-size:.82rem;">'+desc+' · du '+(a.dateDebut||'?')+' au '+(fin||'?')+' · '+(a.nbJours||'?')+' j en doublon</span>'
+        +'<span style="flex:1;"></span>'
+        +'<button onclick="integRetirer(\''+empId+'\')" style="background:#3a1616;border:1px solid #6a2a2a;color:#e88;border-radius:6px;cursor:pointer;padding:4px 9px;font-size:.78rem;">Retirer</button>'
+      +'</div>'
+      +(apercu?('<div style="font-size:.74rem;color:#c39bd3;margin-top:5px;">🕐 '+apercu+'</div>'):'')
     +'</div>';
   }).filter(Boolean).join('');
   h+='<div style="font-size:.82rem;color:#ccc;font-weight:700;margin-bottom:6px;">Intégrations en cours</div>'+(lignes||'<div style="color:#777;font-size:.82rem;margin-bottom:10px;">Aucune pour le moment.</div>');
@@ -20846,6 +20902,32 @@ function integAjouter(){
 }
 function integRetirer(empId){ var d=getInteg(); delete d.affect[empId]; saveInteg(); hrEERenderIntegration(); }
 window.integAjouter=integAjouter; window.integRetirer=integRetirer;
+// Intégration ACCOMPAGNÉE : la recrue prend les mêmes horaires qu'un salarié accompagnateur.
+function integAjouterAccompagne(){
+  var empId=(document.getElementById('int-acc-emp')||{}).value;
+  var mentorId=(document.getElementById('int-acc-mentor')||{}).value;
+  var date=(document.getElementById('int-acc-date')||{}).value;
+  var nb=parseInt((document.getElementById('int-acc-nb')||{}).value,10)||4;
+  if(!empId||!mentorId||!date){ try{toast('Choisis recrue, accompagnateur et 1er jour','error');}catch(_){} return; }
+  if(String(empId)===String(mentorId)){ try{toast('La recrue et l\'accompagnateur doivent être différents','error');}catch(_){} return; }
+  var d=getInteg(); d.affect[empId]={mentorId:mentorId,source:'mentor',dateDebut:date,nbJours:nb}; saveInteg();
+  hrEERenderIntegration();
+  try{ toast('Intégration accompagnée enregistrée ✔','success'); }catch(_){}
+}
+window.integAjouterAccompagne=integAjouterAccompagne;
+// Aperçu des créneaux de l'accompagnateur sur la période d'intégration (lecture du planning).
+function _integApercuMentor(mentorId, dateDebut, nbJours){
+  if(!dateDebut) return '';
+  var d0; try{ d0=new Date(dateDebut+'T12:00:00'); }catch(_){ return ''; }
+  var JN=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; var out=[];
+  for(var i=0;i<(nbJours||1);i++){
+    var dt=new Date(d0.getTime()+i*86400000); var iso=_intISO(dt); var shifts=[];
+    try{ if(typeof DAY_DATES!=='undefined' && typeof ROWS_BY_DAY!=='undefined'){ var di=DAY_DATES.indexOf(iso); if(di>=0){ (ROWS_BY_DAY[di]||[]).forEach(function(r){ (r.bars||[]).forEach(function(b){ if(b.empId!=null && String(b.empId)===String(mentorId) && !b._integration){ shifts.push({s:b.s,e:b.e}); } }); }); } } }catch(_){}
+    if(!shifts.length){ try{ (HR_AFFECT[iso]||[]).forEach(function(b){ if(String(b.empId)===String(mentorId)){ shifts.push({s:b.s,e:b.e}); } }); }catch(_){} }
+    if(shifts.length){ shifts.sort(function(a,b){return a.s-b.s;}); var jj=(dt.getDay()+6)%7; out.push(JN[jj]+' '+shifts.map(function(x){return _cmpHM(x.s)+'–'+_cmpHM(x.e);}).join(', ')); }
+  }
+  return out.length?out.join('  ·  '):'(horaires du salarié introuvables sur cette période — ouvre la semaine concernée dans Horaires)';
+}
 // Place les doublons d'intégration sur la semaine affichée dans Horaires.
 function hrPlacerIntegrations(){
   var res=document.getElementById('int-result');
@@ -20857,7 +20939,28 @@ function hrPlacerIntegrations(){
   var added=0, noms={};
   Object.keys(affect).forEach(function(empId){
     var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e||e.restoId!==resto) return;
-    var a=affect[empId]; var m=byId[a.modeleId]; if(!m||!(m.jours||[]).length||!a.dateDebut) return;
+    var a=affect[empId];
+    // ── Intégration ACCOMPAGNÉE : copier les créneaux réels de l'accompagnateur ──
+    if(a.mentorId){
+      if(!a.dateDebut) return;
+      var d0m=new Date(a.dateDebut+'T12:00:00');
+      for(var im=0;im<(a.nbJours||1);im++){
+        var dtm=new Date(d0m.getTime()+im*86400000); var isom=_intISO(dtm);
+        var dim=DAY_DATES.indexOf(isom); if(dim<0) continue;
+        // créneaux affichés du mentor ce jour (hors doublons d'intégration)
+        var mshifts=[];
+        (ROWS_BY_DAY[dim]||[]).forEach(function(r){ (r.bars||[]).forEach(function(b){ if(b.empId!=null && String(b.empId)===String(a.mentorId) && !b._integration && b.s!=null && b.e!=null && b.e>b.s){ mshifts.push({l:b.l,s:b.s,e:b.e}); } }); });
+        mshifts.forEach(function(ms){
+          var exists=(ROWS_BY_DAY[dim]||[]).some(function(r){ return (r.bars||[]).some(function(b){ return b._integration && String(b.empId)===String(empId) && b.s===ms.s && b.e===ms.e; }); });
+          if(exists) return;
+          var barm={l:ms.l,s:ms.s,e:ms.e,empId:e.id,emp:e.name,col:COL_INTEGRATION,_integration:true,_doublon:true,t:'int'};
+          (ROWS_BY_DAY[dim]=ROWS_BY_DAY[dim]||[]).push({bars:[barm],_integration:true});
+          added++; noms[e.name]=1;
+        });
+      }
+      return;
+    }
+    var m=byId[a.modeleId]; if(!m||!(m.jours||[]).length||!a.dateDebut) return;
     var d0=new Date(a.dateDebut+'T12:00:00');
     for(var i=0;i<(a.nbJours||m.jours.length);i++){
       var dt=new Date(d0.getTime()+i*86400000); var iso=_intISO(dt);
@@ -20865,13 +20968,13 @@ function hrPlacerIntegrations(){
       var jour=m.jours[Math.min(i, m.jours.length-1)]; if(!jour||jour.debut==null||jour.fin==null||jour.fin<=jour.debut) continue;
       var exists=(ROWS_BY_DAY[di]||[]).some(function(r){ return (r.bars||[]).some(function(b){ return b._integration && String(b.empId)===String(empId) && b.s===jour.debut && b.e===jour.fin; }); });
       if(exists) continue;
-      var bar={l:jour.poste,s:jour.debut,e:jour.fin,empId:e.id,emp:e.name,col:((typeof col==='function')?col(jour.poste).bg:'#1d7a3a'),_integration:true,_doublon:true};
+      var bar={l:jour.poste,s:jour.debut,e:jour.fin,empId:e.id,emp:e.name,col:COL_INTEGRATION,_integration:true,_doublon:true,t:'int'};
       (ROWS_BY_DAY[di]=ROWS_BY_DAY[di]||[]).push({bars:[bar],_integration:true});
       added++; noms[e.name]=1;
     }
   });
   try{
-    for(var d3=0; d3<7; d3++){ var iso2=DAY_DATES[d3]; if(!iso2) continue; var arr=[]; (ROWS_BY_DAY[d3]||[]).forEach(function(r){ (r.bars||[]).forEach(function(b){ if(b.empId!=null) arr.push({l:b.l,s:b.s,e:b.e,emp:b.emp,empId:b.empId}); }); }); HR_AFFECT[iso2]=arr; }
+    for(var d3=0; d3<7; d3++){ var iso2=DAY_DATES[d3]; if(!iso2) continue; var arr=[]; (ROWS_BY_DAY[d3]||[]).forEach(function(r){ (r.bars||[]).forEach(function(b){ if(b.empId!=null){ var _o={l:b.l,s:b.s,e:b.e,emp:b.emp,empId:b.empId}; var _t=(b._integration?'int':(b._complement?'cmp':b.t)); if(_t)_o.t=_t; if(b.col)_o.col=b.col; arr.push(_o); } }); }); HR_AFFECT[iso2]=arr; }
     if(typeof hrSauverAffect==='function') hrSauverAffect();
   }catch(_e){ console.warn('integ save',_e); }
   try{ if(typeof renderTimeline==='function') renderTimeline(); }catch(_){}
@@ -21462,7 +21565,7 @@ function hrReappliquerAffectations(){
       if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return;
       if(b._imp) return; // trait importé (MyRHIS) : identité fixe, ne pas réaffecter
       var m=aff.find(function(a){return a.l===b.l && a.s===b.s && a.e===b.e && !a._used;});
-      if(m){ b.emp=m.emp; b.empId=m.empId; m._used=true; }
+      if(m){ b.emp=m.emp; b.empId=m.empId; m._used=true; if(m.t){b.t=m.t; if(m.t==='int')b._integration=true; else if(m.t==='cmp')b._complement=true;} if(m.col)b.col=m.col; }
       else { b.emp=null; b.empId=null; }
     });
     // ── PASSE 2 : rattrapage TOLÉRANT (corrige le bug « à affecter » au rechargement) ──
@@ -21484,7 +21587,7 @@ function hrReappliquerAffectations(){
         var score=Math.abs(a.s-b.s)+Math.abs(ae-be);       // le plus proche en horaire gagne
         if(score<bestScore){ bestScore=score; best=a; }
       });
-      if(best){ b.emp=best.emp; b.empId=best.empId; best._used=true; }
+      if(best){ b.emp=best.emp; b.empId=best.empId; best._used=true; if(best.t){b.t=best.t; if(best.t==='int')b._integration=true; else if(best.t==='cmp')b._complement=true;} if(best.col)b.col=best.col; }
     });
     // réinitialiser les marqueurs _used pour le prochain passage
     aff.forEach(function(a){delete a._used;});
@@ -25459,6 +25562,17 @@ function hrShowTraitModal(html){
 function hrTraitFermerModal(){ var ov=document.getElementById('hr-trait-ov'); if(ov) ov.style.display='none'; }
 window.hrTraitFermerModal=hrTraitFermerModal;
 
+// Couleur d'un créneau selon son TYPE : intégration = violet, complément d'horaire = rose.
+// Prioritaire sur la couleur de poste, pour repérer d'un coup d'œil ces deux cas.
+var COL_INTEGRATION='#8e44ad'; // violet
+var COL_COMPLEMENT='#e84393';  // rose
+function _barCol(b){
+  if(!b) return null;
+  if(b._integration||b.t==='int') return COL_INTEGRATION;
+  if(b._complement||b.t==='cmp') return COL_COMPLEMENT;
+  return b.col||null;
+}
+
 function renderTimeline(){
   if(typeof hrReappliquerAffectations==='function') hrReappliquerAffectations();
   try{ if(typeof hrAfficherDernierEnreg==='function') hrAfficherDernierEnreg(); }catch(e){}
@@ -25607,7 +25721,7 @@ function renderTimeline(){
           EMP_IDX[b.empId]={nom:b.emp||b.empId, enc:_estEnc, jours:[{bars:[],min:0},{bars:[],min:0},{bars:[],min:0},{bars:[],min:0},{bars:[],min:0},{bars:[],min:0},{bars:[],min:0}], totSem:0};
         }
         var _e=b.e||b.s+60;
-        EMP_IDX[b.empId].jours[_d].bars.push({s:b.s,e:_e,l:b.l,col:b.col,rowIdx:_ri,barIdx:_bi});
+        EMP_IDX[b.empId].jours[_d].bars.push({s:b.s,e:_e,l:b.l,col:b.col,_integration:b._integration,_complement:b._complement,t:b.t,rowIdx:_ri,barIdx:_bi});
         EMP_IDX[b.empId].jours[_d].min += (_e-b.s);
         EMP_IDX[b.empId].totSem += (_e-b.s);
       }
@@ -25702,8 +25816,9 @@ function renderTimeline(){
       var s=b.s, e=b.e; if(e<=DS||s>=DE) return;
       var cs=Math.max(s,DS),ce=Math.min(e,DE);
       var c=colFor(b.l);
+      var _bc=_barCol(b);
       var bar=document.createElement('div');bar.className='hr-bar';
-      if(b.col){ bar.style.cssText='left:'+pct(cs)+';width:'+pctW(cs,ce)+';background:'+b.col+';color:#fff;box-shadow:0 0 0 1.5px rgba(255,255,255,.55);font-weight:700;z-index:8;'; }
+      if(_bc){ bar.style.cssText='left:'+pct(cs)+';width:'+pctW(cs,ce)+';background:'+_bc+';color:#fff;box-shadow:0 0 0 1.5px rgba(255,255,255,.55);font-weight:700;z-index:8;'; }
       else { bar.style.cssText='left:'+pct(cs)+';width:'+pctW(cs,ce)+';background:'+c.bg+';color:'+c.tx+';'; }
       bar.textContent=b.l+' '+fmt(s)+'–'+fmt(e);
       bar.title=b.l+'\n'+fmt(s)+' – '+fmt(e)+'\n👤 '+(emp.nom||empId);
@@ -25733,8 +25848,9 @@ function renderTimeline(){
           var s=b.s,e=b.e; if(e<=DS||s>=DE) return;
           var cs=Math.max(s,DS),ce=Math.min(e,DE);
           var c=colFor(b.l);
+          var _bc=_barCol(b);
           var bar=document.createElement('div');bar.className='hr-bar';
-          if(b.col){ bar.style.cssText='height:15px;left:'+pct(cs)+';width:'+pctW(cs,ce)+';background:'+b.col+';color:#fff;font-weight:700;'; }
+          if(_bc){ bar.style.cssText='height:15px;left:'+pct(cs)+';width:'+pctW(cs,ce)+';background:'+_bc+';color:#fff;font-weight:700;'; }
           else { bar.style.cssText='height:15px;left:'+pct(cs)+';width:'+pctW(cs,ce)+';background:'+c.bg+';color:'+c.tx+';'; }
           bar.textContent=b.l+' '+fmt(s)+'–'+fmt(e);
           bar.title=b.l+'\n'+fmt(s)+' – '+fmt(e);
