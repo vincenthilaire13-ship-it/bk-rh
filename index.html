@@ -18832,13 +18832,46 @@ function hrSecuriteReglesSemaine(seulementIds){
         }
       });
     }
-    // 1) limiter le nombre de créneaux par jour
+    // 1) limiter le nombre de créneaux par jour + INTERDIRE LES CHEVAUCHEMENTS
     var parJour={};
     items.forEach(function(it){ (parJour[it.day]=parJour[it.day]||[]).push(it); });
     Object.keys(parJour).forEach(function(dk){
       var list=parJour[dk].sort(function(a,b){return a.bar.s-b.bar.s;});
       // garder les maxTraits premiers (en privilégiant ceux qui se touchent), retirer le reste
       for(var i=maxTraits;i<list.length;i++){ list[i].bar.emp=null; list[i].bar.empId=null; list[i]._removed=true; }
+      // ANTI-CHEVAUCHEMENT : un salarié ne peut pas avoir 2 créneaux qui se recouvrent le
+      // même jour (ex. FRITES 18:30–22:15 + CUISINE 21:00–00:00). On garde le plus tôt et on
+      // libère l'autre. Les heures sont normalisées (+24h après minuit) → test direct s<e2 && s2<e1.
+      var _gardes=[];
+      list.forEach(function(it){
+        if(it._removed) return;
+        if(typeof estTraitEncadrement==='function' && estTraitEncadrement(it.bar.l)) return; // encadrement : longues journées légitimes
+        var _s=it.bar.s, _e=(it.bar.e!=null?it.bar.e:it.bar.s+60);
+        var _chev=_gardes.some(function(g){ return _s < g.e && g.s < _e; });
+        if(_chev){ it.bar.emp=null; it.bar.empId=null; it._removed=true; }
+        else _gardes.push({s:_s,e:_e});
+      });
+    });
+    // 1ter) VACATION CONTINUE MAX : mêmes règle et calcul que le contrôle « Planning non
+    //   conforme » (hrControleReglesPlanning) — des créneaux COLLÉS (sans aucun trou) ne
+    //   doivent pas dépasser HR_VACATION_MAX_MIN (5h) de travail d'affilée. Ex. CUISINE
+    //   18:45–23:00 + FERM 23:00–01:00 = 6h15 collées. Au-delà, on libère le créneau qui fait
+    //   déborder (souvent la fermeture) : il redevient « à affecter », pour un autre salarié
+    //   ou après une vraie coupure. (L'encadrement est exclu, comme dans le contrôle.)
+    var _vacMax=(typeof HR_VACATION_MAX_MIN!=='undefined'&&HR_VACATION_MAX_MIN)?HR_VACATION_MAX_MIN:300;
+    var parJourC={};
+    items.filter(function(it){return !it._removed && !(typeof estTraitEncadrement==='function' && estTraitEncadrement(it.bar.l));}).forEach(function(it){ (parJourC[it.day]=parJourC[it.day]||[]).push(it); });
+    Object.keys(parJourC).forEach(function(dk){
+      var list=parJourC[dk].sort(function(a,b){return a.bar.s-b.bar.s;});
+      var runStart=null, runEnd=null;
+      list.forEach(function(it){
+        if(it._removed) return;
+        var s=it.bar.s, en=(it.bar.e!=null?it.bar.e:it.bar.s+60);
+        if(runEnd==null || s>runEnd){ runStart=s; runEnd=en; return; } // trou (s>fin) → nouvelle vacation
+        // collé (s<=runEnd) : ce créneau prolonge la vacation en cours
+        if((Math.max(runEnd,en)-runStart)>_vacMax){ it.bar.emp=null; it.bar.empId=null; it._removed=true; } // ferait dépasser 5h collées → on libère
+        else { runEnd=Math.max(runEnd,en); }
+      });
     });
     // 2) ne pas dépasser le contrat : retirer les derniers créneaux qui débordent
     if(plafMin!=null){
@@ -21590,6 +21623,25 @@ function hrReappliquerAffectations(){
         if(score<bestScore){ bestScore=score; best=a; }
       });
       if(best){ b.emp=best.emp; b.empId=best.empId; best._used=true; if(best.t){b.t=best.t; if(best.t==='int')b._integration=true; else if(best.t==='cmp')b._complement=true;} if(best.col)b.col=best.col; }
+    });
+    // ── ANTI-CHEVAUCHEMENT (filet d'affichage) : un salarié ne peut jamais avoir 2 créneaux
+    //    qui se recouvrent le même jour (même si une ancienne sauvegarde en contenait). On
+    //    garde le plus tôt, on libère l'autre (il redevient « à affecter »). ──
+    var _parEmpJour={};
+    _bars.forEach(function(b){ if(b.empId==null) return; if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return; (_parEmpJour[b.empId]=_parEmpJour[b.empId]||[]).push(b); });
+    Object.keys(_parEmpJour).forEach(function(eid){
+      var arr=_parEmpJour[eid].sort(function(a,b){return a.s-b.s;}); var kept=[];
+      arr.forEach(function(b){ var be=(b.e!=null?b.e:b.s+60); var conf=kept.some(function(k){ var ke=(k.e!=null?k.e:k.s+60); return b.s<ke && k.s<be; }); if(conf){ b.emp=null; b.empId=null; } else kept.push(b); });
+    });
+    // ── VACATION CONTINUE MAX (filet d'affichage) : même calcul que le contrôle « non conforme »
+    //    (créneaux COLLÉS sans trou, max HR_VACATION_MAX_MIN = 5h). Au-delà, on libère le créneau
+    //    qui fait déborder (→ « à affecter »). L'encadrement est exclu. ──
+    var _vacMaxA=(typeof HR_VACATION_MAX_MIN!=='undefined'&&HR_VACATION_MAX_MIN)?HR_VACATION_MAX_MIN:300;
+    var _pej2={};
+    _bars.forEach(function(b){ if(b.empId==null) return; if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return; (_pej2[b.empId]=_pej2[b.empId]||[]).push(b); });
+    Object.keys(_pej2).forEach(function(eid){
+      var arr=_pej2[eid].sort(function(a,b){return a.s-b.s;}); var _rs=null, _re=null;
+      arr.forEach(function(b){ var be=(b.e!=null?b.e:b.s+60); if(_re==null || b.s>_re){ _rs=b.s; _re=be; return; } if((Math.max(_re,be)-_rs)>_vacMaxA){ b.emp=null; b.empId=null; } else { _re=Math.max(_re,be); } });
     });
     // réinitialiser les marqueurs _used pour le prochain passage
     aff.forEach(function(a){delete a._used;});
@@ -24382,6 +24434,13 @@ function hrPlacerSurCreneau(id, jour, s, e, poste){
     if(!emp) return;
     var iso=(typeof DAY_DATES!=='undefined'&&DAY_DATES[jour])?DAY_DATES[jour]:null;
     if(!iso){ if(typeof toast==='function') toast('Jour introuvable','error'); return; }
+    // Anti-chevauchement : refuser si ce salarié a déjà un créneau qui recouvre celui-ci ce jour-là.
+    var _en=(e!=null?e:s+60);
+    var _conflit=(HR_AFFECT[iso]||[]).some(function(a){ if(String(a.empId)!==String(emp.id)) return false; var ae=(a.e!=null?a.e:a.s+60); return s < ae && a.s < _en; });
+    if(!_conflit && typeof curDay!=='undefined' && curDay===jour && ROWS_BY_DAY[jour]){
+      _conflit=(ROWS_BY_DAY[jour]||[]).some(function(row){ return (row.bars||[]).some(function(b){ if(String(b.empId)!==String(emp.id)) return false; var be=(b.e!=null?b.e:b.s+60); return s < be && b.s < _en; }); });
+    }
+    if(_conflit){ if(typeof toast==='function') toast(emp.name+' a déjà un créneau qui se chevauche à cette heure','error'); return; }
     var pose=false;
     // 1) Si le jour cliqué est le jour AFFICHÉ, on pose dans ROWS_BY_DAY (vue en cours).
     if(typeof curDay!=='undefined' && curDay===jour && ROWS_BY_DAY[jour]){
