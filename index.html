@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-05 · v472';
+  var EMBEDDED_VERSION = '2026-08-06 · v478';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -987,7 +987,8 @@ html,body{overflow-x:hidden;}
       </div>
       <button class="hr-btn hr-btn-ac" id="hrx-refresh-btn" onclick="hrRefreshWeek()" title="Recalcule les TRAITS (besoin) des 7 jours de la semaine selon le CA et la grille">🔄 Actualiser les traits de la semaine</button>
       <!-- Bouton "Placement des salariés sur la semaine" retiré à la demande : on utilise désormais le Placement intelligent. La fonction hrPlacerSemaineCourante reste disponible si besoin. -->
-      <button class="hr-btn" id="hrx-placer-intel-btn" onclick="hrPlacerIntelligentSemaine()" title="Place les salariés sur les traits VIDES de la grille CA. NON DESTRUCTIF : conserve ce qui est déjà placé (placements précédents enregistrés ou modifications manuelles) et complète seulement le reste. Pour tout remettre à zéro, utilise « 🧹 Vider la semaine » d'abord." style="background:#2a1a3a;border-color:#a855f7;color:#d8b4fe;font-weight:700;">🧠 Placement intelligent</button>
+      <button class="hr-btn" id="hrx-placer-intel-btn" onclick="hrPlacerIntelligentSemaine()" title="AUTOMATIQUE : la semaine se place toute seule dès qu'elle est affichée (et se recalcule quand une absence est saisie). Ce bouton force un nouveau placement si besoin. NON DESTRUCTIF : conserve ce qui est déjà placé. Pour repartir de zéro, utilise « 🧹 Vider la semaine »." style="background:#2a1a3a;border-color:#a855f7;color:#d8b4fe;font-weight:700;">🧠 Replacer (auto)</button>
+      <button class="hr-btn" id="hrx-annee-btn" onclick="hrGenererAnnee()" title="Génère et place automatiquement TOUTES les semaines à venir de l'année en une fois. Ne touche pas les semaines déjà transférées aux salariés." style="background:#12203a;border-color:#3b82f6;color:#93c5fd;font-weight:700;">🗓️ Générer l'année</button>
       <button class="hr-btn" id="hrx-enregistrer-btn" onclick="hrEnregistrerSemaineManuel()" title="Enregistre le planning travaillé de la semaine affichée (placements + modifications de créneaux) dans la base. Au retour sur l'application, la semaine est rechargée telle quelle, sans repartir de zéro." style="background:#16321f;border-color:#3ecf8e;color:#3ecf8e;font-weight:700;">💾 Enregistrer</button>
       <span id="hrx-enregistre-info" style="font-size:11px;color:#3ecf8e;align-self:center;margin-left:2px"></span>
       <button class="hr-btn" id="hrx-transfert-gestion" onclick="hrOuvrirTransfert()" title="Voir si la semaine affichée est transférée aux employés, la transférer, ou annuler le transfert pour corriger." style="background:#16321f;border-color:#3ecf8e;color:#3ecf8e;font-weight:700;">📤 Transférer les emplois du temps</button>
@@ -1545,6 +1546,16 @@ html,body{overflow-x:hidden;}
         <button class="btn btn-red btn-sm" onclick="saveSignatureDir()">💾 Enregistrer ma signature</button>
         <button class="btn btn-gray btn-sm" id="sig-dir-suppr" style="display:none;" onclick="supprSignatureDir()">🗑️ Retirer</button>
       </div>
+    </div>
+    <div class="card param-card" id="pc-integration" style="display:none;">
+      <div class="sec-title">🎓 Semaine intégration</div>
+      <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Crée des <strong>modèles d'intégration</strong> réutilisables (cuisine, drive, nuit, fermeture…) : chaque modèle est une suite de journées-type (poste + heures). À l'arrivée d'une recrue, tu appliques un modèle dans <strong>État équipe → Semaine intégration</strong> : elle est placée <strong>en doublon</strong> les premiers jours, puis entre dans la rotation normale.</p>
+      <div id="pc-integration-body"></div>
+    </div>
+    <div class="card param-card" id="pc-complement" style="display:none;">
+      <div class="sec-title">🧩 Complément horaire</div>
+      <p style="font-size:.82rem;color:#aaa;margin-bottom:12px;">Définis des <strong>renforts</strong> (poste + heure + nombre) pour <strong>compléter les contrats</strong> des salariés qui n'ont pas toutes leurs heures. Choisis l'ordre ; le jour peut être fixé ou laissé à l'appli (elle le pose là où le CA est le plus fort). Application depuis <strong>État équipe → Complément horaire</strong> (2e passe).</p>
+      <div id="pc-complement-body"></div>
     </div>
     <div class="card param-card" id="pc-paye" style="display:none;">
       <div class="sec-title">💰 Paye</div>
@@ -2582,6 +2593,8 @@ async function loadAll(light) {
   try{ if(typeof depCharger==='function'){ await depCharger(false); } }catch(e){}
   try{ if(typeof hrChargerPayeRepas==='function'){ await hrChargerPayeRepas(); } }catch(e){}
   try{ if(typeof hrChargerPayeCfg==='function'){ await hrChargerPayeCfg(); } }catch(e){}
+  try{ if(typeof hrChargerComplements==='function'){ await hrChargerComplements(); } }catch(e){}
+  try{ if(typeof hrChargerInteg==='function'){ await hrChargerInteg(); } }catch(e){}
 }
 
 async function saveDB() {
@@ -3440,7 +3453,7 @@ function goPage(id, btn) {
   if (id==='messagerie'){ try{ msgPageInit(); }catch(e){console.warn('messagerie',e);} }
   if (id==='recrutement'){ if(curUser.role==='franchise'){ bkEntrerPage('recrutement'); } else { setCandFilter(candFilter||'nouveau'); } }
   if (id==='visite'){ if(curUser.role==='franchise'){ bkEntrerPage('visite'); } else { renderVisiteList(); } }
-  if (id==='alertes'){ if(curUser.role==='franchise'){ bkEntrerPage('alertes'); } else { window.__alertResto=curUser.restoId; renderAlertes(); } }
+  if (id==='alertes'){ if(curUser.role==='franchise'){ bkEntrerPage('alertes'); } else { window.__alertResto=curUser.restoId; renderAlertes(); } try{ if(typeof hrRecrutRafraichir==='function') hrRecrutRafraichir(window.__alertResto); }catch(_){} }
   if (id==='etatequipe'){
     try{ window.HR_EE_VUE='tuiles'; }catch(e){}
     if(curUser.role==='franchise'){ bkEntrerPage('etatequipe'); }
@@ -3477,7 +3490,7 @@ var BK_TILE_PAGES = {
   visite:      { pick:function(r){ visiteRestoFilter=r; var vf=document.getElementById('visite-resto-filter'); if(vf) vf.style.display='none'; renderVisiteList(); } },
   incidents:   { pick:function(r){ window.__incResto=r; try{initForm();}catch(e){} try{renderHistory&&renderHistory();}catch(e){} } },
   rapports:    { pick:function(r){ rptTab=r; var rt=document.getElementById('rpt-tabs'); if(rt) rt.style.display='none'; if(typeof fillRptPersons==='function') fillRptPersons(); if(typeof rptClosePanel==='function') rptClosePanel(); if(typeof renderRptTiles==='function') renderRptTiles(); } },
-  alertes:     { pick:function(r){ window.__alertResto=r; renderAlertes(); } },
+  alertes:     { pick:function(r){ window.__alertResto=r; renderAlertes(); try{ if(typeof hrRecrutRafraichir==='function') hrRecrutRafraichir(r); }catch(_){} } },
   pointage:    { pick:function(r){ window.__ptgRestoActif=r; try{ptgInit();}catch(e){} } },
   suivipointage:{ pick:function(r){ window.__ptgRestoActif=r; try{ptgSuiviInit();}catch(e){} } },
   etatequipe:  { pick:function(r){ HR_ETAT_RESTO_FILTRE=(r||'').toLowerCase(); try{ window.HR_EE_VUE='tuiles'; }catch(e){} var et=document.getElementById('etat-equipe-resto'); if(et) et.style.display='none'; try{ hrRenderEtatEquipe(); }catch(e){} } }
@@ -3781,7 +3794,9 @@ var PARAM_TILES=[
   {ico:'⚠️', titre:'Incident barème',sub:'Seuils de sanction',           type:'card', card:'pc-baremes',     accent:'#b23a3a'},
   {ico:'🏢', titre:'Société',       sub:'Employeur (contrats)',         type:'card', card:'pc-societe',     accent:'#34495e'},
   {ico:'✍️', titre:'Ma signature',  sub:'Signature direction (contrats)', type:'card', card:'pc-signature',  accent:'#c0392b'},
-  {ico:'💰', titre:'Paye',          sub:'Bons repas & format export',    type:'card', card:'pc-paye',       accent:'#1d7a3a'}
+  {ico:'💰', titre:'Paye',          sub:'Bons repas & format export',    type:'card', card:'pc-paye',       accent:'#1d7a3a'},
+  {ico:'🧩', titre:'Complément horaire', sub:'Renforts pour compléter les contrats', type:'card', card:'pc-complement', accent:'#1d7a3a'},
+  {ico:'🎓', titre:'Semaine intégration', sub:'Modèles d\'intégration des recrues', type:'card', card:'pc-integration', accent:'#8e44ad'}
 ];
 function renderParamTiles(){
   var page=document.getElementById('page-parametres'); if(page) page.classList.add('bk-tiles-mode');
@@ -3824,6 +3839,8 @@ function paramOuvrir(type, ref){
     if(ref==='pc-societe'){ try{ renderSocieteForm(); }catch(_){} }
     if(ref==='pc-signature'){ try{ loadSignatureDir(); }catch(_){} }
     if(ref==='pc-paye'){ try{ renderPayeParam(); }catch(_){} }
+    if(ref==='pc-complement'){ try{ renderComplementParam(); }catch(_){} }
+    if(ref==='pc-integration'){ try{ renderIntegrationParam(); }catch(_){} }
     if(ref==='pc-visite'){ try{ loadVisiteConfig(); }catch(_){} }
     if(ref==='pc-photo'){ try{ photoParamInit(); }catch(_){} }
     if(ref==='pc-pointer'){ try{ ptgMsgCharger('suivi'); }catch(_){} try{ ptgRenderMsgAdmin(); }catch(_){} }
@@ -9454,6 +9471,44 @@ function collectAlertes(restoFiltre){
       });
     });
   });
+  // ── BESOIN DE RECRUTEMENT ──
+  // (1) APPRENTIS : minimum 12 par restaurant (règle direction). Indépendant du CA :
+  //     on compte directement les apprentis actifs de chaque resto.
+  try{
+    var APPRENTIS_MIN=12;
+    var _restosApp={};
+    (DB.employees||[]).forEach(function(e){ if(e && !e.archived && e.restoId){ _restosApp[e.restoId]=true; } });
+    var _appList = (restoFiltre && restoFiltre!=='all') ? [String(restoFiltre).toLowerCase()] : Object.keys(_restosApp);
+    _appList.forEach(function(rid){
+      var eqs=(DB.employees||[]).filter(function(e){ return e && !e.archived && e.restoId===rid && e.role==='equipier'; });
+      if(!eqs.length) return;
+      var nApp=eqs.filter(function(e){ return (typeof _bkEstApprenti==='function')?_bkEstApprenti(e):false; }).length;
+      if(nApp < APPRENTIS_MIN){
+        var manque=APPRENTIS_MIN-nApp;
+        var rl2=(typeof rlabel==='function')?rlabel(rid):rid;
+        alerts.push({prio:0, cat:'Besoin de recrutement', icon:'🎓', col:'#1d7a3a',
+          titre:'Recruter '+manque+' apprenti'+(manque>1?'s':'')+' — '+rl2,
+          sub:nApp+' / '+APPRENTIS_MIN+' apprentis actuellement. Objectif : 12 minimum par restaurant.',
+          action:"goPage('recrutement')"});
+      }
+    });
+  }catch(_app){}
+  // (2) CONTRATS À RECRUTER (cuisine/salle × 24h/20h/15h), lu depuis le cache d'analyse.
+  //     Le calcul (lourd) est lancé à l'ouverture des Alertes par hrRecrutRafraichir().
+  try{
+    var _rcache=window.HR_RECRUT_CACHE||{};
+    var _rcRestos=Object.keys(_rcache); // chaque carte nomme son resto
+    _rcRestos.forEach(function(rid){
+      var res=_rcache[rid]; if(!res) return;
+      var recos=(typeof hrRecrutRecos==='function')?hrRecrutRecos(res):[];
+      var rl=(typeof rlabel==='function')?rlabel(rid):rid;
+      recos.forEach(function(rc){
+        alerts.push({prio:rc.prio+1, cat:'Besoin de recrutement', icon:'🧩', col:rc.col,
+          titre:rc.titre+' · '+rl, sub:rc.sub+' · mois '+(res.mois||''),
+          action:"goPage('horaires')"});
+      });
+    });
+  }catch(_rec){}
   // (futures catégories : planning, pointage — s'ajouteront ici quand les modules existeront)
   alerts.sort(function(a,b){return a.prio-b.prio;});
   return alerts;
@@ -9504,6 +9559,7 @@ window._alertesApply=_alertesApply; window.alertesTab=alertesTab;
 // Congés & indispos → Incident à sanctionner → Incident à faire signer.
 var ALERT_CATS=[
   // ── 1) Recrutement & intégration ───────────────────────
+  {cat:'Besoin de recrutement',icon:'🧩',desc:'Quel contrat recruter (cuisine/salle · 24h/20h/15h) + apprentis (12/resto)'},
   {cat:'Recrutement',icon:'🎯',desc:'Candidatures, visites d\'embauche, dossiers candidats'},
   {cat:'Dossiers incomplets',icon:'📋',desc:'Pièces manquantes au dossier salarié'},
   // ── 2) Contrats & période d'essai ──────────────────────
@@ -9585,7 +9641,7 @@ function renderAlertes(){
   var box=document.getElementById('alertes-list');if(!box)return;
   var alerts=collectAlertes(window.__alertResto);
   var cats={};alerts.forEach(function(a){(cats[a.cat]=cats[a.cat]||[]).push(a);});
-  var accents={'Recrutement':'#2e7d32','Incident à sanctionner':'#c0392b','Incident à faire signer':'#e8a020','Contrats à signer':'#c2185b','Visite médicale':'#e87722','Mutuelle':'#c0392b','Titre de séjour':'#8e44ad','Contrats':'#8e44ad','Visite d\'embauche':'#16a085','Période d\'essai':'#2980b9','Dossiers incomplets':'#d35400','Incidents':'#c0392b','Congés & indispos':'#1565c0'};
+  var accents={'Besoin de recrutement':'#1d7a3a','Recrutement':'#2e7d32','Incident à sanctionner':'#c0392b','Incident à faire signer':'#e8a020','Contrats à signer':'#c2185b','Visite médicale':'#e87722','Mutuelle':'#c0392b','Titre de séjour':'#8e44ad','Contrats':'#8e44ad','Visite d\'embauche':'#16a085','Période d\'essai':'#2980b9','Dossiers incomplets':'#d35400','Incidents':'#c0392b','Congés & indispos':'#1565c0'};
   // ordre canonique (toutes les tuiles) + catégories imprévues éventuelles ajoutées à la fin
   var order=ALERT_CATS.map(function(c){return c.cat;});
   Object.keys(cats).forEach(function(c){ if(order.indexOf(c)<0) order.push(c); });
@@ -10676,13 +10732,14 @@ function ptgEditAbsence(empId,dateISO,motif){
   try{ hrSauverAbsences(); }catch(_){}
   try{ var ctx=ptgRec(empId,dateISO); ctx.rec.arrivee=''; ctx.rec.depart=''; ctx.rec.pauses=[]; ptgSaveAll(ctx.all); }catch(_){}
   ptgEditFermer(); try{ ptgRenderSuivi(); }catch(_){} try{ updateAlBadge(); }catch(_){} try{ _semRefreshIfActive(); }catch(_){}
-  try{ semDepannageOnAbsence(empId,dateISO,motif); }catch(_){}
+  try{ _absAiguillage(empId,dateISO,motif); }catch(_){}
   try{ toast('Absence enregistrée : '+_etatMotifInfo(motif).court,'success'); }catch(_){}
 }
 function ptgEditPresent(empId,dateISO){
   _ptgAbsRetirerJour(empId,dateISO); try{ hrSauverAbsences(); }catch(_){}
   ptgEditFermer(); try{ ptgRenderSuivi(); }catch(_){} try{ _semRefreshIfActive(); }catch(_){}
   try{ semDepannageRetirer(empId,dateISO); }catch(_){}
+  try{ hrReplanifierSurAbsence(empId,dateISO); }catch(_){}
   try{ toast('Absence retirée — présent','success'); }catch(_){}
 }
 function ptgEditSavePointage(empId,dateISO){
@@ -17728,6 +17785,27 @@ function col(l){const u=(l||'').toUpperCase(),k=Object.keys(C).find(k=>u.include
 // Rendre la table de couleurs et la fonction col accessibles depuis l'autre bloc <script>
 // (le bloc Compétences/Qualifications est défini dans un script séparé et n'y avait pas accès → tout sortait en bleu).
 try{ window.C=C; window.col=col; }catch(e){}
+// Famille de poste pour le recrutement : 'cuisine' (rouge/production, « derrière ») ou
+// 'salle' (bleu drive/tablette + vert borne/salle, « devant/accueil »). null = inconnu (ignoré).
+function _familleRecrut(l){
+  var u=(l||'').toUpperCase();
+  if(/CUISINE|FRITE|BROIL|SNACK|BOARD|PLONGE|PREP|GRILL|SHAKE|SUNDAE/.test(u)) return 'cuisine';
+  if(/DRIVE|TABLETTE|CABINE|CAISSE|BORNE|EMPORTER|UBER|SAT ?SALLE|SAT ?EMP|COMPTOIR|OPEN SALLE|SALLE|ACCUEIL/.test(u)) return 'salle';
+  return null;
+}
+try{ window._familleRecrut=_familleRecrut; }catch(e){}
+// Apprenti : contrat d'apprentissage explicite, sinon convention interne (équipier ≥ 35h,
+// comme la catégorie « Apprentis » de l'écran Équipe).
+function _bkEstApprenti(e){
+  if(!e || e.role!=='equipier') return false;
+  var inf=e.infos||{};
+  var t=((inf.contrat_type||inf.contratType||'')+'').toLowerCase();
+  if(t.indexOf('apprent')>=0) return true;
+  if(inf.apprentissage_debut||inf.apprentissage_fin) return true;
+  var hc=(typeof hrContratHebdo==='function')?hrContratHebdo(e):null;
+  return hc!=null && hc>=35;
+}
+try{ window._bkEstApprenti=_bkEstApprenti; }catch(e){}
 
 // ── COULEURS DES NON PRODUCTIFS (managers inclus) ──────────────────────────────
 // Demande métier : TOUS les non productifs (et les postes managers OUVERTURE/CLOSE MANA)
@@ -20234,12 +20312,14 @@ function hrAjouterAbsence(empId){
   HR_ABSENCES[empId].push({from:from,to:to});
   hrSauverAbsences();
   hrOuvrirAbsences(); // rafraîchir la fenêtre
+  try{ _absAiguillagePlage(empId, from, to, 'absence'); }catch(_){}
 }
 window.hrAjouterAbsence=hrAjouterAbsence;
 function hrEffacerAbsence(empId){
   delete HR_ABSENCES[empId];
   hrSauverAbsences();
   hrOuvrirAbsences();
+  try{ if(typeof hrAutoPlacerSemaine==='function') hrAutoPlacerSemaine(true); }catch(_){}
 }
 window.hrEffacerAbsence=hrEffacerAbsence;
 
@@ -20283,6 +20363,8 @@ function hrRenderEtatEquipe(){
   if(HR_EE_VUE==='dispos'){ hrEERenderDispos(); return; }
   if(HR_EE_VUE==='competences'){ hrEERenderCompetences(); return; }
   if(HR_EE_VUE==='fixes'){ hrEERenderFixes(); return; }
+  if(HR_EE_VUE==='complement'){ hrEERenderComplement(); return; }
+  if(HR_EE_VUE==='integration'){ hrEERenderIntegration(); return; }
   // par défaut : les tuiles
   hrEERenderTuiles();
 }
@@ -20306,7 +20388,9 @@ function hrEERenderTuiles(){
     {vue:'etat',        ico:'🗓️', titre:'État / Absences', sub:'Congés · maladie · absence · indispo', col:'#d98324', badge:nbAttente},
     {vue:'dispos',      ico:'📅', titre:'Disponibilités',  sub:'Créneaux par jour de semaine',          col:'#1565c0', badge:0},
     {vue:'competences', ico:'🎯', titre:'Compétences',     sub:'Qui sait faire quoi',                   col:'#2e7d32', badge:0},
-    {vue:'fixes',       ico:'📌', titre:'Salariés fixés',   sub:'Horaires fixes + poste (le moteur les respecte)', col:'#8e44ad', badge:0}
+    {vue:'fixes',       ico:'📌', titre:'Salariés fixés',   sub:'Horaires fixes + poste (le moteur les respecte)', col:'#8e44ad', badge:0},
+    {vue:'complement',  ico:'🧩', titre:'Complément horaire', sub:'Compléter les contrats (renforts, 2e passe)', col:'#1d7a3a', badge:0},
+    {vue:'integration', ico:'🎓', titre:'Semaine intégration', sub:'Nouvelles recrues en doublon (modèles)', col:'#8e44ad', badge:0}
   ];
   if(typeof orderTiles==='function') tuiles=orderTiles('etatequipe', tuiles, function(t){return t.vue;});
   var html='';
@@ -20335,6 +20419,345 @@ window.hrEERetour=hrEERetour;
 // Revenir à l'écran de choix du restaurant (franchise uniquement)
 function hrEEVersRestaurants(){ HR_EE_VUE='tuiles'; try{ bkShowTiles('etatequipe'); }catch(e){} }
 window.hrEEVersRestaurants=hrEEVersRestaurants;
+
+/* ═══════════════ COMPLÉMENT HORAIRE (renforts pour compléter les contrats) ═══════════════
+ * La direction définit des « renforts » (poste + heure + nombre, dans l'ORDRE voulu).
+ * Le JOUR peut être fixé OU laissé à l'appli, qui choisit le jour où le CA est le plus fort.
+ * 2e passe : après le placement normal, on rajoute les salariés SOUS CONTRAT sur ces
+ * renforts pour leur donner leurs heures (compétence, dispo, absence et occupation respectées).
+ * Paramétrage : Paramètres → « Complément horaire ». Déclenchement : État équipe → « Complément horaire ». */
+var COMPLEMENTS=null;
+function getComplements(){ if(COMPLEMENTS) return COMPLEMENTS; try{ var r=localStorage.getItem('bkrh_complement_horaire'); COMPLEMENTS=r?JSON.parse(r):{}; }catch(e){ COMPLEMENTS={}; } if(!COMPLEMENTS||typeof COMPLEMENTS!=='object') COMPLEMENTS={}; return COMPLEMENTS; }
+function saveComplements(){ var o=getComplements(); try{ localStorage.setItem('bkrh_complement_horaire',JSON.stringify(o)); }catch(e){} try{ if(typeof SB!=='undefined'&&SB) SB.from('app_config').upsert({cle:'bkrh_complement_horaire',valeur:o},{onConflict:'cle'}).then(function(){},function(){}); }catch(e){} }
+async function hrChargerComplements(){ try{ if(typeof SB==='undefined'||!SB) return; var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_complement_horaire').maybeSingle(); if(r&&r.data&&r.data.valeur){ COMPLEMENTS=r.data.valeur; try{localStorage.setItem('bkrh_complement_horaire',JSON.stringify(COMPLEMENTS));}catch(e){} } }catch(e){} }
+window.hrChargerComplements=hrChargerComplements;
+// Restaurant ACTIF = celui choisi globalement (onglets du haut). On ne choisit jamais
+// le resto dans la tuile : tout est séparé par restaurant automatiquement.
+function _cmpRestoActif(){
+  var A=(typeof window!=='undefined')?window.ACTIVE_RESTO:null;
+  var r=(A && A!=='ALL') ? A
+      : ((typeof HR_ETAT_RESTO_FILTRE!=='undefined'&&HR_ETAT_RESTO_FILTRE)?HR_ETAT_RESTO_FILTRE
+      : ((typeof HR_RESTO!=='undefined'&&HR_RESTO)?HR_RESTO
+      : ((curUser&&curUser.restoId)||'')));
+  return (''+(r||'')).toLowerCase();
+}
+function _cmpRestoEstTous(){ var A=(typeof window!=='undefined')?window.ACTIVE_RESTO:null; return (curUser&&curUser.role==='franchise' && (!A || A==='ALL') && !( (typeof HR_ETAT_RESTO_FILTRE!=='undefined'&&HR_ETAT_RESTO_FILTRE) )); }
+function cmpList(resto){ var o=getComplements(); return (o[(resto||'').toLowerCase()]||[]); }
+function _cmpHM(m){ m=Math.max(0,Math.round(m||0)); return ('0'+Math.floor(m/60)).slice(-2)+':'+('0'+(m%60)).slice(-2); }
+function _cmpMin(hm){ var p=(''+hm).match(/(\d{1,2}):(\d{2})/); return p?((+p[1])*60+(+p[2])):null; }
+var _cmpJoursN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+function _cmpPostes(){ return (typeof POSTES_PRODUCTIFS!=='undefined'&&POSTES_PRODUCTIFS.length)?POSTES_PRODUCTIFS:['CUISINE','FRITES','BROILER','BORNE','DRIVE','SAT SALLE','TABLETTE DRIVE','COMPTOIR VOLANT','UBER']; }
+
+/* ── Paramètres → Complément horaire (configuration) ── */
+function renderComplementParam(){
+  var box=document.getElementById('pc-complement-body'); if(!box) return;
+  if(_cmpRestoEstTous()){
+    box.innerHTML='<div style="background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:16px;color:#bbb;">Choisis d\'abord un <b>restaurant</b> dans les onglets en haut (BK 500 / BK 509 / BK 526). Les compléments sont séparés par restaurant.</div>';
+    return;
+  }
+  var resto=_cmpRestoActif();
+  var restoLbl=(typeof RESTOS!=='undefined'&&RESTOS[resto]&&RESTOS[resto].label)||resto.toUpperCase();
+  var rules=cmpList(resto);
+  var posteOpts=_cmpPostes().map(function(p){return p;});
+  var h='';
+  h+='<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">'
+    +'<span style="font-size:.84rem;color:#aaa;">Restaurant : <b style="color:#fff;">'+restoLbl+'</b></span>'
+    +'<button class="btn btn-red btn-sm" onclick="cmpAdd(\''+resto+'\')">➕ Ajouter un complément</button>'
+  +'</div>';
+  h+='<p style="font-size:.8rem;color:#9a9a9a;margin-bottom:12px;line-height:1.6;">Range les renforts dans l\'<b>ordre</b> où tu veux qu\'ils soient ajoutés (1er servi en premier). Pour le <b>jour</b>, choisis un jour précis ou laisse <b>« Auto (selon CA) »</b> : l\'appli le pose le jour où le chiffre d\'affaires est le plus fort. Ces renforts servent à <b>compléter les contrats</b> des salariés qui n\'ont pas toutes leurs heures (2e passe, depuis État équipe → Complément horaire).</p>';
+  if(!rules.length){ box.innerHTML=h+'<div style="background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:16px;color:#888;">Aucun complément pour ce restaurant. Clique « ➕ Ajouter un complément ».</div>'; return; }
+  h+='<div style="overflow-x:auto;"><table class="tbl" style="width:100%;border-collapse:collapse;font-size:.82rem;min-width:720px;"><thead><tr style="background:#161616;color:#bbb;text-align:left;">'
+    +'<th style="padding:7px;width:60px;">Ordre</th><th style="padding:7px;">Poste</th><th style="padding:7px;">Jour</th><th style="padding:7px;">Début</th><th style="padding:7px;">Fin</th><th style="padding:7px;">Nb</th><th></th></tr></thead><tbody>';
+  rules.forEach(function(rl,i){
+    h+='<tr style="border-bottom:1px solid #232323;">'
+      +'<td style="padding:6px 7px;white-space:nowrap;"><button onclick="cmpMove(\''+resto+'\','+i+',-1)" '+(i===0?'disabled':'')+' style="background:#222;border:1px solid #444;color:#ccc;border-radius:5px;cursor:pointer;padding:2px 6px;">▲</button> <button onclick="cmpMove(\''+resto+'\','+i+',1)" '+(i===rules.length-1?'disabled':'')+' style="background:#222;border:1px solid #444;color:#ccc;border-radius:5px;cursor:pointer;padding:2px 6px;">▼</button></td>'
+      +'<td style="padding:6px 7px;"><select onchange="cmpSet(\''+resto+'\','+i+',\'poste\',this.value)" style="background:#141414;border:1px solid #333;color:#eee;border-radius:6px;padding:5px;">'+posteOpts.map(function(p){return '<option value="'+p+'"'+(p===rl.poste?' selected':'')+'>'+p+'</option>';}).join('')+'</select></td>'
+      +'<td style="padding:6px 7px;"><select onchange="cmpSet(\''+resto+'\','+i+',\'jour\',this.value)" style="background:#141414;border:1px solid #333;color:#eee;border-radius:6px;padding:5px;"><option value="auto"'+((rl.jourMode!=='fixe')?' selected':'')+'>Auto (selon CA)</option>'+_cmpJoursN.map(function(jn,ji){return '<option value="'+ji+'"'+((rl.jourMode==='fixe'&&rl.jour===ji)?' selected':'')+'>'+jn+'</option>';}).join('')+'</select></td>'
+      +'<td style="padding:6px 7px;"><input type="time" value="'+_cmpHM(rl.debut)+'" onchange="cmpSet(\''+resto+'\','+i+',\'debut\',this.value)" style="background:#141414;border:1px solid #333;color:#eee;border-radius:6px;padding:5px;"></td>'
+      +'<td style="padding:6px 7px;"><input type="time" value="'+_cmpHM(rl.fin)+'" onchange="cmpSet(\''+resto+'\','+i+',\'fin\',this.value)" style="background:#141414;border:1px solid #333;color:#eee;border-radius:6px;padding:5px;"></td>'
+      +'<td style="padding:6px 7px;"><input type="number" min="1" step="1" value="'+(rl.nb||1)+'" onchange="cmpSet(\''+resto+'\','+i+',\'nb\',this.value)" style="width:56px;background:#141414;border:1px solid #333;color:#eee;border-radius:6px;padding:5px;text-align:center;"></td>'
+      +'<td style="padding:6px 7px;"><button onclick="cmpDel(\''+resto+'\','+i+')" style="background:#3a1616;border:1px solid #6a2a2a;color:#e88;border-radius:6px;cursor:pointer;padding:4px 8px;">🗑️</button></td>'
+    +'</tr>';
+  });
+  h+='</tbody></table></div>';
+  box.innerHTML=h;
+}
+window.renderComplementParam=renderComplementParam;
+function cmpAdd(resto){ var o=getComplements(); resto=(resto||'').toLowerCase(); if(!o[resto]) o[resto]=[]; o[resto].push({poste:_cmpPostes()[0],nb:1,debut:720,fin:840,jourMode:'auto',jour:0}); saveComplements(); renderComplementParam(); }
+function cmpDel(resto, i){ var o=getComplements(); resto=(resto||'').toLowerCase(); if(o[resto]){ o[resto].splice(i,1); saveComplements(); renderComplementParam(); } }
+function cmpMove(resto, i, dir){ var o=getComplements(); resto=(resto||'').toLowerCase(); var a=o[resto]; if(!a) return; var j=i+dir; if(j<0||j>=a.length) return; var t=a[i]; a[i]=a[j]; a[j]=t; saveComplements(); renderComplementParam(); }
+function cmpSet(resto, i, field, val){ var o=getComplements(); resto=(resto||'').toLowerCase(); var a=o[resto]; if(!a||!a[i]) return; var rl=a[i];
+  if(field==='poste'){ rl.poste=val; }
+  else if(field==='nb'){ rl.nb=Math.max(1,Math.round(+val)||1); }
+  else if(field==='debut'){ rl.debut=_cmpMin(val); }
+  else if(field==='fin'){ rl.fin=_cmpMin(val); }
+  else if(field==='jour'){ if(val==='auto'){ rl.jourMode='auto'; } else { rl.jourMode='fixe'; rl.jour=+val; } }
+  saveComplements();
+}
+window.cmpAdd=cmpAdd; window.cmpDel=cmpDel; window.cmpMove=cmpMove; window.cmpSet=cmpSet;
+
+/* ── État équipe → Complément horaire (déclenchement 2e passe) ── */
+function hrEERenderComplement(){
+  var box=document.getElementById('etat-equipe-list'); if(!box) return;
+  var resto=_cmpRestoActif();
+  var rules=cmpList(resto);
+  var lbl=(typeof _hrEERestoLabel==='function')?_hrEERestoLabel():resto;
+  var h='';
+  h+=(typeof _hrEEEntete==='function')?_hrEEEntete('🧩 Complément horaire'):'<div style="margin-bottom:10px;"><button onclick="hrEERetour()" style="background:#2a2a2a;border:1px solid #555;color:#ddd;border-radius:8px;padding:7px 14px;cursor:pointer;">← Retour</button></div><div style="font-weight:800;font-size:1.2rem;color:#fff;margin-bottom:8px;">🧩 Complément horaire</div>';
+  h+='<div style="font-size:.84rem;color:#aaa;margin-bottom:12px;line-height:1.6;">Renforts définis dans <b>Paramètres → Complément horaire</b>. Le bouton ci-dessous fait une <b>2e passe</b> sur la <b>semaine affichée dans Horaires</b> : il ajoute les salariés qui n\'ont pas leur contrat sur ces renforts (compétence, dispo, absences respectées). Le jour « Auto » est choisi là où le chiffre d\'affaires est le plus fort.</div>';
+  if(!rules.length){
+    h+='<div style="background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:16px;color:#888;">Aucun complément paramétré pour <b>'+lbl+'</b>. Va dans <b>Paramètres → Complément horaire</b> pour en ajouter.</div>';
+  } else {
+    h+='<div style="margin-bottom:12px;">'+rules.map(function(rl,i){
+      var jr=(rl.jourMode==='fixe')?_cmpJoursN[rl.jour]:'Auto (CA)';
+      return '<div style="display:flex;align-items:center;gap:10px;background:#161616;border:1px solid #2a2a2a;border-left:3px solid '+(((typeof col==='function')?col(rl.poste).bg:'#1d7a3a'))+';border-radius:8px;padding:8px 12px;margin-bottom:6px;">'
+        +'<span style="color:#666;font-weight:800;">'+(i+1)+'</span>'
+        +'<span style="color:#fff;font-weight:700;">'+(rl.nb||1)+' × '+rl.poste+'</span>'
+        +'<span style="color:#9a9a9a;">'+jr+' · '+_cmpHM(rl.debut)+'–'+_cmpHM(rl.fin)+'</span>'
+      +'</div>';
+    }).join('')+'</div>';
+    h+='<button class="btn btn-red" onclick="hrComplementContrats()" style="background:#1d7a3a;border-color:#1d7a3a;">🧩 Compléter les contrats (semaine affichée)</button>';
+    h+='<div id="cmp-result" style="margin-top:14px;"></div>';
+  }
+  box.innerHTML=h;
+}
+window.hrEERenderComplement=hrEERenderComplement;
+
+/* ── Moteur 2e passe : compléter les contrats via les renforts ── */
+function hrComplementContrats(){
+  var lundi=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:null;
+  var res=document.getElementById('cmp-result');
+  if(!lundi){ if(res)res.innerHTML='<div style="color:#e8623a;">Ouvre d\'abord une semaine dans Horaires.</div>'; try{toast('Ouvre une semaine dans Horaires','error');}catch(_){} return; }
+  var resto=_cmpRestoActif();
+  var rules=cmpList(resto); if(!rules.length){ if(res)res.innerHTML='<div style="color:#e8623a;">Aucun complément paramétré.</div>'; return; }
+  if(typeof ROWS_BY_DAY==='undefined'||typeof DAY_DATES==='undefined'){ if(res)res.innerHTML='<div style="color:#e8623a;">Ouvre la semaine dans Horaires.</div>'; return; }
+  var R=(typeof getReglement==='function')?getReglement():{};
+  var maxTJ=(R.maxTraitsJour!=null)?parseInt(R.maxTraitsJour,10):2;
+  var nbRepos=(R.joursRepos!=null)?parseInt(R.joursRepos,10):2; var joursMax=7-(isNaN(nbRepos)?2:nbRepos);
+  var eq=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto&&(typeof hrContratHebdo==='function')&&hrContratHebdo(e)>0;});
+  if(!eq.length){ if(res)res.innerHTML='<div style="color:#e8623a;">Aucun équipier pour ce resto.</div>'; return; }
+  var placed={}, busy={}; eq.forEach(function(e){ placed[e.id]=0; busy[e.id]={}; });
+  for(var d=0; d<7; d++){ (ROWS_BY_DAY[d]||[]).forEach(function(row){ (row.bars||[]).forEach(function(b){ if(b.empId!=null && placed[b.empId]!=null){ placed[b.empId]+=(b.e-b.s); (busy[b.empId][d]=busy[b.empId][d]||[]).push({s:b.s,e:b.e}); } }); }); }
+  function contratMin(e){ return Math.round(hrContratHebdo(e)*60); }
+  function reste(e){ return contratMin(e)-(placed[e.id]||0); }
+  function nbJours(id){ var n=0; for(var d2=0;d2<7;d2++){ if((busy[id][d2]||[]).length) n++; } return n; }
+  function occupe(id,d,s,e){ var a=busy[id][d]||[]; for(var i=0;i<a.length;i++){ if(s<a[i].e&&e>a[i].s) return true; } return false; }
+  function nbSeqJour(id,d){ var a=(busy[id][d]||[]).slice().sort(function(x,y){return x.s-y.s;}); var n=0,cur=null; a.forEach(function(p){ if(cur&&p.s<=cur.e)cur.e=Math.max(cur.e,p.e); else{cur={s:p.s,e:p.e};n++;} }); return n; }
+  function dispoOk(e,d,s,en){ var jk=(typeof JOURS_KEYS!=='undefined')?JOURS_KEYS[d]:null; var dd=(e.infos&&e.infos.dispos&&jk&&e.infos.dispos[jk])||null; if(!dd||!dd.on) return false; var dm=(typeof _dispoMin==='function')?_dispoMin:function(){return null;}; if(Array.isArray(dd.creneaux)&&dd.creneaux.length>1){ for(var i=0;i<dd.creneaux.length;i++){ var f=dm(dd.creneaux[i].from),t=dm(dd.creneaux[i].to); if(f!=null&&t!=null&&s>=f&&en<=t) return true; } return false; } var f=dm(dd.from),t=dm(dd.to); return f!=null&&t!=null&&s>=f&&en<=t; }
+  function absent(e,d){ var iso=DAY_DATES[d]; return !!(typeof hrEstAbsent==='function' && iso && hrEstAbsent(e.id,iso)); }
+  // Jours triés par CA décroissant (pour le mode « Auto »)
+  var joursParCA=[0,1,2,3,4,5,6].slice().sort(function(a,b){ return ((typeof DAY_TOTALS!=='undefined'&&DAY_TOTALS[b])||0)-((typeof DAY_TOTALS!=='undefined'&&DAY_TOTALS[a])||0); });
+  var ajouts=[], nonPlaces=[];
+  function poser(e,d,s,en,poste){
+    var bar={l:poste,s:s,e:en,empId:e.id,emp:e.name,col:((typeof col==='function')?col(poste).bg:'#1d7a3a'),_complement:true};
+    (ROWS_BY_DAY[d]=ROWS_BY_DAY[d]||[]).push({bars:[bar],_complement:true});
+    (busy[e.id][d]=busy[e.id][d]||[]).push({s:s,e:en}); placed[e.id]+=(en-s);
+    ajouts.push({nom:e.name,jour:_cmpJoursN[d],poste:poste,h:_cmpHM(s)+'–'+_cmpHM(en)});
+  }
+  rules.forEach(function(rl){
+    var s=rl.debut, en=rl.fin, poste=rl.poste, nb=rl.nb||1;
+    if(s==null||en==null||en<=s){ return; }
+    var joursCibles=(rl.jourMode==='fixe' && rl.jour!=null)?[rl.jour]:joursParCA;
+    for(var k=0;k<nb;k++){
+      var best=null; // {e,d}
+      for(var ji=0; ji<joursCibles.length && !best; ji++){
+        var d=joursCibles[ji];
+        // candidats : sous contrat, compétents, dispos, pas absents, pas occupés, règles simples
+        var cands=eq.filter(function(e){
+          if(reste(e) < 30) return false;                       // a déjà (presque) son contrat
+          if(!(typeof hrSaitFaire==='function')||!hrSaitFaire(e,poste)) return false;
+          if(absent(e,d)) return false;
+          if(!dispoOk(e,d,s,en)) return false;
+          if(occupe(e.id,d,s,en)) return false;
+          var dejaLeJour=(busy[e.id][d]||[]).length>0;
+          if(!dejaLeJour && nbJours(e.id)>=joursMax) return false; // respect repos (nb jours)
+          if(nbSeqJour(e.id,d) >= maxTJ && !dejaLeJour) return false;
+          return true;
+        }).sort(function(a,b){
+          // priorité : ceux qui bossent DÉJÀ ce jour (on ne casse pas un jour de repos),
+          // puis le plus « en manque » de contrat d'abord.
+          var da=(busy[a.id][d]||[]).length>0?1:0, db=(busy[b.id][d]||[]).length>0?1:0;
+          if(da!==db) return db-da;
+          return reste(b)-reste(a);
+        });
+        if(cands.length){ best={e:cands[0],d:d}; }
+      }
+      if(best){ poser(best.e,best.d,s,en,poste); }
+      else { nonPlaces.push({poste:poste,h:_cmpHM(s)+'–'+_cmpHM(en)}); }
+    }
+  });
+  // Réécrire HR_AFFECT depuis ROWS_BY_DAY + sauvegarder + réafficher
+  try{
+    for(var d3=0; d3<7; d3++){ var iso=DAY_DATES[d3]; if(!iso) continue; var arr=[]; (ROWS_BY_DAY[d3]||[]).forEach(function(r){ (r.bars||[]).forEach(function(b){ if(b.empId!=null) arr.push({l:b.l,s:b.s,e:b.e,emp:b.emp,empId:b.empId}); }); }); HR_AFFECT[iso]=arr; }
+    if(typeof hrSauverAffect==='function') hrSauverAffect();
+  }catch(_e){ console.warn('cmp save',_e); }
+  try{ if(typeof renderTimeline==='function') renderTimeline(); }catch(_){}
+  try{ if(typeof renderAll==='function') renderAll(); }catch(_){}
+  try{ if(typeof hrRenderPlanningHebdo==='function') hrRenderPlanningHebdo(); }catch(_){}
+  // Bilan
+  var sousContratRestant=eq.filter(function(e){ return reste(e)>=60; }).map(function(e){ return {nom:e.name, manqueH:Math.round(reste(e)/60*10)/10}; }).sort(function(a,b){return b.manqueH-a.manqueH;});
+  var html='<div style="background:#0f2417;border:1px solid #2e5e33;border-radius:10px;padding:12px;">'
+    +'<div style="color:#3ecf8e;font-weight:800;margin-bottom:6px;">✅ '+ajouts.length+' renfort(s) ajouté(s)</div>';
+  if(ajouts.length){ html+='<div style="font-size:.8rem;color:#cbd5e1;max-height:180px;overflow:auto;">'+ajouts.map(function(a){return '• '+a.nom+' — '+a.jour+' '+a.h+' ('+a.poste+')';}).join('<br>')+'</div>'; }
+  html+='</div>';
+  if(nonPlaces.length){ html+='<div style="margin-top:8px;background:#2a2410;border:1px solid #5a4d1a;border-radius:10px;padding:11px;font-size:.8rem;color:#e8d9a0;">⚠️ '+nonPlaces.length+' renfort(s) non pourvu(s) (personne de compétent/dispo sous contrat) → piste de recrutement.</div>'; }
+  if(sousContratRestant.length){ html+='<div style="margin-top:8px;font-size:.8rem;color:#9a9a9a;">Encore sous contrat : '+sousContratRestant.slice(0,10).map(function(x){return x.nom+' (−'+x.manqueH+'h)';}).join(', ')+(sousContratRestant.length>10?'…':'')+'</div>'; }
+  if(res) res.innerHTML=html;
+  try{ toast(ajouts.length+' renfort(s) ajouté(s)','success'); }catch(_){}
+}
+window.hrComplementContrats=hrComplementContrats;
+
+/* ═══════════════ SEMAINE INTÉGRATION (nouvelles recrues, en doublon) ═══════════════
+ * La direction crée des MODÈLES d'intégration réutilisables (cuisine, drive, nuit,
+ * fermeture…) : chaque modèle = une suite de journées-type {poste, heures}.
+ * À l'arrivée d'une recrue, on lui applique un modèle sur N premiers jours : elle est
+ * placée EN DOUBLON (en plus, pour se former) et EXCLUE de la rotation normale ces
+ * jours-là. Après, elle entre dans les horaires comme tout le monde (bouche-trous).
+ * Paramétrage : Paramètres → Semaine intégration. Application : État équipe → Semaine intégration. */
+var INTEG=null;
+function getInteg(){ if(INTEG) return INTEG; try{ var r=localStorage.getItem('bkrh_integration'); INTEG=r?JSON.parse(r):null; }catch(e){ INTEG=null; } if(!INTEG||typeof INTEG!=='object') INTEG={modeles:[],affect:{}}; if(!INTEG.modeles) INTEG.modeles=[]; if(!INTEG.affect) INTEG.affect={}; return INTEG; }
+function saveInteg(){ var o=getInteg(); try{ localStorage.setItem('bkrh_integration',JSON.stringify(o)); }catch(e){} try{ if(typeof SB!=='undefined'&&SB) SB.from('app_config').upsert({cle:'bkrh_integration',valeur:o},{onConflict:'cle'}).then(function(){},function(){}); }catch(e){} }
+async function hrChargerInteg(){ try{ if(typeof SB==='undefined'||!SB) return; var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_integration').maybeSingle(); if(r&&r.data&&r.data.valeur){ INTEG=r.data.valeur; if(!INTEG.modeles)INTEG.modeles=[]; if(!INTEG.affect)INTEG.affect={}; try{localStorage.setItem('bkrh_integration',JSON.stringify(INTEG));}catch(e){} } }catch(e){} }
+window.hrChargerInteg=hrChargerInteg;
+function _intISO(d){ return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+function _intNextId(){ var n=0; getInteg().modeles.forEach(function(m){ var k=parseInt((''+m.id).replace(/\D/g,''),10); if(!isNaN(k)&&k>n)n=k; }); return 'mod'+(n+1); }
+// Un salarié est-il en période d'intégration ce jour-là (doublon) ?
+function hrEnIntegration(empId, iso){
+  try{ var a=getInteg().affect[empId]; if(!a||!a.dateDebut) return false;
+    var d0=new Date(a.dateDebut+'T12:00:00'); var d1=new Date(d0.getTime()+((a.nbJours||1)-1)*86400000);
+    var x=new Date(iso+'T12:00:00'); return x>=d0 && x<=d1;
+  }catch(e){ return false; }
+}
+window.hrEnIntegration=hrEnIntegration;
+
+/* ── Paramètres → Semaine intégration (modèles) ── */
+function renderIntegrationParam(){
+  var box=document.getElementById('pc-integration-body'); if(!box) return;
+  var data=getInteg(); var modeles=data.modeles||[]; var postes=_cmpPostes();
+  var h='<div style="margin-bottom:12px;"><button class="btn btn-red btn-sm" onclick="integAddModele()">➕ Nouveau modèle</button></div>';
+  h+='<p style="font-size:.8rem;color:#9a9a9a;margin-bottom:14px;line-height:1.6;">Crée des modèles d\'intégration réutilisables (ex. « Cuisine », « Drive », « Nuit », « Fermeture »). Chaque modèle est une suite de <b>journées-type</b> (poste + heures) : J1, J2, J3… La recrue sera placée <b>en doublon</b> sur ces journées. Tu appliques un modèle à un salarié dans <b>État équipe → Semaine intégration</b>.</p>';
+  if(!modeles.length){ box.innerHTML=h+'<div style="background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:16px;color:#888;">Aucun modèle. Clique « ➕ Nouveau modèle ».</div>'; return; }
+  modeles.forEach(function(m,mi){
+    h+='<div style="background:#161616;border:1px solid #2a2a2a;border-radius:12px;padding:14px;margin-bottom:12px;">'
+      +'<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">'
+        +'<input value="'+(m.nom||'').replace(/"/g,'&quot;')+'" onchange="integSetNom(\''+m.id+'\',this.value)" placeholder="Nom du modèle" style="background:#111;border:1px solid #333;color:#fff;border-radius:7px;padding:7px 10px;font-weight:700;font-size:.95rem;min-width:180px;">'
+        +'<span style="flex:1;"></span>'
+        +'<button onclick="integAddJour(\''+m.id+'\')" style="background:#16321f;border:1px solid #2e5e33;color:#7fe0a0;border-radius:7px;cursor:pointer;padding:6px 10px;font-size:.8rem;">➕ Journée</button>'
+        +'<button onclick="integDelModele(\''+m.id+'\')" style="background:#3a1616;border:1px solid #6a2a2a;color:#e88;border-radius:7px;cursor:pointer;padding:6px 10px;font-size:.8rem;">🗑️ Modèle</button>'
+      +'</div>';
+    var jours=m.jours||[];
+    if(!jours.length){ h+='<div style="color:#777;font-size:.82rem;">Aucune journée — clique « ➕ Journée ».</div>'; }
+    else {
+      h+='<table style="width:100%;border-collapse:collapse;font-size:.82rem;"><tbody>';
+      jours.forEach(function(j,ji){
+        h+='<tr>'
+          +'<td style="padding:4px 6px;color:#888;white-space:nowrap;">J'+(ji+1)+'</td>'
+          +'<td style="padding:4px 6px;"><select onchange="integSetJour(\''+m.id+'\','+ji+',\'poste\',this.value)" style="background:#111;border:1px solid #333;color:#eee;border-radius:6px;padding:5px;">'+postes.map(function(p){return '<option value="'+p+'"'+(p===j.poste?' selected':'')+'>'+p+'</option>';}).join('')+'</select></td>'
+          +'<td style="padding:4px 6px;"><input type="time" value="'+_cmpHM(j.debut)+'" onchange="integSetJour(\''+m.id+'\','+ji+',\'debut\',this.value)" style="background:#111;border:1px solid #333;color:#eee;border-radius:6px;padding:5px;"></td>'
+          +'<td style="padding:4px 6px;"><input type="time" value="'+_cmpHM(j.fin)+'" onchange="integSetJour(\''+m.id+'\','+ji+',\'fin\',this.value)" style="background:#111;border:1px solid #333;color:#eee;border-radius:6px;padding:5px;"></td>'
+          +'<td style="padding:4px 6px;"><button onclick="integDelJour(\''+m.id+'\','+ji+')" style="background:#2a1414;border:1px solid #5a2626;color:#e88;border-radius:6px;cursor:pointer;padding:3px 8px;">✕</button></td>'
+        +'</tr>';
+      });
+      h+='</tbody></table>';
+    }
+    h+='</div>';
+  });
+  box.innerHTML=h;
+}
+window.renderIntegrationParam=renderIntegrationParam;
+function integAddModele(){ var d=getInteg(); d.modeles.push({id:_intNextId(),nom:'Nouveau modèle',jours:[{poste:_cmpPostes()[0],debut:540,fin:780}]}); saveInteg(); renderIntegrationParam(); }
+function integDelModele(id){ var d=getInteg(); d.modeles=d.modeles.filter(function(m){return m.id!==id;}); saveInteg(); renderIntegrationParam(); }
+function integSetNom(id,val){ var d=getInteg(); var m=d.modeles.find(function(x){return x.id===id;}); if(m){ m.nom=val; saveInteg(); } }
+function integAddJour(id){ var d=getInteg(); var m=d.modeles.find(function(x){return x.id===id;}); if(m){ m.jours=m.jours||[]; var last=m.jours[m.jours.length-1]; m.jours.push({poste:(last?last.poste:_cmpPostes()[0]),debut:(last?last.debut:540),fin:(last?last.fin:780)}); saveInteg(); renderIntegrationParam(); } }
+function integDelJour(id,ji){ var d=getInteg(); var m=d.modeles.find(function(x){return x.id===id;}); if(m&&m.jours){ m.jours.splice(ji,1); saveInteg(); renderIntegrationParam(); } }
+function integSetJour(id,ji,field,val){ var d=getInteg(); var m=d.modeles.find(function(x){return x.id===id;}); if(!m||!m.jours||!m.jours[ji]) return; var j=m.jours[ji]; if(field==='poste')j.poste=val; else if(field==='debut')j.debut=_cmpMin(val); else if(field==='fin')j.fin=_cmpMin(val); saveInteg(); }
+window.integAddModele=integAddModele; window.integDelModele=integDelModele; window.integSetNom=integSetNom; window.integAddJour=integAddJour; window.integDelJour=integDelJour; window.integSetJour=integSetJour;
+
+/* ── État équipe → Semaine intégration (application par salarié) ── */
+function hrEERenderIntegration(){
+  var box=document.getElementById('etat-equipe-list'); if(!box) return;
+  var resto=_cmpRestoActif();
+  var data=getInteg(); var modeles=data.modeles||[]; var affect=data.affect||{};
+  var eqs=(DB.employees||[]).filter(function(e){return e && !e.archived && e.restoId===resto && e.role==='equipier';}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+  var h=(typeof _hrEEHeader==='function')?_hrEEHeader('🎓 Semaine intégration'):'<div style="margin-bottom:10px;"><button onclick="hrEERetour()" class="btn btn-gray btn-sm">← Retour</button></div><div style="font-weight:800;font-size:1.2rem;color:#fff;margin-bottom:8px;">🎓 Semaine intégration</div>';
+  h+='<div style="font-size:.84rem;color:#aaa;margin-bottom:12px;line-height:1.6;">Applique un <b>modèle d\'intégration</b> (défini dans Paramètres) à une nouvelle recrue : elle sera placée <b>en doublon</b> les premiers jours (pour se former) et <b>exclue de la rotation normale</b> ces jours-là. Après, elle entre dans les horaires comme tout le monde.</div>';
+  if(!modeles.length){
+    h+='<div style="background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:16px;color:#888;">Aucun modèle d\'intégration. Crée-en dans <b>Paramètres → Semaine intégration</b>.</div>';
+    box.innerHTML=h; return;
+  }
+  // Formulaire d'ajout
+  h+='<div style="background:#161616;border:1px solid #2a2a2a;border-radius:12px;padding:14px;margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">'
+    +'<div><label class="flabel">Salarié</label><select id="int-emp" class="fi" style="width:auto;">'+eqs.map(function(e){return '<option value="'+e.id+'">'+(e.name||'')+'</option>';}).join('')+'</select></div>'
+    +'<div><label class="flabel">Modèle</label><select id="int-mod" class="fi" style="width:auto;">'+modeles.map(function(m){return '<option value="'+m.id+'">'+(m.nom||'')+' ('+(m.jours||[]).length+' j)</option>';}).join('')+'</select></div>'
+    +'<div><label class="flabel">1er jour</label><input type="date" id="int-date" class="fi" style="width:auto;"></div>'
+    +'<div><label class="flabel">Nb jours</label><input type="number" id="int-nb" min="1" max="15" value="4" class="fi" style="width:70px;"></div>'
+    +'<button class="btn btn-red btn-sm" onclick="integAjouter()">Ajouter</button>'
+  +'</div>';
+  // Liste des intégrations en cours pour ce resto
+  var lignes=Object.keys(affect).map(function(empId){
+    var e=eqs.find(function(x){return String(x.id)===String(empId);}); if(!e) return '';
+    var a=affect[empId]; var m=modeles.find(function(x){return x.id===a.modeleId;});
+    var fin=''; try{ var d0=new Date(a.dateDebut+'T12:00:00'); fin=_intISO(new Date(d0.getTime()+((a.nbJours||1)-1)*86400000)); }catch(_){}
+    return '<div style="display:flex;align-items:center;gap:10px;background:#141414;border:1px solid #2a2a2a;border-radius:8px;padding:8px 12px;margin-bottom:6px;">'
+      +'<span style="color:#fff;font-weight:700;">'+(e.name||'')+'</span>'
+      +'<span style="color:#9a9a9a;font-size:.82rem;">'+((m&&m.nom)||'?')+' · du '+(a.dateDebut||'?')+' au '+(fin||'?')+' · '+(a.nbJours||'?')+' j en doublon</span>'
+      +'<span style="flex:1;"></span>'
+      +'<button onclick="integRetirer(\''+empId+'\')" style="background:#3a1616;border:1px solid #6a2a2a;color:#e88;border-radius:6px;cursor:pointer;padding:4px 9px;font-size:.78rem;">Retirer</button>'
+    +'</div>';
+  }).filter(Boolean).join('');
+  h+='<div style="font-size:.82rem;color:#ccc;font-weight:700;margin-bottom:6px;">Intégrations en cours</div>'+(lignes||'<div style="color:#777;font-size:.82rem;margin-bottom:10px;">Aucune pour le moment.</div>');
+  h+='<div style="margin-top:12px;"><button class="btn btn-red" style="background:#1d7a3a;border-color:#1d7a3a;" onclick="hrPlacerIntegrations()">🎓 Placer les intégrations (semaine affichée)</button><div id="int-result" style="margin-top:12px;"></div></div>';
+  box.innerHTML=h;
+}
+window.hrEERenderIntegration=hrEERenderIntegration;
+function integAjouter(){
+  var empId=(document.getElementById('int-emp')||{}).value;
+  var modeleId=(document.getElementById('int-mod')||{}).value;
+  var date=(document.getElementById('int-date')||{}).value;
+  var nb=parseInt((document.getElementById('int-nb')||{}).value,10)||4;
+  if(!empId||!modeleId||!date){ try{toast('Choisis salarié, modèle et 1er jour','error');}catch(_){} return; }
+  var d=getInteg(); d.affect[empId]={modeleId:modeleId,dateDebut:date,nbJours:nb}; saveInteg();
+  hrEERenderIntegration();
+  try{ toast('Intégration enregistrée','success'); }catch(_){}
+}
+function integRetirer(empId){ var d=getInteg(); delete d.affect[empId]; saveInteg(); hrEERenderIntegration(); }
+window.integAjouter=integAjouter; window.integRetirer=integRetirer;
+// Place les doublons d'intégration sur la semaine affichée dans Horaires.
+function hrPlacerIntegrations(){
+  var res=document.getElementById('int-result');
+  var lundi=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:null;
+  if(!lundi||typeof ROWS_BY_DAY==='undefined'||typeof DAY_DATES==='undefined'){ if(res)res.innerHTML='<div style="color:#e8623a;">Ouvre d\'abord une semaine dans Horaires.</div>'; return; }
+  var resto=_cmpRestoActif();
+  var data=getInteg(); var affect=data.affect||{}; var modeles=data.modeles||[];
+  var byId={}; modeles.forEach(function(m){ byId[m.id]=m; });
+  var added=0, noms={};
+  Object.keys(affect).forEach(function(empId){
+    var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e||e.restoId!==resto) return;
+    var a=affect[empId]; var m=byId[a.modeleId]; if(!m||!(m.jours||[]).length||!a.dateDebut) return;
+    var d0=new Date(a.dateDebut+'T12:00:00');
+    for(var i=0;i<(a.nbJours||m.jours.length);i++){
+      var dt=new Date(d0.getTime()+i*86400000); var iso=_intISO(dt);
+      var di=DAY_DATES.indexOf(iso); if(di<0) continue;
+      var jour=m.jours[Math.min(i, m.jours.length-1)]; if(!jour||jour.debut==null||jour.fin==null||jour.fin<=jour.debut) continue;
+      var exists=(ROWS_BY_DAY[di]||[]).some(function(r){ return (r.bars||[]).some(function(b){ return b._integration && String(b.empId)===String(empId) && b.s===jour.debut && b.e===jour.fin; }); });
+      if(exists) continue;
+      var bar={l:jour.poste,s:jour.debut,e:jour.fin,empId:e.id,emp:e.name,col:((typeof col==='function')?col(jour.poste).bg:'#1d7a3a'),_integration:true,_doublon:true};
+      (ROWS_BY_DAY[di]=ROWS_BY_DAY[di]||[]).push({bars:[bar],_integration:true});
+      added++; noms[e.name]=1;
+    }
+  });
+  try{
+    for(var d3=0; d3<7; d3++){ var iso2=DAY_DATES[d3]; if(!iso2) continue; var arr=[]; (ROWS_BY_DAY[d3]||[]).forEach(function(r){ (r.bars||[]).forEach(function(b){ if(b.empId!=null) arr.push({l:b.l,s:b.s,e:b.e,emp:b.emp,empId:b.empId}); }); }); HR_AFFECT[iso2]=arr; }
+    if(typeof hrSauverAffect==='function') hrSauverAffect();
+  }catch(_e){ console.warn('integ save',_e); }
+  try{ if(typeof renderTimeline==='function') renderTimeline(); }catch(_){}
+  try{ if(typeof renderAll==='function') renderAll(); }catch(_){}
+  try{ if(typeof hrRenderPlanningHebdo==='function') hrRenderPlanningHebdo(); }catch(_){}
+  if(res) res.innerHTML='<div style="background:#0f2417;border:1px solid #2e5e33;border-radius:10px;padding:12px;color:#3ecf8e;font-weight:700;">✅ '+added+' journée(s) d\'intégration placée(s) en doublon'+(Object.keys(noms).length?(' — '+Object.keys(noms).join(', ')):'')+'.</div>';
+  try{ toast(added+' journée(s) d\'intégration placée(s)','success'); }catch(_){}
+}
+window.hrPlacerIntegrations=hrPlacerIntegrations;
+
 // Petit en-tête commun aux sous-vues : bouton retour + titre
 function _hrEEHeader(titre, sousTitre){
   return '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">'
@@ -20867,6 +21290,8 @@ function hrEtatAjouter(empId, statut){
   HR_ABSENCES[empId].push({from:from,to:to,motif:motif,statut:(statut==='attente'?'attente':'valide')});
   hrSauverAbsences();
   hrRenderEtatEquipe();
+  // Absence validée → recalcul immédiat des horaires (réattribution des créneaux).
+  if(statut!=='attente'){ try{ _absAiguillagePlage(empId, from, to, motif); }catch(_){} }
 }
 window.hrEtatAjouter=hrEtatAjouter;
 function hrEtatValider(empId, idx){
@@ -20874,6 +21299,7 @@ function hrEtatValider(empId, idx){
   lst[idx].statut='valide';
   hrSauverAbsences();
   hrRenderEtatEquipe();
+  try{ _absAiguillagePlage(empId, lst[idx].from, lst[idx].to, lst[idx].motif); }catch(_){}
 }
 window.hrEtatValider=hrEtatValider;
 function hrEtatRefuser(empId, idx){
@@ -20889,6 +21315,8 @@ function hrEtatSupprimer(empId, idx){
   if(!lst.length) delete HR_ABSENCES[empId];
   hrSauverAbsences();
   hrRenderEtatEquipe();
+  // Absence retirée → le salarié redevient plaçable : on recomplète la semaine.
+  try{ if(typeof hrAutoPlacerSemaine==='function') hrAutoPlacerSemaine(true); }catch(_){}
 }
 window.hrEtatSupprimer=hrEtatSupprimer;
 // Réapplique les noms mémorisés sur les traits de la semaine actuellement affichée
@@ -22024,6 +22452,12 @@ function hrPlacerIntelligentSemaine(repartirZero){
   }
   function eligible(emp,d,s,e,poste){
     if(ch(emp)<=0) return false;
+    // ★ ABSENCE : un salarié absent ce jour-là (congés, arrêt maladie, absence…) n'est
+    // JAMAIS placé sur ce jour. Lu depuis HR_ABSENCES via hrEstAbsent (jour = DAY_DATES[d]).
+    try{ if(typeof hrEstAbsent==='function' && typeof DAY_DATES!=='undefined' && DAY_DATES[d] && hrEstAbsent(emp.id, DAY_DATES[d])) return false; }catch(_abs){}
+    // ★ INTÉGRATION : une recrue en doublon d'intégration ce jour-là n'est PAS placée
+    // dans la rotation normale (elle est en formation, en plus). Voir hrEnIntegration.
+    try{ if(typeof hrEnIntegration==='function' && typeof DAY_DATES!=='undefined' && DAY_DATES[d] && hrEnIntegration(emp.id, DAY_DATES[d])) return false; }catch(_int){}
     if(weekendActif && ch(emp)<=seuilPetit && [4,5,6].indexOf(d)<0) return false; // petits contrats → ven/sam/dim
     if(reste(emp)<60) return false;
     if(!hrSaitFaire(emp,poste)) return false;
@@ -22328,6 +22762,121 @@ function hrPlacerIntelligentSemaine(repartirZero){
 }
 window.hrPlacerIntelligentSemaine=hrPlacerIntelligentSemaine;
 
+/* ═══════════════ PLACEMENT AUTOMATIQUE (sans clic) ═══════════════
+ * Objectif : les horaires se font tout seuls. Dès qu'une semaine est affichée
+ * (ou qu'une absence est saisie), on lance le Placement intelligent — qui est
+ * NON DESTRUCTIF (il ne fait que compléter les traits vides, il conserve les
+ * placements manuels). On ne touche jamais une semaine déjà TRANSFÉRÉE aux
+ * salariés (leur planning est publié) ni une semaine verrouillée. */
+var HR_AUTOPLACE_EN_COURS=false;
+var HR_AUTOPLACE_ACTIF=true; // interrupteur global (réglable si besoin)
+// Y a-t-il au moins un trait VIDE (hors encadrement) à pourvoir sur la semaine ?
+function _hrSemaineADesVides(){
+  try{
+    for(var d=0; d<7; d++){
+      var rows=(typeof ROWS_BY_DAY!=='undefined'&&ROWS_BY_DAY[d])||[];
+      for(var r=0;r<rows.length;r++){ var bars=rows[r].bars||[]; for(var b=0;b<bars.length;b++){ var x=bars[b]; if(x && !x.empId && !estTraitEncadrement(x.l)) return true; } }
+    }
+  }catch(_){}
+  return false;
+}
+// Place automatiquement la semaine affichée si nécessaire (non destructif).
+function hrAutoPlacerSemaine(force){
+  if(!HR_AUTOPLACE_ACTIF) return;
+  if(HR_AUTOPLACE_EN_COURS || (typeof HR_REFRESH_EN_COURS!=='undefined' && HR_REFRESH_EN_COURS)) return;
+  var lundi=(typeof HR_WEEK_LUNDI!=='undefined')?HR_WEEK_LUNDI:'';
+  if(!lundi) return;
+  try{ if(typeof hrSemainePassee==='function' && hrSemainePassee(lundi)) return; }catch(_){} // semaine passée → on ne replace pas
+  try{ if(typeof hrSemaineTransferee==='function' && hrSemaineTransferee(lundi)) return; }catch(_){} // publiée → on n'y touche pas
+  try{ if(typeof hrSemaineVerrouillee==='function' && hrSemaineVerrouillee(lundi)) return; }catch(_){}
+  if(!force && !_hrSemaineADesVides()) return; // déjà complet → rien à faire
+  HR_AUTOPLACE_EN_COURS=true;
+  try{ hrPlacerIntelligentSemaine(false); }catch(e){ console.warn('auto-placement',e); }
+  HR_AUTOPLACE_EN_COURS=false;
+}
+window.hrAutoPlacerSemaine=hrAutoPlacerSemaine;
+// Libère les créneaux d'un salarié pour un jour donné (les rend vides → réattribuables).
+function hrLibererSalarieJour(empId, iso){
+  try{
+    if(typeof DAY_DATES==='undefined') return false;
+    var d=DAY_DATES.indexOf(iso); if(d<0) return false;
+    var rows=(typeof ROWS_BY_DAY!=='undefined'&&ROWS_BY_DAY[d])||[]; var freed=0;
+    rows.forEach(function(row){ (row.bars||[]).forEach(function(b){ if(b && String(b.empId)===String(empId) && !estTraitEncadrement(b.l)){ b.empId=null; b.emp=null; freed++; } }); });
+    return freed>0;
+  }catch(e){ return false; }
+}
+window.hrLibererSalarieJour=hrLibererSalarieJour;
+// Recalcul immédiat quand une absence est saisie/retirée : uniquement pour la
+// semaine actuellement affichée et NON transférée. On libère le jour de l'absent
+// puis on relance le placement (l'absent est désormais exclu par eligible()).
+function hrReplanifierSurAbsence(empId, dateISO){
+  try{
+    if(typeof HR_WEEK_LUNDI==='undefined' || !HR_WEEK_LUNDI) return;
+    if(typeof hrLundiDe==='function' && hrLundiDe(dateISO)!==HR_WEEK_LUNDI) return; // autre semaine → au prochain affichage
+    if(typeof hrSemaineTransferee==='function' && hrSemaineTransferee(HR_WEEK_LUNDI)) return; // publiée → dépannage, pas de re-planif
+    hrLibererSalarieJour(empId, dateISO);
+    hrAutoPlacerSemaine(true);
+  }catch(e){ console.warn('replan absence',e); }
+}
+window.hrReplanifierSurAbsence=hrReplanifierSurAbsence;
+// Aiguillage à la saisie d'une absence : semaine publiée → dépannage (SOS) ;
+// semaine pas encore transférée → re-planification automatique (réattribution).
+function _absAiguillage(empId, dateISO, motif){
+  var lundi=(typeof hrLundiDe==='function')?hrLundiDe(dateISO):null;
+  var transferee=false;
+  try{ transferee=(typeof hrSemaineTransferee==='function' && lundi)?hrSemaineTransferee(lundi):false; }catch(_){}
+  if(transferee){ try{ semDepannageOnAbsence(empId,dateISO,motif); }catch(_){} }
+  else { try{ hrReplanifierSurAbsence(empId,dateISO); }catch(_){} }
+}
+window._absAiguillage=_absAiguillage;
+// Même chose pour une PLAGE de dates (absence du…au… saisie dans État équipe).
+function _absAiguillagePlage(empId, from, to, motif){
+  try{
+    if(!from) return;
+    var d0=new Date(from+'T12:00:00'), d1=new Date(((to||from))+'T12:00:00'), n=0;
+    for(var dt=new Date(d0); dt<=d1 && n<62; dt.setDate(dt.getDate()+1), n++){
+      var iso=dt.getFullYear()+'-'+('0'+(dt.getMonth()+1)).slice(-2)+'-'+('0'+dt.getDate()).slice(-2);
+      _absAiguillage(empId, iso, motif||'absence');
+    }
+  }catch(e){ console.warn('abs plage',e); }
+}
+window._absAiguillagePlage=_absAiguillagePlage;
+// 🗓️ GÉNÉRER L'ANNÉE : place automatiquement toutes les semaines à venir en une
+// fois (traits + placement + sauvegarde). Ignore les semaines transférées/verrouillées.
+// Traite les semaines une par une (setTimeout) pour garder l'écran réactif + une barre d'avancement.
+function hrGenererAnnee(){
+  if(HR_AUTOPLACE_EN_COURS){ toast&&toast('Placement déjà en cours…','error'); return; }
+  var sel=document.getElementById('hrx-sem-sel')||document.getElementById('hrx-sem-sel2');
+  var lundis=[]; if(sel){ for(var i=0;i<sel.options.length;i++){ var v=sel.options[i].value; if(v) lundis.push(v); } }
+  if(!lundis.length){ toast&&toast('Aucune semaine disponible','error'); return; }
+  var depart=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:lundis[0];
+  lundis=lundis.filter(function(l){ return l>=depart; });
+  if(!lundis.length){ toast&&toast('Aucune semaine à venir à générer','error'); return; }
+  var retour=(typeof HR_WEEK_LUNDI!=='undefined')?HR_WEEK_LUNDI:'';
+  var total=lundis.length, idx=0, placed=0, skipped=0;
+  var btn=document.getElementById('hrx-annee-btn'); if(btn){ btn.disabled=true; btn.style.opacity='.6'; }
+  toast&&toast('🗓️ Génération de '+total+' semaine(s)…','info');
+  function fin(){
+    if(retour){ try{ hrGenFromWeek(retour, true); }catch(_){} }
+    if(btn){ btn.disabled=false; btn.style.opacity=''; }
+    var st=document.getElementById('hrx-assign-status'); if(st) st.innerHTML='✅ Année générée : '+placed+' semaine(s) placée(s)'+(skipped?(' · '+skipped+' transférée(s) ignorée(s)'):'')+'.';
+    toast&&toast('✅ Année générée ('+placed+' semaines)','success');
+  }
+  function etape(){
+    if(idx>=lundis.length){ fin(); return; }
+    var l=lundis[idx++];
+    try{
+      var verr=(typeof hrSemaineTransferee==='function' && hrSemaineTransferee(l)) || (typeof hrSemaineVerrouillee==='function' && hrSemaineVerrouillee(l));
+      if(verr){ skipped++; }
+      else { hrGenFromWeek(l, true); placed++; } // calcule traits + auto-place + sauvegarde
+    }catch(e){ console.warn('générer année',l,e); }
+    var st=document.getElementById('hrx-assign-status'); if(st) st.innerHTML='🗓️ Génération… '+idx+'/'+total+' — '+l;
+    setTimeout(etape, 15);
+  }
+  etape();
+}
+window.hrGenererAnnee=hrGenererAnnee;
+
 // ══════════════════════════════════════════════════════════════════════════════
 // 📅 PLACEMENT & ANALYSE RECRUTEMENT DU MOIS  (autonome — ne touche PAS la semaine)
 // Simule le placement intelligent sur TOUTES les semaines du mois affiché, en
@@ -22335,16 +22884,18 @@ window.hrPlacerIntelligentSemaine=hrPlacerIntelligentSemaine;
 // restants et produit une analyse de recrutement (quels profils embaucher, quels
 // salariés sont bloquants par leurs dispos), en tenant compte de la saisonnalité.
 // ══════════════════════════════════════════════════════════════════════════════
-function hrAnalyseRecrutementMois(){
-  var box=document.getElementById('hrx-mois-analyse'); 
-  // TOGGLE : si l'analyse est déjà affichée, un nouveau clic la ferme.
-  if(box && box.innerHTML && box.innerHTML.trim()!==''){ box.innerHTML=''; return; }
+function hrAnalyseRecrutementMois(silent, restoArg, refMoisArg){
+  var box = silent ? null : document.getElementById('hrx-mois-analyse');
+  // TOGGLE : si l'analyse est déjà affichée, un nouveau clic la ferme (mode interactif).
+  if(!silent && box && box.innerHTML && box.innerHTML.trim()!==''){ box.innerHTML=''; return; }
   var lundiAff=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?DAY_DATES[0]:null);
-  if(!lundiAff){ toast&&toast('Choisis une semaine du mois à analyser','error'); return; }
-  // Mois de référence = mois du jeudi de la semaine affichée
-  var refMois=lundiAff; try{ var dRef=new Date(lundiAff+'T12:00:00'); dRef.setDate(dRef.getDate()+3); refMois=hrISO(dRef); }catch(e){}
-  var lundis=(typeof hrLundisDuMois==='function')?hrLundisDuMois(refMois):[lundiAff];
-  if(!lundis||!lundis.length){ toast&&toast('Mois introuvable','error'); return; }
+  if(!silent && !lundiAff){ toast&&toast('Choisis une semaine du mois à analyser','error'); return; }
+  // Mois de référence : fourni (mode alerte) ou déduit du jeudi de la semaine affichée.
+  var refMois=refMoisArg||lundiAff||(typeof hrISO==='function'?hrISO(new Date()):null);
+  if(!refMoisArg && lundiAff){ try{ var dRef=new Date(lundiAff+'T12:00:00'); dRef.setDate(dRef.getDate()+3); refMois=hrISO(dRef); }catch(e){} }
+  if(!refMois){ if(!silent) toast&&toast('Mois introuvable','error'); return; }
+  var lundis=(typeof hrLundisDuMois==='function')?hrLundisDuMois(refMois):[refMois];
+  if(!lundis||!lundis.length){ if(!silent) toast&&toast('Mois introuvable','error'); return; }
   var moisLabel=refMois.slice(0,7);
   if(box) box.innerHTML='<div style="padding:14px;color:#a855f7;">📅 Analyse du mois '+moisLabel+' en cours… ('+lundis.length+' semaines)</div>';
 
@@ -22358,7 +22909,7 @@ function hrAnalyseRecrutementMois(){
   var maxTJ=(R.maxTraitsJour!=null)?parseInt(R.maxTraitsJour,10):2;
   var seuilPetit=(R.petitsContratsSeuilH!=null)?parseFloat(R.petitsContratsSeuilH):15;
   var weekendActif=(R.petitsContratsWeekend!==false);
-  var _resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'').toLowerCase();
+  var _resto=((restoArg||((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto())))||'').toLowerCase();
   var eq=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===_resto&&hrContratHebdo(e)!=null&&hrContratHebdo(e)>0;});
   if(!eq.length){ if(box) box.innerHTML='<div style="padding:14px;color:#f5a623;">Aucun équipier pour ce resto.</div>'; return; }
   var JK=(typeof JOURS_KEYS!=='undefined')?JOURS_KEYS:['lun','mar','mer','jeu','ven','sam','dim'];
@@ -22495,6 +23046,28 @@ function hrAnalyseRecrutementMois(){
     sousContrat.push({nom:e.name||e.id, manqueH:Math.round(manque/60), cibleH:Math.round(ciblesMois[e.id]/60), faitH:Math.round(minMois[e.id]/60), nbJoursDispo:nd, ch:ch(e)}); } });
   sousContrat.sort(function(a,b){ return b.manqueH-a.manqueH; });
 
+  // ── DIMENSIONNEMENT RECRUTEMENT (nb de contrats à embaucher) + MISE EN CACHE ──
+  // Sert à l'ALERTE recrutement proactive (lecture du cache, sans re-simuler).
+  function _trouPour15h(v){ if(v.d===5||v.d===6) return true; if(v.d===4 && tranche(v.s)==='SOIR') return true; return false; }
+  var t15=0,t24=0; if(ecartH<=0){ videsMois.forEach(function(v){ if(_trouPour15h(v))t15++; else t24++; }); }
+  // top postes en tension (pour préciser « recruter en CUISINE / DRIVE… »)
+  var _topPostes=Object.keys(parPoste).sort(function(a,b){return parPoste[b]-parPoste[a];}).slice(0,3);
+  // ── VENTILATION DES CRÉNEAUX VIDES : famille (cuisine/salle) × moment (jour/soir/weekend) ──
+  // → sert à recommander le bon CONTRAT (24h dispo totale / 20h étudiant soirs / 15h week-end)
+  //   et le bon PROFIL (cuisine « derrière » ou salle « devant »). Minutes non couvertes.
+  function _bucketRecrut(v){ if(v.d>=5) return 'weekend'; if(v.s>=1080) return 'soir'; if(v.s<960) return 'jour'; return 'soir'; }
+  var famBuck={}; // { 'cuisine|jour': minutes, ... }
+  videsMois.forEach(function(v){ var f=(typeof _familleRecrut==='function')?_familleRecrut(v.l):null; if(!f) return; var k=f+'|'+_bucketRecrut(v); famBuck[k]=(famBuck[k]||0)+(v.e-v.s); });
+  var weekBesoinH=(lundis.length? Math.round(besoinMoisMin/60/lundis.length) : 0); // besoin moyen /semaine
+  try{
+    window.HR_RECRUT_CACHE=window.HR_RECRUT_CACHE||{};
+    window.HR_RECRUT_CACHE[_resto]={ resto:_resto, mois:moisLabel, nbSemaines:lundis.length, pct:pct,
+      vides:videsMois.length, besoinH:besoinH, capaciteH:capaciteH, ecartH:ecartH, weekBesoinH:weekBesoinH,
+      causeA:causeA, causeB:causeB, causeC:causeC, posteSansCompetent:posteSansCompetent,
+      topPostes:_topPostes, t15:t15, t24:t24, we:we, sem:sem, famBuck:famBuck, ts:Date.now() };
+  }catch(_cache){}
+  if(silent){ return window.HR_RECRUT_CACHE[_resto]; }
+
   // construire le HTML de resultat
   var html='';
   html+='<div style="font-size:1.05rem;font-weight:700;color:#93c5fd;margin-bottom:6px;">\ud83d\udcc5 Analyse du mois '+moisLabel+' ('+lundis.length+' semaines)</div>';
@@ -22563,6 +23136,62 @@ function hrAnalyseRecrutementMois(){
   toast&&toast('Analyse du mois terminée','success');
 }
 window.hrAnalyseRecrutementMois=hrAnalyseRecrutementMois;
+
+// ── ALERTE RECRUTEMENT : traduit les créneaux non couverts en « quel CONTRAT recruter,
+//    plutôt cuisine ou salle ». Contrats (définis avec la direction) :
+//    • 24h = disponibilité totale (couvre la semaine en journée)
+//    • 20h = étudiant tous les soirs + week-end (créneaux du soir en semaine)
+//    • 15h = étudiant week-end (ven soir, sam, dim)
+//    Renvoie des cartes { titre, sub, col, prio } prêtes pour les Alertes.
+function hrRecrutRecos(res){
+  var out=[]; if(!res) return out;
+  // Garde-fou : sans données de CA suffisantes pour ce resto, le « besoin » est faux
+  // (≈ 0 → faux sur-effectif). On n'émet alors AUCUNE reco placement.
+  if(!res.weekBesoinH || res.weekBesoinH < 100){ return out; }
+  if(res.vides===0){ return out; } // 100 % couvert
+  var fb=res.famBuck||{};
+  var famLbl={cuisine:'plutôt CUISINE (derrière : open, broiler, frites…)', salle:'plutôt SALLE / ACCUEIL (devant : bornes, drive, tablette…)'};
+  // (bucket, contrat, taille, priorité, libellé moment)
+  var plans=[
+    {b:'jour',    contrat:'24h', taille:24, prio:0, moment:'la semaine en journée', profilTxt:'disponibilité totale'},
+    {b:'soir',    contrat:'20h', taille:20, prio:1, moment:'les soirs de semaine',  profilTxt:'étudiant dispo tous les soirs'},
+    {b:'weekend', contrat:'15h', taille:15, prio:2, moment:'le week-end',           profilTxt:'étudiant week-end (ven soir, sam, dim)'}
+  ];
+  var nb=res.nbSemaines||1;
+  plans.forEach(function(p){
+    ['cuisine','salle'].forEach(function(f){
+      var mois=fb[f+'|'+p.b]||0; if(mois<=0) return;
+      var weekH=mois/60/nb; if(weekH < 6) return;               // sous 6h/sem : négligeable
+      var n=Math.max(1, Math.round(weekH/p.taille));
+      out.push({prio:p.prio, col:'#1d7a3a',
+        titre:'Recruter '+n+' × contrat '+p.contrat+' — '+(f==='cuisine'?'CUISINE':'SALLE'),
+        sub:'≈ '+Math.round(weekH)+' h/sem non couvertes sur '+p.moment+' ('+famLbl[f]+'). Profil : '+p.profilTxt+'.'});
+    });
+  });
+  return out;
+}
+window.hrRecrutRecos=hrRecrutRecos;
+// Lance l'analyse (silencieuse) du mois courant pour le resto ciblé, met en cache,
+// puis rafraîchit les Alertes + le badge. Appelé à l'ouverture des Alertes.
+var HR_RECRUT_ENCOURS=false;
+function hrRecrutRafraichir(restoFiltre){
+  if(HR_RECRUT_ENCOURS) return;
+  // Le besoin (traits/CA) est calculé par hrCourbeJour à partir des DONNÉES CHARGÉES
+  // (HR_RESTO). L'analyse n'est donc fiable que pour ce resto-là : on l'utilise.
+  var resto=(((typeof HR_RESTO!=='undefined'&&HR_RESTO)?HR_RESTO:'')
+    ||((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:'')
+    ||(curUser&&curUser.restoId)||'').toLowerCase();
+  if(!resto) return;
+  var refMois=(typeof hrISO==='function')?hrISO(new Date()):null; if(!refMois) return;
+  HR_RECRUT_ENCOURS=true;
+  setTimeout(function(){
+    try{ hrAnalyseRecrutementMois(true, resto, refMois); }catch(e){ console.warn('recrut alerte',e); }
+    HR_RECRUT_ENCOURS=false;
+    try{ if(typeof renderAlertes==='function') renderAlertes(); }catch(_){}
+    try{ if(typeof updateAlBadge==='function') updateAlBadge(); }catch(_){}
+  }, 30);
+}
+window.hrRecrutRafraichir=hrRecrutRafraichir;
 
 
 
@@ -27160,6 +27789,9 @@ function hrGenFromWeek(lundi, garderOnglet){
   if(typeof hrRenderPlanningHebdo==='function'){
     try{ hrRenderPlanningHebdo(); }catch(e){}
   }
+  // ★ PLACEMENT AUTOMATIQUE : la semaine s'auto-remplit dès qu'elle est affichée
+  // (non destructif, ignore les semaines transférées/verrouillées). Plus de clic.
+  try{ if(typeof hrAutoPlacerSemaine==='function') hrAutoPlacerSemaine(false); }catch(e){}
 }
 window.hrGenFromWeek=hrGenFromWeek;
 
