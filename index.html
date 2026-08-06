@@ -1643,6 +1643,27 @@ html,body{overflow-x:hidden;}
 
       <button class="btn btn-red" onclick="saveVisiteConfig()">💾 Enregistrer les réglages</button>
     </div>
+    <div class="card param-card" id="pc-mutuelle" style="display:none;">
+      <div class="sec-title">❤️ Mutuelle — délai et rappel</div>
+      <p style="font-size:.82rem;color:#aaa;margin-bottom:16px;">Réglez ici <strong>combien de temps avant</strong> la fin de la mutuelle personnelle d'un salarié l'application doit lancer un rappel. Ce rappel invite à envoyer le mail « nouvelle mutuelle à fournir ». Ces réglages s'appliquent partout (tuiles de suivi, fiches salariés, alertes). Le contenu du mail se modifie dans « Modèles de mail » (onglet ❤️ Mutuelle), par restaurant.</p>
+
+      <div style="background:#141414;border-radius:10px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:.82rem;color:#F5A623;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">🔔 Rappel « à renouveler »</div>
+        <p style="font-size:.78rem;color:#999;margin-bottom:12px;">Le rappel apparaît lorsque la fin de la mutuelle approche. Par défaut <strong>1 mois</strong> avant (30 jours) : le salarié doit fournir sa nouvelle mutuelle avant l'expiration.</p>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+          <div><label class="flabel">Délai de rappel 🟠</label>
+            <div style="display:flex;align-items:center;gap:6px;"><input type="number" id="mc-rappel" class="fi" min="1" max="365" style="width:80px;" value="30"><select id="mc-rappel-unit" class="fi" style="width:auto;"><option value="jours">jours</option><option value="mois">mois</option></select><span style="font-size:.8rem;color:#aaa;">avant la fin</span></div>
+            <div style="font-size:.7rem;color:#777;margin-top:3px;">Par défaut 30 jours (≈ 1 mois).</div></div>
+          <div><label class="flabel">Rappel « urgent » 🔴</label>
+            <div style="display:flex;align-items:center;gap:6px;"><input type="number" id="mc-urgent" class="fi" min="1" max="365" style="width:80px;" value="15"><select id="mc-urgent-unit" class="fi" style="width:auto;"><option value="jours">jours</option><option value="mois">mois</option></select><span style="font-size:.8rem;color:#aaa;">avant la fin</span></div>
+            <div style="font-size:.7rem;color:#777;margin-top:3px;">Passe l'alerte en rouge à l'approche de l'échéance.</div></div>
+        </div>
+      </div>
+
+      <p style="font-size:.76rem;color:#777;margin-bottom:14px;">ℹ️ La date de fin utilisée est celle saisie dans la fiche du salarié (« Fin de droit / de validité mutuelle »). Sans document reçu avant cette date, le salarié bascule automatiquement sur la mutuelle obligatoire du restaurant.</p>
+
+      <button class="btn btn-red" onclick="saveMutuelleConfig()">💾 Enregistrer les réglages</button>
+    </div>
     <div class="card param-card" id="pc-photo" style="display:none;">
       <div class="sec-title">📷 Photo</div>
       <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Prenez une photo (ou choisissez un fichier) et rangez-la. Pour l'instant : <strong>Photo portrait</strong> — la photo remplace l'avatar d'un salarié dans l'équipe.</p>
@@ -1781,12 +1802,13 @@ html,body{overflow-x:hidden;}
           <button class="rtab" onclick="setMailTab(this,'refus_signature')">✍️ Refus de signature</button>
           <button class="rtab" onclick="setMailTab(this,'signature_ok')">✅ Signature confirmée</button>
           <button class="rtab" onclick="setMailTab(this,'ametra')">🏥 AMETRA (retrait effectifs)</button>
+          <button class="rtab" onclick="setMailTab(this,'mutuelle')">❤️ Mutuelle (rappel)</button>
         </div>
         <label class="flabel">Objet</label>
         <input type="text" id="mt-sujet" class="fi" style="margin-bottom:10px;">
         <label class="flabel">Message</label>
         <textarea id="mt-corps" class="fi" style="min-height:200px;font-size:.85rem;"></textarea>
-        <p style="font-size:.72rem;color:#666;margin-top:6px;">Variables : {prenom} {nom} {resto} {date} · Documents disciplinaires : <strong>{document}</strong> (texte du document), <strong>{lien_signature}</strong> (lien de signature en ligne) · Refus de signature : <strong>{type_document}</strong> (type du document refusé) · AMETRA : <strong>{date_naissance}</strong>, <strong>{date_entree}</strong>, <strong>{date_sortie}</strong> (aujourd'hui), <strong>{num_adherent}</strong>.</p>
+        <p style="font-size:.72rem;color:#666;margin-top:6px;">Variables : {prenom} {nom} {resto} {date} · Documents disciplinaires : <strong>{document}</strong> (texte du document), <strong>{lien_signature}</strong> (lien de signature en ligne) · Refus de signature : <strong>{type_document}</strong> (type du document refusé) · AMETRA : <strong>{date_naissance}</strong>, <strong>{date_entree}</strong>, <strong>{date_sortie}</strong> (aujourd'hui), <strong>{num_adherent}</strong> · Mutuelle : <strong>{date_fin}</strong> (fin de la mutuelle du salarié).</p>
         <button class="btn btn-red" style="margin-top:12px;" onclick="saveMailTplResto()">💾 Enregistrer les modèles de ce restaurant</button>
       </div>
     </div>
@@ -3779,6 +3801,7 @@ var PARAM_TILES=[
   {ico:'🔑', titre:'Codes PIN',     sub:'Accès par profil',             type:'card', card:'pc-pin',         accent:'#c0392b'},
   {ico:'🕐', titre:'Amplitude',     sub:'Plage horaire dispos',         type:'card', card:'pc-amplitude',   accent:'#2980b9'},
   {ico:'🩺', titre:'Visite médicale',sub:'Délais et rappels',            type:'card', card:'pc-visite',      accent:'#c0392b'},
+  {ico:'❤️', titre:'Paramètres mutuelle',sub:'Délai et rappel mail',      type:'card', card:'pc-mutuelle',    accent:'#c0392b'},
   {ico:'📷', titre:'Photo',         sub:'Photo portrait d\'un salarié',  type:'card', card:'pc-photo',       accent:'#e84393'},
   {ico:'📍', titre:'Pointer',       sub:'Messages du pointage',         type:'card', card:'pc-pointer',     accent:'#D62300'},
   {ico:'💬', titre:'Messagerie',    sub:'Qui peut écrire à qui',        type:'card', card:'pc-messagerie', accent:'#7e57c2'},
@@ -3842,6 +3865,7 @@ function paramOuvrir(type, ref){
     if(ref==='pc-complement'){ try{ renderComplementParam(); }catch(_){} }
     if(ref==='pc-integration'){ try{ renderIntegrationParam(); }catch(_){} }
     if(ref==='pc-visite'){ try{ loadVisiteConfig(); }catch(_){} }
+    if(ref==='pc-mutuelle'){ try{ loadMutuelleConfig(); }catch(_){} }
     if(ref==='pc-photo'){ try{ photoParamInit(); }catch(_){} }
     if(ref==='pc-pointer'){ try{ ptgMsgCharger('suivi'); }catch(_){} try{ ptgRenderMsgAdmin(); }catch(_){} }
     if(ref==='pc-dispos'){ try{ renderDisposContratParam(); }catch(_){} }
@@ -9139,6 +9163,29 @@ function visiteCfg(){
   };
 }
 
+// ── Réglages MUTUELLE (configurables dans Paramètres › Paramètres mutuelle) ──
+// Rappel avant la fin de la mutuelle personnelle. Par défaut 30 j (≈ 1 mois) / urgent 15 j.
+var MUTUELLE_CFG_DEFAUT={rappelVal:30, rappelUnit:'jours', urgentVal:15, urgentUnit:'jours'};
+function mutuelleCfg(){
+  var c=(DB&&DB.mailSettings&&DB.mailSettings.mutuelleConfig)||{};
+  function n(v,d){ v=parseInt(v); return (isNaN(v)||v<1)?d:v; }
+  function u(v){ return (v==='jours'||v==='mois')?v:null; }
+  return {
+    rappelVal : n(c.rappelVal, MUTUELLE_CFG_DEFAUT.rappelVal),
+    rappelUnit: u(c.rappelUnit)||MUTUELLE_CFG_DEFAUT.rappelUnit,
+    urgentVal : n(c.urgentVal, MUTUELLE_CFG_DEFAUT.urgentVal),
+    urgentUnit: u(c.urgentUnit)||MUTUELLE_CFG_DEFAUT.urgentUnit
+  };
+}
+// Seuils mutuelle convertis en NOMBRE DE JOURS (comparaison directe avec l'échéance).
+function mutuelleSeuils(){
+  var c=mutuelleCfg();
+  var r=visiteEnJours(c.rappelVal,c.rappelUnit);
+  var ug=visiteEnJours(c.urgentVal,c.urgentUnit);
+  if(ug>r) ug=r; // l'« urgent » ne peut pas dépasser le rappel « à renouveler »
+  return {rappelJours:r, urgentJours:ug};
+}
+
 // Visite médicale périodique d'un SALARIÉ (basée sur la date de prochaine visite saisie)
 // 🟢 OK · 🟠 à planifier · 🔴 dépassé
 function visiteEmpInfo(e){
@@ -9262,7 +9309,9 @@ function collectAlertes(restoFiltre){
     }
   });
 
-  // ── 1bis) MUTUELLE (salariés) : expiration dépassée + rappels 30 j et 15 j ──
+  // ── 1bis) MUTUELLE (salariés) : expiration dépassée + rappels configurables ──
+  // Seuils réglés dans Paramètres › Paramètres mutuelle (défaut : rappel 30 j ≈ 1 mois, urgent 15 j).
+  var _mutSeuils=mutuelleSeuils();
   emps.forEach(function(e){
     var fin=(e.infos&&e.infos.mutuelle_fin)||'';
     if(!fin) return;
@@ -9273,15 +9322,15 @@ function collectAlertes(restoFiltre){
     if(jours<0){
       alerts.push({prio:0,cat:'Mutuelle',icon:'❤️',col:'#cc5555',
         titre:e.name+' — mutuelle expirée',
-        sub:'Échéance le '+_frDate(fin)+' · '+resto,empId:e.id});
-    }else if(jours<=15){
+        sub:'Échéance le '+_frDate(fin)+' · '+resto,empId:e.id,mutuelleId:e.id,mutuelleKind:'emp'});
+    }else if(jours<=_mutSeuils.urgentJours){
       alerts.push({prio:1,cat:'Mutuelle',icon:'❤️',col:'#cc5555',
         titre:e.name+' — mutuelle expire dans '+jours+' j',
-        sub:'Avant le '+_frDate(fin)+' · '+resto,empId:e.id});
-    }else if(jours<=30){
+        sub:'Avant le '+_frDate(fin)+' · '+resto,empId:e.id,mutuelleId:e.id,mutuelleKind:'emp'});
+    }else if(jours<=_mutSeuils.rappelJours){
       alerts.push({prio:2,cat:'Mutuelle',icon:'❤️',col:'#F5A623',
         titre:e.name+' — mutuelle expire dans '+jours+' j',
-        sub:'Avant le '+_frDate(fin)+' · '+resto,empId:e.id});
+        sub:'Avant le '+_frDate(fin)+' · '+resto,empId:e.id,mutuelleId:e.id,mutuelleKind:'emp'});
     }
   });
 
@@ -9685,10 +9734,12 @@ function renderAlertes(){
         var onclick=a.action?('onclick="'+a.action+'"'):(a.empId?'onclick="openEmpFiche(\''+a.empId+'\')"':(a.candId?'onclick="openCand(\''+a.candId+'\')"':''));
         var clickable=!!(a.action||a.empId||a.candId);
         var ametraBtn=a.ametraId?('<button class="btn btn-gray btn-sm" style="flex-shrink:0;color:#e8a020;border-color:#5a4420;" onclick="event.stopPropagation();mailAmetra(\''+(a.ametraKind||'cand')+'\',\''+a.ametraId+'\')" title="Prévenir AMETRA du retrait des effectifs">🏥 AMETRA</button>'):'';
+        var mutuelleBtn=a.mutuelleId?('<button class="btn btn-gray btn-sm" style="flex-shrink:0;color:#e57373;border-color:#5a2a2a;" onclick="event.stopPropagation();mailMutuelle(\''+(a.mutuelleKind||'emp')+'\',\''+a.mutuelleId+'\')" title="Envoyer le rappel « nouvelle mutuelle à fournir »">❤️ Rappel mutuelle</button>'):'';
         return '<div class="emp-card" style="border-left:4px solid '+a.col+';cursor:'+(clickable?'pointer':'default')+';" '+onclick+'>'
           +'<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:.9rem;">'+a.titre+'</div>'
           +'<div style="font-size:.74rem;color:#888;margin-top:2px;">'+a.sub+'</div></div>'
           +ametraBtn
+          +mutuelleBtn
           +(clickable?'<span style="color:'+a.col+';font-size:1.3rem;">›</span>':'')+'</div>';
       }).join('');
     }
@@ -12409,13 +12460,25 @@ function candRetenir(){
 
 function candRefuser(){
   var c=curCand(); if(!c) return;
-  // Plus de motif obligatoire : refus direct + préparation du mail (à valider avant envoi).
-  if(!confirm('Refuser '+((c.prenom||'')+' '+(c.nom||'')).trim()+' ?\n\nUn mail de refus va être préparé (à valider avant envoi).')) return;
-  // La « NOTE INTERNE RH » de la fiche sert de motif de suivi si elle est remplie (facultatif).
-  var _n=document.getElementById('cand-note'); var _note=_n?_n.value.trim():'';
+  // Stade du refus déduit du statut courant du candidat (trace interne).
+  var _stade=(c.statut==='entretien')?'après l\'entretien'
+            :(c.statut==='retenu')?'après avoir été retenu'
+            :(c.statut==='essai')?'pendant la période d\'essai'
+            :'avant l\'entretien';
+  // Motif INTERNE OBLIGATOIRE — jamais communiqué au candidat, uniquement pour le suivi RH.
+  var _n=document.getElementById('cand-note'); var _pre=_n?_n.value.trim():'';
+  var _motif=prompt('Refus de '+((c.prenom||'')+' '+(c.nom||'')).trim()+' — '+_stade+'.\n\n'
+    +'Motif INTERNE du refus (OBLIGATOIRE — non envoyé au candidat) :\n'
+    +'Ex. : profil ne correspond pas · pas assez d\'expérience · disponibilités incompatibles · exigences salariales · mauvaise impression à l\'entretien · poste déjà pourvu…', _pre);
+  if(_motif===null) return; // annulé → on ne refuse pas
+  _motif=(_motif||'').trim();
+  if(!_motif){ toast('Refus annulé : un motif interne est obligatoire.','error'); return; }
+  // On reporte le motif dans la note interne RH de la fiche (visible ensuite).
+  if(_n){ _n.value=_motif; }
+  var _full=_motif+' (refus '+_stade+')';
   // Ouvrir le brouillon TOUT DE SUITE (dans le clic) pour éviter le blocage pop-up du navigateur.
   try{ mailRefus(); }catch(e){ console.warn('mailRefus',e); }
-  _candUpdate({statut:'refuse',refus_motif:_note,note_interne:_note},'Candidature refusée');
+  _candUpdate({statut:'refuse',refus_motif:_full,note_interne:_motif},'Candidature refusée — motif enregistré ✔');
 }
 // L'entretien a eu lieu mais le candidat NE S'EST PAS PRÉSENTÉ (no-show).
 function candNonPresente(){
@@ -12547,6 +12610,10 @@ var MAIL_DEFAULTS={
   ametra:{
     sujet:'Sortie des effectifs — {nom} {prenom} — {resto}',
     corps:'Bonjour,\n\nNous vous informons que le salarié suivant ne fait plus partie des effectifs de notre établissement.\n\nNous vous remercions de bien vouloir le retirer de notre déclaration d\'effectif : aucune visite d\'information et de prévention (VIP) n\'est à programmer, et nous vous demandons de retirer la facturation correspondante.\n\n• Nom et prénom : {prenom} {nom}\n• Date de naissance : {date_naissance}\n• Date d\'entrée : {date_entree}\n• Date de sortie des effectifs : {date_sortie}\n• Établissement : {resto}\n• N° d\'adhérent : {num_adherent}\n\nNous restons à votre disposition pour toute information complémentaire.\n\nCordialement,\n{resto}'
+  },
+  mutuelle:{
+    sujet:'Votre mutuelle expire bientôt — {resto}',
+    corps:'Bonjour {prenom},\n\nSelon nos informations, votre mutuelle (complémentaire santé) personnelle arrive à échéance le {date_fin}, soit dans environ un mois.\n\nPour continuer à être dispensé(e) de la mutuelle obligatoire du restaurant, merci de nous transmettre, avant cette date, votre nouvelle attestation de mutuelle en cours de validité :\n\n• soit en la déposant sur votre espace personnel sécurisé,\n• soit en réponse à ce mail.\n\n⚠️ Important : sans ce document reçu avant l\'expiration de votre mutuelle actuelle (le {date_fin}), vous serez obligatoirement affilié(e) à notre mutuelle d\'entreprise, avec la cotisation correspondante prélevée sur votre salaire.\n\nNous restons à votre disposition pour toute question.\n\nCordialement,\nL\'équipe {resto}'
   }
 };
 // Modèles de mails — PAR RESTAURANT si défini, sinon modèle commun, sinon défaut.
@@ -12573,7 +12640,8 @@ function getMailTpl(restoId){
     mise_a_pied:pick('mise_a_pied'),
     refus_signature:pick('refus_signature'),
     signature_ok:pick('signature_ok'),
-    ametra:pick('ametra')
+    ametra:pick('ametra'),
+    mutuelle:pick('mutuelle')
   };
 }
 function _restoLabel(c){return RESTOS[c.restoId]?RESTOS[c.restoId].label:'Burger King';}
@@ -12702,6 +12770,34 @@ function mailAmetra(kind,id){
   _mailtoTo(email,p.restoId,_fillTplAmetra(tpl.sujet,p),_fillTplAmetra(tpl.corps,p));
 }
 window.mailAmetra=mailAmetra;
+
+// ── MUTUELLE : mail de rappel au SALARIÉ (nouvelle mutuelle à fournir) ─────────
+// Destinataire = adresse email du salarié. Contenu modifiable dans « Modèles de mail » (onglet ❤️ Mutuelle).
+function _fillTplMutuelle(txt,p){
+  function fd(d){ if(!d) return '(à préciser)'; var s=''+d; var x=new Date(s.length<=10?s+'T12:00:00':s); return isNaN(x.getTime())?'(à préciser)':x.toLocaleDateString('fr-FR'); }
+  var resto=RESTOS[p.restoId]?RESTOS[p.restoId].label:(p.restoId||'Burger King');
+  return (txt||'')
+    .replace(/{prenom}/g,p.prenom||'')
+    .replace(/{nom}/g,p.nom||'')
+    .replace(/{resto}/g,resto)
+    .replace(/{date_fin}/g,fd(p.dateFin))
+    .replace(/{date}/g,new Date().toLocaleDateString('fr-FR'));
+}
+function mailMutuelle(kind,id){
+  var e=(DB.employees||[]).find(function(x){return x.id===id;});
+  if(!e){ try{toast('Salarié introuvable','error');}catch(_){} return; }
+  var parts=(e.name||'').trim().split(/\s+/);
+  var p={prenom:parts.slice(0,-1).join(' ')||parts[0]||'', nom:(parts.length>1?parts.slice(-1)[0]:''),
+    restoId:e.restoId, dateFin:(e.infos&&e.infos.mutuelle_fin)||''};
+  var dest=(e.email||'').trim();
+  if(!dest){
+    var ok=false; try{ ok=confirm('Ce salarié n\'a pas d\'email renseigné (à renseigner dans sa fiche).\n\nOuvrir quand même le mail ? Vous saisirez l\'adresse dans Gmail.'); }catch(_){ ok=true; }
+    if(!ok) return;
+  }
+  var tpl=getMailTpl(p.restoId).mutuelle||MAIL_DEFAULTS.mutuelle;
+  _mailtoTo(dest,p.restoId,_fillTplMutuelle(tpl.sujet,p),_fillTplMutuelle(tpl.corps,p));
+}
+window.mailMutuelle=mailMutuelle;
 
 // ── ACTIONS : RETENU (intégration) ────────────────────────────────────────────
 async function _candUpdate(patch,msg,after){
@@ -14944,6 +15040,34 @@ async function saveVisiteConfig(){
   try{ if(typeof renderVisiteStatTiles==='function')renderVisiteStatTiles(); if(typeof renderVisiteList==='function')renderVisiteList(); }catch(_){}
 }
 window.saveVisiteConfig=saveVisiteConfig;
+
+// ── Réglages mutuelle ─────────────────────────────────────────────────────────
+function loadMutuelleConfig(){
+  var c=mutuelleCfg();
+  var set=function(id,v){var el=document.getElementById(id);if(el)el.value=v;};
+  set('mc-rappel',c.rappelVal);
+  set('mc-rappel-unit',c.rappelUnit);
+  set('mc-urgent',c.urgentVal);
+  set('mc-urgent-unit',c.urgentUnit);
+}
+async function saveMutuelleConfig(){
+  var num=function(id){var el=document.getElementById(id);return el?parseInt(el.value):NaN;};
+  var val=function(id){var el=document.getElementById(id);return el?el.value:'';};
+  var ra=num('mc-rappel'), ur=num('mc-urgent');
+  var raU=(val('mc-rappel-unit')==='mois')?'mois':'jours';
+  var urU=(val('mc-urgent-unit')==='mois')?'mois':'jours';
+  if(!(ra>0)||!(ur>0)){toast('Renseignez des valeurs valides (supérieures à 0).','error');return;}
+  var raJ=visiteEnJours(ra,raU), urJ=visiteEnJours(ur,urU);
+  if(urJ>raJ){toast('Le rappel « urgent » doit être inférieur ou égal au délai de rappel.','error');return;}
+  if(!DB.mailSettings)DB.mailSettings={};
+  DB.mailSettings.mutuelleConfig={
+    rappelVal:ra, rappelUnit:raU,
+    urgentVal:ur, urgentUnit:urU};
+  await saveDB();
+  toast('Réglages de mutuelle enregistrés ✔','success');
+  try{ if(typeof renderAlertes==='function')renderAlertes(); }catch(_){}
+}
+window.loadMutuelleConfig=loadMutuelleConfig; window.saveMutuelleConfig=saveMutuelleConfig;
 
 var _mailTab='entretien';
 var _mailResto=null;   // restaurant dont on édite les modèles (écran tuiles)
