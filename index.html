@@ -14192,7 +14192,9 @@ function personRow(p,days){
     if(v) totH+=heuresDuCode(v);
     var disp=v?('<span style="font-weight:800;">'+abrevCode(v)+'</span>'):'';
     var fond = bg || (auj?'#fff4f1':(we?'#141414':'transparent'));
-    var style='background:'+fond+';'+(bg?'color:#fff;':(auj?'color:#900;':'color:#bbb;'))+(auj&&!bg?'box-shadow:inset 0 0 0 1px #f3b3a3;':'');
+    // Une case AVEC un code garde sa vraie couleur même le samedi/dimanche :
+    // le « !important » inline passe au-dessus de la teinte week-end (.pl-cell.we) du thème clair.
+    var style='background:'+fond+(bg?' !important':'')+';'+(bg?'color:#fff;':(auj?'color:#900;':'color:#bbb;'))+(auj&&!bg?'box-shadow:inset 0 0 0 1px #f3b3a3;':'');
     r+='<td class="pl-cell'+(we?' we':'')+'" data-pid="'+p.id+'" data-date="'+fmtDate(d)+'"'+(v?' draggable="true"':'')+' style="'+style+'" onclick="openCell(\''+p.id+'\',\''+fmtDate(d)+'\')" title="'+(co&&co.label?co.label:v)+'">'+disp+'</td>';
   });
   // Colonne Total (uniquement en vue semaine) : objectif 35h
