@@ -9582,6 +9582,8 @@ function collectAlertes(restoFiltre){
     var _rcache=window.HR_RECRUT_CACHE||{};
     var _rcRestos=Object.keys(_rcache); // chaque carte nomme son resto
     _rcRestos.forEach(function(rid){
+      // RESTAURANTS INDÉPENDANTS : ne montrer que le resto affiché (jamais mélanger 500/509/526).
+      if(restoFiltre && restoFiltre!=='all' && String(rid).toLowerCase()!==String(restoFiltre).toLowerCase()) return;
       var res=_rcache[rid]; if(!res) return;
       var recos=(typeof hrRecrutRecos==='function')?hrRecrutRecos(res):[];
       var rl=(typeof rlabel==='function')?rlabel(rid):rid;
@@ -10728,7 +10730,27 @@ function ptgCtrlTimeline(dateISO, emps){
     }
     return null;
   }
+  // Rendu MINIMAL et ultra-sûr d'une ligne (nom + traits prévus + statut) — utilisé
+  // uniquement si le rendu riche d'une ligne lève une erreur, pour ne PAS détruire
+  // toute la timeline (avant, une seule ligne en erreur faisait tout basculer sur la
+  // liste simplifiée). Les autres lignes gardent le rendu riche (pointé, arrêt maladie…).
+  function _semLigneSafe(ln){
+    var e=ln.e||{}, segs=(ln&&ln.segs)||[];
+    var gl2=HRS.map(function(h,i){ return '<div style="position:absolute;top:0;bottom:0;left:'+(i/HRS.length*100)+'%;width:1px;background:#e8e8e8;"></div>'; }).join('');
+    var bars2=segs.map(function(s){
+      var bg=(s&&s.col)||'#1565c0';
+      var l=(s&&s.l)||'';
+      return '<div style="position:absolute;top:4px;height:17px;left:'+pct(s.s)+'%;width:'+(pct(s.e)-pct(s.s))+'%;background:'+bg+';color:#fff;border-radius:4px;font-size:.58rem;font-weight:700;line-height:17px;padding:0 6px;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.18);">'+_ptgEsc(l+' '+m2hm(s.s)+'–'+m2hm(s.e))+'</div>';
+    }).join('');
+    var st2=(segs.length?'⚠️ Pas pointé':'—'), stc2=(segs.length?'#c0392b':'#aaa');
+    return '<div onclick="ptgEditJour(\''+(e.id)+'\',\''+dateISO+'\')" style="display:flex;align-items:stretch;border-bottom:1px solid #ececec;cursor:pointer;">'
+      +'<div style="flex:0 0 '+NAMEW+';padding:6px 8px;min-width:0;"><div style="font-weight:700;color:#1c1c1c;font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_ptgEsc(e.name||'')+'</div></div>'
+      +'<div style="flex:1;position:relative;height:42px;background:#f2f2f2;">'+gl2+bars2+'</div>'
+      +'<div style="flex:0 0 '+STATW+';padding:6px 6px;font-size:.62rem;text-align:right;color:'+stc2+';font-weight:700;white-space:nowrap;align-self:center;border-left:1px solid #ececec;">'+st2+' ✏️</div>'
+    +'</div>';
+  }
   var body=lignes.map(function(ln){
+   try{
     var e=ln.e, rec=ln.rec, segs=ln.segs, abs=ln.abs, incE=ln.incE;
     var etatAbs=_chEtatAbs(abs,incE);
     var pMin=null,pMax=null; segs.forEach(function(s){ if(pMin==null||s.s<pMin)pMin=s.s; if(pMax==null||s.e>pMax)pMax=s.e; });
@@ -10796,6 +10818,7 @@ function ptgCtrlTimeline(dateISO, emps){
       +'<div style="flex:1;position:relative;height:42px;background:#f2f2f2;">'+gl+bars+'</div>'
       +'<div style="flex:0 0 '+STATW+';padding:6px 6px;font-size:.62rem;text-align:right;color:'+stc+';font-weight:700;white-space:nowrap;align-self:center;border-left:1px solid #ececec;">'+st+' ✏️</div>'
     +'</div>';
+   }catch(_lineErr){ try{ console.warn('ptgCtrlTimeline ligne',(ln&&ln.e&&ln.e.name),_lineErr); }catch(_){} try{ return _semLigneSafe(ln); }catch(_2){ return ''; } }
   }).join('');
   var legend='<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:.68rem;color:#999;">'
     +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#1565c0;border-radius:2px;display:inline-block;"></span>Prévu (traits par poste)</span>'
@@ -25677,7 +25700,7 @@ function hrTraitAffecterOuvrir(rowIdx, barIdx){
   // qui est dessus actuellement
   if(b.emp){
     h+='<div style="background:#16321f;border:1px solid #3ecf8e;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:.85rem;color:#dff;">Actuellement : <b>'+b.emp+'</b> '
-      +'<button onclick="hrTraitVider()" style="margin-left:10px;background:#3a1a1a;border:1px solid #cc5555;color:#cc5555;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:.78rem;">✕ Retirer du trait</button></div>';
+      +'<button onclick="hrTraitVider()" title="Libère la personne : le créneau reste à pourvoir (le besoin n\'est jamais supprimé)" style="margin-left:10px;background:#3a1a1a;border:1px solid #cc5555;color:#cc5555;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:.78rem;">✕ Retirer la personne (le créneau reste ❓)</button></div>';
   } else {
     h+='<div style="background:#3a2a16;border:1px solid #e8a020;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:.85rem;color:#fde;">Trait non pourvu pour l\'instant.</div>';
   }
@@ -26250,13 +26273,39 @@ function renderTimeline(){
       var c=colFor(b.l);
       var bar=document.createElement('div');bar.className='hr-bar';
       bar.style.cssText='left:'+pct(cs)+';width:'+pctW(cs,ce)+';background:'+c.bg+';color:'+c.tx+';opacity:.92;border:1.5px dashed rgba(255,255,255,.5);';
-      bar.textContent=b.l+' '+fmt(s)+'–'+fmt(e);
-      bar.title='Créneau à pourvoir\n'+b.l+'\n'+fmt(s)+' – '+fmt(e);
+      bar.textContent='❓ '+b.l+' '+fmt(s)+'–'+fmt(e);
+      bar.title='Créneau à pourvoir (personne manquante)\n'+b.l+'\n'+fmt(s)+' – '+fmt(e);
       bar.style.cursor='pointer';
       (function(ri,bi){ bar.onclick=function(ev){ ev.stopPropagation(); hrTraitAffecterOuvrir(ri,bi); }; })(b.rowIdx,b.barIdx);
       bdR.appendChild(bar);
     });
     trR.appendChild(bdR); body.appendChild(trR);
+    // ── LISTE VERTICALE : TOUS les créneaux à prendre, un par ligne, triés par heure ──
+    // (le rang timeline ci-dessus peut faire se chevaucher des créneaux à la même heure ;
+    //  ici on les voit TOUS, dans l'ordre, et on clique directement pour mettre un nom.)
+    var _resteTries=_resteBars.slice().sort(function(a,b){ return (a.s-b.s) || (a.e-b.e) || (''+(a.l||'')).localeCompare(''+(b.l||'')); });
+    var listWrap=document.createElement('div');
+    listWrap.style.cssText='border-top:1px dashed rgba(214,35,0,.45);background:rgba(214,35,0,.05);padding:9px 12px 12px;';
+    var lh='<div style="font-size:.72rem;font-weight:800;color:#f87171;text-transform:uppercase;letter-spacing:.03em;margin-bottom:9px;">📋 Tous les créneaux à prendre ('+_resteTries.length+') — clique un créneau pour mettre un nom</div>'
+      +'<div style="display:flex;flex-direction:column;gap:5px;">';
+    _resteTries.forEach(function(b){
+      var c=colFor(b.l);
+      lh+='<div class="hr-reste-item" data-ri="'+b.rowIdx+'" data-bi="'+b.barIdx+'" title="Cliquer pour placer un nom sur ce créneau" '
+        +'style="display:flex;align-items:center;gap:10px;background:var(--s1,#171717);border:1px solid rgba(214,35,0,.35);border-radius:8px;padding:6px 10px;cursor:pointer;transition:background .12s;" '
+        +'onmouseover="this.style.background=\'rgba(214,35,0,.14)\'" onmouseout="this.style.background=\'var(--s1,#171717)\'">'
+        +'<span style="flex:0 0 auto;font-weight:800;color:#f87171;font-size:1.05rem;">❓</span>'
+        +'<span style="flex:0 0 100px;font-family:\'DM Mono\',monospace;font-size:.83rem;color:#eee;font-weight:700;">'+fmt(b.s)+'–'+fmt(b.e)+'</span>'
+        +'<span style="flex:0 0 auto;background:'+c.bg+';color:'+c.tx+';border-radius:5px;padding:2px 9px;font-size:.74rem;font-weight:700;white-space:nowrap;">'+b.l+'</span>'
+        +'<span style="flex:0 0 auto;color:#888;font-size:.72rem;">'+_fmtHmin(b.e-b.s)+'</span>'
+        +'<span style="margin-left:auto;color:#3ecf8e;font-size:.75rem;font-weight:700;white-space:nowrap;">＋ mettre un nom →</span>'
+      +'</div>';
+    });
+    lh+='</div>';
+    listWrap.innerHTML=lh;
+    Array.prototype.forEach.call(listWrap.querySelectorAll('.hr-reste-item'),function(el){
+      el.onclick=function(ev){ ev.stopPropagation(); try{ hrTraitAffecterOuvrir(parseInt(el.getAttribute('data-ri'),10), parseInt(el.getAttribute('data-bi'),10)); }catch(_e){ console.warn('reste click',_e); } };
+    });
+    body.appendChild(listWrap);
   }
   // ── BANDEAU COUVERTURE PRODUCTIVE (placé vs besoin grille CA), par heure + total ──
   try{ hrRenderEffectifBandeau(body); }catch(_e){ console.warn('bandeau effectif', _e); }
