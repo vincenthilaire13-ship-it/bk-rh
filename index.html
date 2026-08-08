@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-08 16:08 · v523';
+  var EMBEDDED_VERSION = '2026-08-09 01:10 · v525';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1058,7 +1058,7 @@ html,body{overflow-x:hidden;}
   <!-- ─── CONSULTATION D'UN JOUR PRÉCIS ─── -->
   <div>
     <div class="hr-stitle">🔎 Consulter un jour précis</div>
-    <div class="hr-ssub" style="margin-bottom:.8rem">Sélectionnez n'importe quel jour de l'année pour visualiser les ventes ¼h en timeline horaire. ✓ = PDF déposé · ⚠ = partiel · ✗ = manquant · — = à venir.</div>
+    <div class="hr-ssub" style="margin-bottom:.8rem">Sélectionnez n'importe quel jour de l'année pour visualiser les ventes ¼h en timeline horaire. ✓ = journée complète · ⚠ = courbe courte (jour incomplet ou exceptionnel) · ✗ = aucune donnée · — = à venir.</div>
     <div class="hr-ca-ctrl">
       <div class="hr-cc" style="min-width:380px">
         <label>Jour</label>
@@ -7103,10 +7103,12 @@ function _incEmpDetail(mInc){
     var sig=(l.sigStatus==='signed')?'<span style="color:#4CAF50;">✔ signé'+(l.signedAt?(' le '+new Date(l.signedAt).toLocaleDateString('fr-FR')):'')+'</span>'
            :(l.sigStatus==='refused')?'<span style="color:#e8623a;">✗ refusé'+(l.refusedAt?(' le '+new Date(l.refusedAt).toLocaleDateString('fr-FR')):'')+'</span>'
            :'<span style="color:#F5A623;">⏳ à faire signer</span>';
+    var _pending=(l.sigStatus!=='signed'&&l.sigStatus!=='refused');
+    var _annBtn=_pending?('<button onclick="event.stopPropagation();annulerAvertissement(\''+l.id+'\')" title="Annuler ce document (créé par erreur) — il ne sera pas à faire signer" style="background:#3a1616;border:1px solid #a03a3a;color:#f0a0a0;border-radius:6px;padding:3px 9px;cursor:pointer;font-weight:700;font-size:.72rem;white-space:nowrap;">✕ Annuler</button>'):'';
     html+='<div style="margin:8px 12px;border:1px solid #4a2a2a;border-radius:8px;overflow:hidden;">'
-      +'<div onclick="voirCourrier(\''+l.id+'\')" title="Ouvrir le document" style="background:#241414;padding:8px 12px;font-size:.85rem;font-weight:700;color:#e8a020;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;cursor:pointer;">'
+      +'<div onclick="voirCourrier(\''+l.id+'\')" title="Ouvrir le document" style="background:#241414;padding:8px 12px;font-size:.85rem;font-weight:700;color:#e8a020;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;cursor:pointer;">'
       +'<span>⚖️ '+(st.label||'Document').toUpperCase()+' — '+dt+' <span style="color:#8fc3f5;font-weight:400;font-size:.78rem;">👆 ouvrir</span></span>'
-      +'<span style="font-weight:400;font-size:.78rem;">'+obs.length+' observation'+(obs.length>1?'s':'')+' · '+sig+'</span></div>'
+      +'<span style="display:flex;align-items:center;gap:10px;font-weight:400;font-size:.78rem;">'+obs.length+' observation'+(obs.length>1?'s':'')+' · '+sig+_annBtn+'</span></div>'
       +obs.map(renderInc).join('')+'</div>';
   });
   // ── Incidents non regroupés (observations orales seules) ──
@@ -15842,6 +15844,7 @@ function voirCourrier(lid){
       +'<div style="white-space:pre-wrap;">'+_esc(corps)+'</div>'+sigHtml+'</div>'
     +'<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px;">'
       +'<button onclick="telechargerPdfCourrier(\''+l.id+'\')" style="background:#8B1500;color:#fff;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-weight:700;">📄 Télécharger le PDF</button>'
+      +((l.sigStatus!=='signed'&&l.sigStatus!=='refused')?('<button onclick="annulerAvertissement(\''+l.id+'\')" style="background:#3a1616;color:#f0a0a0;border:1px solid #a03a3a;padding:9px 18px;border-radius:8px;cursor:pointer;font-weight:700;">✕ Annuler ce document</button>'):'')
       +'<button onclick="document.getElementById(\'voircourrier-ov\').remove()" style="background:#333;color:#ccc;border:1px solid #555;padding:9px 20px;border-radius:8px;cursor:pointer;">Fermer</button>'
     +'</div></div></div>';
   document.body.appendChild(ov);
@@ -15867,7 +15870,9 @@ async function annulerAvertissement(lid){
     await sb.del('bks_letters','id=eq.'+l.id);
     for(var q=0;q<incIds.length;q++){ try{ await sb.patch('bks_incidents','id=eq.'+incIds[q],{sanction_type:'verbal'}); }catch(_){} }
     await loadAll();
+    try{ var _ov=document.getElementById('voircourrier-ov'); if(_ov) _ov.remove(); }catch(_){}
     try{ if(typeof _empfId!=='undefined' && _empfId){ renderEmpFicheHisto(_empfId); } }catch(_){}
+    try{ if(typeof genReport==='function' && document.getElementById('rpt-out')){ genReport(); } }catch(_){}
     try{ updateVBadge(); updateAlBadge(); }catch(_){}
     try{ if(typeof renderAlertes==='function') renderAlertes(); }catch(_){}
     toast('Document annulé — observations rétablies.','success');
@@ -28955,15 +28960,20 @@ function hrFillConsultSelect(){
     if(!ca || !Object.keys(ca).length){
       return iso > aujourdHui ? '—' : '✗';
     }
-    const heuresOK = Object.entries(ca).filter(([h,v])=>v>0.5).map(([h])=>h).sort();
-    if(heuresOK.length < 4) return '⚠';
-    if(refAmp && typeof hrHHMMtoMin==='function'){
-      const refOuv = hrHHMMtoMin(refAmp.ouverture, false);
-      const refFer = hrHHMMtoMin(refAmp.fermeture, true);
-      const detOuv = hrHHMMtoMin(heuresOK[0], false);
-      const detFer = hrHHMMtoMin(heuresOK[heuresOK.length-1], true);
-      if(detOuv-refOuv > 105 || refFer-detFer > 105) return '⚠';
-    }
+    // Complétude = NOMBRE de créneaux ¼h avec ventes (>0,50 €). C'est l'indicateur
+    // fiable. On n'utilise PLUS l'amplitude ouverture/fermeture : la queue
+    // d'après-minuit (ventes 00h–02h) est présente ~1 jour sur 2 dans les données,
+    // ce qui faisait sauter l'« ouverture détectée » entre 11h et minuit → ⚠️ à tort
+    // sur la moitié des jours pourtant complets. (Une journée pleine = ~48–56 créneaux.)
+    let nb=0, ouvMin=null;
+    Object.entries(ca).forEach(([h,v])=>{
+      if(!(v>0.5)) return; nb++;
+      const p=(''+h).split(':'); let m=(parseInt(p[0],10)||0)*60+(parseInt(p[1],10)||0);
+      if((parseInt(p[0],10)||0)<5) m+=1440;              // après-minuit = fin de nuit
+      if(ouvMin==null || m<ouvMin) ouvMin=m;
+    });
+    if(nb < 40) return '⚠';                               // courbe trop courte → jour incomplet/exceptionnel
+    if(ouvMin!=null && ouvMin > 13*60) return '⚠';        // ouverture après 13h → suspect
     return '✓';
   };
 
