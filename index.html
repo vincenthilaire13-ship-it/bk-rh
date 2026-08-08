@@ -802,7 +802,7 @@ html,body{overflow-x:hidden;}
     <button onclick="goPage('etatequipe',this)">🧑‍🤝‍🧑 État équipe <span id="eebadge" style="background:var(--orange);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
     <button onclick="goPage('horaires',this)">🕐 Horaires</button>
     <button onclick="goPage('planning',this)">🗓️ Planning encadrement</button>
-    <button class="desktop-only" onclick="goPage('semaines',this)">📅 Semaines</button>
+    <button class="desktop-only" onclick="goPage('semaines',this)">🕐 Contrôle des heures</button>
     <!-- Onglet « Visite médicale » retiré de la barre : accessible via Rapports › Visite médicale. Page conservée (#page-visite). Badge vbadge supprimé (le compteur reste dans Alertes / Rapports). -->
     <!-- Onglet « Incidents » retiré de la barre du haut : accessible via Paramètres › Incidents. Page conservée (#page-incidents). Le badge « incbadge » reste dans le DOM pour le compteur. -->
     <button onclick="goPage('incidents',this)" style="display:none;">📋 Incidents <span id="incbadge" style="background:var(--red);color:#fff;border-radius:50%;min-width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;padding:0 4px;">0</span></button>
@@ -3366,6 +3366,37 @@ function _semWeeks(resto){
     return {lundi:lun, nb:nb};
   });
 }
+// ══ VERROU POINTAGE PAR MOIS ═══════════════════════════════════════════════════
+// Une fois un mois VALIDÉ (bouton), tous ses pointages sont verrouillés : plus aucune
+// modification possible tant qu'on ne déverrouille pas (réservé Admin). Stockage léger
+// dans app_config, clé bkrh_ptg_valid_<RESTO> = { '2026-08': {le:'ISO'} , ... }.
+var PTG_VALID_BY_RESTO={};
+function _ptgValidResto(){ return (_semResto()||'bk500').toLowerCase(); }
+function _ptgValidCle(){ return 'bkrh_ptg_valid_'+_ptgValidResto().toUpperCase(); }
+function ptgMoisValides(){ var r=_ptgValidResto(); if(!PTG_VALID_BY_RESTO[r]) PTG_VALID_BY_RESTO[r]={}; return PTG_VALID_BY_RESTO[r]; }
+function _ptgMoisCle(iso){ return (''+iso).slice(0,7); }
+function _ptgMoisActuel(){ try{ var d=new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2); }catch(_){ return '2999-12'; } }
+// Un mois est VERROUILLÉ si : validé explicitement, OU c'est un mois PASSÉ (avant le mois
+// en cours) — sauf si l'Admin l'a explicitement rouvert ({open:true}).
+function ptgMoisVerrouille(iso){ var ym=_ptgMoisCle(iso); var v=ptgMoisValides()[ym];
+  if(v && v.open) return false;
+  if(v) return true;
+  return ym < _ptgMoisActuel();
+}
+function ptgMoisPasse(iso){ return _ptgMoisCle(iso) < _ptgMoisActuel(); }
+function ptgSauverValides(){ var r=_ptgValidResto();
+  try{ localStorage.setItem(_ptgValidCle(), JSON.stringify(PTG_VALID_BY_RESTO[r]||{})); }catch(_){}
+  try{ if(typeof SB!=='undefined'&&SB) SB.from('app_config').upsert({cle:_ptgValidCle(),valeur:PTG_VALID_BY_RESTO[r]||{}},{onConflict:'cle'}).then(function(){},function(){}); }catch(_){}
+}
+function ptgChargerValides(cb){ var r=_ptgValidResto(), cle=_ptgValidCle();
+  try{ var ls=localStorage.getItem(cle); if(ls){ PTG_VALID_BY_RESTO[r]=JSON.parse(ls)||{}; } }catch(_){}
+  try{ if(typeof SB!=='undefined'&&SB){ SB.from('app_config').select('valeur').eq('cle',cle).maybeSingle().then(function(rr){ try{ if(rr&&rr.data&&rr.data.valeur){ PTG_VALID_BY_RESTO[r]=rr.data.valeur; localStorage.setItem(cle,JSON.stringify(rr.data.valeur)); } }catch(_){} if(cb)cb(); },function(){ if(cb)cb(); }); return; } }catch(_){}
+  if(cb)cb();
+}
+function ptgValiderMois(iso){ var m=_ptgMoisCle(iso); ptgMoisValides()[m]={le:_semIso(new Date())}; ptgSauverValides(); try{ _semRefreshIfActive(); }catch(_){} try{ renderSemaines(); }catch(_){} try{ toast('Mois '+m+' validé et verrouillé 🔒','success'); }catch(_){} }
+function ptgDeverrouillerMois(iso){ var m=_ptgMoisCle(iso); if(curUser&&curUser.role!=='franchise'){ try{ toast('Seul l\'Admin peut déverrouiller un mois.','error'); }catch(_){} return; } if(!confirm('Déverrouiller le mois '+m+' ? Les pointages redeviendront modifiables (même si le mois est passé).')) return; ptgMoisValides()[m]={open:true}; ptgSauverValides(); try{ _semRefreshIfActive(); }catch(_){} try{ renderSemaines(); }catch(_){} try{ toast('Mois '+m+' déverrouillé 🔓','success'); }catch(_){} }
+function semToggleMois(ym){ renderSemaines._expanded=renderSemaines._expanded||{}; renderSemaines._expanded[ym]=!renderSemaines._expanded[ym]; try{ renderSemaines(); }catch(_){} }
+window.ptgValiderMois=ptgValiderMois; window.ptgDeverrouillerMois=ptgDeverrouillerMois; window.semToggleMois=semToggleMois;
 function renderSemaines(){
   var box=document.getElementById('semaines-content'); if(!box) return;
   var resto=_semResto(); var up=(''+resto).toUpperCase();
@@ -3374,19 +3405,63 @@ function renderSemaines(){
     box.innerHTML='<div style="padding:20px;color:#888;">Chargement des horaires…</div>';
     _chLoadPlanning(resto, function(){ try{ renderSemaines(); }catch(_){} }); return;
   }
+  // Charger l'état des mois validés (une fois par resto), puis re-render.
+  renderSemaines._vloaded=renderSemaines._vloaded||{};
+  if(typeof ptgChargerValides==='function' && !renderSemaines._vloaded[resto]){ renderSemaines._vloaded[resto]=1; try{ ptgChargerValides(function(){ try{ renderSemaines(); }catch(_){} }); }catch(_){} }
   var weeks=_semWeeks(resto);
-  var h='<div class="sec-title">📅 Semaines — horaires officiels · '+rlab+'</div>'
-    +'<p style="font-size:.82rem;color:#888;margin-bottom:14px;">Les semaines dont les horaires ont été faits. Cliquez sur une semaine pour voir le détail jour par jour. <span style="color:#666;">(Contrôle des pointages et dépannage : prochaines étapes.)</span></p>';
+  var h='<div class="sec-title">🕐 Contrôle des heures · '+rlab+'</div>'
+    +'<p style="font-size:.82rem;color:#888;margin-bottom:14px;">Rangé par <b>année</b> et par <b>mois</b>. Cliquez une semaine pour le détail jour par jour et le pointage. Validez un mois pour le <b>verrouiller</b> 🔒 (plus de modification).</p>';
   if(!weeks.length){ box.innerHTML=h+'<div style="background:#141414;border-radius:10px;padding:16px;color:#888;">Aucune semaine enregistrée pour ce restaurant pour le moment.</div>'; return; }
-  h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;">';
-  weeks.forEach(function(w){
-    var d=new Date(w.lundi+'T12:00:00'); var fin=new Date(d.getTime()+6*86400000);
-    h+='<div onclick="renderSemaineDetail(\''+w.lundi+'\')" style="cursor:pointer;background:#1A1A1A;border:1px solid #2a2a2a;border-left:4px solid #F5A623;border-radius:12px;padding:14px;">'
-      +'<div style="font-weight:800;font-size:1.02rem;color:#F5A623;">'+_semDateFr(d)+' → '+_semDateFr(fin)+'</div>'
-      +'<div style="font-size:.8rem;color:#aaa;margin-top:4px;">'+w.nb+' créneau'+(w.nb>1?'x':'')+'</div>'
-      +'<div style="font-size:.78rem;color:#8fc3f5;margin-top:6px;">👆 Voir le détail</div></div>';
+  var MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  // Grouper les semaines par mois (clé = mois du lundi), années/mois récents d'abord.
+  var groupes={}, ordre=[];
+  weeks.forEach(function(w){ var ym=w.lundi.slice(0,7); if(!groupes[ym]){ groupes[ym]=[]; ordre.push(ym); } groupes[ym].push(w); });
+  ordre.sort().reverse();
+  var moisActuel=_ptgMoisActuel();
+  renderSemaines._expanded=renderSemaines._expanded||{};
+  var anneeCourante=null;
+  ordre.forEach(function(ym){
+    var y=ym.slice(0,4), mo=parseInt(ym.slice(5,7),10)-1;
+    if(y!==anneeCourante){ anneeCourante=y; h+='<div style="font-size:1.35rem;font-weight:900;color:#F5A623;margin:22px 0 4px;letter-spacing:.5px;">'+y+'</div>'; }
+    var isoMois=ym+'-15';
+    var verr=!!(typeof ptgMoisVerrouille==='function' && ptgMoisVerrouille(isoMois));
+    var passe=(ym < moisActuel);
+    // Mois PASSÉ → replié en une seule tuile (sauf si l'utilisateur l'a ouvert).
+    var deplie=(!passe) || renderSemaines._expanded[ym];
+    var totalCren=0; groupes[ym].forEach(function(w){ totalCren+=w.nb; });
+    var badge=verr
+      ? '<span style="background:rgba(232,160,32,.15);border:1px solid #7a5a1a;color:#e8a020;border-radius:20px;padding:3px 10px;font-size:.72rem;font-weight:700;">🔒 '+(passe?'Passé — verrouillé':'Validé — verrouillé')+'</span>'
+      : '<span style="background:#16321f;border:1px solid #2e5e33;color:#7fe0a0;border-radius:20px;padding:3px 10px;font-size:.72rem;font-weight:700;">🔓 En cours</span>';
+    var pdfMoisBtn='<button onclick="_ctrlPdfMois(\''+isoMois+'\')" style="background:#16321f;border:1px solid #2e5e33;color:#7fe0a0;border-radius:8px;padding:5px 11px;cursor:pointer;font-weight:700;font-size:.76rem;">📄 PDF du mois</button>';
+    var boutonMois=pdfMoisBtn+(verr
+      ? ((curUser&&curUser.role==='franchise')?('<button onclick="ptgDeverrouillerMois(\''+isoMois+'\')" style="background:#3a2a10;border:1px solid #e8a020;color:#e8a020;border-radius:8px;padding:5px 11px;cursor:pointer;font-weight:700;font-size:.76rem;">🔓 Déverrouiller</button>'):'')
+      : ('<button onclick="if(confirm(\'Valider et VERROUILLER '+MOIS[mo]+' '+y+' ? Plus aucun pointage ne pourra être modifié.\'))ptgValiderMois(\''+isoMois+'\')" style="background:#16321f;border:1px solid #2e5e33;color:#7fe0a0;border-radius:8px;padding:5px 11px;cursor:pointer;font-weight:700;font-size:.76rem;">🔒 Valider le mois</button>'));
+    if(!deplie){
+      // TUILE UNIQUE repliée pour un mois passé (clic pour ouvrir).
+      h+='<div style="display:flex;align-items:center;gap:10px;margin:14px 0 10px;"><div style="font-size:1.02rem;font-weight:800;color:#eee;">'+MOIS[mo]+'</div>'+badge+'<div style="flex:1;height:1px;background:#2a2a2a;"></div>'+boutonMois+'</div>';
+      h+='<div onclick="semToggleMois(\''+ym+'\')" style="cursor:pointer;background:#161616;border:1px solid #2a2a2a;border-left:4px solid #e8a020;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">'
+        +'<span style="font-size:1.3rem;">🔒</span>'
+        +'<div style="flex:1;"><div style="font-weight:800;font-size:1rem;color:#e8a020;">'+MOIS[mo]+' '+y+'</div>'
+          +'<div style="font-size:.8rem;color:#999;margin-top:2px;">'+groupes[ym].length+' semaine'+(groupes[ym].length>1?'s':'')+' · '+totalCren+' créneaux · mois clôturé</div></div>'
+        +'<span style="color:#8fc3f5;font-size:.82rem;font-weight:700;white-space:nowrap;">▸ Ouvrir</span>'
+      +'</div>';
+      return;
+    }
+    // Mois DÉPLIÉ (en cours, ou passé ouvert manuellement) → grille des semaines.
+    h+='<div style="display:flex;align-items:center;gap:10px;margin:14px 0 10px;"><div style="font-size:1.02rem;font-weight:800;color:#eee;">'+MOIS[mo]+'</div>'+badge
+      +(passe?('<button onclick="semToggleMois(\''+ym+'\')" style="background:#1a1a1a;border:1px solid #444;color:#aaa;border-radius:8px;padding:4px 10px;cursor:pointer;font-size:.74rem;font-weight:700;">▾ Réduire</button>'):'')
+      +'<div style="flex:1;height:1px;background:#2a2a2a;"></div>'+boutonMois+'</div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;">';
+    groupes[ym].forEach(function(w){
+      var d=new Date(w.lundi+'T12:00:00'); var fin=new Date(d.getTime()+6*86400000);
+      h+='<div onclick="renderSemaineDetail(\''+w.lundi+'\')" style="cursor:pointer;background:#1A1A1A;border:1px solid #2a2a2a;border-left:4px solid '+(verr?'#e8a020':'#F5A623')+';border-radius:12px;padding:14px;">'
+        +'<div style="font-weight:800;font-size:1.02rem;color:'+(verr?'#e8a020':'#F5A623')+';">'+_semDateFr(d)+' → '+_semDateFr(fin)+(verr?' 🔒':'')+'</div>'
+        +'<div style="font-size:.8rem;color:#aaa;margin-top:4px;">'+w.nb+' créneau'+(w.nb>1?'x':'')+'</div>'
+        +'<div style="font-size:.78rem;color:#8fc3f5;margin-top:6px;">👆 Voir le détail</div></div>';
+    });
+    h+='</div>';
   });
-  box.innerHTML=h+'</div>';
+  box.innerHTML=h;
 }
 function _semCol(l){
   try{ if(typeof col==='function'){ var c=col(l); if(c&&c.bg) return c.bg; } }catch(_){}
@@ -3414,8 +3489,10 @@ function renderSemaineDetail(lundi, dayIdx){
   var d0=new Date(lundi+'T12:00:00');
   var JN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
   var JS=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-  var h='<div style="margin-bottom:10px;"><button class="btn btn-gray btn-sm" onclick="renderSemaines()">← Semaines</button></div>'
-    +'<div class="sec-title">📅 Semaine du '+_semDateFr(d0)+'</div>';
+  var h='<div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><button class="btn btn-gray btn-sm" onclick="renderSemaines()">← Contrôle des heures</button>'
+    +'<button onclick="_ctrlPdfVierge(\''+lundi+'\')" style="background:#12324a;border:1px solid #2f6ea5;color:#9fd3ff;border-radius:8px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:.8rem;">📄 PDF prévu (vierge)</button>'
+    +'<button onclick="_ctrlPdfPointe(\''+lundi+'\')" style="background:#16321f;border:1px solid #2e5e33;color:#7fe0a0;border-radius:8px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:.8rem;">📄 PDF pointé</button></div>'
+    +'<div class="sec-title">🕐 Contrôle des heures · Semaine du '+_semDateFr(d0)+'</div>';
   h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 12px;">';
   for(var t=0;t<7;t++){
     var td=new Date(d0.getTime()+t*86400000); var on=(t===dayIdx);
@@ -3423,8 +3500,16 @@ function renderSemaineDetail(lundi, dayIdx){
   }
   h+='</div>';
   var dd=new Date(d0.getTime()+dayIdx*86400000); var iso=_semIso(dd);
+  // Verrou du MOIS affiché : validé = pointages bloqués. Bouton valider / déverrouiller.
+  var _moisIso=iso.slice(0,7); var _verr=(typeof ptgMoisVerrouille==='function' && ptgMoisVerrouille(iso));
+  h+='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:2px 0 12px;padding:9px 12px;border-radius:10px;background:'+(_verr?'rgba(232,160,32,.10)':'#141414')+';border:1px solid '+(_verr?'#7a5a1a':'#2a2a2a')+';">'
+    +'<span style="font-size:.82rem;font-weight:700;color:'+(_verr?'#e8a020':'#8fe6a8')+';">'+(_verr?('🔒 Mois '+_moisIso+' validé — pointages verrouillés'):('🔓 Mois '+_moisIso+' — pointages modifiables'))+'</span>'
+    +(_verr
+        ? ((curUser&&curUser.role==='franchise')?('<button onclick="ptgDeverrouillerMois(\''+iso+'\')" style="margin-left:auto;background:#3a2a10;border:1px solid #e8a020;color:#e8a020;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:700;font-size:.8rem;">🔓 Déverrouiller</button>'):'')
+        : ('<button onclick="if(confirm(\'Valider et VERROUILLER le mois '+_moisIso+' ? Plus aucun pointage ne pourra être modifié (sauf déverrouillage Admin).\'))ptgValiderMois(\''+iso+'\')" style="margin-left:auto;background:#16321f;border:1px solid #2e5e33;color:#7fe0a0;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:700;font-size:.8rem;">🔒 Valider le mois</button>'))
+  +'</div>';
   h+='<div style="font-weight:700;color:#F5A623;font-size:1.05rem;margin-bottom:4px;">'+JN[dayIdx]+' '+dd.getDate()+'/'+('0'+(dd.getMonth()+1)).slice(-2)+'</div>'
-    +'<p style="font-size:.76rem;color:#888;margin-bottom:8px;">Prévu (traits par poste) + <b>pointé</b> (vert conforme / orange écart) + <b>heures</b> par salarié. 👆 Clique sur un salarié pour saisir le pointage ou le marquer <b>absent</b> (arrêt maladie, CP, absence injustifiée…).</p>';
+    +'<p style="font-size:.76rem;color:#888;margin-bottom:8px;"><b>Prévu</b> en gris + <b>pointé</b> à l\'intérieur : <b style="color:#2e9e4a;">vert</b> conforme · <b style="color:#d64535;">rouge</b> retard / parti tôt · <b style="color:#e0a021;">orange</b> avance / dépassement. 👆 Clique sur un salarié pour saisir le pointage ou le marquer <b>absent</b> (arrêt maladie, CP, absence injustifiée…).</p>';
   var emps=[]; try{ emps=(DB.employees||[]).filter(function(e){ return e && !e.archived && (''+(e.restoId||'')).toLowerCase()===(''+resto).toLowerCase() && ['equipier','leader','manager'].indexOf(e.role)>=0; }); }catch(_){ emps=[]; }
   var tl=''; try{ tl=(typeof ptgCtrlTimeline==='function')?ptgCtrlTimeline(iso, emps):''; }catch(e){ console.error('ptgCtrlTimeline',e); tl=''; }
   // SECOURS : si le contrôle de pointage n'affiche rien (cas limite), on montre quand même
@@ -5756,6 +5841,125 @@ function _pdfPartageDessineSemaine(doc, resto, lundiIso, withHeader, affOverride
   });
 }
 window._pdfPartageDessineSemaine=_pdfPartageDessineSemaine;
+
+// ══ PDF CONTRÔLE DES HEURES : semaine (vierge/prévu), semaine (pointé), mois ══════
+function _ptgHmToMin(hm){ if(!hm) return null; var p=(''+hm).split(':'); return (parseInt(p[0],10)||0)*60+(parseInt(p[1],10)||0); }
+// Créneaux pointés d'un jour (par créneau OU ancien pointage unique). [{arrivee,depart}|{abs}]
+function _ptgCreneauxJour(empId, iso){
+  var rec=(ptgGetAll()[empId+'_'+iso])||{}; var out=[];
+  if(rec.cren && Object.keys(rec.cren).length){ Object.keys(rec.cren).forEach(function(k){ var c=rec.cren[k]; if(c&&c.abs) out.push({abs:c.abs}); else if(c&&(c.arrivee||c.depart)) out.push({arrivee:c.arrivee,depart:c.depart}); }); }
+  else if(rec.arrivee||rec.depart){ out.push({arrivee:rec.arrivee,depart:rec.depart}); }
+  return out;
+}
+function _ptgMinPointesJour(empId, iso){ var t=0; _ptgCreneauxJour(empId,iso).forEach(function(c){ if(c.arrivee&&c.depart){ var a=_ptgHmToMin(c.arrivee), d=_ptgHmToMin(c.depart); if(a!=null&&d!=null){ if(d<a) d+=1440; t+=(d-a); } } }); return t; }
+// aff {iso:[bars]} d'une semaine, depuis l'instantané transféré (hors encadrement).
+function _pdfAffSemaineSnap(resto, lundiIso){
+  var aff={}, d=new Date(lundiIso+'T12:00:00');
+  for(var i=0;i<7;i++){ var dt=new Date(d.getTime()+i*86400000); var is=_semIso(dt); var arr=[]; try{ arr=_chJoursSrc(resto,is)||[]; }catch(_){} aff[is]=(arr||[]).filter(function(b){ return b&&b.empId&&!(typeof estTraitEncadrement==='function'&&estTraitEncadrement(b.l)); }); }
+  return aff;
+}
+// 1) PDF VIERGE (prévu seul) — réutilise le générateur existant, données de l'instantané.
+function _ctrlPdfVierge(lundiIso){
+  try{ var resto=_semResto(); var JS=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF; if(!JS){ toast&&toast('PDF indisponible','error'); return; }
+    var doc=_pdfDoc('landscape'); _pdfPartageDessineSemaine(doc, resto, lundiIso, true, _pdfAffSemaineSnap(resto,lundiIso));
+    doc.save('prevu_'+resto+'_'+lundiIso+'.pdf');
+  }catch(e){ console.warn('pdf vierge',e); toast&&toast('Erreur PDF','error'); }
+}
+// 2) PDF POINTÉ (heures réellement pointées) pour la semaine.
+function _ctrlPdfPointe(lundiIso){
+  try{ var resto=_semResto(); var JS=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF; if(!JS){ toast&&toast('PDF indisponible','error'); return; }
+    var doc=_pdfDoc('landscape'); _pdfDessinePointeSemaine(doc, resto, lundiIso); doc.save('pointe_'+resto+'_'+lundiIso+'.pdf');
+  }catch(e){ console.warn('pdf pointe',e); toast&&toast('Erreur PDF','error'); }
+}
+function _pdfDessinePointeSemaine(doc, resto, lundiIso){
+  var joursN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  var aff=_pdfAffSemaineSnap(resto, lundiIso);
+  var lundi=hrParse(lundiIso); var dates=[]; for(var i=0;i<7;i++){var d=new Date(lundi);d.setDate(lundi.getDate()+i);dates.push(d);}
+  function iso(d){return _semIso(d);}
+  function jjmm(d){return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');}
+  function fmtHC(min){var h=Math.floor(min/60),m=min%60;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
+  var parEmp={};
+  for(var dd=0;dd<7;dd++){ (aff[iso(dates[dd])]||[]).forEach(function(b){ if(!parEmp[b.empId]) parEmp[b.empId]={name:b.emp,prevuMin:0}; parEmp[b.empId].prevuMin+=(b.e-b.s); }); }
+  var liste=Object.keys(parEmp).map(function(id){return {id:id,name:parEmp[id].name};}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+  var W=297,H=210,M=8,y=14;
+  doc.setFillColor(46,158,74);doc.rect(0,0,W,12,'F');
+  doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(13);
+  doc.text('CONTROLE DES POINTAGES',M,8);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  doc.text('du '+jjmm(dates[0])+'/'+dates[0].getFullYear()+' au '+jjmm(dates[6])+'/'+dates[6].getFullYear(),W-M,8,{align:'right'});
+  y=17; var nameW=42, dayW=(W-2*M-nameW-26)/7, x0=M;
+  doc.setFontSize(7);doc.setTextColor(40,40,40);doc.setFont('helvetica','bold');
+  doc.text('NOM Prenom',x0+1,y);
+  for(var j=0;j<7;j++){ doc.text(joursN[j].slice(0,3)+' '+jjmm(dates[j]), x0+nameW+j*dayW+1, y); }
+  doc.text('POINTE/PREVU',x0+nameW+7*dayW+1,y);
+  y+=1.5; doc.setDrawColor(120,120,120); doc.line(M,y,W-M,y); y+=3.5;
+  doc.setFont('helvetica','normal');doc.setFontSize(6.5);
+  liste.forEach(function(e){
+    if(y>H-8){ doc.addPage('a4','landscape'); y=14; }
+    var pe=parEmp[e.id], pointeMin=0;
+    doc.setTextColor(20,20,20);doc.setFont('helvetica','bold');
+    doc.text(_strip(e.name||'').slice(0,28), x0+1, y);
+    doc.setFont('helvetica','normal'); var rowH=4;
+    for(var jj=0;jj<7;jj++){
+      var isj=iso(dates[jj]); var cj=_ptgCreneauxJour(e.id, isj); var aPrevu=(aff[isj]||[]).some(function(b){return String(b.empId)===String(e.id);});
+      var txt;
+      if(cj.length){
+        var absC=cj.filter(function(c){return c.abs;});
+        if(absC.length && cj.length===absC.length){ txt=_strip((typeof _etatMotifInfo==='function'?_etatMotifInfo(absC[0].abs).court:'Absent')); doc.setTextColor(200,60,50); }
+        else { txt=cj.map(function(c){ return c.abs?_strip(_etatMotifInfo(c.abs).court):((c.arrivee||'?')+'-'+(c.depart||'?')); }).join('  '); pointeMin+=_ptgMinPointesJour(e.id,isj); doc.setTextColor(20,20,20); }
+      } else if(aPrevu){ txt='Non pointe'; doc.setTextColor(200,60,50); }
+      else { txt='-'; doc.setTextColor(150,150,150); }
+      var wr=doc.splitTextToSize(txt, dayW-1); doc.text(wr, x0+nameW+jj*dayW+1, y); if(wr.length*3>rowH) rowH=wr.length*3;
+    }
+    var planTxt=fmtHC(pointeMin)+' / '+fmtHC(pe.prevuMin);
+    if(pointeMin<pe.prevuMin-1) doc.setTextColor(224,134,0); else if(pointeMin>pe.prevuMin+1) doc.setTextColor(214,35,0); else doc.setTextColor(26,152,80);
+    doc.setFont('helvetica','bold'); doc.text(planTxt, x0+nameW+7*dayW+1, y); doc.setFont('helvetica','normal');
+    y+=rowH+2.5; doc.setDrawColor(230,230,230); doc.line(M,y-1.5,W-M,y-1.5);
+  });
+}
+// 3) PDF DU MOIS — par équipier : total prévu, total pointé, écart (prévu + pointé ensemble).
+function _ctrlPdfMois(isoMois){
+  try{ var resto=_semResto(); var JS=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF; if(!JS){ toast&&toast('PDF indisponible','error'); return; }
+    var ym=(''+isoMois).slice(0,7);
+    var weeks=(typeof _semWeeks==='function'?_semWeeks(resto):[]).filter(function(w){ return w.lundi.slice(0,7)===ym; });
+    var parEmp={};
+    weeks.forEach(function(w){ var aff=_pdfAffSemaineSnap(resto, w.lundi); var lundi=hrParse(w.lundi);
+      for(var dd=0;dd<7;dd++){ var dt=new Date(lundi); dt.setDate(lundi.getDate()+dd); var is=_semIso(dt);
+        (aff[is]||[]).forEach(function(b){ if(!parEmp[b.empId]) parEmp[b.empId]={name:b.emp,prevu:0,pointe:0,abs:0}; parEmp[b.empId].prevu+=(b.e-b.s); });
+      }
+    });
+    weeks.forEach(function(w){ var lundi=hrParse(w.lundi);
+      for(var dd=0;dd<7;dd++){ var dt=new Date(lundi); dt.setDate(lundi.getDate()+dd); var is=_semIso(dt);
+        Object.keys(parEmp).forEach(function(id){ parEmp[id].pointe+=_ptgMinPointesJour(id, is); var cj=_ptgCreneauxJour(id,is); if(cj.some(function(c){return c.abs;})) parEmp[id].abs++; });
+      }
+    });
+    var liste=Object.keys(parEmp).map(function(id){return {id:id,e:parEmp[id]};}).sort(function(a,b){return (a.e.name||'').localeCompare(b.e.name||'');});
+    var MOIS=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+    var moLbl=MOIS[parseInt(ym.slice(5,7),10)-1]+' '+ym.slice(0,4);
+    var doc=_pdfDoc('portrait'); var W=210,H=297,M=12,y=14;
+    function fmtHC(min){var h=Math.floor(min/60),m=min%60;return String(h).padStart(2,'0')+'h'+String(m).padStart(2,'0');}
+    doc.setFillColor(46,158,74);doc.rect(0,0,W,13,'F'); doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(13);
+    doc.text('CONTROLE DES HEURES — '+moLbl,M,8.5);
+    doc.setFontSize(9);doc.setTextColor(40,40,40);doc.setFont('helvetica','bold'); y=22;
+    var cN=M+1, cP=M+96, cR=M+128, cRe=M+160, colE=M+184;
+    doc.text('NOM Prenom',cN,y); doc.text('Prevu',cP,y,{align:'right'}); doc.text('Pointe',cR,y,{align:'right'}); doc.text('Ecart',cRe,y,{align:'right'}); doc.text('Abs',colE,y,{align:'right'});
+    y+=1.5; doc.setDrawColor(120,120,120); doc.line(M,y,W-M,y); y+=4; doc.setFont('helvetica','normal');doc.setFontSize(8.5);
+    var totP=0,totR=0;
+    liste.forEach(function(o){ if(y>H-16){ doc.addPage('a4','portrait'); y=16; } var e=o.e; totP+=e.prevu; totR+=e.pointe; var ec=e.pointe-e.prevu;
+      doc.setTextColor(20,20,20);doc.setFont('helvetica','bold'); doc.text(_strip(e.name||'').slice(0,40),cN,y); doc.setFont('helvetica','normal');
+      doc.setTextColor(60,60,60); doc.text(fmtHC(e.prevu),cP,y,{align:'right'});
+      doc.setTextColor(20,20,20); doc.text(fmtHC(e.pointe),cR,y,{align:'right'});
+      if(ec<-1) doc.setTextColor(224,134,0); else if(ec>1) doc.setTextColor(214,35,0); else doc.setTextColor(26,152,80);
+      doc.text((ec>=0?'+':'-')+fmtHC(Math.abs(ec)),cRe,y,{align:'right'});
+      doc.setTextColor(120,120,120); doc.text(String(e.abs||0),colE,y,{align:'right'});
+      y+=5; doc.setDrawColor(235,235,235); doc.line(M,y-2,W-M,y-2);
+    });
+    y+=2; doc.setDrawColor(120,120,120); doc.line(M,y-3,W-M,y-3); doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(20,20,20);
+    doc.text('TOTAL',cN,y); doc.text(fmtHC(totP),cP,y,{align:'right'}); doc.text(fmtHC(totR),cR,y,{align:'right'}); doc.text((totR-totP>=0?'+':'-')+fmtHC(Math.abs(totR-totP)),cRe,y,{align:'right'});
+    doc.save('mois_'+resto+'_'+ym+'.pdf');
+  }catch(e){ console.warn('pdf mois',e); toast&&toast('Erreur PDF','error'); }
+}
+window._ctrlPdfVierge=_ctrlPdfVierge; window._ctrlPdfPointe=_ctrlPdfPointe; window._ctrlPdfMois=_ctrlPdfMois;
 
 // Liste des équipiers ciblés selon le rôle et l'onglet resto
 function rptTargets(){
@@ -10758,36 +10962,71 @@ function ptgCtrlTimeline(dateISO, emps){
     var aDep=(rec&&rec.depart)?toDom(hm2m(rec.depart)):null;
     var gl=HRS.map(function(h,i){ return '<div style="position:absolute;top:0;bottom:0;left:'+(i/HRS.length*100)+'%;width:1px;background:#e8e8e8;"></div>'; }).join('');
     var bars='';
+    var _crenSum=null; // résumé du pointage PAR CRÉNEAU (rempli plus bas), lu par la colonne statut
     if(etatAbs){
       var rs=(pMin!=null?pMin:11*60), re=(pMax!=null?pMax:15*60);
       bars+='<div title="'+_ptgEsc(etatAbs.label||'')+'" style="position:absolute;top:8px;height:22px;left:'+pct(rs)+'%;width:'+(pct(re)-pct(rs))+'%;background:'+(etatAbs.col||'#cc5555')+';border-radius:5px;display:flex;align-items:center;gap:5px;padding:0 7px;color:#fff;font-size:.63rem;font-weight:700;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.2);">'
         +'<span style="background:rgba(0,0,0,.28);border-radius:4px;padding:0 5px;">'+_ptgEsc(etatAbs.court||'Abs')+'</span>'+m2hm(rs)+'–'+m2hm(re)+'</div>';
     } else {
-      // PRÉVU : traits colorés par poste (comme le Planning du jour).
-      // Un trait d'encadrement (s.col présent) garde la couleur de son code.
+      // PRÉVU : barre GRISE (façon MyRHIS « Contrôle des heures »). Le poste reste
+      // écrit dans l'étiquette pour savoir de quel poste il s'agit.
       segs.forEach(function(s){
-        var c=(typeof colFor==='function')?colFor(s.l):{bg:'#1565c0',tx:'#fff'};
-        var bg=s.col||c.bg||'#1565c0';
         var lab=(typeof _ptgPosteLabel==='function')?_ptgPosteLabel(s.l):s.l;
-        bars+='<div title="'+_ptgEsc(s.l)+'" style="position:absolute;top:4px;height:17px;left:'+pct(s.s)+'%;width:'+(pct(s.e)-pct(s.s))+'%;background:'+bg+';color:'+(c.tx||'#fff')+';border-radius:4px;font-size:.58rem;font-weight:700;line-height:17px;padding:0 6px;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.18);">'+_ptgEsc(lab)+' '+m2hm(s.s)+'–'+m2hm(s.e)+'</div>';
+        var _k=s.s+'-'+s.e;
+        bars+='<div onclick="event.stopPropagation();ptgEditJour(\''+e.id+'\',\''+dateISO+'\',\''+_k+'\')" title="'+_ptgEsc(s.l)+' — cliquer pour pointer CE créneau" style="position:absolute;top:4px;height:16px;left:'+pct(s.s)+'%;width:'+(pct(s.e)-pct(s.s))+'%;background:#b7bcc3;color:#2a2f36;border-radius:4px;font-size:.57rem;font-weight:700;line-height:16px;padding:0 6px;overflow:hidden;white-space:nowrap;cursor:pointer;">'+_ptgEsc(lab)+' '+m2hm(s.s)+'–'+m2hm(s.e)+'</div>';
       });
-      // POINTÉ : barre verte (conforme) / orange / rouge (écart), sous le prévu
-      if(aArr!=null && aDep!=null){
-        var g0=Math.min(aArr,aDep), g1=Math.max(aArr,aDep);
-        var greenCol='#2e9e4a', conforme=true;
-        if(pMin!=null && pMax!=null){
-          try{
-            var _ea=ptgEcartMin(m2hm(pMin), rec.arrivee), _ed=ptgEcartMin(m2hm(pMax), rec.depart);
-            var _sa=ptgStatut(_ea,'arr'), _sd=ptgStatut(_ed,'dep');
-            if(_sa.code==='grave'||_sd.code==='grave'){ greenCol='#e8623a'; conforme=false; }
-            else if(_sa.code==='leger'||_sd.code==='leger'){ greenCol='#e0a021'; conforme=false; }
-          }catch(_c){}
+      // POINTÉ ÉVALUÉ PAR CRÉNEAU (façon MyRHIS) : chaque créneau a SON pointage
+      //   (rec.cren['<s>-<e>']) ou, à défaut, l'ancien pointage unique attribué au
+      //   créneau qu'il chevauche. Chaque créneau peut être absent indépendamment.
+      //   VERT = conforme · ROUGE = retard / parti tôt · ORANGE = avance / dépassement.
+      var SEUIL=15;
+      function _segPtg(a,b,col,ti,lab){ if(b<=a) return; bars+='<div title="'+ti+'" style="position:absolute;top:23px;height:14px;left:'+pct(a)+'%;width:'+(pct(b)-pct(a))+'%;background:'+col+';border-radius:3px;color:#fff;font-size:.55rem;font-weight:700;line-height:14px;padding:0 4px;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.22);">'+(lab||'')+'</div>'; }
+      var _colM='#d64535', _colP='#e0a021';
+      var _rc=(rec&&rec.cren)||null;
+      _crenSum={retard:0,partiTot:0,avance:0,depass:0,nonPointe:0,pointe:0,absN:0,absMotif:null,reel:0};
+      function _segEval(sg){
+        var key=sg.s+'-'+sg.e;
+        if(_rc && _rc[key]){ var c=_rc[key];
+          if(c.abs) return {mode:'abs',motif:c.abs};
+          if(c.arrivee&&c.depart) return {mode:'pt',aa:toDom(hm2m(c.arrivee)),ad:toDom(hm2m(c.depart))};
+          if(c.arrivee) return {mode:'enposte',aa:toDom(hm2m(c.arrivee))};
+          return {mode:'vide'};
         }
-        if(pMax!=null && aDep>pMax){ bars+='<div title="Dépassement" style="position:absolute;top:24px;height:13px;left:'+pct(pMax)+'%;width:'+(pct(aDep)-pct(pMax))+'%;background:#d9a441;border-radius:0 3px 3px 0;"></div>'; }
-        if(pMin!=null && aArr<pMin){ bars+='<div title="Arrivée en avance" style="position:absolute;top:24px;height:13px;left:'+pct(aArr)+'%;width:'+(pct(pMin)-pct(aArr))+'%;background:#d9a441;border-radius:3px 0 0 3px;"></div>'; }
-        bars+='<div title="'+(conforme?'Pointage conforme au prévu':'Écart avec le prévu')+'" style="position:absolute;top:24px;height:13px;left:'+pct(g0)+'%;width:'+(pct(g1)-pct(g0))+'%;background:'+greenCol+';border-radius:3px;color:#fff;font-size:.56rem;font-weight:700;line-height:13px;padding:0 5px;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.25);">'+m2hm(aArr)+'–'+m2hm(aDep)+'</div>';
-      } else if(aArr!=null){
-        bars+='<div title="En poste (pas encore parti)" style="position:absolute;top:24px;height:13px;left:'+pct(aArr)+'%;width:'+(pct(aArr+45)-pct(aArr))+'%;background:#2e9e4a;border-radius:3px;color:#fff;font-size:.56rem;font-weight:700;line-height:13px;padding:0 5px;white-space:nowrap;">'+m2hm(aArr)+' →</div>';
+        // legacy : pointage unique du jour attribué au créneau qu'il chevauche
+        if(aArr!=null && aDep!=null && aArr<sg.e && aDep>sg.s) return {mode:'pt',aa:aArr,ad:aDep};
+        if(aArr!=null && aDep==null && aArr>=sg.s-30 && aArr<sg.e) return {mode:'enposte',aa:aArr};
+        return {mode:'vide'};
+      }
+      segs.forEach(function(sg){
+        var ev=_segEval(sg), ps=sg.s, pe=sg.e;
+        if(ev.mode==='abs'){
+          var mi=_etatMotifInfo(ev.motif);
+          bars+='<div title="'+_ptgEsc(mi.label||'Absent')+'" style="position:absolute;top:23px;height:15px;left:'+pct(ps)+'%;width:'+(pct(pe)-pct(ps))+'%;background:'+(mi.col||'#cc5555')+';border-radius:3px;color:#fff;font-size:.55rem;font-weight:700;line-height:15px;padding:0 5px;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.22);">'+(mi.icon||'')+' '+_ptgEsc(mi.court||'Abs')+'</div>';
+          _crenSum.absN++; _crenSum.absMotif=ev.motif;
+        } else if(ev.mode==='pt'){
+          var aa=ev.aa, ad=ev.ad;
+          var retard=(aa>ps)?Math.round(aa-ps):0, partiTot=(ad<pe)?Math.round(pe-ad):0, avance=(aa<ps)?Math.round(ps-aa):0, depass=(ad>pe)?Math.round(ad-pe):0;
+          if(retard>_crenSum.retard)_crenSum.retard=retard; if(partiTot>_crenSum.partiTot)_crenSum.partiTot=partiTot;
+          if(avance>_crenSum.avance)_crenSum.avance=avance; if(depass>_crenSum.depass)_crenSum.depass=depass;
+          _crenSum.pointe++; _crenSum.reel+=Math.max(0,ad-aa);
+          if(aa>ps){ _segPtg(ps,aa,(retard>SEUIL?_colM:_colP),'Arrivée en retard de '+retard+' min',(retard>=25?('+'+retard+'m'):'')); }
+          if(ad<pe){ _segPtg(ad,pe,(partiTot>SEUIL?_colM:_colP),'Parti en avance de '+partiTot+' min',(partiTot>=25?('−'+partiTot+'m'):'')); }
+          if(aa<ps){ _segPtg(aa,ps,_colP,'Arrivée en avance',''); }
+          if(ad>pe){ _segPtg(pe,ad,_colP,'Dépassement (parti en retard)',''); }
+          var gv0=Math.max(aa,ps), gv1=Math.min(ad,pe);
+          if(gv1>gv0) _segPtg(gv0,gv1,'#2e9e4a','Pointé conforme au prévu',m2hm(aa)+'–'+m2hm(ad));
+          else _segPtg(Math.min(aa,ad),Math.max(aa,ad),'#2e9e4a','Pointé',m2hm(aa)+'–'+m2hm(ad));
+        } else if(ev.mode==='enposte'){
+          _segPtg(ev.aa,ev.aa+45,'#2e9e4a','En poste (pas encore parti)',m2hm(ev.aa)+' →'); _crenSum.pointe++;
+        } else {
+          _crenSum.nonPointe++;
+          bars+='<div title="Créneau non pointé" style="position:absolute;top:34px;height:4px;left:'+pct(ps)+'%;width:'+(pct(pe)-pct(ps))+'%;background:repeating-linear-gradient(45deg,#d64535,#d64535 4px,rgba(214,69,53,.15) 4px,rgba(214,69,53,.15) 8px);border-radius:2px;"></div>';
+        }
+      });
+      // Pointage sans aucun prévu (créneaux vides) → barre verte simple
+      if(!segs.length && aArr!=null){
+        if(aDep!=null){ _segPtg(Math.min(aArr,aDep),Math.max(aArr,aDep),'#2e9e4a','Pointé',m2hm(aArr)+'–'+m2hm(aDep)); _crenSum.reel+=Math.max(0,aDep-aArr); _crenSum.pointe++; }
+        else { _segPtg(aArr,aArr+45,'#2e9e4a','En poste',m2hm(aArr)+' →'); _crenSum.pointe++; }
       }
     }
     // statut court à droite
@@ -10796,19 +11035,32 @@ function ptgCtrlTimeline(dateISO, emps){
     else if(incE&&incE.type==='maladie'){ st='🏥 Arrêt'; stc='#2b7bbd'; }
     else if(incE&&incE.type==='misepied'){ st='🚷 M.à pied'; stc='#c0392b'; }
     else if(incE&&incE.type==='abandon'){ st='🚪 Abandon'; stc='#c0392b'; }
-    else if(!rec||!rec.arrivee){ if(segs.length){ st='⚠️ Pas pointé'; stc='#c0392b'; } else { st='—'; stc='#aaa'; } }
-    else if(!rec.depart){ st='🟢 Présent'; stc='#1e8e3e'; }
     else {
-      var prevuArr=(pMin!=null)?m2hm(pMin):null, prevuDep=(pMax!=null)?m2hm(pMax):null;
-      var ecA=(prevuArr&&rec.arrivee)?ptgEcartMin(prevuArr,rec.arrivee):null;
-      var ecD=(prevuDep&&rec.depart)?ptgEcartMin(prevuDep,rec.depart):null;
-      var sA=ptgStatut(ecA,'arr'), sD=ptgStatut(ecD,'dep');
-      if(sA.code==='grave'||sD.code==='grave'){ st='🔴 Écart'; stc='#c0392b'; }
-      else if(sA.code==='leger'||sD.code==='leger'){ st='🟠 Léger'; stc='#c77700'; }
-      else { st='✅ Conforme'; stc='#1e8e3e'; }
+      // Statut à partir du résumé PAR CRÉNEAU (_crenSum) : gère 2 créneaux, dont un absent / non pointé.
+      var S=_crenSum;
+      if(S && (S.pointe>0 || S.absN>0 || S.nonPointe>0)){
+        if(S.pointe===0 && S.absN>0){ var _mia=_etatMotifInfo(S.absMotif); st=((_mia&&_mia.icon)||'🗓️')+' '+((_mia&&_mia.court)||'Absent'); stc=(_mia&&_mia.col)||'#c0392b'; }
+        else {
+          // On chiffre TOUT ce qui s'applique en même temps : un salarié peut arriver
+          // EN RETARD et finir EN DÉPASSEMENT le même créneau → on montre les deux.
+          var parts=[];
+          if(S.retard>15) parts.push('🔴 Retard '+S.retard+'min');
+          if(S.partiTot>15) parts.push('🔴 Parti tôt '+S.partiTot+'min');
+          if(S.depass>15) parts.push('🟠 Dépass. '+S.depass+'min');
+          if(S.avance>15) parts.push('🟠 Avance '+S.avance+'min');
+          if(S.absN>0) parts.push('🏥 '+S.absN+' abs');
+          if(S.nonPointe>0) parts.push('⚠️ '+S.nonPointe+' non pointé');
+          if(!parts.length) parts.push('✅ Conforme');
+          var _grave=(S.retard>15||S.partiTot>15||S.nonPointe>0);
+          stc=_grave?'#c0392b':((S.depass>15||S.avance>15||S.absN>0)?'#c77700':'#1e8e3e');
+          st=parts.join('<br>');
+        }
+      }
+      else if(!rec||(!rec.arrivee && !_rc)){ if(segs.length){ st='⚠️ Pas pointé'; stc='#c0392b'; } else { st='—'; stc='#aaa'; } }
+      else { st='🟢 Présent'; stc='#1e8e3e'; }
     }
     var prevuH=0; segs.forEach(function(s){ prevuH+=(s.e-s.s); }); prevuH=prevuH/60;
-    var reelH=null; try{ reelH=rec?ptgHeuresTravaillees(rec):null; }catch(_){}
+    var reelH=null; if(_crenSum && _crenSum.reel>0){ reelH=_crenSum.reel/60; } else { try{ reelH=rec?ptgHeuresTravaillees(rec):null; }catch(_){} }
     var sub=(segs.length?('prévu '+(Math.round(prevuH*10)/10)+'h'):'—')+(reelH!=null?(' · pointé '+(Math.round(reelH*10)/10)+'h'):'');
     return '<div onclick="ptgEditJour(\''+e.id+'\',\''+dateISO+'\')" title="Cliquer pour saisir le pointage ou marquer une absence" style="display:flex;align-items:stretch;border-bottom:1px solid #ececec;cursor:pointer;" onmouseover="this.style.background=\'#eef4ff\'" onmouseout="this.style.background=\'\'">'
       +'<div style="flex:0 0 '+NAMEW+';padding:6px 8px;min-width:0;">'
@@ -10821,9 +11073,10 @@ function ptgCtrlTimeline(dateISO, emps){
    }catch(_lineErr){ try{ console.warn('ptgCtrlTimeline ligne',(ln&&ln.e&&ln.e.name),_lineErr); }catch(_){} try{ return _semLigneSafe(ln); }catch(_2){ return ''; } }
   }).join('');
   var legend='<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:.68rem;color:#999;">'
-    +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#1565c0;border-radius:2px;display:inline-block;"></span>Prévu (traits par poste)</span>'
+    +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#b7bcc3;border-radius:2px;display:inline-block;"></span>Prévu (gris)</span>'
     +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#2e9e4a;border-radius:2px;display:inline-block;"></span>Pointé conforme</span>'
-    +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#e0a021;border-radius:2px;display:inline-block;"></span>Écart / dépassement</span>'
+    +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#d64535;border-radius:2px;display:inline-block;"></span>Retard / parti tôt</span>'
+    +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#e0a021;border-radius:2px;display:inline-block;"></span>Avance / dépassement</span>'
     +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#cc5555;border-radius:2px;display:inline-block;"></span>Congé / absence</span>'
     +'</div>';
   return '<div style="overflow-x:auto;background:#fafafa;color:#222;border:1px solid #ddd;border-radius:12px;min-width:760px;">'+ruler+(body||'<div style="padding:16px;color:#666;font-size:.9rem;text-align:center;">Aucun salarié prévu, pointé ou absent ce jour.</div>')+'</div>'+legend;
@@ -10863,43 +11116,126 @@ function ptgEditSavePointage(empId,dateISO){
   try{ toast('Pointage enregistré','success'); }catch(_){}
 }
 window.ptgEditAbsence=ptgEditAbsence; window.ptgEditPresent=ptgEditPresent; window.ptgEditSavePointage=ptgEditSavePointage;
-function ptgEditJour(empId, dateISO){
+// Enregistre le pointage PAR CRÉNEAU (une arrivée + un départ par créneau).
+function ptgEditSaveCren(empId,dateISO){
+  var keys=window.__ptgCrenKeys||[];
+  try{
+    var ctx=ptgRec(empId,dateISO); ctx.rec.cren=ctx.rec.cren||{};
+    keys.forEach(function(k){
+      var cur=ctx.rec.cren[k]||{};
+      if(cur.abs) return; // créneau marqué absent : on ne touche pas ici (bouton dédié)
+      var a=((document.getElementById('pe-arr-'+k)||{}).value||'').trim();
+      var d=((document.getElementById('pe-dep-'+k)||{}).value||'').trim();
+      if(a||d){ ctx.rec.cren[k]={arrivee:a,depart:d}; } else { delete ctx.rec.cren[k]; }
+    });
+    // compat : on garde aussi le 1er pointage dans rec.arrivee/depart (anciens écrans)
+    var first=keys.map(function(k){return ctx.rec.cren[k];}).filter(function(c){return c&&c.arrivee;})[0];
+    ctx.rec.arrivee=first?first.arrivee:''; ctx.rec.depart=first?(first.depart||''):'';
+    ptgSaveAll(ctx.all);
+  }catch(_){}
+  ptgEditFermer(); try{ ptgRenderSuivi(); }catch(_){} try{ _semRefreshIfActive(); }catch(_){}
+  try{ toast('Pointage enregistré','success'); }catch(_){}
+}
+// Marque UN créneau absent (motif), sans toucher aux autres créneaux du jour.
+function ptgEditCrenAbs(empId,dateISO,key,motif){
+  try{ var ctx=ptgRec(empId,dateISO); ctx.rec.cren=ctx.rec.cren||{}; ctx.rec.cren[key]={abs:motif}; ptgSaveAll(ctx.all); }catch(_){}
+  try{ ptgRenderSuivi(); }catch(_){} try{ _semRefreshIfActive(); }catch(_){}
+  try{ toast('Créneau : '+_etatMotifInfo(motif).court,'success'); }catch(_){}
+  ptgEditJour(empId,dateISO); // ré-affiche l'éditeur à jour
+}
+// Repasse UN créneau en « à pointer » (retire son absence / son pointage).
+function ptgEditCrenPresent(empId,dateISO,key){
+  try{ var ctx=ptgRec(empId,dateISO); if(ctx.rec.cren){ delete ctx.rec.cren[key]; } ptgSaveAll(ctx.all); }catch(_){}
+  try{ ptgRenderSuivi(); }catch(_){} try{ _semRefreshIfActive(); }catch(_){}
+  ptgEditJour(empId,dateISO);
+}
+window.ptgEditSaveCren=ptgEditSaveCren; window.ptgEditCrenAbs=ptgEditCrenAbs; window.ptgEditCrenPresent=ptgEditCrenPresent;
+function ptgEditJour(empId, dateISO, focusKey){
   dateISO = dateISO || ((document.getElementById('ptgs-date')||{}).value) || ptgTodayISO();
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
-  var rec=ptgGetAll()[empId+'_'+dateISO]||{};
-  var prevu=null; try{ prevu=ptgPrevuDe(e,dateISO); }catch(_){}
+  // MOIS VALIDÉ → pointages verrouillés : lecture seule, aucune modification possible.
+  if(typeof ptgMoisVerrouille==='function' && ptgMoisVerrouille(dateISO)){
+    var mv=_ptgMoisCle(dateISO); var _ovL=document.getElementById('modal-ptg-edit'); if(_ovL) _ovL.remove();
+    _ovL=document.createElement('div'); _ovL.id='modal-ptg-edit';
+    _ovL.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:10001;display:flex;align-items:flex-start;justify-content:center;padding:60px 16px;';
+    _ovL.onclick=function(ev){ if(ev.target===_ovL) ptgEditFermer(); };
+    _ovL.innerHTML='<div style="background:#1c1c1f;border:1px solid #7a5a1a;border-radius:16px;max-width:420px;width:100%;padding:22px;font-family:Barlow,sans-serif;text-align:center;">'
+      +'<div style="font-size:2.4rem;">🔒</div>'
+      +'<div style="font-weight:800;font-size:1.1rem;color:#fff;margin:6px 0;">Mois '+mv+' verrouillé</div>'
+      +'<div style="color:#bbb;font-size:.86rem;margin-bottom:16px;">Ce mois a été validé : les pointages ne sont plus modifiables.</div>'
+      +((curUser&&curUser.role==='franchise')?('<button onclick="ptgDeverrouillerMois(\''+dateISO+'\');ptgEditFermer();" style="background:#3a2a10;border:1px solid #e8a020;color:#e8a020;border-radius:9px;padding:9px 14px;cursor:pointer;font-weight:700;margin-right:8px;">🔓 Déverrouiller (Admin)</button>'):'')
+      +'<button onclick="ptgEditFermer()" class="btn btn-gray btn-sm">Fermer</button>'
+    +'</div>';
+    document.body.appendChild(_ovL); return;
+  }
+  var rec=ptgGetAll()[empId+'_'+dateISO]||{}; rec.cren=rec.cren||{};
+  var resto=((e.restoId||e.resto_id||(typeof PTGS_RESTO!=='undefined'&&PTGS_RESTO)||(typeof PTG_RESTO!=='undefined'&&PTG_RESTO)||'')+'').toLowerCase();
+  var segs=[]; try{ segs=_chPlanSegs(e, dateISO, resto)||[]; }catch(_){ segs=[]; }
+  // Si on a cliqué sur UN créneau précis → n'afficher que celui-là (gain de temps).
+  var _totalCren=segs.length;
+  if(focusKey){ var _f=segs.filter(function(sg){ return (sg.s+'-'+sg.e)===focusKey; }); if(_f.length) segs=_f; }
   var abs=null; try{ abs=hrAbsenceDuJour(empId,dateISO); }catch(_){}
   var jourFr=new Date(dateISO+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  function _hm(m){ m=((m%1440)+1440)%1440; var h=Math.floor(m/60),mm=m%60; return (h<10?'0':'')+h+':'+(mm<10?'0':'')+mm; }
+  function _mi(m){ try{ return _etatMotifInfo(m); }catch(_){ return {label:m,court:m,icon:'🗓️',col:'#cc5555'}; } }
   var ov=document.getElementById('modal-ptg-edit'); if(ov) ov.remove();
   ov=document.createElement('div'); ov.id='modal-ptg-edit';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:10001;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto;';
   ov.onclick=function(ev){ if(ev.target===ov) ptgEditFermer(); };
-  var absTxt=abs?(' · <span style="color:'+_etatMotifInfo(abs.motif).col+';font-weight:700;">'+_etatMotifInfo(abs.motif).icon+' '+_etatMotifInfo(abs.motif).court+'</span>'):'';
-  var motBtn=function(motif,ico,lbl,col){ return '<button onclick="ptgEditAbsence(\''+empId+'\',\''+dateISO+'\',\''+motif+'\')" style="background:#1a1a1a;border:1px solid '+col+';color:'+col+';border-radius:8px;padding:8px 11px;cursor:pointer;font-size:.82rem;font-weight:700;">'+ico+' '+lbl+'</button>'; };
-  ov.innerHTML='<div style="background:#1c1c1f;border:1px solid #555;border-radius:16px;max-width:460px;width:100%;padding:20px;font-family:Barlow,sans-serif;">'
-    +'<button onclick="ptgEditFermer()" style="float:right;background:none;border:none;color:#aaa;font-size:1.6rem;cursor:pointer;line-height:1;">×</button>'
-    +'<div style="font-weight:800;font-size:1.12rem;color:#fff;">'+_ptgEsc(e.name)+'</div>'
-    +'<div style="color:#F5A623;font-size:.86rem;text-transform:capitalize;margin-bottom:2px;">'+jourFr+'</div>'
-    +'<div style="color:#999;font-size:.8rem;margin-bottom:14px;">Prévu : '+(prevu?(prevu.arr+' → '+prevu.dep):'—')+absTxt+'</div>'
-    +'<div style="background:#141414;border-radius:10px;padding:12px;margin-bottom:12px;">'
+  var absTxt=abs?(' · <span style="color:'+_mi(abs.motif).col+';font-weight:700;">'+_mi(abs.motif).icon+' '+_mi(abs.motif).court+'</span>'):'';
+  function crenAbsBtn(key,motif,ico,lbl,col){ return '<button onclick="ptgEditCrenAbs(\''+empId+'\',\''+dateISO+'\',\''+key+'\',\''+motif+'\')" style="background:#1a1a1a;border:1px solid '+col+';color:'+col+';border-radius:7px;padding:5px 9px;cursor:pointer;font-size:.74rem;font-weight:700;">'+ico+' '+lbl+'</button>'; }
+  // ── Blocs PAR CRÉNEAU (un pointage par créneau, ou une absence par créneau) ──
+  var keys=[]; var blocs='';
+  if(segs.length){
+    segs.forEach(function(sg){
+      var key=sg.s+'-'+sg.e; keys.push(key);
+      var poste=(typeof _ptgPosteLabel==='function')?_ptgPosteLabel(sg.l):sg.l;
+      var plage=_hm(sg.s)+'–'+_hm(sg.e);
+      var c=rec.cren[key]||{};
+      var titre='<div style="font-weight:800;color:#fff;font-size:.9rem;margin-bottom:7px;">🕐 '+_ptgEsc(poste)+' <span style="color:#9fd3ff;font-family:\'DM Mono\',monospace;">'+plage+'</span></div>';
+      if(c.abs){
+        var mi=_mi(c.abs);
+        blocs+='<div style="background:#141414;border:1px solid '+(mi.col||'#cc5555')+';border-radius:10px;padding:12px;margin-bottom:10px;">'+titre
+          +'<div style="color:'+(mi.col||'#cc5555')+';font-weight:700;font-size:.86rem;margin-bottom:9px;">'+(mi.icon||'')+' Absent — '+_ptgEsc(mi.label||mi.court||'')+'</div>'
+          +'<button onclick="ptgEditCrenPresent(\''+empId+'\',\''+dateISO+'\',\''+key+'\')" style="background:#16321f;border:1px solid #2e5e33;color:#7fe0a0;border-radius:7px;padding:6px 11px;cursor:pointer;font-size:.78rem;font-weight:700;">✅ Présent — repasser en « à pointer »</button>'
+        +'</div>';
+      } else {
+        blocs+='<div style="background:#141414;border-radius:10px;padding:12px;margin-bottom:10px;">'+titre
+          +'<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">'
+            +'<label style="font-size:.8rem;color:#bbb;display:flex;align-items:center;gap:6px;">Arrivée <input type="time" id="pe-arr-'+key+'" value="'+(c.arrivee||'')+'" class="fi" style="width:auto;padding:5px 7px;"></label>'
+            +'<label style="font-size:.8rem;color:#bbb;display:flex;align-items:center;gap:6px;">Départ <input type="time" id="pe-dep-'+key+'" value="'+(c.depart||'')+'" class="fi" style="width:auto;padding:5px 7px;"></label>'
+          +'</div>'
+          +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;">'
+            +'<span style="font-size:.72rem;color:#888;align-self:center;">Absent sur ce créneau :</span>'
+            +crenAbsBtn(key,'cp','🏖️','CP','#5b9bd5')
+            +crenAbsBtn(key,'maladie','🏥','Maladie','#cc5555')
+            +crenAbsBtn(key,'injustifiee','⛔','Injustifiée','#e8623a')
+            +crenAbsBtn(key,'absence','🟧','Autre','#d98324')
+          +'</div>'
+        +'</div>';
+      }
+    });
+  } else {
+    // Aucun créneau prévu → pointage simple (compat)
+    keys=[];
+    blocs='<div style="background:#141414;border-radius:10px;padding:12px;margin-bottom:10px;">'
       +'<div style="font-size:.82rem;color:#8fe6a8;font-weight:700;margin-bottom:8px;">🟢 A pointé — heures réelles</div>'
       +'<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">'
         +'<label style="font-size:.8rem;color:#bbb;display:flex;align-items:center;gap:6px;">Arrivée <input type="time" id="pe-arr" value="'+(rec.arrivee||'')+'" class="fi" style="width:auto;padding:5px 7px;"></label>'
         +'<label style="font-size:.8rem;color:#bbb;display:flex;align-items:center;gap:6px;">Départ <input type="time" id="pe-dep" value="'+(rec.depart||'')+'" class="fi" style="width:auto;padding:5px 7px;"></label>'
       +'</div>'
       +'<button onclick="ptgEditSavePointage(\''+empId+'\',\''+dateISO+'\')" class="btn btn-red btn-sm" style="margin-top:11px;">💾 Enregistrer le pointage</button>'
-    +'</div>'
-    +'<div style="background:#141414;border-radius:10px;padding:12px;">'
-      +'<div style="font-size:.82rem;color:#e8a020;font-weight:700;margin-bottom:2px;">Absence (correction manuelle) :</div>'
-      +'<div style="font-size:.7rem;color:#888;margin-bottom:8px;">Normalement automatique : arrêt maladie / injustifiée via les <b>Incidents</b>, congés (CP/CSS) via les <b>demandes validées</b>. À utiliser seulement pour corriger.</div>'
-      +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
-        +motBtn('cp','🏖️','Congés (CP)','#5b9bd5')
-        +motBtn('maladie','🏥','Arrêt maladie','#cc5555')
-        +motBtn('injustifiee','⛔','Injustifiée','#e8623a')
-        +motBtn('absence','🟧','Autre absence','#d98324')
-      +'</div>'
-      +'<button onclick="ptgEditPresent(\''+empId+'\',\''+dateISO+'\')" style="margin-top:11px;background:#16321f;border:1px solid #2e5e33;color:#7fe0a0;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:.82rem;font-weight:700;">✅ Présent — retirer l\'absence</button>'
-    +'</div>'
+    +'</div>';
+  }
+  window.__ptgCrenKeys=keys;
+  var saveBtn=keys.length?('<button onclick="ptgEditSaveCren(\''+empId+'\',\''+dateISO+'\')" class="btn btn-red btn-sm" style="width:100%;margin-top:2px;">💾 Enregistrer tous les pointages</button>'):'';
+  ov.innerHTML='<div style="background:#1c1c1f;border:1px solid #555;border-radius:16px;max-width:460px;width:100%;padding:20px;font-family:Barlow,sans-serif;">'
+    +'<button onclick="ptgEditFermer()" style="float:right;background:none;border:none;color:#aaa;font-size:1.6rem;cursor:pointer;line-height:1;">×</button>'
+    +'<div style="font-weight:800;font-size:1.12rem;color:#fff;">'+_ptgEsc(e.name)+'</div>'
+    +'<div style="color:#F5A623;font-size:.86rem;text-transform:capitalize;margin-bottom:2px;">'+jourFr+'</div>'
+    +'<div style="color:#999;font-size:.8rem;margin-bottom:14px;">'+(keys.length?((focusKey&&_totalCren>1)?('1 créneau sur '+_totalCren+' · <a href="#" onclick="event.preventDefault();ptgEditJour(\''+empId+'\',\''+dateISO+'\')" style="color:#8fbced;">voir les '+_totalCren+' créneaux</a>'):(keys.length+' créneau'+(keys.length>1?'x':'')+' — un pointage (ou une absence) par créneau')):'Aucun créneau prévu')+absTxt+'</div>'
+    +blocs
+    +saveBtn
   +'</div>';
   document.body.appendChild(ov);
 }
