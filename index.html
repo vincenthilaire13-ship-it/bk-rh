@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-09 01:10 · v525';
+  var EMBEDDED_VERSION = '2026-08-10 21:00 · v526';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -14778,6 +14778,48 @@ async function submitPostuler(){
   if(!dejaBk){alert('Merci d\'indiquer si vous avez déjà travaillé dans un Burger King.');return;}
   if(dejaBk==='oui'&&!dejaBkOu){alert('Merci d\'indiquer dans quel Burger King vous avez travaillé.');return;}
   if(!motivation){alert('Merci d\'expliquer pourquoi vous voulez travailler chez nous.');return;}
+  // ── ANTI-CANDIDATURES MULTIPLES ────────────────────────────────────────────
+  // Une même personne peut postuler 2 fois maximum. À la 3e tentative, on bloque
+  // et on affiche un message clair. Recoupement par email, par nom+prénom et par
+  // téléphone (chiffres uniquement). En cas d'erreur réseau, on NE bloque PAS
+  // (fail-open) pour ne jamais perdre une vraie candidature.
+  var _antBtn=(typeof event!=='undefined'&&event)?event.target:null;
+  try{
+    if(_antBtn){_antBtn.disabled=true;_antBtn.textContent='Vérification…';}
+    var _telNorm=function(t){return String(t||'').replace(/[^0-9]/g,'');};
+    var _phoneDigits=_telNorm(phone);
+    var _emailQ=encodeURIComponent((email||'').toLowerCase().trim());
+    var _prenomQ=encodeURIComponent(prenom);
+    var _nomQ=encodeURIComponent(nom);
+    var _phoneQ=encodeURIComponent(phone);
+    var _or='or=(email.ilike.'+_emailQ+',and(prenom.ilike.'+_prenomQ+',nom.ilike.'+_nomQ+')'+(phone?(',phone.ilike.'+_phoneQ):'')+')';
+    var _ant=await sb.get('bks_candidatures','select=id,email,phone,prenom,nom&'+_or);
+    var _selfKey=_nomKey(prenom+' '+nom);
+    var _selfEmail=(email||'').toLowerCase().trim();
+    var _seen={}; var _matches=[];
+    (_ant||[]).forEach(function(x){
+      if(_seen[x.id])return;
+      var _sameEmail=_selfEmail&&x.email&&String(x.email).toLowerCase().trim()===_selfEmail;
+      var _sameName=_nomKey((x.prenom||'')+' '+(x.nom||''))===_selfKey;
+      var _samePhone=_phoneDigits&&_telNorm(x.phone)===_phoneDigits;
+      if(_sameEmail||_sameName||_samePhone){_seen[x.id]=1;_matches.push(x);}
+    });
+    if(_matches.length>=2){
+      document.getElementById('postuler-body').innerHTML='<div style="text-align:center;padding:50px 20px;max-width:520px;margin:0 auto;">'
+        +'<div style="font-size:3.4rem;">⛔</div>'
+        +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.5rem;font-weight:700;color:#e05a5a;margin-top:14px;">Candidature non transmise</div>'
+        +'<p style="color:#ccc;margin-top:14px;line-height:1.65;">Bonjour '+prenom+',<br>vous avez <b>déjà postulé chez nous à deux reprises</b>. Conformément à notre politique de recrutement, une même personne ne peut déposer que <b>deux candidatures</b>.</p>'
+        +'<p style="color:#aaa;margin-top:12px;line-height:1.65;">Nous ne pouvons donc pas enregistrer cette nouvelle candidature, qui ne sera pas retenue. Votre dossier est déjà connu de notre équipe RH — il est inutile de postuler à nouveau.</p>'
+        +'<p style="color:#777;margin-top:16px;font-size:.85rem;">Merci de votre compréhension.</p>'
+        +'</div>';
+      window.scrollTo(0,0);
+      return;
+    }
+    if(_antBtn){_antBtn.disabled=false;_antBtn.textContent='📤 Envoyer ma candidature';}
+  }catch(_antErr){
+    console.warn('Contrôle candidatures multiples ignoré (erreur réseau)',_antErr);
+    if(_antBtn){_antBtn.disabled=false;_antBtn.textContent='📤 Envoyer ma candidature';}
+  }
   var dispos={};
   var nbJoursDispo=0;
   var dispoErreur=null;
