@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-11 · v525e (anti-doublon candidatures + max 2)';
+  var EMBEDDED_VERSION = '2026-08-11 · v536b (v534 + v535/v536 + 6 correctifs)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -2653,10 +2653,8 @@ async function doSoftRefresh(){
     return;
   }
   if(_syncBusy){ _syncQueued=true; return; }   // évite les rafraîchissements qui se chevauchent
-  // issue1 : ne pas recharger/redessiner juste après une écriture locale. Un rechargement
-  // temps réel qui tombe pendant une saisie (compétences/dispos cochées mais pas encore
-  // enregistrées) remplace l'objet salarié et fait « annuler l'un par l'autre ». On diffère
-  // tant que l'utilisateur écrit ; le refresh se fera dès ~3,5 s d'inactivité d'écriture.
+  // FIX compétences/dispos : ne pas recharger juste après une écriture locale (un refresh temps réel
+  // pendant une saisie remplaçait l'objet salarié → « l'un annule l'autre »). On diffère.
   try{
     if(window.__lastWriteTs && (Date.now()-window.__lastWriteTs)<3500){
       if(window.__softDeferTm) clearTimeout(window.__softDeferTm);
@@ -3017,9 +3015,8 @@ function delPin() { pinVal = pinVal.slice(0,-1); updatePinDots(); }
 // Saisie du PIN au CLAVIER (ordinateur) : chiffres = saisie, ⌫/Suppr = effacer,
 // Échap = retour, Entrée = valider. Le code reste MASQUÉ (les points ne montrent rien).
 function _pinKeyboard(ev){
-  // FIX v525b : ne réagir QUE si l'écran de connexion est réellement affiché.
-  // Sinon, après connexion (#login-screen masqué mais #step-pin resté 'flex'),
-  // ce handler avalait Retour arrière / chiffres / Entrée dans toute l'appli.
+  // FIX : ne réagir QUE si l'écran de connexion est réellement affiché (sinon ce handler
+  // avalait Retour arrière / chiffres / Entrée dans toute l'appli après connexion).
   var _ls=document.getElementById('login-screen'); if(!_ls || _ls.style.display==='none') return;
   var step=document.getElementById('step-pin'); if(!step || step.style.display==='none') return;
   if(ev.metaKey||ev.ctrlKey||ev.altKey) return;
@@ -6365,6 +6362,18 @@ function _payeCalcEmp(emp, ym){
     (segs||[]).forEach(function(s){ hPrevu+=(s.e-s.s)/60; });
     var ab=null; try{ ab=hrAbsenceDuJour(emp.id, iso); }catch(_){}
     if(ab){ var mo=ab.motif||'absence'; if(abs[mo]!=null) abs[mo]++; else abs.absence++; }
+    else {
+      // PONT INCIDENTS : maladie / injustifiée / mise à pied déclarées uniquement en
+      // INCIDENT (hors HR_ABSENCES) → comptées dans les colonnes d'absence de la paye.
+      // Uniquement s'il n'y a pas déjà une absence RH ce jour-là (celle-ci prime, cohérent
+      // avec le Contrôle des heures) → évite tout double comptage.
+      var ie=null; try{ ie=(typeof incEtatJour==='function')?incEtatJour(emp.id, iso):null; }catch(_){}
+      if(ie){
+        if(ie.type==='maladie') abs.maladie++;
+        else if(ie.type==='injustifiee') abs.injustifiee++;
+        else if(ie.type==='misepied') abs.absence++;   // mise à pied (non payée) → « Autres abs. »
+      }
+    }
   });
   var totAbs=abs.cp+abs.maladie+abs.injustifiee+abs.absence+abs.css+abs.indispo;
   // bons repas : surcharge manuelle si présente, sinon auto = jours travaillés (réglable).
@@ -6709,6 +6718,33 @@ function gdhCalculerMois(ym){
       retardMin += (rec.retardMin||0);
       var dayAbs=0;
       if(rec.cren){ Object.keys(rec.cren).forEach(function(k){ var c=rec.cren[k]; if(c&&c.abs){ var pp=(''+k).split('-'); var s=parseInt(pp[0],10), en=parseInt(pp[1],10); var dur=en-s; if(isNaN(dur)) dur=0; if(dur<0) dur+=1440; allAbsMin+=dur; dayAbs+=dur; absByMotif[c.abs]=(absByMotif[c.abs]||0)+dur; var dk=iso+'|'+c.abs; absDay[dk]=(absDay[dk]||0)+dur; } }); }
+      // ── Absences JOUR ENTIER hors pointage : CP/congés validés (HR_ABSENCES) +
+      //    incidents (maladie / injustifiée / mise à pied). Comptées SEULEMENT si le jour
+      //    n'a ni pointage ni absence déjà saisie au créneau → jamais de double comptage.
+      //    Règle CP (Vincent) : CP compté du LUNDI au SAMEDI = contrat hebdo ÷ 6 ;
+      //    le DIMANCHE est un repos → aucune absence comptée ce jour-là.
+      if(!dayAbs && !pd){
+        var _dmot=null;
+        try{ var _da=hrAbsenceDuJour(e.id, iso); if(_da && _da.motif && _da.motif!=='indispo') _dmot=_da.motif; }catch(_){}   // indispo = simple non-dispo, pas une absence de paie
+        if(!_dmot){ try{ var _di=(typeof incEtatJour==='function')?incEtatJour(e.id, iso):null; if(_di){ _dmot=(_di.type==='maladie')?'maladie':(_di.type==='injustifiee')?'injustifiee':(_di.type==='misepied')?'misepied':null; } }catch(_){} }
+        var _dow=8; try{ _dow=new Date(iso+'T12:00:00').getDay(); }catch(_){}
+        if(_dmot && _dow!==0){   // dimanche (0) = repos : rien
+          var _dmin;
+          if(_dmot==='cp'){ _dmin=Math.round((cw/6)*60); }               // CP = contrat hebdo ÷ 6 (lun→sam)
+          else {
+            // Maladie / injustifiée / mise à pied / css / absence :
+            // heures = ce que le salarié AURAIT travaillé ce jour (planning réel).
+            // AUCUN repli cw/6 : un jour NON planifié (ex. samedi d'un salarié lun→ven)
+            // = 0 h → on ne compte rien, sinon on ajoute des heures fantômes qui
+            // sous-paient le salarié ET génèrent des heures sup fictives (delta 35h).
+            _dmin=0; try{ (_chPlanSegs(e, iso, resto)||[]).forEach(function(s){ _dmin+=(s.e-s.s); }); }catch(_){}
+          }
+          if(_dmin>0){
+            allAbsMin+=_dmin; dayAbs+=_dmin; absByMotif[_dmot]=(absByMotif[_dmot]||0)+_dmin;
+            var _dk3=iso+'|'+_dmot; absDay[_dk3]=(absDay[_dk3]||0)+_dmin;
+          }
+        }
+      }
       var cj=_ptgCreneauxJour(e.id, iso); var pc=cj.filter(function(c){return c.arrivee&&c.depart;});
       if(pc.length){ repasJ+=1; pc.forEach(function(c){ _nuit(c.arrivee,c.depart); });
         // coupure = 1 max/jour, si un écart >= 2h sépare deux créneaux pointés
@@ -6724,7 +6760,7 @@ function gdhCalculerMois(ym){
       if(mon>=ym+'-01' && _sunISO<=_lastISO){ deltaMois += ((_weekAgg[mon].work+_weekAgg[mon].abs)/60 - 35); }
     }); }
     var absH=allAbsMin/60;
-    var hp = is35 ? Math.max(0, 151.67 - absH + (deltaMois<0?deltaMois:0)) : (pointedMin/60);
+    var hp = is35 ? Math.max(0, 151.67 - absH) : (pointedMin/60);   // v535 : plancher mensualisé 35h (plus de retrait du delta négatif)
     var compteurMois = is35 ? Math.max(0, deltaMois) : 0;
     comp[e.id]=comp[e.id]||{}; comp[e.id][ym]=Math.round(compteurMois*100)/100;
     var cumul=0; Object.keys(comp[e.id]).forEach(function(mk){ if(mk<=ym) cumul+=(comp[e.id][mk]||0); });
@@ -6937,7 +6973,28 @@ window.gdhGenererMois=gdhGenererMois; window.renderGdhGenere=renderGdhGenere;
 var _AB_SILAE={cp:'AB-300',maladie:'AB-100',formation:'AB-410',injustifiee:'AB-630',absence:'AB-620',css:'AB-632',indispo:'AB-620',misepied:'AB-640'};
 function gdhExportSilae(ym){
   if(!ym){ try{toast('Choisis un mois','error');}catch(_){} return; }
+  // v536 : garde-fou « planning chargé ». Si aucun créneau chargé pour ce mois, on charge le
+  // planning depuis Supabase puis on relance l'export UNE fois (sinon un arrêt non-CP = 0 h silencieux).
+  try{
+    var _rExp=(typeof _semResto==='function')?_semResto():null;
+    if(_rExp && !window.__gdhExpRetry && typeof _chDatesAvecTraits==='function' && typeof _chLoadPlanning==='function'){
+      var _dtExp=_chDatesAvecTraits(_rExp)||{};
+      var _moisCharge=Object.keys(_dtExp).some(function(d){ return (''+d).slice(0,7)===ym; });
+      if(!_moisCharge){
+        window.__gdhExpRetry=true;
+        _chLoadPlanning(_rExp, function(){ try{ gdhExportSilae(ym); } finally { window.__gdhExpRetry=false; } });
+        return;
+      }
+    }
+  }catch(_){}
   var L=(typeof gdhSilaeLines==='function')?gdhSilaeLines(ym):[];
+  // FILET : un salarié actif AVEC des heures/absences mais SANS matricule serait
+  // absent du CSV (donc pas payé via cet export) sans aucune trace. On alerte.
+  try{
+    var _res=(typeof gdhCalculerMois==='function')?(gdhCalculerMois(ym)||[]):[];
+    var _sansMat=_res.filter(function(r){ return !r.matricule && ((r.hp>0)||(r.pointedReal>0)||(r.absDetail&&r.absDetail.length)); }).map(function(r){ return r.name; });
+    if(_sansMat.length){ alert('⚠️ '+_sansMat.length+' salarié(s) SANS matricule ne seront PAS dans le fichier Silae (donc non payés via cet export) :\n\n• '+_sansMat.join('\n• ')+'\n\nAjoute leur matricule (import GDH ou fiche salarié), puis relance l\'export.'); }
+  }catch(_){}
   if(!L.length){ try{toast('Rien à exporter','error');}catch(_){} return; }
   function num(x){ return (Math.round(x*100)/100).toFixed(2).replace('.',','); }
   function fr(iso){ var p=(''+iso).split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
@@ -6963,7 +7020,7 @@ function gdhSilaeLines(ym){
     // (dd→df), comme le fichier Silae. CP compté en JOURS (AB-300), les autres
     // motifs en HEURES cumulées sur la plage. Si le motif a été CORRIGÉ à la main
     // (override), on émet une seule ligne sur la plage du mois avec la valeur saisie.
-    ['cp','maladie','formation','injustifiee','absence','misepied'].forEach(function(mot){
+    ['cp','maladie','formation','injustifiee','absence','css','misepied'].forEach(function(mot){
       var code=_AB_SILAE[mot]; if(!code) return;
       var days=(r.absDetail||[]).filter(function(a){return a.motif===mot;});
       var ovv=(r._ovAbs&&r._ovAbs[mot]!=null)?r._ovAbs[mot]:null;
@@ -10239,6 +10296,33 @@ function collectAlertes(restoFiltre){
     });
   }catch(e){}
 
+  // ── 1sexies) EMBAUCHES À FINALISER (filet de sécurité candidat → salarié) ──
+  // Repère les candidats qui DEVRAIENT être salariés mais n'ont pas (ou plus) de
+  // fiche dans l'équipe, pour ne jamais "perdre" une embauche :
+  //  • statut "essai" SANS fiche salarié  = anomalie (échec de création) → rouge.
+  //  • statut "retenu" avec contrat signé importé, jamais démarré           → orange.
+  // Un candidat déjà transformé (fiche présente, y compris essai validé) est ignoré.
+  try{
+    cands.forEach(function(c){
+      var _st=(c.statut||'');
+      if(_st!=='retenu' && _st!=='essai') return;
+      var _k=_nomKey((c.prenom||'')+' '+(c.nom||''));
+      var _fiche=(DB.employees||[]).some(function(e){ return e.fromCandId===c.id || (!e.archived && _nomKey(e.name)===_k); });
+      if(_fiche) return; // déjà salarié → rien à faire
+      var _resto=rlabel(c.restoId);
+      var _contratImporte=!!(c.contratSigneDoc&&(c.contratSigneDoc.data||c.contratSigneDoc.link));
+      if(_st==='essai'){
+        alerts.push({prio:0,cat:'Embauches à finaliser',icon:'🚀',col:'#cc5555',
+          titre:(c.prenom+' '+c.nom)+' — en essai SANS fiche salarié',
+          sub:'Anomalie : rouvrir la fiche → « Démarrer la période d\'essai » pour l\'ajouter à l\'équipe · '+_resto,candId:c.id});
+      } else if(_contratImporte){
+        alerts.push({prio:1,cat:'Embauches à finaliser',icon:'🚀',col:'#F5A623',
+          titre:(c.prenom+' '+c.nom)+' — contrat signé, embauche à démarrer',
+          sub:'Cliquer « Démarrer la période d\'essai » pour l\'ajouter à l\'équipe · '+_resto,candId:c.id});
+      }
+    });
+  }catch(e){}
+
   // ── 2) VISITE MÉDICALE D'EMBAUCHE (candidats en période d'essai) ──
   cands.filter(function(c){return (c.statut||'')==='essai';}).forEach(function(c){
     var v=visiteInfo(c); var resto=rlabel(c.restoId);
@@ -10401,6 +10485,7 @@ var ALERT_CATS=[
   {cat:'Dossiers incomplets',icon:'📋',desc:'Pièces manquantes au dossier salarié'},
   // ── 2) Contrats & période d'essai ──────────────────────
   {cat:'Contrats à signer',icon:'📄',desc:'Contrats en attente de signature'},
+  {cat:'Embauches à finaliser',icon:'🚀',desc:'Candidats retenus/en essai pas encore ajoutés à l\'équipe (contrat signé à démarrer, ou anomalie à recréer)'},
   {cat:'Période d\'essai',icon:'⏳',desc:'Fins de période d\'essai à valider'},
   {cat:'Contrats',icon:'🎓',desc:'Échéances de contrat (apprentissage, DPAE…)'},
   // ── 3) Suivi santé & administratif ─────────────────────
@@ -10478,7 +10563,7 @@ function renderAlertes(){
   var box=document.getElementById('alertes-list');if(!box)return;
   var alerts=collectAlertes(window.__alertResto);
   var cats={};alerts.forEach(function(a){(cats[a.cat]=cats[a.cat]||[]).push(a);});
-  var accents={'Besoin de recrutement':'#1d7a3a','Recrutement':'#2e7d32','Incident à sanctionner':'#c0392b','Incident à faire signer':'#e8a020','Contrats à signer':'#c2185b','Visite médicale':'#e87722','Mutuelle':'#c0392b','Titre de séjour':'#8e44ad','Contrats':'#8e44ad','Visite d\'embauche':'#16a085','Période d\'essai':'#2980b9','Dossiers incomplets':'#d35400','Incidents':'#c0392b','Congés & indispos':'#1565c0'};
+  var accents={'Besoin de recrutement':'#1d7a3a','Recrutement':'#2e7d32','Incident à sanctionner':'#c0392b','Incident à faire signer':'#e8a020','Contrats à signer':'#c2185b','Visite médicale':'#e87722','Mutuelle':'#c0392b','Titre de séjour':'#8e44ad','Contrats':'#8e44ad','Visite d\'embauche':'#16a085','Période d\'essai':'#2980b9','Dossiers incomplets':'#d35400','Incidents':'#c0392b','Congés & indispos':'#1565c0','Embauches à finaliser':'#16a085'};
   // ordre canonique (toutes les tuiles) + catégories imprévues éventuelles ajoutées à la fin
   var order=ALERT_CATS.map(function(c){return c.cat;});
   Object.keys(cats).forEach(function(c){ if(order.indexOf(c)<0) order.push(c); });
@@ -11783,6 +11868,21 @@ function ptgEditJour(empId, dateISO, focusKey){
   }
   window.__ptgCrenKeys=keys;
   var saveBtn=keys.length?('<button onclick="ptgEditSaveCren(\''+empId+'\',\''+dateISO+'\')" class="btn btn-red btn-sm" style="width:100%;margin-top:2px;">💾 Enregistrer tous les pointages</button>'):'';
+  // ── ÉTAT DE LA JOURNÉE (remplace tout) : correction rapide au niveau du JOUR entier.
+  // Écrase le pointage ET tout autre motif du jour (y compris un état venu d'un incident)
+  // et le remplace par le choix fait ici. Réutilise ptgEditAbsence/ptgEditPresent qui
+  // suppriment déjà l'absence existante + vident le pointage avant de reposer le nouvel état.
+  function _dayAbsBtn(motif,ico,lbl,col){ return '<button onclick="ptgEditAbsence(\''+empId+'\',\''+dateISO+'\',\''+motif+'\')" style="background:#1a1a1a;border:1px solid '+col+';color:'+col+';border-radius:7px;padding:6px 10px;cursor:pointer;font-size:.76rem;font-weight:700;">'+ico+' '+lbl+'</button>'; }
+  var etatJourBtns='<div style="background:#141414;border:1px dashed #3a3a3a;border-radius:10px;padding:12px;margin-top:12px;">'
+    +'<div style="font-size:.78rem;color:#ddd;font-weight:700;margin-bottom:3px;">🔁 État de la journée <span style="color:#e8a020;">(remplace tout)</span></div>'
+    +'<div style="font-size:.7rem;color:#777;margin-bottom:9px;">Écrase le pointage et tout autre motif du jour — y compris un incident — et le remplace par ce que tu choisis.</div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'
+    +'<button onclick="ptgEditPresent(\''+empId+'\',\''+dateISO+'\')" style="background:#16321f;border:1px solid #2e5e33;color:#7fe0a0;border-radius:7px;padding:6px 10px;cursor:pointer;font-size:.76rem;font-weight:700;">✅ Présent / à pointer</button>'
+    +_dayAbsBtn('maladie','🏥','Arrêt maladie','#cc5555')
+    +_dayAbsBtn('injustifiee','⛔','Injustifiée','#e8623a')
+    +_dayAbsBtn('cp','🏖️','Congé (CP)','#5b9bd5')
+    +_dayAbsBtn('absence','🟧','Autre absence','#d98324')
+    +'</div></div>';
   ov.innerHTML='<div style="background:#1c1c1f;border:1px solid #555;border-radius:16px;max-width:460px;width:100%;padding:20px;font-family:Barlow,sans-serif;">'
     +'<button onclick="ptgEditFermer()" style="float:right;background:none;border:none;color:#aaa;font-size:1.6rem;cursor:pointer;line-height:1;">×</button>'
     +'<div style="font-weight:800;font-size:1.12rem;color:#fff;">'+_ptgEsc(e.name)+'</div>'
@@ -11790,6 +11890,7 @@ function ptgEditJour(empId, dateISO, focusKey){
     +'<div style="color:#999;font-size:.8rem;margin-bottom:14px;">'+(keys.length?((focusKey&&_totalCren>1)?('1 créneau sur '+_totalCren+' · <a href="#" onclick="event.preventDefault();ptgEditJour(\''+empId+'\',\''+dateISO+'\')" style="color:#8fbced;">voir les '+_totalCren+' créneaux</a>'):(keys.length+' créneau'+(keys.length>1?'x':'')+' — un pointage (ou une absence) par créneau')):'Aucun créneau prévu')+absTxt+'</div>'
     +blocs
     +saveBtn
+    +etatJourBtns
   +'</div>';
   document.body.appendChild(ov);
 }
@@ -12003,7 +12104,8 @@ function ptgRenderSuivi(){
   var emps=ptgEmployesResto(PTGS_RESTO||PTG_RESTO);
   var all=ptgGetAll();
   // Compteurs de synthèse (haut de tableau)
-  var nOk=0,nEcart=0,nAbsPointage=0,nPointes=0;
+  var nOk=0,nEcart=0,nAbsPointage=0,nPointes=0,nIncomplet=0;
+  var _todayISO=(typeof ptgTodayISO==='function')?ptgTodayISO():dateISO;
   var rows=emps.map(function(e){
     var rec=all[e.id+'_'+dateISO];
     var prevu=ptgPrevuDe(e,dateISO);
@@ -12021,11 +12123,15 @@ function ptgRenderSuivi(){
     if(_absJour && (_absJour.statut==='attente'||_absJour.statut==='refuse')) _absJour=null;
     var etat='—', etatCoul='#666';
     if(!rec||!rec.arrivee){
-      if(_incEtat && _incEtat.type==='maladie'){ etat='🏥 Arrêt maladie'; etatCoul='#5aa9e6'; }
+      // Départ pointé SANS arrivée = pointage incomplet → anomalie à corriger.
+      if(rec && rec.depart){ etat='🟠 Arrivée non pointée'; etatCoul='#e8a020'; nIncomplet++; }
+      // Une absence saisie/validée (RH, ou correction manuelle depuis CET écran) PRIME sur
+      // un éventuel incident : c'est la correction volontaire qui fait foi (« remplace tout »).
+      else if(_absJour){ var _mi=(typeof _etatMotifInfo==='function')?_etatMotifInfo(_absJour.motif):null; etat=((_mi&&_mi.icon)||'🗓️')+' '+((_mi&&_mi.court)||'Absence'); etatCoul=(_mi&&_mi.col)||'#5aa9e6'; }
+      else if(_incEtat && _incEtat.type==='maladie'){ etat='🏥 Arrêt maladie'; etatCoul='#5aa9e6'; }
       else if(_incEtat && _incEtat.type==='misepied'){ etat='🚷 Mise à pied'; etatCoul='#e8623a'; }
       else if(_incEtat && _incEtat.type==='injustifiee'){ etat='🚫 Absence injustifiée'; etatCoul='#e8623a'; if(prevu) nAbsPointage++; }
       else if(_incEtat && _incEtat.type==='abandon'){ etat='🚪 Abandon de poste'+(_incEtat.at?(' '+_incEtat.at):''); etatCoul='#e8623a'; }
-      else if(_absJour){ var _mi=(typeof _etatMotifInfo==='function')?_etatMotifInfo(_absJour.motif):null; etat=((_mi&&_mi.icon)||'🗓️')+' '+((_mi&&_mi.court)||'Absence'); etatCoul=(_mi&&_mi.col)||'#5aa9e6'; }
       else { etat = prevu?'⚠️ Pas pointé':'—'; etatCoul=prevu?'#e8623a':'#666'; if(prevu) nAbsPointage++; }
     }
     else {
@@ -12036,7 +12142,10 @@ function ptgRenderSuivi(){
       } else {
         var grave=(stA.code==='grave'||stD.code==='grave');
         var leger=(stA.code==='leger'||stD.code==='leger');
-        if(grave){ etat='🔴 Écart important'; etatCoul='#e8623a'; nEcart++; }
+        // Arrivée pointée mais PAS de départ : normal aujourd'hui (encore au poste),
+        // mais ANOMALIE si le jour est passé (oubli de pointer le départ → heures non comptées).
+        if(!rec.depart && dateISO < _todayISO){ etat='🟠 Départ non pointé'; etatCoul='#e8a020'; nIncomplet++; }
+        else if(grave){ etat='🔴 Écart important'; etatCoul='#e8623a'; nEcart++; }
         else if(leger){ etat='🟠 Petit écart'; etatCoul='#e8a020'; nEcart++; }
         else if(!rec.depart){ etat='🟢 Présent'; etatCoul='#3ecf8e'; nOk++; }
         else { etat='✅ Conforme'; etatCoul='#3ecf8e'; nOk++; }
@@ -12058,6 +12167,7 @@ function ptgRenderSuivi(){
     +'<span style="background:#16321f;border:1px solid #2e5e33;color:#3ecf8e;padding:5px 12px;border-radius:20px;font-size:.8rem;font-weight:700;">✅ '+nOk+' conforme'+(nOk>1?'s':'')+'</span>'
     +'<span style="background:#3a2a10;border:1px solid #7a5a1a;color:#e8a020;padding:5px 12px;border-radius:20px;font-size:.8rem;font-weight:700;">🟠🔴 '+nEcart+' écart'+(nEcart>1?'s':'')+'</span>'
     +'<span style="background:#3a1616;border:1px solid #6a2a2a;color:#e8623a;padding:5px 12px;border-radius:20px;font-size:.8rem;font-weight:700;">⚠️ '+nAbsPointage+' pas pointé'+(nAbsPointage>1?'s':'')+'</span>'
+    +(nIncomplet?('<span style="background:#3a2a10;border:1px solid #7a5a1a;color:#e8a020;padding:5px 12px;border-radius:20px;font-size:.8rem;font-weight:700;">🕓 '+nIncomplet+' pointage'+(nIncomplet>1?'s':'')+' incomplet'+(nIncomplet>1?'s':'')+' (arrivée ou départ manquant)</span>'):'')
     +'</div>';
   var timeline='';
   try{ timeline='<div class="sec-title" style="font-size:1rem;margin:2px 0 10px;">🕐 Contrôle des heures — prévu vs pointé</div>'+ptgCtrlTimeline(dateISO, emps); }catch(_e){ console.warn('ptgCtrlTimeline',_e); }
@@ -14015,6 +14125,7 @@ async function candContratSigne(){
   }
   // 3) Créer le salarié dans l'équipe
   var nom=((c.nom||'')+' '+(c.prenom||'')).trim();   // fiche salarié = « NOM Prénom » (cohérent avec la fiche salarié)
+  var _salarieOk=false;   // on ne passera en "essai" QUE si la fiche salarié existe VRAIMENT
   try{
     var deja=DB.employees.find(function(e){return e.fromCandId===c.id;});
     if(!deja){
@@ -14026,7 +14137,9 @@ async function candContratSigne(){
       if(_actif){ deja=_actif; try{ await sb.patch('bks_employees','id=eq.'+_actif.id,{from_cand_id:c.id}); }catch(_){} }
       else if(_arch){ deja=_arch; try{ await reactivateEmp(_arch.id, true); await sb.patch('bks_employees','id=eq.'+_arch.id,{from_cand_id:c.id}); }catch(_){} }
     }
-    if(!deja){
+    if(deja){
+      _salarieOk=true;   // fiche déjà existante (rattachée ou réactivée)
+    } else {
       var eid='u'+Date.now();
       var _infosEmb={};
       if(String(c.rqth||'').toLowerCase()==='oui') _infosEmb.rqth='oui';
@@ -14037,9 +14150,22 @@ async function candContratSigne(){
       if(_posteC.indexOf('directeur')>=0) _roleEmb='directeur';
       else if(_posteC.indexOf('manager')>=0) _roleEmb='manager';
       else if(_posteC.indexOf('leader')>=0) _roleEmb='leader';
-      await sb.insert('bks_employees',{id:eid,name:nom,role:_roleEmb,resto_id:c.restoId,archived:false,email:c.email||'',phone:c.phone||'',from_cand_id:c.id,infos:_infosEmb});
+      // IMPORTANT : sb.insert NE lève PAS d'exception en cas d'échec, il renvoie null.
+      // On teste donc la valeur de retour pour savoir si la fiche a bien été créée.
+      var _newEmp=await sb.insert('bks_employees',{id:eid,name:nom,role:_roleEmb,resto_id:c.restoId,archived:false,email:c.email||'',phone:c.phone||'',from_cand_id:c.id,infos:_infosEmb});
+      _salarieOk=!!_newEmp;
     }
-  }catch(e){console.error('Création employé échec',e);}
+  }catch(e){console.error('Création employé échec',e);_salarieOk=false;}
+  // ── FILET DE SÉCURITÉ : ne marquer "essai" QUE si le salarié a bien été créé ──
+  // Sinon on GARDE la candidature en "retenu" (rien n'est perdu) et on alerte l'utilisateur
+  // pour qu'il réessaie. Évite le candidat "en essai fantôme" sans fiche salarié.
+  if(!_salarieOk){
+    alert('⚠️ Le salarié n\'a PAS pu être ajouté à l\'équipe (problème réseau ou base).\n\n'
+      +'Le candidat reste « retenu », rien n\'est perdu : réessayez « Démarrer la période d\'essai » dans un instant.\n'
+      +'S\'il reste bloqué, il apparaîtra dans les Alertes → « Embauches à finaliser ».');
+    try{ renderCandActions(c); }catch(_){}
+    return;
+  }
   _candUpdate({statut:'essai',contrat_signe:true},'Contrat signé — salarié ajouté à l\'équipe 🚀',function(){loadAll();});
 }
 
@@ -14374,6 +14500,10 @@ async function submitDocs(){
   var urgTel=document.getElementById('doc-urg-tel').value.trim();
   if(!urgNom||!urgTel){alert('Merci d\'indiquer un contact en cas d\'urgence (nom + téléphone).');return;}
   if(!tailles.length){alert('Merci d\'indiquer vos tailles de tenues (haut, pantalon, chaussures).');return;}
+  // Verrou anti double-clic (fiable, contrairement à event.target) : empêche les candidatures en double/triple.
+  if(window.__postulerEnCours) return;
+  window.__postulerEnCours=true;
+  var _btnPost=document.getElementById('btn-postuler'); if(_btnPost){ _btnPost.disabled=true; }
   var btn=event&&event.target;if(btn){btn.disabled=true;btn.textContent='Envoi en cours...';}
   try{
     // 1) Upload Dropbox des pièces (tolérant : si non configuré ou échec, on garde en base)
@@ -14802,6 +14932,52 @@ async function submitPostuler(){
   if(!dejaBk){alert('Merci d\'indiquer si vous avez déjà travaillé dans un Burger King.');return;}
   if(dejaBk==='oui'&&!dejaBkOu){alert('Merci d\'indiquer dans quel Burger King vous avez travaillé.');return;}
   if(!motivation){alert('Merci d\'expliquer pourquoi vous voulez travailler chez nous.');return;}
+  // ── ANTI-CANDIDATURES MULTIPLES ────────────────────────────────────────────
+  // Une même personne peut postuler 2 fois maximum. À la 3e tentative, on bloque
+  // et on affiche un message clair. Recoupement par email, par nom+prénom et par
+  // téléphone (chiffres uniquement). En cas d'erreur réseau, on NE bloque PAS
+  // (fail-open) pour ne jamais perdre une vraie candidature.
+  var _antBtn=(typeof event!=='undefined'&&event)?event.target:null;
+  try{
+    if(_antBtn){_antBtn.disabled=true;_antBtn.textContent='Vérification…';}
+    var _telNorm=function(t){return String(t||'').replace(/[^0-9]/g,'');};
+    var _phoneDigits=_telNorm(phone);
+    var _pgSafe=function(s){return encodeURIComponent(String(s||'').replace(/[(),*]/g,' ').trim());}; // évite de casser la requête PostgREST
+    var _emailQ=encodeURIComponent((email||'').toLowerCase().trim());
+    var _prenomQ=_pgSafe(prenom);
+    var _nomQ=_pgSafe(nom);
+    var _phoneQ=_pgSafe(phone);
+    var _or='or=(email.ilike.'+_emailQ+',and(prenom.ilike.'+_prenomQ+',nom.ilike.'+_nomQ+')'+(phone?(',phone.ilike.'+_phoneQ):'')+')';
+    var _ant=await sb.get('bks_candidatures','select=id,email,phone,prenom,nom,date_naissance&'+_or);
+    var _selfKey=_nomKey(prenom+' '+nom);
+    var _selfEmail=(email||'').toLowerCase().trim();
+    var _seen={}; var _matches=[];
+    (_ant||[]).forEach(function(x){
+      if(_seen[x.id])return;
+      var _sameEmail=_selfEmail&&x.email&&String(x.email).toLowerCase().trim()===_selfEmail;
+      var _samePhone=_phoneDigits&&_telNorm(x.phone)===_phoneDigits;
+      // Le nom SEUL ne suffit pas (homonymes) : on exige nom+prénom ET même date de naissance.
+      var _sameName=_nomKey((x.prenom||'')+' '+(x.nom||''))===_selfKey;
+      var _sameBirth=!!(naissance && x.date_naissance && String(x.date_naissance).slice(0,10)===naissance);
+      if(_sameEmail||_samePhone||(_sameName&&_sameBirth)){_seen[x.id]=1;_matches.push(x);}
+    });
+    if(_matches.length>=2){
+      window.__postulerEnCours=false;
+      document.getElementById('postuler-body').innerHTML='<div style="text-align:center;padding:50px 20px;max-width:520px;margin:0 auto;">'
+        +'<div style="font-size:3.4rem;">⛔</div>'
+        +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.5rem;font-weight:700;color:#e05a5a;margin-top:14px;">Candidature non transmise</div>'
+        +'<p style="color:#ccc;margin-top:14px;line-height:1.65;">Bonjour '+prenom+',<br>vous avez <b>déjà postulé chez nous à deux reprises</b>. Conformément à notre politique de recrutement, une même personne ne peut déposer que <b>deux candidatures</b>.</p>'
+        +'<p style="color:#aaa;margin-top:12px;line-height:1.65;">Nous ne pouvons donc pas enregistrer cette nouvelle candidature, qui ne sera pas retenue. Votre dossier est déjà connu de notre équipe RH — il est inutile de postuler à nouveau.</p>'
+        +'<p style="color:#777;margin-top:16px;font-size:.85rem;">Merci de votre compréhension.</p>'
+        +'</div>';
+      window.scrollTo(0,0);
+      return;
+    }
+    if(_antBtn){_antBtn.disabled=false;_antBtn.textContent='📤 Envoyer ma candidature';}
+  }catch(_antErr){
+    console.warn('Contrôle candidatures multiples ignoré (erreur réseau)',_antErr);
+    if(_antBtn){_antBtn.disabled=false;_antBtn.textContent='📤 Envoyer ma candidature';}
+  }
   var dispos={};
   var nbJoursDispo=0;
   var dispoErreur=null;
@@ -14820,43 +14996,6 @@ async function submitPostuler(){
   if(!window._cvData){alert('Merci de joindre votre CV (PDF ou image).');return;}
   if(!window._cniRectoData){alert('Merci d\'ajouter le RECTO de votre pièce d\'identité (photo ou fichier).');return;}
   if(!window._cniVersoData){alert('Merci d\'ajouter le VERSO de votre pièce d\'identité (photo ou fichier).');return;}
-  // ── ANTI DOUBLE-CLIC : un seul envoi à la fois (empêche les candidatures en double/triple) ──
-  if(window.__postulerEnCours) return;
-  window.__postulerEnCours=true;
-  var _btnPost=document.getElementById('btn-postuler');
-  if(_btnPost){ _btnPost.disabled=true; _btnPost.textContent='⏳ Vérification…'; }
-  // ── LIMITE : une même personne ne peut postuler que 2 fois (email OU nom+prénom OU téléphone) ──
-  try{
-    var _em=(email||'').trim().toLowerCase();
-    var _dg=function(x){return (x||'').replace(/[^0-9]/g,'');};
-    var _phD=_dg(phone);
-    var _ors=[];
-    if(_em) _ors.push('email.ilike.'+encodeURIComponent(_em));
-    if(nom&&prenom) _ors.push('and(prenom.ilike.'+encodeURIComponent(prenom)+',nom.ilike.'+encodeURIComponent(nom)+')');
-    if(_phD) _ors.push('phone.ilike.'+encodeURIComponent('*'+_phD+'*'));
-    if(_ors.length){
-      var _ex=await sb.get('bks_candidatures','select=id,email,prenom,nom,phone&or=('+_ors.join(',')+')');
-      var _seen={}, _cnt=0, _myKey=_nomKey(prenom+' '+nom);
-      (_ex||[]).forEach(function(r){
-        if(_seen[r.id]) return;
-        var same=false;
-        if(_em && (r.email||'').trim().toLowerCase()===_em) same=true;
-        else if(nom&&prenom && _nomKey((r.prenom||'')+' '+(r.nom||''))===_myKey) same=true;
-        else if(_phD && _dg(r.phone)===_phD) same=true;
-        if(same){ _seen[r.id]=1; _cnt++; }
-      });
-      if(_cnt>=2){
-        window.__postulerEnCours=false;
-        document.getElementById('postuler-body').innerHTML='<div style="text-align:center;padding:60px 20px;">'
-          +'<div style="font-size:3.5rem;">⛔</div>'
-          +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.5rem;font-weight:700;color:#e8623a;margin-top:14px;">Candidature non transmise</div>'
-          +'<p style="color:#aaa;margin-top:10px;line-height:1.6;">Vous avez déjà postulé 2 fois. Conformément à notre limite, cette candidature ne peut pas être enregistrée et ne sera pas retenue.</p></div>';
-        window.scrollTo(0,0);
-        return;
-      }
-    }
-  }catch(_ec){ /* fail-open : si le contrôle échoue (réseau), on n'empêche pas la candidature */ }
-  if(_btnPost){ _btnPost.textContent='⏳ Envoi…'; }
   var data={prenom:prenom,nom:nom,date_naissance:naissance,phone:phone,email:email,
     adresse:adresse,code_postal:cp,ville:ville,nationalite:nationalite,sexe:sexe,
     resto_id:resto,restos:restosArr.join(','),
@@ -14910,7 +15049,7 @@ async function submitPostuler(){
   }
   try{
     await sb.insert('bks_candidatures',data);
-    window.__postulerEnCours=false;   // envoi terminé (permet une nouvelle candidature ex. borne partagée)
+    window.__postulerEnCours=false;
     window._photoData=null;window._cvData=null;window._cvName=null;
     window._cniRectoData=null;window._cniRectoName=null;window._cniVersoData=null;window._cniVersoName=null;
     document.getElementById('postuler-body').innerHTML='<div style="text-align:center;padding:60px 20px;">'
@@ -21413,14 +21552,24 @@ function hrSauverAbsences(){
 // Les demandes en attente (statut 'attente') ne bloquent PAS le placement.
 function hrEstAbsent(empId, isoDate){
   if(!empId||!isoDate) return false;
-  var lst=HR_ABSENCES[empId]; if(!lst||!lst.length) return false;
-  for(var i=0;i<lst.length;i++){
-    var a=lst[i]; if(!a) continue;
-    if(a.statut==='attente'||a.statut==='refuse') continue; // non validée → ne bloque pas
-    var f=a.from||a.de||'', t=a.to||a.a||a.from||'';
-    if(!f) continue; if(!t) t=f;
-    if(isoDate>=f && isoDate<=t) return true;
+  var lst=HR_ABSENCES[empId];
+  if(lst&&lst.length){
+    for(var i=0;i<lst.length;i++){
+      var a=lst[i]; if(!a) continue;
+      if(a.statut==='attente'||a.statut==='refuse') continue; // non validée → ne bloque pas
+      var f=a.from||a.de||'', t=a.to||a.a||a.from||'';
+      if(!f) continue; if(!t) t=f;
+      if(isoDate>=f && isoDate<=t) return true;
+    }
   }
+  // INCIDENTS bloquants (arrêt maladie / mise à pied, sur leurs dates déclarées) :
+  // ils bloquent aussi le planning → l'équipier n'est pas placé ces jours-là, et ses
+  // créneaux déjà posés sont retirés. Ainsi une mise à pied saisie dans un incident se
+  // répercute automatiquement sur les horaires, sans double saisie.
+  try{
+    var ie=(typeof incEtatJour==='function')?incEtatJour(empId,isoDate):null;
+    if(ie && (ie.type==='maladie'||ie.type==='misepied')) return true;
+  }catch(_e){}
   return false;
 }
 window.hrEstAbsent=hrEstAbsent;
@@ -21584,6 +21733,7 @@ var HR_ETAT_MOTIFS={
   maladie: {label:'Arrêt maladie',court:'Maladie', icon:'🟥', col:'#cc5555'},
   absence: {label:'Absence autorisée / autre', court:'Absence', icon:'🟧', col:'#d98324'},
   injustifiee: {label:'Absence injustifiée', court:'Injustifiée', icon:'⛔', col:'#e8623a'},
+  misepied: {label:'Mise à pied', court:'Mise à pied', icon:'🚷', col:'#b5462f'},
   indispo: {label:'Indispo ponctuelle', court:'Indispo', icon:'🟨', col:'#c9a227'}
 };
 function _etatMotifInfo(m){ return HR_ETAT_MOTIFS[m]||HR_ETAT_MOTIFS.absence; }
@@ -22721,7 +22871,7 @@ function hrReappliquerAffectations(){
     _bars.forEach(function(b){ if(b.empId==null) return; if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return; (_parEmpJour[b.empId]=_parEmpJour[b.empId]||[]).push(b); });
     Object.keys(_parEmpJour).forEach(function(eid){
       var arr=_parEmpJour[eid].sort(function(a,b){return a.s-b.s;}); var kept=[];
-      arr.forEach(function(b){ var be=(b.e!=null?b.e:b.s+60); var conf=kept.some(function(k){ var ke=(k.e!=null?k.e:k.s+60); return b.s<ke && k.s<be; }); if(!conf){ kept.push(b); } /* issue2 : placement manuel gardé (plus de retrait auto) */ });
+      arr.forEach(function(b){ var be=(b.e!=null?b.e:b.s+60); var conf=kept.some(function(k){ var ke=(k.e!=null?k.e:k.s+60); return b.s<ke && k.s<be; }); if(!conf){ kept.push(b); } /* placement manuel gardé (plus de retrait auto) */ });
     });
     // ── VACATION CONTINUE MAX (filet d'affichage) : même calcul que le contrôle « non conforme »
     //    (créneaux COLLÉS sans trou, max HR_VACATION_MAX_MIN = 5h). Au-delà, on libère le créneau
@@ -22731,7 +22881,7 @@ function hrReappliquerAffectations(){
     _bars.forEach(function(b){ if(b.empId==null) return; if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return; (_pej2[b.empId]=_pej2[b.empId]||[]).push(b); });
     Object.keys(_pej2).forEach(function(eid){
       var arr=_pej2[eid].sort(function(a,b){return a.s-b.s;}); var _rs=null, _re=null;
-      arr.forEach(function(b){ var be=(b.e!=null?b.e:b.s+60); if(_re==null || b.s>_re){ _rs=b.s; _re=be; return; } { _re=Math.max(_re,be); } /* issue2 : placement manuel gardé (plus de retrait auto) */ });
+      arr.forEach(function(b){ var be=(b.e!=null?b.e:b.s+60); if(_re==null || b.s>_re){ _rs=b.s; _re=be; return; } { _re=Math.max(_re,be); } /* placement manuel gardé (plus de retrait auto) */ });
     });
     // réinitialiser les marqueurs _used pour le prochain passage
     aff.forEach(function(a){delete a._used;});
@@ -22761,7 +22911,7 @@ function hrReappliquerAffectations(){
         for(var _i=0;_i<actifs.length;_i++){
           var repos=(actifs[_i].s+1440)-finVeille;
           if(repos>=_reposMin-0.001) break; // repos suffisant → on garde le reste de la journée
-          break; // issue2 : placement manuel gardé (plus de retrait auto — l'écart repos reste signalé par le contrôle « non conforme »)
+          break; // placement manuel gardé (plus de retrait auto — l'écart repos reste signalé par le contrôle « non conforme »)
         }
       }
     });
@@ -26580,7 +26730,7 @@ function _hrTraitStatutEmp(emp, poste, dayIdx, s, e, barCible){
   return {emp:emp, comp:comp, dispo:dispoOk, dispoTxt:dispoTxt, absent:absent, absMotif:absMotif, occupe:occupe, posOccupe:posOccupe, creneauxJour:creneauxJour, casseRepos:casseRepos};
 }
 
-// issue3 : salarié dont la date de départ (démission/sortie) est déjà passée → exclu des horaires.
+// Salarié dont la date de départ (démission/sortie) est déjà passée → exclu des horaires.
 function _hrEstParti(e){
   try{
     var ds=(e && (e.sortieDate||e.exitDate))||'';
