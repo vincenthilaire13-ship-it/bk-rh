@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-10 21:00 · v526';
+  var EMBEDDED_VERSION = '2026-08-11 · v525d (clavier + 3 correctifs + Nom/Prénom séparés)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -2411,6 +2411,7 @@ const sb = {
     return r.json();
   },
   async insert(table, data) {
+    try{ window.__lastWriteTs=Date.now(); }catch(_){}
     const r = await fetch(SUPA_URL+'/rest/v1/'+table, {
       method: 'POST',
       headers: { apikey: SUPA_KEY, 'Accept-Profile': 'rh', 'Content-Profile': 'rh', Authorization: 'Bearer '+SUPA_KEY, 'Content-Type': 'application/json', Prefer: 'return=representation' },
@@ -2420,6 +2421,7 @@ const sb = {
     const d = await r.json(); return Array.isArray(d) ? d[0] : d;
   },
   async patch(table, where, data) {
+    try{ window.__lastWriteTs=Date.now(); }catch(_){}
     const r = await fetch(SUPA_URL+'/rest/v1/'+table+'?'+where, {
       method: 'PATCH',
       headers: { apikey: SUPA_KEY, 'Accept-Profile': 'rh', 'Content-Profile': 'rh', Authorization: 'Bearer '+SUPA_KEY, 'Content-Type': 'application/json' },
@@ -2428,6 +2430,7 @@ const sb = {
     return r.ok;
   },
   async del(table, where) {
+    try{ window.__lastWriteTs=Date.now(); }catch(_){}
     const r = await fetch(SUPA_URL+'/rest/v1/'+table+'?'+where, {
       method: 'DELETE',
       headers: { apikey: SUPA_KEY, 'Accept-Profile': 'rh', 'Content-Profile': 'rh', Authorization: 'Bearer '+SUPA_KEY }
@@ -2650,6 +2653,17 @@ async function doSoftRefresh(){
     return;
   }
   if(_syncBusy){ _syncQueued=true; return; }   // évite les rafraîchissements qui se chevauchent
+  // issue1 : ne pas recharger/redessiner juste après une écriture locale. Un rechargement
+  // temps réel qui tombe pendant une saisie (compétences/dispos cochées mais pas encore
+  // enregistrées) remplace l'objet salarié et fait « annuler l'un par l'autre ». On diffère
+  // tant que l'utilisateur écrit ; le refresh se fera dès ~3,5 s d'inactivité d'écriture.
+  try{
+    if(window.__lastWriteTs && (Date.now()-window.__lastWriteTs)<3500){
+      if(window.__softDeferTm) clearTimeout(window.__softDeferTm);
+      window.__softDeferTm=setTimeout(doSoftRefresh,1500);
+      return;
+    }
+  }catch(_){}
   _syncBusy=true;
   try{
     await loadAll(true);   // version allégée (ne recharge pas les photos candidats)
@@ -3003,6 +3017,10 @@ function delPin() { pinVal = pinVal.slice(0,-1); updatePinDots(); }
 // Saisie du PIN au CLAVIER (ordinateur) : chiffres = saisie, ⌫/Suppr = effacer,
 // Échap = retour, Entrée = valider. Le code reste MASQUÉ (les points ne montrent rien).
 function _pinKeyboard(ev){
+  // FIX v525b : ne réagir QUE si l'écran de connexion est réellement affiché.
+  // Sinon, après connexion (#login-screen masqué mais #step-pin resté 'flex'),
+  // ce handler avalait Retour arrière / chiffres / Entrée dans toute l'appli.
+  var _ls=document.getElementById('login-screen'); if(!_ls || _ls.style.display==='none') return;
   var step=document.getElementById('step-pin'); if(!step || step.style.display==='none') return;
   if(ev.metaKey||ev.ctrlKey||ev.altKey) return;
   var k=ev.key;
@@ -9245,7 +9263,12 @@ function empfEdit(){
     var inputType=(typ==='date')?'date':'text';
     return '<div style="margin-bottom:9px;"><label class="flabel">'+lbl+'</label><input type="'+inputType+'" class="fi" id="ef_'+key+'" value="'+(val?String(val).replace(/"/g,'&quot;'):'')+'"></div>';
   }
-  h+='<div style="margin-bottom:9px;"><label class="flabel">Nom complet</label><input type="text" class="fi" id="ef__name" value="'+e.name.replace(/"/g,'&quot;')+'"></div>';
+  // Nom / Prénom séparés (comme la fiche recrutement). Nom complet reconstruit = « NOM Prénom ».
+  var _nmParts=String(e.name||'').trim().split(/\s+/);
+  var _efNom=(e.infos&&e.infos.nom)?e.infos.nom:(_nmParts.length>1?_nmParts.slice(0,-1).join(' '):(_nmParts[0]||''));
+  var _efPrenom=(e.infos&&e.infos.prenom)?e.infos.prenom:(_nmParts.length>1?_nmParts[_nmParts.length-1]:'');
+  h+='<div style="margin-bottom:9px;"><label class="flabel">Nom</label><input type="text" class="fi" id="ef__nom" value="'+String(_efNom).replace(/"/g,'&quot;')+'"></div>';
+  h+='<div style="margin-bottom:9px;"><label class="flabel">Prénom</label><input type="text" class="fi" id="ef__prenom" value="'+String(_efPrenom).replace(/"/g,'&quot;')+'"></div>';
   h+='<div style="margin-bottom:9px;"><label class="flabel">Rôle</label><select class="fi" id="ef__role"><option value="equipier">Équipier</option><option value="leader">Leader</option><option value="manager">Manager</option><option value="directeur">Directeur</option></select></div>';
   var _efRqthOui=String(inf.rqth||'').toLowerCase()==='oui';
   h+='<div style="margin-bottom:9px;padding:10px 12px;border-radius:9px;background:'+(_efRqthOui?'#10304d':'#1a1a1a')+';border:1px solid '+(_efRqthOui?'#2f7fc4':'#3a3a3a')+';">'
@@ -9287,7 +9310,8 @@ async function empfSave(){
     else if(key==='_role'){}
     else inf[key]=val;
   });
-  var nm=document.getElementById('ef__name');if(nm&&nm.value.trim())patch.name=nm.value.trim();
+  var _no=document.getElementById('ef__nom'); var _pr=document.getElementById('ef__prenom');
+  if(_no||_pr){ var _nov=_no?_no.value.trim():''; var _prv=_pr?_pr.value.trim():''; inf.nom=_nov; inf.prenom=_prv; var _full=(_nov+' '+_prv).trim(); if(_full) patch.name=_full; }
   var rl=document.getElementById('ef__role');if(rl)patch.role=rl.value;
   var rqEl=document.getElementById('ef__rqth'); if(rqEl) inf.rqth=rqEl.checked?'oui':'non';
   var rqEl=document.getElementById('ef__rqth');if(rqEl)inf.rqth=rqEl.checked?'oui':'non';
@@ -13990,7 +14014,7 @@ async function candContratSigne(){
     }catch(e){console.error('Dropbox contrat échec',e);}
   }
   // 3) Créer le salarié dans l'équipe
-  var nom=((c.prenom||'')+' '+(c.nom||'')).trim();
+  var nom=((c.nom||'')+' '+(c.prenom||'')).trim();   // fiche salarié = « NOM Prénom » (cohérent avec la fiche salarié)
   try{
     var deja=DB.employees.find(function(e){return e.fromCandId===c.id;});
     if(!deja){
@@ -14408,8 +14432,8 @@ function showPostulerPage(presetResto){
     +'<div style="color:#fff;font-size:.85rem;opacity:.9;margin-top:3px;">Postulez en 2 minutes</div></div>'
     +'<div style="max-width:620px;margin:0 auto;padding:20px 16px 60px;" id="postuler-body">'
     +'<div class="card"><div class="sec-title">👤 Vos informations</div>'
-    +'<div class="form-row"><div><label class="flabel">Prénom *</label><input type="text" id="p-prenom" class="fi"></div>'
-    +'<div><label class="flabel">Nom *</label><input type="text" id="p-nom" class="fi"></div></div>'
+    +'<div class="form-row"><div><label class="flabel">Nom *</label><input type="text" id="p-nom" class="fi"></div>'
+    +'<div><label class="flabel">Prénom *</label><input type="text" id="p-prenom" class="fi"></div></div>'
     +'<div class="form-row"><div><label class="flabel">Sexe *</label><select id="p-sexe" class="fi"><option value="">— Choisir —</option><option value="Homme">Homme</option><option value="Femme">Femme</option></select></div>'
     +'<div><label class="flabel">Date de naissance *</label>'
       +'<div style="display:flex;gap:6px;">'
@@ -14778,48 +14802,6 @@ async function submitPostuler(){
   if(!dejaBk){alert('Merci d\'indiquer si vous avez déjà travaillé dans un Burger King.');return;}
   if(dejaBk==='oui'&&!dejaBkOu){alert('Merci d\'indiquer dans quel Burger King vous avez travaillé.');return;}
   if(!motivation){alert('Merci d\'expliquer pourquoi vous voulez travailler chez nous.');return;}
-  // ── ANTI-CANDIDATURES MULTIPLES ────────────────────────────────────────────
-  // Une même personne peut postuler 2 fois maximum. À la 3e tentative, on bloque
-  // et on affiche un message clair. Recoupement par email, par nom+prénom et par
-  // téléphone (chiffres uniquement). En cas d'erreur réseau, on NE bloque PAS
-  // (fail-open) pour ne jamais perdre une vraie candidature.
-  var _antBtn=(typeof event!=='undefined'&&event)?event.target:null;
-  try{
-    if(_antBtn){_antBtn.disabled=true;_antBtn.textContent='Vérification…';}
-    var _telNorm=function(t){return String(t||'').replace(/[^0-9]/g,'');};
-    var _phoneDigits=_telNorm(phone);
-    var _emailQ=encodeURIComponent((email||'').toLowerCase().trim());
-    var _prenomQ=encodeURIComponent(prenom);
-    var _nomQ=encodeURIComponent(nom);
-    var _phoneQ=encodeURIComponent(phone);
-    var _or='or=(email.ilike.'+_emailQ+',and(prenom.ilike.'+_prenomQ+',nom.ilike.'+_nomQ+')'+(phone?(',phone.ilike.'+_phoneQ):'')+')';
-    var _ant=await sb.get('bks_candidatures','select=id,email,phone,prenom,nom&'+_or);
-    var _selfKey=_nomKey(prenom+' '+nom);
-    var _selfEmail=(email||'').toLowerCase().trim();
-    var _seen={}; var _matches=[];
-    (_ant||[]).forEach(function(x){
-      if(_seen[x.id])return;
-      var _sameEmail=_selfEmail&&x.email&&String(x.email).toLowerCase().trim()===_selfEmail;
-      var _sameName=_nomKey((x.prenom||'')+' '+(x.nom||''))===_selfKey;
-      var _samePhone=_phoneDigits&&_telNorm(x.phone)===_phoneDigits;
-      if(_sameEmail||_sameName||_samePhone){_seen[x.id]=1;_matches.push(x);}
-    });
-    if(_matches.length>=2){
-      document.getElementById('postuler-body').innerHTML='<div style="text-align:center;padding:50px 20px;max-width:520px;margin:0 auto;">'
-        +'<div style="font-size:3.4rem;">⛔</div>'
-        +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.5rem;font-weight:700;color:#e05a5a;margin-top:14px;">Candidature non transmise</div>'
-        +'<p style="color:#ccc;margin-top:14px;line-height:1.65;">Bonjour '+prenom+',<br>vous avez <b>déjà postulé chez nous à deux reprises</b>. Conformément à notre politique de recrutement, une même personne ne peut déposer que <b>deux candidatures</b>.</p>'
-        +'<p style="color:#aaa;margin-top:12px;line-height:1.65;">Nous ne pouvons donc pas enregistrer cette nouvelle candidature, qui ne sera pas retenue. Votre dossier est déjà connu de notre équipe RH — il est inutile de postuler à nouveau.</p>'
-        +'<p style="color:#777;margin-top:16px;font-size:.85rem;">Merci de votre compréhension.</p>'
-        +'</div>';
-      window.scrollTo(0,0);
-      return;
-    }
-    if(_antBtn){_antBtn.disabled=false;_antBtn.textContent='📤 Envoyer ma candidature';}
-  }catch(_antErr){
-    console.warn('Contrôle candidatures multiples ignoré (erreur réseau)',_antErr);
-    if(_antBtn){_antBtn.disabled=false;_antBtn.textContent='📤 Envoyer ma candidature';}
-  }
   var dispos={};
   var nbJoursDispo=0;
   var dispoErreur=null;
@@ -19717,7 +19699,7 @@ function hrPlacerPersonne(e, ctx, joursAutorises){
 // cuisine vendredi qu'elle peut prendre".
 function hrRattrapageContrats(ctx, seulementIds){
   var resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'').toLowerCase();
-  var equipiers=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto&&(!seulementIds||seulementIds.has(e.id));});
+  var equipiers=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto&&!_hrEstParti(e)&&(!seulementIds||seulementIds.has(e.id));});
   var R=(typeof getReglement==='function')?getReglement():{};
   var nbRepos=(R&&R.joursRepos!=null)?parseInt(R.joursRepos,10):2; if(isNaN(nbRepos)||nbRepos<0) nbRepos=2;
   var joursMax=7-nbRepos;
@@ -19779,7 +19761,7 @@ function hrForcerContrats(ctx, seulementIds){
   var nbRepos=(R&&R.joursRepos!=null)?parseInt(R.joursRepos,10):2; if(isNaN(nbRepos)||nbRepos<0) nbRepos=2;
   var joursMax=7-nbRepos;
   var resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'').toLowerCase();
-  var equipiers=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto&&(!seulementIds||seulementIds.has(e.id));});
+  var equipiers=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto&&!_hrEstParti(e)&&(!seulementIds||seulementIds.has(e.id));});
   function dispoOkJ(emp,d,s,e){
     var jk=JOURS_KEYS[d]; var dd=(emp.infos&&emp.infos.dispos&&emp.infos.dispos[jk])||null;
     if(!dd||!dd.on)return false; return _dispoContient(dd,s,e);
@@ -20010,7 +19992,7 @@ function hrOptimiserContrats(ctx, seulementIds){
   var R=(typeof getReglement==='function')?getReglement():{};
   var nbRepos=(R&&R.joursRepos!=null)?parseInt(R.joursRepos,10):2; if(isNaN(nbRepos)) nbRepos=2;
   var resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'').toLowerCase();
-  var equipiers=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto&&(!seulementIds||seulementIds.has(e.id));});
+  var equipiers=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto&&!_hrEstParti(e)&&(!seulementIds||seulementIds.has(e.id));});
 
   function dispoJ(e,d){ var jk=JOURS_KEYS[d]; var dd=(e.infos&&e.infos.dispos&&e.infos.dispos[jk])||null; if(!dd||!dd.on)return null; var f=_dispoMin(dd.from),t=_dispoMin(dd.to); if(f==null||t==null)return null; return {f:f,t:t}; }
   function dispoOk(e,d,s,ee){ var dj=dispoJ(e,d); return dj&&s>=dj.f&&ee<=dj.t; }
@@ -22699,7 +22681,7 @@ function hrReappliquerAffectations(){
     _bars.forEach(function(b){ if(b.empId==null) return; if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return; (_parEmpJour[b.empId]=_parEmpJour[b.empId]||[]).push(b); });
     Object.keys(_parEmpJour).forEach(function(eid){
       var arr=_parEmpJour[eid].sort(function(a,b){return a.s-b.s;}); var kept=[];
-      arr.forEach(function(b){ var be=(b.e!=null?b.e:b.s+60); var conf=kept.some(function(k){ var ke=(k.e!=null?k.e:k.s+60); return b.s<ke && k.s<be; }); if(conf){ b.emp=null; b.empId=null; } else kept.push(b); });
+      arr.forEach(function(b){ var be=(b.e!=null?b.e:b.s+60); var conf=kept.some(function(k){ var ke=(k.e!=null?k.e:k.s+60); return b.s<ke && k.s<be; }); if(!conf){ kept.push(b); } /* issue2 : placement manuel gardé (plus de retrait auto) */ });
     });
     // ── VACATION CONTINUE MAX (filet d'affichage) : même calcul que le contrôle « non conforme »
     //    (créneaux COLLÉS sans trou, max HR_VACATION_MAX_MIN = 5h). Au-delà, on libère le créneau
@@ -22709,7 +22691,7 @@ function hrReappliquerAffectations(){
     _bars.forEach(function(b){ if(b.empId==null) return; if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return; (_pej2[b.empId]=_pej2[b.empId]||[]).push(b); });
     Object.keys(_pej2).forEach(function(eid){
       var arr=_pej2[eid].sort(function(a,b){return a.s-b.s;}); var _rs=null, _re=null;
-      arr.forEach(function(b){ var be=(b.e!=null?b.e:b.s+60); if(_re==null || b.s>_re){ _rs=b.s; _re=be; return; } if((Math.max(_re,be)-_rs)>_vacMaxA){ b.emp=null; b.empId=null; } else { _re=Math.max(_re,be); } });
+      arr.forEach(function(b){ var be=(b.e!=null?b.e:b.s+60); if(_re==null || b.s>_re){ _rs=b.s; _re=be; return; } { _re=Math.max(_re,be); } /* issue2 : placement manuel gardé (plus de retrait auto) */ });
     });
     // réinitialiser les marqueurs _used pour le prochain passage
     aff.forEach(function(a){delete a._used;});
@@ -22739,7 +22721,7 @@ function hrReappliquerAffectations(){
         for(var _i=0;_i<actifs.length;_i++){
           var repos=(actifs[_i].s+1440)-finVeille;
           if(repos>=_reposMin-0.001) break; // repos suffisant → on garde le reste de la journée
-          actifs[_i].emp=null; actifs[_i].empId=null; // ouverture trop tôt après une fermeture tardive → libérée
+          break; // issue2 : placement manuel gardé (plus de retrait auto — l'écart repos reste signalé par le contrôle « non conforme »)
         }
       }
     });
@@ -23721,7 +23703,7 @@ function hrPlacerIntelligentSemaine(repartirZero){
   var seuilPetit=(R.petitsContratsSeuilH!=null)?parseFloat(R.petitsContratsSeuilH):15;
   var weekendActif=(R.petitsContratsWeekend!==false);
   var _resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'').toLowerCase();
-  var eq=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===_resto&&hrContratHebdo(e)!=null&&hrContratHebdo(e)>0;});
+  var eq=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===_resto&&!_hrEstParti(e)&&hrContratHebdo(e)!=null&&hrContratHebdo(e)>0;});
   if(!eq.length){
     var __stv=document.getElementById('hrx-assign-status');
     if(__stv) __stv.innerHTML='⚠️ Placement intelligent : aucun équipier trouvé pour ce resto ('+_resto+')';
@@ -24378,7 +24360,7 @@ function hrAnalyseRecrutementMois(silent, restoArg, refMoisArg){
   var seuilPetit=(R.petitsContratsSeuilH!=null)?parseFloat(R.petitsContratsSeuilH):15;
   var weekendActif=(R.petitsContratsWeekend!==false);
   var _resto=((restoArg||((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto())))||'').toLowerCase();
-  var eq=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===_resto&&hrContratHebdo(e)!=null&&hrContratHebdo(e)>0;});
+  var eq=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===_resto&&!_hrEstParti(e)&&hrContratHebdo(e)!=null&&hrContratHebdo(e)>0;});
   if(!eq.length){ if(box) box.innerHTML='<div style="padding:14px;color:#f5a623;">Aucun équipier pour ce resto.</div>'; return; }
   var JK=(typeof JOURS_KEYS!=='undefined')?JOURS_KEYS:['lun','mar','mer','jeu','ven','sam','dim'];
 
@@ -26558,6 +26540,17 @@ function _hrTraitStatutEmp(emp, poste, dayIdx, s, e, barCible){
   return {emp:emp, comp:comp, dispo:dispoOk, dispoTxt:dispoTxt, absent:absent, absMotif:absMotif, occupe:occupe, posOccupe:posOccupe, creneauxJour:creneauxJour, casseRepos:casseRepos};
 }
 
+// issue3 : salarié dont la date de départ (démission/sortie) est déjà passée → exclu des horaires.
+function _hrEstParti(e){
+  try{
+    var ds=(e && (e.sortieDate||e.exitDate))||'';
+    if(!ds) return false;
+    var t=Date.parse(String(ds)+'T23:59:59');
+    if(isNaN(t)) return false;
+    return t < Date.now();
+  }catch(_){ return false; }
+}
+try{ window._hrEstParti=_hrEstParti; }catch(_){}
 // Ouvre le panneau d'affectation pour le trait (ligne rowIdx, barre barIdx) du jour courant.
 function hrTraitAffecterOuvrir(rowIdx, barIdx){
   var row=ROWS_BY_DAY[curDay] && ROWS_BY_DAY[curDay][rowIdx];
@@ -26568,7 +26561,7 @@ function hrTraitAffecterOuvrir(rowIdx, barIdx){
   window.__hrTraitCible={rowIdx:rowIdx, barIdx:barIdx, day:curDay};
   var poste=b.l, s=b.s, e=b.e||b.s+60;
   var resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'').toLowerCase();
-  var equipiers=(DB.employees||[]).filter(function(x){return x.role==='equipier'&&!x.archived&&x.restoId===resto;});
+  var equipiers=(DB.employees||[]).filter(function(x){return x.role==='equipier'&&!x.archived&&x.restoId===resto&&!_hrEstParti(x);});
   // calcule le statut de chacun
   var stats=equipiers.map(function(emp){ return _hrTraitStatutEmp(emp, poste, curDay, s, e, b); });
   // tri : éligibles d'abord (compétent+dispo+libre+non absent), puis le reste
