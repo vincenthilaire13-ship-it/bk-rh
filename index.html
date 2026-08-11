@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-11 · v525d (clavier + 3 correctifs + Nom/Prénom séparés)';
+  var EMBEDDED_VERSION = '2026-08-11 · v525e (anti-doublon candidatures + max 2)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -14548,7 +14548,7 @@ function showPostulerPage(presetResto){
     +'<input type="file" id="p-cv-input" accept="application/pdf,image/*" style="display:none;" onchange="handleCV(this)">'
     +'<button type="button" class="btn btn-gray btn-sm" onclick="document.getElementById(\'p-cv-input\').click()">📎 Joindre mon CV</button>'
     +'<div id="p-cv-name" style="font-size:.8rem;color:#4CAF50;margin-top:8px;"></div></div>'
-    +'<button class="btn btn-red" style="width:100%;padding:14px;font-size:1.05rem;" onclick="submitPostuler()">📤 Envoyer ma candidature</button>'
+    +'<button id="btn-postuler" class="btn btn-red" style="width:100%;padding:14px;font-size:1.05rem;" onclick="submitPostuler()">📤 Envoyer ma candidature</button>'
     +'<p style="font-size:.72rem;color:#666;text-align:center;margin-top:12px;">Vos données sont transmises au service RH pour le traitement de votre candidature.</p>'
     +'</div>';
   document.body.prepend(sp);
@@ -14820,6 +14820,43 @@ async function submitPostuler(){
   if(!window._cvData){alert('Merci de joindre votre CV (PDF ou image).');return;}
   if(!window._cniRectoData){alert('Merci d\'ajouter le RECTO de votre pièce d\'identité (photo ou fichier).');return;}
   if(!window._cniVersoData){alert('Merci d\'ajouter le VERSO de votre pièce d\'identité (photo ou fichier).');return;}
+  // ── ANTI DOUBLE-CLIC : un seul envoi à la fois (empêche les candidatures en double/triple) ──
+  if(window.__postulerEnCours) return;
+  window.__postulerEnCours=true;
+  var _btnPost=document.getElementById('btn-postuler');
+  if(_btnPost){ _btnPost.disabled=true; _btnPost.textContent='⏳ Vérification…'; }
+  // ── LIMITE : une même personne ne peut postuler que 2 fois (email OU nom+prénom OU téléphone) ──
+  try{
+    var _em=(email||'').trim().toLowerCase();
+    var _dg=function(x){return (x||'').replace(/[^0-9]/g,'');};
+    var _phD=_dg(phone);
+    var _ors=[];
+    if(_em) _ors.push('email.ilike.'+encodeURIComponent(_em));
+    if(nom&&prenom) _ors.push('and(prenom.ilike.'+encodeURIComponent(prenom)+',nom.ilike.'+encodeURIComponent(nom)+')');
+    if(_phD) _ors.push('phone.ilike.'+encodeURIComponent('*'+_phD+'*'));
+    if(_ors.length){
+      var _ex=await sb.get('bks_candidatures','select=id,email,prenom,nom,phone&or=('+_ors.join(',')+')');
+      var _seen={}, _cnt=0, _myKey=_nomKey(prenom+' '+nom);
+      (_ex||[]).forEach(function(r){
+        if(_seen[r.id]) return;
+        var same=false;
+        if(_em && (r.email||'').trim().toLowerCase()===_em) same=true;
+        else if(nom&&prenom && _nomKey((r.prenom||'')+' '+(r.nom||''))===_myKey) same=true;
+        else if(_phD && _dg(r.phone)===_phD) same=true;
+        if(same){ _seen[r.id]=1; _cnt++; }
+      });
+      if(_cnt>=2){
+        window.__postulerEnCours=false;
+        document.getElementById('postuler-body').innerHTML='<div style="text-align:center;padding:60px 20px;">'
+          +'<div style="font-size:3.5rem;">⛔</div>'
+          +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.5rem;font-weight:700;color:#e8623a;margin-top:14px;">Candidature non transmise</div>'
+          +'<p style="color:#aaa;margin-top:10px;line-height:1.6;">Vous avez déjà postulé 2 fois. Conformément à notre limite, cette candidature ne peut pas être enregistrée et ne sera pas retenue.</p></div>';
+        window.scrollTo(0,0);
+        return;
+      }
+    }
+  }catch(_ec){ /* fail-open : si le contrôle échoue (réseau), on n'empêche pas la candidature */ }
+  if(_btnPost){ _btnPost.textContent='⏳ Envoi…'; }
   var data={prenom:prenom,nom:nom,date_naissance:naissance,phone:phone,email:email,
     adresse:adresse,code_postal:cp,ville:ville,nationalite:nationalite,sexe:sexe,
     resto_id:resto,restos:restosArr.join(','),
@@ -14873,6 +14910,7 @@ async function submitPostuler(){
   }
   try{
     await sb.insert('bks_candidatures',data);
+    window.__postulerEnCours=false;   // envoi terminé (permet une nouvelle candidature ex. borne partagée)
     window._photoData=null;window._cvData=null;window._cvName=null;
     window._cniRectoData=null;window._cniRectoName=null;window._cniVersoData=null;window._cniVersoName=null;
     document.getElementById('postuler-body').innerHTML='<div style="text-align:center;padding:60px 20px;">'
@@ -14881,6 +14919,8 @@ async function submitPostuler(){
       +'<p style="color:#aaa;margin-top:10px;line-height:1.6;">Merci '+prenom+' ! Votre candidature a bien été transmise à notre équipe RH.<br>Nous reviendrons vers vous rapidement pour la suite.</p></div>';
     window.scrollTo(0,0);
   }catch(e){
+    window.__postulerEnCours=false;
+    var _bp=document.getElementById('btn-postuler'); if(_bp){_bp.disabled=false;_bp.textContent='📤 Envoyer ma candidature';}
     if(btn){btn.disabled=false;btn.textContent='📤 Envoyer ma candidature';}
     alert('Une erreur est survenue. Merci de réessayer.');console.error(e);
   }
