@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-11 · v536b (v534 + v535/v536 + 6 correctifs)';
+  var EMBEDDED_VERSION = '2026-08-12 · v537 (blocage horaires après date de sortie)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -19590,6 +19590,17 @@ function finContratBloque(emp, isoDate){
   return false;
 }
 window.finContratBloque=finContratBloque;
+// SALARIÉ SORTI (démission / fin de contrat / rupture) : on ne peut plus lui faire
+// d'horaires APRÈS sa date de sortie. La date de sortie = DERNIER jour travaillé, donc
+// on bloque STRICTEMENT à partir du lendemain (ex. sortie le 12/08 -> bloqué dès le 13/08).
+function sortieBloque(emp, isoDate){
+  if(!emp||!isoDate) return false;
+  var ds=(emp.sortieDate||emp.exitDate||(emp.infos&&emp.infos.date_sortie))||'';
+  ds=String(ds).slice(0,10);
+  if(ds.length<10) return false;                 // pas de date de sortie renseignée
+  return String(isoDate).slice(0,10) > ds;       // date visée postérieure à la sortie
+}
+window.sortieBloque=sortieBloque;
 // Catégorie/rôle lisible d'un salarié (mêmes règles que l'accordéon Équipe) :
 // Directeur / Manager / Leader / Apprenti (équipier contrat >=35h) / Équipier (<35h)
 function hrRoleInfo(e){
@@ -21570,6 +21581,12 @@ function hrEstAbsent(empId, isoDate){
     var ie=(typeof incEtatJour==='function')?incEtatJour(empId,isoDate):null;
     if(ie && (ie.type==='maladie'||ie.type==='misepied')) return true;
   }catch(_e){}
+  // SORTI (démission / fin de contrat) : après sa date de sortie, le salarié n'est plus
+  // plaçable → traité comme indisponible ce jour-là (le moteur ne lui donne aucun horaire).
+  try{
+    var _es=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
+    if(_es && typeof sortieBloque==='function' && sortieBloque(_es,isoDate)) return true;
+  }catch(_e){}
   return false;
 }
 window.hrEstAbsent=hrEstAbsent;
@@ -22222,6 +22239,7 @@ function hrPlacerIntegrations(){
       for(var im=0;im<(a.nbJours||1);im++){
         var dtm=new Date(d0m.getTime()+im*86400000); var isom=_intISO(dtm);
         var dim=DAY_DATES.indexOf(isom); if(dim<0) continue;
+        if(typeof sortieBloque==='function' && sortieBloque(e,isom)) continue; // salarié sorti → pas d'horaire après sa sortie
         // créneaux affichés du mentor ce jour (hors doublons d'intégration)
         var mshifts=[];
         (ROWS_BY_DAY[dim]||[]).forEach(function(r){ (r.bars||[]).forEach(function(b){ if(b.empId!=null && String(b.empId)===String(a.mentorId) && !b._integration && b.s!=null && b.e!=null && b.e>b.s){ mshifts.push({l:b.l,s:b.s,e:b.e}); } }); });
@@ -22240,6 +22258,7 @@ function hrPlacerIntegrations(){
     for(var i=0;i<(a.nbJours||m.jours.length);i++){
       var dt=new Date(d0.getTime()+i*86400000); var iso=_intISO(dt);
       var di=DAY_DATES.indexOf(iso); if(di<0) continue;
+      if(typeof sortieBloque==='function' && sortieBloque(e,iso)) continue; // salarié sorti → pas d'horaire après sa sortie
       var jour=m.jours[Math.min(i, m.jours.length-1)]; if(!jour||jour.debut==null||jour.fin==null||jour.fin<=jour.debut) continue;
       var exists=(ROWS_BY_DAY[di]||[]).some(function(r){ return (r.bars||[]).some(function(b){ return b._integration && String(b.empId)===String(empId) && b.s===jour.debut && b.e===jour.fin; }); });
       if(exists) continue;
@@ -22840,7 +22859,13 @@ function hrReappliquerAffectations(){
       if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return;
       if(b._imp) return; // trait importé (MyRHIS) : identité fixe, ne pas réaffecter
       var m=aff.find(function(a){return a.l===b.l && a.s===b.s && a.e===b.e && !a._used;});
-      if(m){ b.emp=m.emp; b.empId=m.empId; m._used=true; if(m.t){b.t=m.t; if(m.t==='int')b._integration=true; else if(m.t==='cmp')b._complement=true;} if(m.col)b.col=m.col; }
+      if(m){
+        // Salarié SORTI après cette date : on ne réapplique PAS son nom (créneau posé
+        // « par erreur » après une démission / fin de contrat). Le trait redevient à couvrir.
+        var _ms=m.empId?(DB.employees||[]).find(function(x){return String(x.id)===String(m.empId);}):null;
+        if(_ms && typeof sortieBloque==='function' && iso && sortieBloque(_ms,iso)){ b.emp=null; b.empId=null; m._used=true; }
+        else { b.emp=m.emp; b.empId=m.empId; m._used=true; if(m.t){b.t=m.t; if(m.t==='int')b._integration=true; else if(m.t==='cmp')b._complement=true;} if(m.col)b.col=m.col; }
+      }
       else { b.emp=null; b.empId=null; }
     });
     // ── PASSE 2 : rattrapage TOLÉRANT (corrige le bug « à affecter » au rechargement) ──
@@ -22862,7 +22887,11 @@ function hrReappliquerAffectations(){
         var score=Math.abs(a.s-b.s)+Math.abs(ae-be);       // le plus proche en horaire gagne
         if(score<bestScore){ bestScore=score; best=a; }
       });
-      if(best){ b.emp=best.emp; b.empId=best.empId; best._used=true; if(best.t){b.t=best.t; if(best.t==='int')b._integration=true; else if(best.t==='cmp')b._complement=true;} if(best.col)b.col=best.col; }
+      if(best){
+        var _bs=best.empId?(DB.employees||[]).find(function(x){return String(x.id)===String(best.empId);}):null;
+        if(_bs && typeof sortieBloque==='function' && iso && sortieBloque(_bs,iso)){ best._used=true; return; } // salarié sorti : on ne rattache pas
+        b.emp=best.emp; b.empId=best.empId; best._used=true; if(best.t){b.t=best.t; if(best.t==='int')b._integration=true; else if(best.t==='cmp')b._complement=true;} if(best.col)b.col=best.col;
+      }
     });
     // ── ANTI-CHEVAUCHEMENT (filet d'affichage) : un salarié ne peut jamais avoir 2 créneaux
     //    qui se recouvrent le même jour (même si une ancienne sauvegarde en contenait). On
@@ -26751,7 +26780,10 @@ function hrTraitAffecterOuvrir(rowIdx, barIdx){
   window.__hrTraitCible={rowIdx:rowIdx, barIdx:barIdx, day:curDay};
   var poste=b.l, s=b.s, e=b.e||b.s+60;
   var resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'').toLowerCase();
-  var equipiers=(DB.employees||[]).filter(function(x){return x.role==='equipier'&&!x.archived&&x.restoId===resto&&!_hrEstParti(x);});
+  var _isoCur=(typeof DAY_DATES!=='undefined'&&DAY_DATES[curDay])?DAY_DATES[curDay]:null;
+  // Salariés SORTIS : retirés de la liste de ce jour s'il est postérieur à leur date de
+  // sortie (on ne peut plus leur faire d'horaires après la démission / fin de contrat).
+  var equipiers=(DB.employees||[]).filter(function(x){return x.role==='equipier'&&!x.archived&&x.restoId===resto&&!_hrEstParti(x)&&!(_isoCur&&typeof sortieBloque==='function'&&sortieBloque(x,_isoCur));});
   // calcule le statut de chacun
   var stats=equipiers.map(function(emp){ return _hrTraitStatutEmp(emp, poste, curDay, s, e, b); });
   // tri : éligibles d'abord (compétent+dispo+libre+non absent), puis le reste
@@ -26891,6 +26923,14 @@ function hrTraitChoisir(empId){
   if(_isoJour && typeof finContratBloque==='function' && finContratBloque(emp,_isoJour)){
     try{ toast(emp.name+' : apprentissage terminé (pas de contrat après) — impossible de le planifier.','error'); }
     catch(_){ alert(emp.name+' : apprentissage terminé — impossible de le planifier.'); }
+    return;
+  }
+  // SORTI (démission / fin de contrat) : aucun horaire possible après la date de sortie.
+  if(_isoJour && typeof sortieBloque==='function' && sortieBloque(emp,_isoJour)){
+    var _dsx=(emp.sortieDate||emp.exitDate||(emp.infos&&emp.infos.date_sortie)||'');
+    try{ _dsx=new Date(String(_dsx).slice(0,10)+'T12:00:00').toLocaleDateString('fr-FR'); }catch(_){}
+    try{ toast(emp.name+' est sorti(e) le '+_dsx+' — impossible de lui faire des horaires après cette date.','error'); }
+    catch(_){ alert(emp.name+' est sorti(e) — impossible de le planifier après sa sortie.'); }
     return;
   }
   var s=b.s, e=b.e||b.s+60;
