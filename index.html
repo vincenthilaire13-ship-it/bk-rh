@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-12 · v539 (mettre aux horaires avant le contrat + faire le contrat)';
+  var EMBEDDED_VERSION = '2026-08-12 · v540 (anti-doublon créneaux + plafond +10% / 35h)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -19765,6 +19765,33 @@ function hrPlafondHebdoMin(emp){
   if(h==null) return null;             // pas de contrat connu -> pas de limite
   return Math.round(h*60);             // ex 24h -> 24h max par semaine (contrat exact)
 }
+// PLAFOND MAXIMUM ABSOLU (heures complémentaires) : on ne peut JAMAIS dépasser.
+//   • contrat < 35h : contrat + 10% (ex. 15h -> 16h30, 20h -> 22h, 24h -> 26h24)
+//   • contrat >= 35h : 35h pile, aucune heure complémentaire.
+// C'est un plafond DUR appliqué à la main (affectation) et au moteur automatique.
+function hrPlafondMaxMin(emp){
+  var h=(typeof hrContratHebdo==='function')?hrContratHebdo(emp):null;
+  if(h==null) return null;             // pas de contrat connu -> pas de plafond
+  if(h>=35) return Math.round(h*60);   // 35h (et +) : exact, pas de complémentaires
+  return Math.round(h*1.10*60);        // < 35h : +10% d'heures complémentaires max
+}
+try{ window.hrPlafondMaxMin=hrPlafondMaxMin; }catch(_){}
+// Minutes DÉJÀ posées sur la semaine affichée pour un salarié (traits équipier, hors
+// encadrement) — somme des 7 jours de ROWS_BY_DAY. Sert au contrôle du plafond +10%.
+function hrMinSemaineEmpRows(empId){
+  var tot=0;
+  try{
+    for(var d=0;d<7;d++){
+      (ROWS_BY_DAY[d]||[]).forEach(function(r){ (r.bars||[]).forEach(function(b){
+        if(String(b.empId)===String(empId) && !(typeof estTraitEncadrement==='function'&&estTraitEncadrement(b.l))){ tot+=((b.e!=null?b.e:b.s+60)-b.s); }
+      }); });
+    }
+  }catch(_){}
+  return tot;
+}
+try{ window.hrMinSemaineEmpRows=hrMinSemaineEmpRows; }catch(_){}
+// Format minutes -> "Xh" ou "XhMM"
+function _hrFmtHMin(min){ min=Math.round(Number(min)||0); var h=Math.floor(min/60),m=min%60; return m?(h+'h'+String(m).padStart(2,'0')):(h+'h'); }
 // Plancher HEBDO visé = le contrat exact (on essaie d'atteindre pile le contrat)
 function hrPlancherHebdoMin(emp){
   var h=hrContratHebdo(emp);
@@ -23797,8 +23824,9 @@ function hrAutoAssignMonth(isoRefArg, silencieux, lundiUnique, filtreEtape){
         if(_lissageAlertes.indexOf(nm)<0) _lissageAlertes.push(nm);
       }
       // Le moteur place jusqu'à ce plafond ; on autorise la cible + marge technique
-      // pour boucher les traits, sans dépasser le plafond ±2h de la règle.
-      return c.plafondMin;
+      // pour boucher les traits, MAIS jamais au-delà du plafond dur (+10% ; 35h=35h).
+      var _pm=(typeof hrPlafondMaxMin==='function')?hrPlafondMaxMin(emp):null;
+      return (_pm!=null)?Math.min(c.plafondMin,_pm):c.plafondMin;
     };
     // Cible idéale (pour le moteur de placement, s'il sait viser une cible douce).
     ctx._cibleOverride=function(emp){
@@ -25966,6 +25994,21 @@ function hrPlacerSurCreneau(id, jour, s, e, poste){
       _conflit=(ROWS_BY_DAY[jour]||[]).some(function(row){ return (row.bars||[]).some(function(b){ if(String(b.empId)!==String(emp.id)) return false; var be=(b.e!=null?b.e:b.s+60); return s < be && b.s < _en; }); });
     }
     if(_conflit){ if(typeof toast==='function') toast(emp.name+' a déjà un créneau qui se chevauche à cette heure','error'); return; }
+    // PLAFOND HEBDO (contrat +10% ; 35h = 35h) : refuser si ce créneau ferait dépasser.
+    if(typeof hrPlafondMaxMin==='function'){
+      var _capP=hrPlafondMaxMin(emp);
+      if(_capP!=null){
+        var _semMin=0;
+        try{ for(var _pd=0;_pd<7;_pd++){ var _pi=(DAY_DATES&&DAY_DATES[_pd])?DAY_DATES[_pd]:null; if(!_pi) continue; (HR_AFFECT[_pi]||[]).forEach(function(a){ if(String(a.empId)===String(emp.id) && !(typeof estTraitEncadrement==='function'&&estTraitEncadrement(a.l))){ _semMin+=((a.e!=null?a.e:a.s+60)-a.s); } }); } }catch(_){}
+        var _projP=_semMin+((_en)-s);
+        if(_projP>_capP){
+          var _chP=(typeof hrContratHebdo==='function')?hrContratHebdo(emp):null;
+          var _fP=(typeof _hrFmtHMin==='function')?_hrFmtHMin:function(m){return Math.round(m/60)+'h';};
+          if(typeof toast==='function') toast(emp.name+(_chP!=null?' ('+_chP+'h)':'')+' : dépasserait son maximum hebdo ('+_fP(_capP)+'). Créneau non ajouté.','error');
+          return;
+        }
+      }
+    }
     var pose=false;
     // 1) Si le jour cliqué est le jour AFFICHÉ, on pose dans ROWS_BY_DAY (vue en cours).
     if(typeof curDay!=='undefined' && curDay===jour && ROWS_BY_DAY[jour]){
@@ -27069,16 +27112,41 @@ function hrTraitChoisir(empId){
     return;
   }
   var s=b.s, e=b.e||b.s+60;
-  // si l'équipier est déjà sur un AUTRE trait qui chevauche ce créneau, on l'en retire
-  (ROWS_BY_DAY[c.day]||[]).forEach(function(r){
-    r.bars.forEach(function(bb){
-      if(bb===b) return;
-      if(bb.empId===empId){
-        var be=bb.e||bb.s+60;
-        if(bb.s<e && be>s){ bb.emp=null; bb.empId=null; }
+  var _dejaLui=(String(b.empId)===String(emp.id));
+  // ANTI-DÉDOUBLEMENT : un salarié ne peut pas être sur deux créneaux qui se
+  // chevauchent le même jour (ex. 18–22 cuisine + 21–23 comptoir). On BLOQUE au lieu de
+  // déplacer en silence : l'utilisateur retire d'abord l'autre créneau s'il veut bouger.
+  if(!_dejaLui){
+    var _confl=null;
+    (ROWS_BY_DAY[c.day]||[]).forEach(function(r){ (r.bars||[]).forEach(function(bb){
+      if(bb===b || _confl) return;
+      if(bb._integration) return;               // doublon d'intégration (accompagnement) : toléré
+      if(String(bb.empId)===String(emp.id)){ var be=(bb.e!=null?bb.e:bb.s+60); if(bb.s<e && be>s) _confl=bb; }
+    }); });
+    if(_confl){
+      var _hm=function(m){var h=Math.floor(m/60)%24,mm=m%60;return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0');};
+      var _plage=_hm(_confl.s)+'–'+_hm(_confl.e!=null?_confl.e:_confl.s+60)+(_confl.l?' ('+_confl.l+')':'');
+      try{ toast(emp.name+' est déjà sur '+_plage+' — un salarié ne peut pas être à deux endroits en même temps. Retire-le d\'abord de l\'autre créneau.','error'); }
+      catch(_){ alert(emp.name+' est déjà sur un créneau qui chevauche cette heure ('+_plage+').'); }
+      return;
+    }
+    // PLAFOND HEBDO (heures complémentaires) : contrat +10% ; 35h = 35h. On refuse si ce
+    // créneau ferait dépasser le maximum de la semaine affichée.
+    if(typeof hrPlafondMaxMin==='function'){
+      var _cap=hrPlafondMaxMin(emp);
+      if(_cap!=null){
+        var _proj=(typeof hrMinSemaineEmpRows==='function'?hrMinSemaineEmpRows(emp.id):0)+(e-s);
+        if(_proj>_cap){
+          var _ch=(typeof hrContratHebdo==='function')?hrContratHebdo(emp):null;
+          var _f=(typeof _hrFmtHMin==='function')?_hrFmtHMin:function(m){return Math.round(m/60)+'h';};
+          var _motif=(_ch!=null&&_ch>=35)?'35h max, aucune heure complémentaire':'contrat +10% d\'heures complémentaires';
+          try{ toast(emp.name+(_ch!=null?' ('+_ch+'h)':'')+' : ce créneau porterait la semaine à '+_f(_proj)+', au-delà du maximum '+_f(_cap)+' ('+_motif+'). Réduis un autre créneau d\'abord.','error'); }
+          catch(_){ alert(emp.name+' dépasserait son maximum d\'heures hebdomadaires ('+_f(_cap)+').'); }
+          return;
+        }
       }
-    });
-  });
+    }
+  }
   b.emp=emp.name; b.empId=emp.id;
   hrTraitFermerModal();
   hrPersistAffectations();   // écrit HR_AFFECT AVANT le rendu (sinon hrReappliquerAffectations écrase)
