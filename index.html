@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-12 · v537 (blocage horaires après date de sortie)';
+  var EMBEDDED_VERSION = '2026-08-12 · v539 (mettre aux horaires avant le contrat + faire le contrat)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -8605,7 +8605,7 @@ var EMPF_SECTIONS=[
   {title:'Emploi & contrat',icon:'💼',fields:[
     ['_role','Rôle'],['poste','Poste'],['emploi_libelle','Emploi (libellé complet)'],
     ['contrat_hebdo','Contrat hebdo (h)'],
-    ['date_entree','Date d\'entrée','date'],
+    ['date_entree','Date d\'entrée (démarrage — début des horaires)','date'],
     ['date_anciennete','Date d\'ancienneté','date'],
     ['cdi_cdd','CDI / CDD'],
     ['contrat_type','Type de contrat (apprentissage / cdi / cdd / saisonnier)'],
@@ -14047,6 +14047,22 @@ function candRetenuActionsHtml(c){
     +'<div id="docs-qr-box" style="display:none;background:#fff;padding:12px;border-radius:10px;width:max-content;margin:6px 0 10px;"></div>'
     +'<p style="font-size:.72rem;color:#666;margin-bottom:12px;">Renseignez l\'identifiant, le mot de passe et la date, puis envoyez le mail. Le candidat dépose ses pièces et confirme ses vidéos via le lien.</p>';
 
+  // ── METTRE DANS LES HORAIRES (avant le contrat) ────────────────────────────
+  // Dispo dès qu'une date de démarrage est saisie, même avant que le dossier soit
+  // complet : crée la fiche salarié pour pouvoir préparer son planning à l'avance.
+  var _salDeja=(DB.employees||[]).some(function(e){return e.fromCandId===c.id;});
+  var _peutHoraires=!!c.dateDebut;
+  h+='<div style="background:#132a1e;border:1px solid #2e7d4f;border-radius:8px;padding:11px 12px;margin-bottom:12px;">'
+    +'<div style="color:#7ee0a6;font-weight:800;font-size:.9rem;">👥 Mettre dans les horaires</div>'
+    +'<div style="color:#a6d8bd;font-size:.77rem;margin:5px 0 9px;line-height:1.5;">'
+      +(c.dateDebut?('Inscrit le salarié aux horaires <b>à partir du '+new Date(c.dateDebut+'T12:00:00').toLocaleDateString('fr-FR')+'</b> pour préparer son planning à l\'avance, sans attendre le contrat.'):'Indiquez d\'abord la <b>date de démarrage</b> ci-dessus pour pouvoir le placer.')
+      +'</div>'
+    +(_salDeja
+      ? '<div style="color:#3ecf8e;font-size:.82rem;font-weight:700;">✅ Déjà dans les horaires (dès sa date de démarrage).</div>'
+      : ('<button class="btn btn-gray" style="width:100%;background:#1d5c3a;border-color:#2e7d4f;color:#dfffe9;font-weight:700;'+(_peutHoraires?'':'opacity:.45;cursor:not-allowed;')+'" '+(_peutHoraires?'':'disabled')+' onclick="candMettreHoraires()">👥 Mettre le salarié dans les horaires</button>'
+        +(_peutHoraires?'':'<p style="font-size:.72rem;color:#8fbfa2;margin-top:6px;">Requis : une date de démarrage renseignée.</p>')))
+    +'</div>';
+
   // Suivi : documents (auto) + vidéos (coché par le RH)
   h+='<div class="flabel">📋 Suivi du dossier</div>'
     +'<div style="background:#141414;border-radius:6px;padding:8px 12px;margin-bottom:8px;">'
@@ -14062,6 +14078,24 @@ function candRetenuActionsHtml(c){
     h+='<button class="btn btn-red btn-sm" disabled style="opacity:.4;cursor:not-allowed;">⏳ En attente des documents complets</button>'
       +'<p style="font-size:.74rem;color:#666;margin-top:6px;">Le candidat doit déposer toutes ses pièces. La validation du dossier se fait alors automatiquement.</p>';
   }else{
+    // ── FAIRE LE CONTRAT ──────────────────────────────────────────────────────
+    // Dossier complet + vidéos de formation réalisées + date de démarrage saisie →
+    // on peut créer le contrat : le salarié est créé, inscrit aux horaires À PARTIR
+    // de la date de démarrage, et on ouvre le générateur de contrat (envoi signature).
+    var _salExiste=(DB.employees||[]).some(function(e){return e.fromCandId===c.id;});
+    var _dateDem=c.dateDebut||'';
+    var _peutContrat=vidsOk && !!_dateDem;
+    var _demTxt=_dateDem?new Date(_dateDem+'T12:00:00').toLocaleDateString('fr-FR'):'';
+    h+='<div style="background:#12233a;border:1px solid #2f6fb0;border-radius:8px;padding:12px;margin-bottom:12px;">'
+      +'<div style="color:#8fc3ff;font-weight:800;font-size:.92rem;">📝 Faire le contrat</div>'
+      +'<div style="color:#a9c6e6;font-size:.78rem;margin:5px 0 10px;line-height:1.5;">'
+        +(vidsOk?'':'⚠️ Cochez d\'abord « Vidéos de formation réalisées ». ')
+        +(_dateDem?('Le salarié sera créé et ajouté aux horaires <b>à partir du '+_demTxt+'</b> (date de démarrage).'):'⚠️ Indiquez d\'abord la <b>date de démarrage</b> ci-dessus.')
+        +'</div>'
+      +'<button class="btn btn-red" style="width:100%;'+(_peutContrat?'':'opacity:.45;cursor:not-allowed;')+'" '+(_peutContrat?'':'disabled')+' onclick="candFaireContrat()">📝 Faire le contrat &amp; l\'envoyer en signature</button>'
+      +(_peutContrat?'':'<p style="font-size:.72rem;color:#7fa8cc;margin-top:6px;">Requis : vidéos de formation réalisées + date de démarrage renseignée.</p>')
+      +(_salExiste?'<p style="font-size:.75rem;color:#3ecf8e;margin-top:8px;">✅ Salarié créé — inscrit aux horaires dès sa date de démarrage. Vous pouvez régénérer le contrat si besoin.</p>':'')
+      +'</div>';
     var contratData=c.contratSigneDoc&&(c.contratSigneDoc.data||c.contratSigneDoc.link);
     h+='<div style="background:#0d2818;border:1px solid #1f6e3f;border-radius:8px;padding:10px 12px;margin-bottom:10px;">'
       +'<div style="color:#7CFFA0;font-weight:700;font-size:.88rem;">📄 Finalisation</div>'
@@ -14079,6 +14113,83 @@ function candRetenuActionsHtml(c){
     +'</div>';
   return h;
 }
+
+// Crée (ou rattache) la fiche salarié d'un candidat avec sa DATE DE DÉMARRAGE
+// (= date d'entrée), ce qui l'inscrit aux horaires à partir de cette date. Renvoie la
+// fiche salarié (objet employee rechargé) ou null en cas d'échec. Sert à la fois au
+// bouton « Mettre dans les horaires » et au bouton « Faire le contrat ».
+async function _candAssurerSalarie(c){
+  if(!c) return null;
+  var nom=((c.nom||'')+' '+(c.prenom||'')).trim();   // fiche salarié = « NOM Prénom »
+  // Rôle déduit du poste choisi au recrutement
+  var _posteC=String(c.poste||'').toLowerCase();
+  var _roleEmb='equipier';
+  if(_posteC.indexOf('directeur')>=0) _roleEmb='directeur';
+  else if(_posteC.indexOf('manager')>=0) _roleEmb='manager';
+  else if(_posteC.indexOf('leader')>=0) _roleEmb='leader';
+  // Fiche déjà rattachée ? sinon anti-doublon par nom (actif puis archivé)
+  var emp=(DB.employees||[]).find(function(e){return e.fromCandId===c.id;});
+  if(!emp){
+    var _k=(typeof _nomKey==='function')?_nomKey(nom):nom.toLowerCase();
+    var _match=(DB.employees||[]).filter(function(e){return ((typeof _nomKey==='function')?_nomKey(e.name):(''+e.name).toLowerCase())===_k;});
+    emp=_match.find(function(e){return !e.archived;})||_match.find(function(e){return !!e.archived;})||null;
+  }
+  var empId=null;
+  if(emp){
+    // rattacher + réactiver si besoin + poser la date d'entrée (démarrage) si absente
+    empId=emp.id;
+    var _inf=Object.assign({}, emp.infos||{}); if(!_inf.date_entree) _inf.date_entree=c.dateDebut;
+    try{ if(emp.archived && typeof reactivateEmp==='function'){ await reactivateEmp(emp.id, true); } }catch(_){}
+    try{ await sb.patch('bks_employees','id=eq.'+emp.id,{from_cand_id:c.id, infos:_inf}); }catch(_){}
+  } else {
+    var eid='u'+Date.now();
+    var _infosEmb={date_entree:c.dateDebut};
+    if(String(c.rqth||'').toLowerCase()==='oui') _infosEmb.rqth='oui';
+    if(c.photo) _infosEmb.photo=c.photo;
+    var _newEmp=await sb.insert('bks_employees',{id:eid,name:nom,role:_roleEmb,resto_id:c.restoId,archived:false,email:c.email||'',phone:c.phone||'',from_cand_id:c.id,infos:_infosEmb});
+    if(!_newEmp){ return null; }
+    empId=eid;
+  }
+  await loadAll();
+  return (DB.employees||[]).find(function(x){return x.fromCandId===c.id;}) || (DB.employees||[]).find(function(x){return x.id===empId;}) || null;
+}
+
+// « Mettre dans les horaires » (avant le contrat) : crée la fiche salarié et l'inscrit
+// aux horaires à partir de sa date de démarrage, SANS générer de contrat. On peut le
+// faire dès qu'on a une date de démarrage, pour préparer le planning à l'avance.
+async function candMettreHoraires(){
+  var c=curCand(); if(!c) return;
+  if(!c.dateDebut){ alert('Indiquez d\'abord la date de démarrage : c\'est à partir de cette date que le salarié pourra être placé dans les horaires.'); return; }
+  if(window._faireContratEnCours) return; window._faireContratEnCours=true;
+  try{
+    var _e=await _candAssurerSalarie(c);
+    if(!_e){ alert('⚠️ Le salarié n\'a pas pu être créé (réseau ou base). Réessayez dans un instant.'); return; }
+    try{ renderCandActions(curCand()); }catch(_){}
+    try{ toast(_e.name+' est dans les horaires à partir du '+new Date(c.dateDebut+'T12:00:00').toLocaleDateString('fr-FR')+'. Le contrat pourra être fait plus tard.','success'); }catch(_){}
+  }catch(err){ console.error('candMettreHoraires',err); toast('Erreur lors de la mise aux horaires','error'); }
+  finally{ window._faireContratEnCours=false; }
+}
+window.candMettreHoraires=candMettreHoraires;
+
+// « Faire le contrat » : dossier complet + vidéos + date de démarrage → crée/rattache la
+// fiche salarié (inscription aux horaires) puis ouvre le générateur de contrat (signature).
+async function candFaireContrat(){
+  var c=curCand(); if(!c) return;
+  if(!(docsComplets(c)&&c.docsSoumis)){ alert('Le dossier n\'est pas complet : toutes les pièces doivent être déposées avant de faire le contrat.'); return; }
+  if(!c.videosFaites){ alert('Cochez « Vidéos de formation réalisées » avant de faire le contrat.'); return; }
+  if(!c.dateDebut){ alert('Indiquez la date de démarrage : c\'est à partir de cette date que le salarié pourra être placé dans les horaires.'); return; }
+  if(window._faireContratEnCours) return; window._faireContratEnCours=true;
+  try{
+    var _e=await _candAssurerSalarie(c);
+    if(!_e){ alert('⚠️ Le salarié n\'a pas pu être créé (réseau ou base). Réessayez dans un instant.'); return; }
+    try{ renderCandActions(curCand()); }catch(_){}
+    try{ toast(_e.name+' inscrit(e) aux horaires à partir du '+new Date(c.dateDebut+'T12:00:00').toLocaleDateString('fr-FR')+'.','success'); }catch(_){}
+    // Ouvre le générateur de contrat (choix du modèle, aperçu, envoi en signature)
+    try{ openContratGen(_e.id); }catch(err){ console.warn('openContratGen',err); toast('Salarié créé. Ouvrez sa fiche pour générer le contrat.','info'); }
+  }catch(err){ console.error('candFaireContrat',err); toast('Erreur lors de la création du contrat','error'); }
+  finally{ window._faireContratEnCours=false; }
+}
+window.candFaireContrat=candFaireContrat;
 
 function handleContratSigne(input){
   var file=input.files[0];if(!file)return;
@@ -19601,6 +19712,22 @@ function sortieBloque(emp, isoDate){
   return String(isoDate).slice(0,10) > ds;       // date visée postérieure à la sortie
 }
 window.sortieBloque=sortieBloque;
+// SALARIÉ PAS ENCORE ENTRÉ : on ne peut pas lui faire d'horaires AVANT sa date de
+// démarrage (date d'entrée). On PEUT préparer son planning en avance, mais uniquement
+// à partir de sa date d'entrée (ex. entrée le 13/08 -> bloqué avant, ok dès le 13/08).
+function entreeBloque(emp, isoDate){
+  if(!emp||!isoDate) return false;
+  var de=(emp.infos&&(emp.infos.date_entree||emp.infos.date_debut))||emp.dateDebut||emp.dateEntree||'';
+  de=String(de).slice(0,10);
+  if(de.length<10) return false;                 // pas de date d'entrée renseignée
+  return String(isoDate).slice(0,10) < de;       // date visée antérieure à l'entrée
+}
+window.entreeBloque=entreeBloque;
+// Hors période de contrat = avant l'entrée OU après la sortie (un seul test).
+function horsContratBloque(emp, isoDate){
+  return entreeBloque(emp,isoDate) || sortieBloque(emp,isoDate);
+}
+window.horsContratBloque=horsContratBloque;
 // Catégorie/rôle lisible d'un salarié (mêmes règles que l'accordéon Équipe) :
 // Directeur / Manager / Leader / Apprenti (équipier contrat >=35h) / Équipier (<35h)
 function hrRoleInfo(e){
@@ -21581,11 +21708,11 @@ function hrEstAbsent(empId, isoDate){
     var ie=(typeof incEtatJour==='function')?incEtatJour(empId,isoDate):null;
     if(ie && (ie.type==='maladie'||ie.type==='misepied')) return true;
   }catch(_e){}
-  // SORTI (démission / fin de contrat) : après sa date de sortie, le salarié n'est plus
-  // plaçable → traité comme indisponible ce jour-là (le moteur ne lui donne aucun horaire).
+  // HORS CONTRAT : avant la date d'entrée (démarrage) ou après la date de sortie → le
+  // salarié n'est pas plaçable ce jour-là (le moteur ne lui donne aucun horaire).
   try{
     var _es=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
-    if(_es && typeof sortieBloque==='function' && sortieBloque(_es,isoDate)) return true;
+    if(_es && typeof horsContratBloque==='function' && horsContratBloque(_es,isoDate)) return true;
   }catch(_e){}
   return false;
 }
@@ -22239,7 +22366,7 @@ function hrPlacerIntegrations(){
       for(var im=0;im<(a.nbJours||1);im++){
         var dtm=new Date(d0m.getTime()+im*86400000); var isom=_intISO(dtm);
         var dim=DAY_DATES.indexOf(isom); if(dim<0) continue;
-        if(typeof sortieBloque==='function' && sortieBloque(e,isom)) continue; // salarié sorti → pas d'horaire après sa sortie
+        if(typeof horsContratBloque==='function' && horsContratBloque(e,isom)) continue; // hors contrat (avant entrée / après sortie)
         // créneaux affichés du mentor ce jour (hors doublons d'intégration)
         var mshifts=[];
         (ROWS_BY_DAY[dim]||[]).forEach(function(r){ (r.bars||[]).forEach(function(b){ if(b.empId!=null && String(b.empId)===String(a.mentorId) && !b._integration && b.s!=null && b.e!=null && b.e>b.s){ mshifts.push({l:b.l,s:b.s,e:b.e}); } }); });
@@ -22258,7 +22385,7 @@ function hrPlacerIntegrations(){
     for(var i=0;i<(a.nbJours||m.jours.length);i++){
       var dt=new Date(d0.getTime()+i*86400000); var iso=_intISO(dt);
       var di=DAY_DATES.indexOf(iso); if(di<0) continue;
-      if(typeof sortieBloque==='function' && sortieBloque(e,iso)) continue; // salarié sorti → pas d'horaire après sa sortie
+      if(typeof horsContratBloque==='function' && horsContratBloque(e,iso)) continue; // hors contrat (avant entrée / après sortie)
       var jour=m.jours[Math.min(i, m.jours.length-1)]; if(!jour||jour.debut==null||jour.fin==null||jour.fin<=jour.debut) continue;
       var exists=(ROWS_BY_DAY[di]||[]).some(function(r){ return (r.bars||[]).some(function(b){ return b._integration && String(b.empId)===String(empId) && b.s===jour.debut && b.e===jour.fin; }); });
       if(exists) continue;
@@ -22863,7 +22990,7 @@ function hrReappliquerAffectations(){
         // Salarié SORTI après cette date : on ne réapplique PAS son nom (créneau posé
         // « par erreur » après une démission / fin de contrat). Le trait redevient à couvrir.
         var _ms=m.empId?(DB.employees||[]).find(function(x){return String(x.id)===String(m.empId);}):null;
-        if(_ms && typeof sortieBloque==='function' && iso && sortieBloque(_ms,iso)){ b.emp=null; b.empId=null; m._used=true; }
+        if(_ms && typeof horsContratBloque==='function' && iso && horsContratBloque(_ms,iso)){ b.emp=null; b.empId=null; m._used=true; }
         else { b.emp=m.emp; b.empId=m.empId; m._used=true; if(m.t){b.t=m.t; if(m.t==='int')b._integration=true; else if(m.t==='cmp')b._complement=true;} if(m.col)b.col=m.col; }
       }
       else { b.emp=null; b.empId=null; }
@@ -22889,7 +23016,7 @@ function hrReappliquerAffectations(){
       });
       if(best){
         var _bs=best.empId?(DB.employees||[]).find(function(x){return String(x.id)===String(best.empId);}):null;
-        if(_bs && typeof sortieBloque==='function' && iso && sortieBloque(_bs,iso)){ best._used=true; return; } // salarié sorti : on ne rattache pas
+        if(_bs && typeof horsContratBloque==='function' && iso && horsContratBloque(_bs,iso)){ best._used=true; return; } // hors contrat : on ne rattache pas
         b.emp=best.emp; b.empId=best.empId; best._used=true; if(best.t){b.t=best.t; if(best.t==='int')b._integration=true; else if(best.t==='cmp')b._complement=true;} if(best.col)b.col=best.col;
       }
     });
@@ -26781,9 +26908,9 @@ function hrTraitAffecterOuvrir(rowIdx, barIdx){
   var poste=b.l, s=b.s, e=b.e||b.s+60;
   var resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'').toLowerCase();
   var _isoCur=(typeof DAY_DATES!=='undefined'&&DAY_DATES[curDay])?DAY_DATES[curDay]:null;
-  // Salariés SORTIS : retirés de la liste de ce jour s'il est postérieur à leur date de
-  // sortie (on ne peut plus leur faire d'horaires après la démission / fin de contrat).
-  var equipiers=(DB.employees||[]).filter(function(x){return x.role==='equipier'&&!x.archived&&x.restoId===resto&&!_hrEstParti(x)&&!(_isoCur&&typeof sortieBloque==='function'&&sortieBloque(x,_isoCur));});
+  // HORS CONTRAT ce jour-là : retirés de la liste (avant leur date de démarrage, ou après
+  // leur date de sortie) — on ne peut pas leur faire d'horaires en dehors du contrat.
+  var equipiers=(DB.employees||[]).filter(function(x){return x.role==='equipier'&&!x.archived&&x.restoId===resto&&!_hrEstParti(x)&&!(_isoCur&&typeof horsContratBloque==='function'&&horsContratBloque(x,_isoCur));});
   // calcule le statut de chacun
   var stats=equipiers.map(function(emp){ return _hrTraitStatutEmp(emp, poste, curDay, s, e, b); });
   // tri : éligibles d'abord (compétent+dispo+libre+non absent), puis le reste
@@ -26931,6 +27058,14 @@ function hrTraitChoisir(empId){
     try{ _dsx=new Date(String(_dsx).slice(0,10)+'T12:00:00').toLocaleDateString('fr-FR'); }catch(_){}
     try{ toast(emp.name+' est sorti(e) le '+_dsx+' — impossible de lui faire des horaires après cette date.','error'); }
     catch(_){ alert(emp.name+' est sorti(e) — impossible de le planifier après sa sortie.'); }
+    return;
+  }
+  // PAS ENCORE ENTRÉ : aucun horaire possible avant la date de démarrage (date d'entrée).
+  if(_isoJour && typeof entreeBloque==='function' && entreeBloque(emp,_isoJour)){
+    var _dex=(emp.infos&&(emp.infos.date_entree||emp.infos.date_debut))||'';
+    try{ _dex=new Date(String(_dex).slice(0,10)+'T12:00:00').toLocaleDateString('fr-FR'); }catch(_){}
+    try{ toast(emp.name+' démarre le '+_dex+' — impossible de le planifier avant sa date de démarrage.','error'); }
+    catch(_){ alert(emp.name+' n\'a pas encore démarré — impossible de le planifier avant sa date d\'entrée.'); }
     return;
   }
   var s=b.s, e=b.e||b.s+60;
