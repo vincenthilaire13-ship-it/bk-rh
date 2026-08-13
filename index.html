@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-13 08:45 · v541 (anti double-soumission candidature)';
+  var EMBEDDED_VERSION = '2026-08-13 09:00 · v542 (message de confirmation candidature + verrou fiable)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -14455,6 +14455,7 @@ function genAttest24hPDF(){
   }catch(e){alert('Impossible de générer le modèle. Vous pouvez rédiger l\'attestation à la main : indiquez votre nom, le restaurant, le nombre d\'heures demandé, le motif, la date et votre signature.');}
 }
 async function showDocsPage(cid){
+  window.__postulerEnCours=false;   // nouvelle page → verrou libre
   document.getElementById('loading-screen').style.display='none';
   var ls=document.getElementById('login-screen');if(ls)ls.style.display='none';
   var ap=document.getElementById('app');if(ap)ap.style.display='none';
@@ -14521,7 +14522,8 @@ async function showDocsPage(cid){
     +'<div class="form-row"><div><label class="flabel">Haut</label><select id="doc-t-haut" class="fi">'+optsHaut+'</select></div>'
     +'<div><label class="flabel">Pantalon</label><select id="doc-t-pant" class="fi">'+optsPant+'</select></div></div>'
     +'<div style="margin-top:6px;"><label class="flabel">Chaussures (pointure)</label><select id="doc-t-ch" class="fi">'+optsCh+'</select></div></div>'
-    +'<button class="btn btn-red" style="width:100%;padding:14px;font-size:1.05rem;" onclick="submitDocs()">📤 Envoyer mon dossier</button>'
+    +'<button id="doc-submit-btn" class="btn btn-red" style="width:100%;padding:14px;font-size:1.05rem;" onclick="submitDocs()">📤 Envoyer mon dossier</button>'
+    +'<div id="doc-submit-status" style="display:none;text-align:center;margin-top:10px;font-size:.9rem;font-weight:600;"></div>'
     +'<p style="font-size:.72rem;color:#666;text-align:center;margin-top:12px;">Vos documents sont transmis de façon sécurisée au service RH.</p>'
     +'</div>';
   document.body.prepend(sp);
@@ -14611,11 +14613,12 @@ async function submitDocs(){
   var urgTel=document.getElementById('doc-urg-tel').value.trim();
   if(!urgNom||!urgTel){alert('Merci d\'indiquer un contact en cas d\'urgence (nom + téléphone).');return;}
   if(!tailles.length){alert('Merci d\'indiquer vos tailles de tenues (haut, pantalon, chaussures).');return;}
-  // Verrou anti double-clic (fiable, contrairement à event.target) : empêche les candidatures en double/triple.
+  // Verrou anti double-clic (fiable, contrairement à event.target) : empêche les envois en double/triple.
   if(window.__postulerEnCours) return;
   window.__postulerEnCours=true;
-  var _btnPost=document.getElementById('btn-postuler'); if(_btnPost){ _btnPost.disabled=true; }
-  var btn=event&&event.target;if(btn){btn.disabled=true;btn.textContent='Envoi en cours...';}
+  var _btnD=document.getElementById('doc-submit-btn')||((typeof event!=='undefined'&&event)?event.target:null);
+  if(_btnD){ _btnD.disabled=true; _btnD.style.opacity='.6'; _btnD.style.cursor='not-allowed'; _btnD.textContent='⏳ Envoi en cours…'; }
+  var _stD=document.getElementById('doc-submit-status'); if(_stD){ _stD.style.display='block'; _stD.style.color='#F5A623'; _stD.textContent='⏳ Envoi en cours… merci de patienter, cela peut prendre quelques secondes. Ne fermez pas la page.'; }
   try{
     // 1) Upload Dropbox des pièces (tolérant : si non configuré ou échec, on garde en base)
     var folder=dbxCandFolder(_docsCand);
@@ -14641,13 +14644,16 @@ async function submitDocs(){
       updated_at:new Date().toISOString()
     };
     await sb.patch('bks_candidatures','id=eq.'+_docsCand.id,patch);
+    window.__postulerEnCours=false;
     document.getElementById('docs-body').innerHTML='<div style="text-align:center;padding:60px 20px;">'
       +'<div style="font-size:3.5rem;">✅</div>'
-      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.5rem;font-weight:700;color:#4CAF50;margin-top:14px;">Dossier envoyé !</div>'
-      +'<p style="color:#aaa;margin-top:10px;line-height:1.6;">Merci '+_docsCand.prenom+' ! Vos informations ont bien été transmises. Vous pouvez revenir sur ce lien pour compléter.<br><br>N\'oubliez pas de réaliser vos vidéos de formation et de nous prévenir une fois terminées.</p></div>';
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.5rem;font-weight:700;color:#4CAF50;margin-top:14px;">Votre dossier a bien été enregistré !</div>'
+      +'<p style="color:#aaa;margin-top:10px;line-height:1.6;">Merci '+_docsCand.prenom+' ! Vos documents ont bien été reçus — <b>inutile de renvoyer</b>. Vous pouvez revenir sur ce lien pour compléter si besoin.<br><br>N\'oubliez pas de réaliser vos vidéos de formation et de nous prévenir une fois terminées.</p></div>';
     window.scrollTo(0,0);
   }catch(e){
-    if(btn){btn.disabled=false;btn.textContent='📤 Envoyer mon dossier';}
+    window.__postulerEnCours=false;   // on relâche le verrou pour permettre un nouvel essai
+    var _bD=document.getElementById('doc-submit-btn'); if(_bD){ _bD.disabled=false; _bD.style.opacity=''; _bD.style.cursor=''; _bD.textContent='📤 Envoyer mon dossier'; }
+    var _stE=document.getElementById('doc-submit-status'); if(_stE){ _stE.style.color='#e05a5a'; _stE.textContent='❌ L\'envoi a échoué. Vérifiez votre connexion et réessayez.'; }
     alert('Une erreur est survenue lors de l\'envoi. Vérifiez votre connexion et réessayez.');console.error(e);
   }
 }
@@ -15071,7 +15077,7 @@ async function submitPostuler(){
   // AVANT tout appel réseau, pour qu'un 2e clic soit ignoré par le garde en haut.
   window.__postulerEnCours=true;
   var _btnPost=document.getElementById('btn-postuler');
-  if(_btnPost){ _btnPost.disabled=true; _btnPost.textContent='Envoi en cours…'; }
+  if(_btnPost){ _btnPost.disabled=true; _btnPost.style.opacity='.6'; _btnPost.style.cursor='not-allowed'; _btnPost.textContent='⏳ Envoi en cours… merci de patienter'; }
   // ── ANTI-CANDIDATURES MULTIPLES ────────────────────────────────────────────
   // Une même personne peut postuler 2 fois maximum. À la 3e tentative, on bloque
   // et on affiche un message clair. Recoupement par email, par nom+prénom et par
@@ -15176,12 +15182,12 @@ async function submitPostuler(){
     window._cniRectoData=null;window._cniRectoName=null;window._cniVersoData=null;window._cniVersoName=null;
     document.getElementById('postuler-body').innerHTML='<div style="text-align:center;padding:60px 20px;">'
       +'<div style="font-size:3.5rem;">✅</div>'
-      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.5rem;font-weight:700;color:#4CAF50;margin-top:14px;">Candidature envoyée !</div>'
-      +'<p style="color:#aaa;margin-top:10px;line-height:1.6;">Merci '+prenom+' ! Votre candidature a bien été transmise à notre équipe RH.<br>Nous reviendrons vers vous rapidement pour la suite.</p></div>';
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.5rem;font-weight:700;color:#4CAF50;margin-top:14px;">Votre candidature a été enregistrée !</div>'
+      +'<p style="color:#aaa;margin-top:10px;line-height:1.6;">Merci '+prenom+' ! Votre candidature a bien été transmise à notre équipe RH — <b>inutile de renvoyer</b>.<br>Nous reviendrons vers vous rapidement pour la suite.</p></div>';
     window.scrollTo(0,0);
   }catch(e){
     window.__postulerEnCours=false;
-    var _bp=document.getElementById('btn-postuler'); if(_bp){_bp.disabled=false;_bp.textContent='📤 Envoyer ma candidature';}
+    var _bp=document.getElementById('btn-postuler'); if(_bp){_bp.disabled=false;_bp.style.opacity='';_bp.style.cursor='';_bp.textContent='📤 Envoyer ma candidature';}
     if(btn){btn.disabled=false;btn.textContent='📤 Envoyer ma candidature';}
     alert('Une erreur est survenue. Merci de réessayer.');console.error(e);
   }
