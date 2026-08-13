@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-13 09:00 · v542 (message de confirmation candidature + verrou fiable)';
+  var EMBEDDED_VERSION = '2026-08-13 09:20 · v543 (placement rétabli + fix réactivation salarié)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -7675,7 +7675,11 @@ async function reactivateEmp(id, skipConfirm){
   var e=DB.employees.find(function(x){return x.id===id;});
   if(!e||(!skipConfirm && !confirm('Réactiver '+e.name+' ?')))return;
   try{
-    await sb.patch('bks_employees','id=eq.'+id,{archived:false,exit_date:'',exit_motif:'',exit_note:''});
+    // On efface AUSSI les champs de SORTIE (démission/fin de contrat) : sinon le salarié
+    // réembauché garde son ancienne date de sortie et se retrouve exclu des horaires
+    // (par _hrEstParti et par le blocage sortie). Un réactivé repart d'une fiche « propre ».
+    await sb.patch('bks_employees','id=eq.'+id,{archived:false,exit_date:'',exit_motif:'',exit_note:'',sortie_statut:'',sortie_motif:'',sortie_date:'',sortie_validee:false});
+    try{ e.exitDate='';e.exitMotif='';e.exitNote='';e.sortieStatut='';e.sortieMotif='';e.sortieDate='';e.sortieValidee=false; }catch(_){}
     // Ramener le dossier Dropbox des Archives vers son emplacement actif
     try{
       var dbxReady=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
@@ -21752,12 +21756,10 @@ function hrEstAbsent(empId, isoDate){
     var ie=(typeof incEtatJour==='function')?incEtatJour(empId,isoDate):null;
     if(ie && (ie.type==='maladie'||ie.type==='misepied')) return true;
   }catch(_e){}
-  // HORS CONTRAT : avant la date d'entrée (démarrage) ou après la date de sortie → le
-  // salarié n'est pas plaçable ce jour-là (le moteur ne lui donne aucun horaire).
-  try{
-    var _es=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
-    if(_es && typeof horsContratBloque==='function' && horsContratBloque(_es,isoDate)) return true;
-  }catch(_e){}
+  // NB : le blocage « hors contrat » (avant l'entrée / après la sortie) n'est PLUS appliqué
+  // ici — il bridait le placement automatique. Il reste actif à la main (affectation d'un
+  // trait) et sur le panneau de choix. Les salariés réellement partis sont déjà écartés par
+  // _hrEstParti dans la liste des équipiers.
   return false;
 }
 window.hrEstAbsent=hrEstAbsent;
@@ -23030,13 +23032,7 @@ function hrReappliquerAffectations(){
       if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return;
       if(b._imp) return; // trait importé (MyRHIS) : identité fixe, ne pas réaffecter
       var m=aff.find(function(a){return a.l===b.l && a.s===b.s && a.e===b.e && !a._used;});
-      if(m){
-        // Salarié SORTI après cette date : on ne réapplique PAS son nom (créneau posé
-        // « par erreur » après une démission / fin de contrat). Le trait redevient à couvrir.
-        var _ms=m.empId?(DB.employees||[]).find(function(x){return String(x.id)===String(m.empId);}):null;
-        if(_ms && typeof horsContratBloque==='function' && iso && horsContratBloque(_ms,iso)){ b.emp=null; b.empId=null; m._used=true; }
-        else { b.emp=m.emp; b.empId=m.empId; m._used=true; if(m.t){b.t=m.t; if(m.t==='int')b._integration=true; else if(m.t==='cmp')b._complement=true;} if(m.col)b.col=m.col; }
-      }
+      if(m){ b.emp=m.emp; b.empId=m.empId; m._used=true; if(m.t){b.t=m.t; if(m.t==='int')b._integration=true; else if(m.t==='cmp')b._complement=true;} if(m.col)b.col=m.col; }
       else { b.emp=null; b.empId=null; }
     });
     // ── PASSE 2 : rattrapage TOLÉRANT (corrige le bug « à affecter » au rechargement) ──
@@ -23058,11 +23054,7 @@ function hrReappliquerAffectations(){
         var score=Math.abs(a.s-b.s)+Math.abs(ae-be);       // le plus proche en horaire gagne
         if(score<bestScore){ bestScore=score; best=a; }
       });
-      if(best){
-        var _bs=best.empId?(DB.employees||[]).find(function(x){return String(x.id)===String(best.empId);}):null;
-        if(_bs && typeof horsContratBloque==='function' && iso && horsContratBloque(_bs,iso)){ best._used=true; return; } // hors contrat : on ne rattache pas
-        b.emp=best.emp; b.empId=best.empId; best._used=true; if(best.t){b.t=best.t; if(best.t==='int')b._integration=true; else if(best.t==='cmp')b._complement=true;} if(best.col)b.col=best.col;
-      }
+      if(best){ b.emp=best.emp; b.empId=best.empId; best._used=true; if(best.t){b.t=best.t; if(best.t==='int')b._integration=true; else if(best.t==='cmp')b._complement=true;} if(best.col)b.col=best.col; }
     });
     // ── ANTI-CHEVAUCHEMENT (filet d'affichage) : un salarié ne peut jamais avoir 2 créneaux
     //    qui se recouvrent le même jour (même si une ancienne sauvegarde en contenait). On
