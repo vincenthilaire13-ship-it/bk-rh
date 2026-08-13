@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-12 · v540 (anti-doublon créneaux + plafond +10% / 35h)';
+  var EMBEDDED_VERSION = '2026-08-13 08:45 · v541 (anti double-soumission candidature)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -14653,6 +14653,7 @@ async function submitDocs(){
 }
 
 function showPostulerPage(presetResto){
+  window.__postulerEnCours=false;   // nouveau formulaire → on repart d'un verrou libre
   document.getElementById('loading-screen').style.display='none';
   var ls=document.getElementById('login-screen');if(ls)ls.style.display='none';
   var ap=document.getElementById('app');if(ap)ap.style.display='none';
@@ -14973,6 +14974,10 @@ function handlePhoto(input){
 }
 
 async function submitPostuler(){
+  // ANTI DOUBLE-SOUMISSION : si un envoi est déjà en cours, on ignore tout clic
+  // supplémentaire (évite les candidatures dupliquées quand la candidate ré-appuie
+  // pendant l'envoi des fichiers, qui prend plusieurs secondes).
+  if(window.__postulerEnCours) return;
   var prenom=document.getElementById('p-prenom').value.trim();
   var nom=document.getElementById('p-nom').value.trim();
   var sexe=document.getElementById('p-sexe').value;
@@ -15043,6 +15048,30 @@ async function submitPostuler(){
   if(!dejaBk){alert('Merci d\'indiquer si vous avez déjà travaillé dans un Burger King.');return;}
   if(dejaBk==='oui'&&!dejaBkOu){alert('Merci d\'indiquer dans quel Burger King vous avez travaillé.');return;}
   if(!motivation){alert('Merci d\'expliquer pourquoi vous voulez travailler chez nous.');return;}
+  // Disponibilités (au moins un jour) + cohérence des horaires
+  var dispos={};
+  var nbJoursDispo=0;
+  var dispoErreur=null;
+  JOURS.forEach(function(j){
+    var arr=(dispoState[j[0]]||[]).filter(function(c){return c.from!==''&&c.to!==''&&c.from!=null&&c.to!=null;});
+    arr.forEach(function(c){ if(c.to<=c.from)dispoErreur=j[1]; });
+    arr.sort(function(x,y){return x.from-y.from;});
+    var creneaux=arr.map(function(c){return {from:c.from,to:c.to};});
+    if(creneaux.length)nbJoursDispo++;
+    dispos[j[0]]={on:creneaux.length>0,creneaux:creneaux};
+  });
+  if(dispoErreur){alert('Vérifiez vos horaires de '+dispoErreur+' : l\'heure de fin doit être après l\'heure de début.');return;}
+  if(nbJoursDispo===0){alert('Merci d\'indiquer vos disponibilités sur au moins un jour (cochez un jour et renseignez les horaires).');return;}
+  // Pièces obligatoires : photo, CV, pièce d'identité recto + verso
+  if(!window._photoData){alert('Merci d\'ajouter une photo (prenez-vous en photo ou choisissez un fichier).');return;}
+  if(!window._cvData){alert('Merci de joindre votre CV (PDF ou image).');return;}
+  if(!window._cniRectoData){alert('Merci d\'ajouter le RECTO de votre pièce d\'identité (photo ou fichier).');return;}
+  if(!window._cniVersoData){alert('Merci d\'ajouter le VERSO de votre pièce d\'identité (photo ou fichier).');return;}
+  // ✅ Toutes les validations sont passées → on VERROUILLE la soumission (anti-doublon)
+  // AVANT tout appel réseau, pour qu'un 2e clic soit ignoré par le garde en haut.
+  window.__postulerEnCours=true;
+  var _btnPost=document.getElementById('btn-postuler');
+  if(_btnPost){ _btnPost.disabled=true; _btnPost.textContent='Envoi en cours…'; }
   // ── ANTI-CANDIDATURES MULTIPLES ────────────────────────────────────────────
   // Une même personne peut postuler 2 fois maximum. À la 3e tentative, on bloque
   // et on affiche un message clair. Recoupement par email, par nom+prénom et par
@@ -15084,29 +15113,11 @@ async function submitPostuler(){
       window.scrollTo(0,0);
       return;
     }
-    if(_antBtn){_antBtn.disabled=false;_antBtn.textContent='📤 Envoyer ma candidature';}
+    if(_antBtn){_antBtn.disabled=true;_antBtn.textContent='Envoi en cours…';}
   }catch(_antErr){
     console.warn('Contrôle candidatures multiples ignoré (erreur réseau)',_antErr);
-    if(_antBtn){_antBtn.disabled=false;_antBtn.textContent='📤 Envoyer ma candidature';}
+    if(_antBtn){_antBtn.disabled=true;_antBtn.textContent='Envoi en cours…';}
   }
-  var dispos={};
-  var nbJoursDispo=0;
-  var dispoErreur=null;
-  JOURS.forEach(function(j){
-    var arr=(dispoState[j[0]]||[]).filter(function(c){return c.from!==''&&c.to!==''&&c.from!=null&&c.to!=null;});
-    // vérifier cohérence heure début < heure fin
-    arr.forEach(function(c){ if(c.to<=c.from)dispoErreur=j[1]; });
-    arr.sort(function(x,y){return x.from-y.from;});
-    var creneaux=arr.map(function(c){return {from:c.from,to:c.to};});
-    if(creneaux.length)nbJoursDispo++;
-    dispos[j[0]]={on:creneaux.length>0,creneaux:creneaux};
-  });
-  if(dispoErreur){alert('Vérifiez vos horaires de '+dispoErreur+' : l\'heure de fin doit être après l\'heure de début.');return;}
-  if(nbJoursDispo===0){alert('Merci d\'indiquer vos disponibilités sur au moins un jour (cochez un jour et renseignez les horaires).');return;}
-  if(!window._photoData){alert('Merci d\'ajouter une photo (prenez-vous en photo ou choisissez un fichier).');return;}
-  if(!window._cvData){alert('Merci de joindre votre CV (PDF ou image).');return;}
-  if(!window._cniRectoData){alert('Merci d\'ajouter le RECTO de votre pièce d\'identité (photo ou fichier).');return;}
-  if(!window._cniVersoData){alert('Merci d\'ajouter le VERSO de votre pièce d\'identité (photo ou fichier).');return;}
   var data={prenom:prenom,nom:nom,date_naissance:naissance,phone:phone,email:email,
     adresse:adresse,code_postal:cp,ville:ville,nationalite:nationalite,sexe:sexe,
     resto_id:resto,restos:restosArr.join(','),
