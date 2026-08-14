@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-13 09:20 · v543 (placement rétabli + fix réactivation salarié)';
+  var EMBEDDED_VERSION = '2026-08-13 15:10 · v559 (blocage sortie/entrée jour par jour dans le moteur)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1000,6 +1000,7 @@ html,body{overflow-x:hidden;}
       <!-- Touches ancrées tout à droite : Analyse recrutement du mois + Vider la semaine -->
       <span style="flex:1 1 auto"></span>
       <span style="display:inline-flex;gap:10px;margin-left:auto;align-items:flex-end">
+        <button class="hr-btn" id="hrx-export-btn" onclick="hrExporterSemaine()" title="Exporte les données de placement de la semaine (contrats, compétences, dispos, créneaux) — ANONYMISÉ, sans nom/email/tél — pour diagnostic hors-ligne." style="background:#2a2410;border-color:#b8a038;color:#e8d98a;font-weight:700;">⬇️ Exporter la semaine</button>
         <button class="hr-btn" id="hrx-mois-btn" onclick="hrAnalyseRecrutementMois()" title="Analyse le MOIS entier (toutes ses semaines) en simulation, sans toucher au planning : combien de créneaux restent, quels profils recruter, quels salariés sont bloquants par leurs dispos." style="background:#1a2a3a;border-color:#3b82f6;color:#93c5fd;font-weight:700;">📅 Analyse recrutement du mois</button>
         <button class="hr-btn" id="hrx-vider-btn" onclick="hrViderSemaine()" title="Remet la semaine affichée à ZÉRO : retire tous les salariés des créneaux (les créneaux redeviennent vides) pour la replacer à la main." style="background:#3a1a1a;border-color:#cc5555;color:#ff9090;">🧹 Vider la semaine</button>
       </span>
@@ -24199,6 +24200,12 @@ function hrPlacerIntelligentSemaine(repartirZero){
     // ★ ABSENCE : un salarié absent ce jour-là (congés, arrêt maladie, absence…) n'est
     // JAMAIS placé sur ce jour. Lu depuis HR_ABSENCES via hrEstAbsent (jour = DAY_DATES[d]).
     try{ if(typeof hrEstAbsent==='function' && typeof DAY_DATES!=='undefined' && DAY_DATES[d] && hrEstAbsent(emp.id, DAY_DATES[d])) return false; }catch(_abs){}
+    // ★ SORTIE / ENTRÉE : jour par jour, on ne place JAMAIS un salarié APRÈS sa date de
+    // sortie (démission / fin de contrat) ni AVANT sa date d'entrée. Contrôle par DATE du
+    // jour (DAY_DATES[d]) car un départ peut tomber en milieu de semaine — ex. sortie le
+    // 20/08 : plaçable jusqu'au 20 inclus, bloqué dès le 21. (_hrEstParti ne teste que la
+    // date du jour réel, il ne suffit pas quand on prépare une semaine à l'avance.)
+    try{ if(typeof horsContratBloque==='function' && typeof DAY_DATES!=='undefined' && DAY_DATES[d] && horsContratBloque(emp, DAY_DATES[d])) return false; }catch(_hc){}
     // ★ INTÉGRATION : une recrue en doublon d'intégration ce jour-là n'est PAS placée
     // dans la rotation normale (elle est en formation, en plus). Voir hrEnIntegration.
     try{ if(typeof hrEnIntegration==='function' && typeof DAY_DATES!=='undefined' && DAY_DATES[d] && hrEnIntegration(emp.id, DAY_DATES[d])) return false; }catch(_int){}
@@ -24394,7 +24401,7 @@ function hrPlacerIntelligentSemaine(repartirZero){
   //   on continue la chaîne. On ne valide QUE si toute la chaîne tient (sinon rollback).
   // C'est ce qui transforme le placement glouton (1 niveau) en placement quasi optimal.
   // Respecte toutes les règles via eligible(). Profondeur et budget bornés (anti-explosion).
-  var _chOps=0, _CH_BUDGET=5000000; // large : couvre tous les trous en cascade (reste < ~200 ms)
+  var _chOps=0, _CH_BUDGET=200000; // borné : évite que le navigateur fige sur les trous impossibles (pics)
   function tenterRemplir(d, vide, prof, usedBars, usedEmp){
     if(_chOps++ > _CH_BUDGET) return false;
     for(var ei=0; ei<eq.length; ei++){
@@ -24448,10 +24455,9 @@ function hrPlacerIntelligentSemaine(repartirZero){
   // ── PHASE FINALE : chaînes d'échange JUSQU'À ÉPUISEMENT ─────────────────────
   // La boucle ci-dessus ne lance les chaînes que ponctuellement. Ici on les fait
   // tourner à fond (plusieurs tours) tant qu'elles trouvent des trous à combler par
-  // réorganisation — SANS jamais dépasser un contrat (aucune règle relâchée). C'est
-  // ce qui doit faire fondre les heures « échange » quand des gens sont sous contrat.
-  for(var pf=0; pf<12; pf++){
-    var gA=chaineEchange(5);   // chaînes plus profondes en phase finale (5 niveaux)
+  // réorganisation — SANS jamais dépasser un contrat (aucune règle relâchée).
+  for(var pf=0; pf<6; pf++){
+    var gA=chaineEchange(4);
     var gR=reparer();
     var gD=deplacerRepos();
     passePlacement();
@@ -24594,6 +24600,54 @@ function hrPlacerIntelligentSemaine(repartirZero){
   }
 }
 window.hrPlacerIntelligentSemaine=hrPlacerIntelligentSemaine;
+
+// ── EXPORT DIAGNOSTIC : dump anonymisé des données de placement de la semaine ──
+// But : permettre de reproduire EXACTEMENT le placement hors-ligne (contrats,
+// compétences, disponibilités, créneaux à couvrir, règlement) SANS aucune donnée
+// personnelle (ni nom, ni email, ni téléphone, ni date de naissance). Chaque salarié
+// est remplacé par un identifiant anonyme EQ1, EQ2… Bouton d'affichage uniquement.
+function hrExporterSemaine(){
+  try{
+    var resto=(((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(typeof hrCurrentResto==='function'&&hrCurrentResto()))||'').toLowerCase();
+    var lundi=(typeof HR_WEEK_LUNDI!=='undefined'&&HR_WEEK_LUNDI)?HR_WEEK_LUNDI:((typeof DAY_DATES!=='undefined'&&DAY_DATES[0])?DAY_DATES[0]:'');
+    if(typeof ROWS_BY_DAY==='undefined'||typeof DAY_DATES==='undefined'){ toast&&toast('Ouvre d\'abord la semaine dans Horaires.','error'); return; }
+    var JN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+    var JK=(typeof JOURS_KEYS!=='undefined')?JOURS_KEYS:['lun','mar','mer','jeu','ven','sam','dim'];
+    var eqs=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&e.restoId===resto&&(typeof _hrEstParti!=='function'||!_hrEstParti(e));});
+    // postes distincts (hors encadrement) présents dans la semaine
+    var pset={};
+    for(var d=0; d<7; d++){ (ROWS_BY_DAY[d]||[]).forEach(function(r){ (r.bars||[]).forEach(function(b){ if(b.l && !(typeof estTraitEncadrement==='function'&&estTraitEncadrement(b.l))) pset[b.l]=1; }); }); }
+    var postesList=Object.keys(pset);
+    var anon={}; eqs.forEach(function(e,i){ anon[e.id]='EQ'+(i+1); });
+    var equipiers=eqs.map(function(e){
+      var comps={}; postesList.forEach(function(p){ comps[p]=(typeof hrSaitFaire==='function')?!!hrSaitFaire(e,p):null; });
+      var dispos={};
+      JK.forEach(function(jk){
+        var dd=(e.infos&&e.infos.dispos&&e.infos.dispos[jk])||null;
+        dispos[jk]= dd?{on:!!dd.on, creneaux:(dd.creneaux||(dd.from!=null?[{from:dd.from,to:dd.to}]:[]))} : {on:false, creneaux:[]};
+      });
+      return { id:anon[e.id], contratH:(typeof hrContratHebdo==='function'?hrContratHebdo(e):null), competences:comps, dispos:dispos };
+    });
+    var jours=[];
+    for(var d2=0; d2<7; d2++){
+      var iso=(DAY_DATES&&DAY_DATES[d2])?DAY_DATES[d2]:'';
+      var traits=[];
+      (ROWS_BY_DAY[d2]||[]).forEach(function(r){ (r.bars||[]).forEach(function(b){
+        if(typeof estTraitEncadrement==='function'&&estTraitEncadrement(b.l)) return;
+        traits.push({ poste:b.l, s:b.s, e:(b.e!=null?b.e:b.s+60), place:(b.empId?(anon[b.empId]||'?'):null) });
+      }); });
+      jours.push({ jour:JN[d2], date:iso, traits:traits });
+    }
+    var out={ resto:resto, lundi:lundi, reglement:(typeof getReglement==='function')?getReglement():{}, postes:postesList, equipiers:equipiers, jours:jours, note:'Export anonymise (aucun nom/email/tel/naissance). EQn = equipier n. Sert au diagnostic du placement.' };
+    var blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download='bkrh_placement_'+(resto||'resto')+'_'+String(lundi||'').replace(/[^0-9]/g,'')+'.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ try{URL.revokeObjectURL(url);}catch(_){} }, 4000);
+    try{ toast('Export généré ✔ ('+equipiers.length+' équipiers, '+jours.reduce(function(n,j){return n+j.traits.length;},0)+' créneaux). Envoie-moi le fichier.','success'); }catch(_){}
+  }catch(err){ console.error('hrExporterSemaine',err); try{ toast('Erreur export : '+(err&&err.message||err),'error'); }catch(_){} }
+}
+window.hrExporterSemaine=hrExporterSemaine;
 
 /* ═══════════════ PLACEMENT AUTOMATIQUE (sans clic) ═══════════════
  * Objectif : les horaires se font tout seuls. Dès qu'une semaine est affichée
