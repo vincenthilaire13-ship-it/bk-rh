@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-13 15:10 · v559 (blocage sortie/entrée jour par jour dans le moteur)';
+  var EMBEDDED_VERSION = '2026-08-18 01:45 · v562 (découpage créneaux + contrat prioritaire + moteur 10x plus rapide)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -19726,12 +19726,28 @@ window.finContratBloque=finContratBloque;
 // SALARIÉ SORTI (démission / fin de contrat / rupture) : on ne peut plus lui faire
 // d'horaires APRÈS sa date de sortie. La date de sortie = DERNIER jour travaillé, donc
 // on bloque STRICTEMENT à partir du lendemain (ex. sortie le 12/08 -> bloqué dès le 13/08).
+// NORMALISATION D'UNE DATE (v560) — les comparaisons entrée/sortie se faisaient en
+// COMPARANT DU TEXTE : juste seulement si les deux valeurs sont en ISO AAAA-MM-JJ.
+// Une seule fiche saisie « 13/08/2026 » suffisait à fausser le test SANS aucun message
+// (le salarié disparaissait silencieusement des candidats au placement).
+// Ici on ramène tout en ISO. Si la valeur est inexploitable -> null -> AUCUN blocage
+// (on ne retire jamais quelqu'un du planning sur une date qu'on ne sait pas lire).
+function _hrDateISO(v){
+  if(v==null) return null;
+  var t=String(v).trim(); if(!t) return null;
+  var m=t.match(/^(\d{4})-(\d{2})-(\d{2})/);                 // 2026-08-13 / 2026-08-13T…
+  if(m) return m[1]+'-'+m[2]+'-'+m[3];
+  m=t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/);        // 13/08/2026 · 13-08-2026
+  if(m) return m[3]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[1]).padStart(2,'0');
+  return null;
+}
+try{ window._hrDateISO=_hrDateISO; }catch(_){}
 function sortieBloque(emp, isoDate){
   if(!emp||!isoDate) return false;
-  var ds=(emp.sortieDate||emp.exitDate||(emp.infos&&emp.infos.date_sortie))||'';
-  ds=String(ds).slice(0,10);
-  if(ds.length<10) return false;                 // pas de date de sortie renseignée
-  return String(isoDate).slice(0,10) > ds;       // date visée postérieure à la sortie
+  var ds=_hrDateISO((emp.sortieDate||emp.exitDate||(emp.infos&&emp.infos.date_sortie))||'');
+  var dj=_hrDateISO(isoDate);
+  if(!ds||!dj) return false;                     // pas de date exploitable -> on ne bloque pas
+  return dj > ds;                                // date visée postérieure à la sortie
 }
 window.sortieBloque=sortieBloque;
 // SALARIÉ PAS ENCORE ENTRÉ : on ne peut pas lui faire d'horaires AVANT sa date de
@@ -19739,10 +19755,10 @@ window.sortieBloque=sortieBloque;
 // à partir de sa date d'entrée (ex. entrée le 13/08 -> bloqué avant, ok dès le 13/08).
 function entreeBloque(emp, isoDate){
   if(!emp||!isoDate) return false;
-  var de=(emp.infos&&(emp.infos.date_entree||emp.infos.date_debut))||emp.dateDebut||emp.dateEntree||'';
-  de=String(de).slice(0,10);
-  if(de.length<10) return false;                 // pas de date d'entrée renseignée
-  return String(isoDate).slice(0,10) < de;       // date visée antérieure à l'entrée
+  var de=_hrDateISO((emp.infos&&(emp.infos.date_entree||emp.infos.date_debut))||emp.dateDebut||emp.dateEntree||'');
+  var dj=_hrDateISO(isoDate);
+  if(!de||!dj) return false;                     // pas de date exploitable -> on ne bloque pas
+  return dj < de;                                // date visée antérieure à l'entrée
 }
 window.entreeBloque=entreeBloque;
 // Hors période de contrat = avant l'entrée OU après la sortie (un seul test).
@@ -24195,6 +24211,28 @@ function hrPlacerIntelligentSemaine(repartirZero){
     }
     return true;
   }
+  // ★ INDEX DES COMPÉTENTS PAR POSTE (v562) — performance pure, résultat identique.
+  // Toutes les boucles de recherche parcouraient les 37-50 équipiers puis testaient
+  // hrSaitFaire(). Sur un poste tenu par 3 personnes, 90 % du travail était jeté.
+  // On construit la liste UNE fois par poste, dans le MÊME ordre que `eq` (donc à
+  // égalité de score, le moteur choisit toujours le même salarié qu'avant).
+  var _eqParPoste={};
+  function eqPour(poste){
+    var L=_eqParPoste[poste];
+    if(!L){ L=eq.filter(function(e){ return ch(e)>0 && hrSaitFaire(e,poste); }); _eqParPoste[poste]=L; }
+    return L;
+  }
+  // Solde d'heures encore posable pour ce salarié cette semaine, plafond DUR inclus.
+  function _hrPlafondSem(emp){
+    var p=(typeof hrPlafondMaxMin==='function')?hrPlafondMaxMin(emp):null;
+    return (p!=null)?p:contratMin(emp);
+  }
+  function _hrResteMax(emp){ return _hrPlafondSem(emp)-(minSem[emp.id]||0); }
+  // Compteur : jours-salarié écartés par la règle entrée/sortie (introduite en v559).
+  // Sans ce compteur, un salarié écarté disparaissait sans trace et le bandeau imputait
+  // le trou à « compétence » ou « dispo ».
+  var _hcJours=0, _hcQui={};
+  var _nbDecoupes=0;   // v561 : nombre de créneaux coupés en deux
   function eligible(emp,d,s,e,poste){
     if(ch(emp)<=0) return false;
     // ★ ABSENCE : un salarié absent ce jour-là (congés, arrêt maladie, absence…) n'est
@@ -24205,12 +24243,19 @@ function hrPlacerIntelligentSemaine(repartirZero){
     // jour (DAY_DATES[d]) car un départ peut tomber en milieu de semaine — ex. sortie le
     // 20/08 : plaçable jusqu'au 20 inclus, bloqué dès le 21. (_hrEstParti ne teste que la
     // date du jour réel, il ne suffit pas quand on prépare une semaine à l'avance.)
-    try{ if(typeof horsContratBloque==='function' && typeof DAY_DATES!=='undefined' && DAY_DATES[d] && horsContratBloque(emp, DAY_DATES[d])) return false; }catch(_hc){}
+    try{ if(typeof horsContratBloque==='function' && typeof DAY_DATES!=='undefined' && DAY_DATES[d] && horsContratBloque(emp, DAY_DATES[d])){ if(!_hcQui[emp.id+'|'+d]){ _hcQui[emp.id+'|'+d]=1; _hcJours++; _hcQui[emp.id]=emp.name; } return false; } }catch(_hc){}
     // ★ INTÉGRATION : une recrue en doublon d'intégration ce jour-là n'est PAS placée
     // dans la rotation normale (elle est en formation, en plus). Voir hrEnIntegration.
     try{ if(typeof hrEnIntegration==='function' && typeof DAY_DATES!=='undefined' && DAY_DATES[d] && hrEnIntegration(emp.id, DAY_DATES[d])) return false; }catch(_int){}
     if(weekendActif && ch(emp)<=seuilPetit && [4,5,6].indexOf(d)<0) return false; // petits contrats → ven/sam/dim
-    if(reste(emp)<60) return false;
+    // ★ PLAFOND D'HEURES (v560) — correction de conformité.
+    // AVANT : « reste(emp)<60 » vérifiait seulement qu'il restait 1h de contrat, sans
+    // JAMAIS comparer la durée du créneau au solde. Un salarié à qui il restait 1h
+    // pouvait donc prendre un trait de 4h = 3h au-dessus du contrat, en silence.
+    // MAINTENANT : on refuse tout créneau qui ferait dépasser le plafond DUR
+    // (hrPlafondMaxMin : contrat +10% sous 35h, 35h pile au-delà). placerSurTrait
+    // raccourcit déjà les traits par pas de 15 min : il s'ajuste tout seul au solde.
+    if(_hrResteMax(emp) < (e-s)) return false;
     if(!hrSaitFaire(emp,poste)) return false;
     if(!dispoOkJ(emp,d,s,e)) return false;
     if(occupe(emp.id,d,s,e)) return false;
@@ -24235,12 +24280,18 @@ function hrPlacerIntelligentSemaine(repartirZero){
   }
   function meilleur(d,s,e,poste,exclId){
     var best=null,bs=-1;
-    for(var i=0;i<eq.length;i++){ var emp=eq[i]; if(exclId&&emp.id===exclId) continue;
+    var _L=eqPour(poste);
+    for(var i=0;i<_L.length;i++){ var emp=_L[i]; if(exclId&&emp.id===exclId) continue;
       if(!eligible(emp,d,s,e,poste)) continue;
       // Score : priorité à qui manque le plus de contrat + se colle à sa journée,
       // MAIS on PÉNALISE ceux qui ont déjà beaucoup de jours travaillés, pour
       // étaler les présences sur les 7 jours (sinon un jour entier se vide).
+      // ★ v561 : donner son CONTRAT à chacun passe AVANT d'accorder des heures
+      // complémentaires à quelqu'un qui a déjà le sien. Le bonus (10) est très
+      // supérieur aux autres termes (<2) : un salarié encore sous contrat gagne
+      // toujours face à un salarié déjà au contrat.
       var sc=reste(emp)/(contratMin(emp)||1)
+            +(((minSem[emp.id]||0) < contratMin(emp)-0.001) ? 10 : 0)
             +(((busy[emp.id]||{})[d]||[]).length>0?0.3:0)
             +(ch(emp)>=35?0.05:0)
             -(nbJoursTrav(emp.id)*0.04);
@@ -24248,11 +24299,49 @@ function hrPlacerIntelligentSemaine(repartirZero){
     }
     return best;
   }
-  // pose un trait, en raccourcissant si besoin pour trouver quelqu'un
+  // ★ DÉCOUPAGE DES CRÉNEAUX (v561) — règle Vincent.
+  // Si personne ne peut prendre le créneau EN ENTIER, on ne le raccourcit plus en
+  // jetant le reste : on le COUPE EN DEUX morceaux consécutifs confiés à DEUX
+  // personnes différentes. Ex. un 18h-22h devient 18h-20h + 20h-22h.
+  // Le besoin issu du chiffre d'affaires est donc intégralement conservé : le second
+  // morceau redevient un vrai créneau à pourvoir (et reste compté comme vide si
+  // personne ne le prend). Chaque morceau reste >= créneau mini (traitMini) : on ne
+  // fabrique jamais de miettes de 15 min.
   function placerSurTrait(d,t){
-    for(var dur=t.e-t.s; dur>=traitMin-0.001; dur-=15){
-      var s=t.s,e=t.s+dur; var c=meilleur(d,s,e,t.l);
-      if(c){ poser(c,d,s,e,t); t.s=s; t.e=e; return true; }
+    var s0=t.s, e0=t.e, total=e0-s0;
+    var d0=(t._dur0!=null?t._dur0:total);
+    // Fabrique le morceau restant [a,b] et le remet dans la file des créneaux à pourvoir.
+    function _morceau(a,b){
+      if(b-a<0.001) return;
+      var suite={ l:t.l, s:a, e:b, empId:null, emp:null, _seg:null,
+                  _dur0:(b-a), _row:t._row, _decoupe:true };
+      if(t._row && t._row.bars) t._row.bars.push(suite);
+      traitsJour[d].push(suite);
+      tousTraits.push({d:d, t:suite, nc:0});
+      _nbDecoupes++;
+    }
+    for(var dur=total; dur>=traitMin-0.001; dur-=15){
+      var rest=total-dur;
+      if(rest>0.001 && rest<traitMin-0.001) continue;   // découpe non valide -> on essaie plus court
+      // (a) DÉBUT du créneau : 18h-22h -> on pourvoit 18h-20h, il reste 20h-22h
+      var c=meilleur(d,s0,s0+dur,t.l);
+      if(c){
+        poser(c,d,s0,s0+dur,t); t.s=s0; t.e=s0+dur; t._dur0=dur;
+        if(rest>0.001) _morceau(s0+dur, e0);
+        return true;
+      }
+      // (b) FIN du créneau : le seul candidat est peut-être occupé en début mais libre
+      //     en fin. 18h-22h -> on pourvoit 20h-22h, il reste 18h-20h à pourvoir.
+      //     Sans ce second essai, un créneau restait vide alors que sa seconde moitié
+      //     était couvrable (tous les sous-créneaux testés partaient de 18h).
+      if(rest>0.001){
+        var c2=meilleur(d,e0-dur,e0,t.l);
+        if(c2){
+          poser(c2,d,e0-dur,e0,t); t.s=e0-dur; t.e=e0; t._dur0=dur;
+          _morceau(s0, e0-dur);
+          return true;
+        }
+      }
     }
     return false;
   }
@@ -24274,6 +24363,13 @@ function hrPlacerIntelligentSemaine(repartirZero){
     rows.forEach(function(row){
       row.bars.forEach(function(b){
         if(estTraitEncadrement(b.l)) return;
+        // ★ DURÉE D'ORIGINE (v560) : placerSurTrait RACCOURCIT un trait quand personne
+        // ne peut le prendre en entier, et RÉÉCRIT t.s/t.e. Les minutes rognées ne
+        // partaient pas dans les créneaux vides : elles disparaissaient du dénominateur,
+        // donc un trait de 4h couvert par 2h comptait 100%. On fige la durée d'origine
+        // ici, AVANT tout placement, pour que le taux affiché soit le vrai.
+        if(b._dur0==null) b._dur0=(b.e-b.s);
+        b._row=row;   // v561 : mémorise la ligne, pour pouvoir y insérer un morceau découpé
         if(!repartirZero && b.empId && empById[b.empId]){
           // CONSERVER ce placement existant : on le réinjecte dans l'état du moteur.
           var emp=empById[b.empId];
@@ -24296,9 +24392,9 @@ function hrPlacerIntelligentSemaine(repartirZero){
       var vides=traitsJour[d].filter(function(t){return !t.empId;});
       vides.forEach(function(vide){
         if(vide.empId) return;
-        for(var ei=0; ei<eq.length; ei++){
-          var e=eq[ei];
-          if(ch(e)<=0||!hrSaitFaire(e,vide.l)) continue;
+        var _L=eqPour(vide.l);
+        for(var ei=0; ei<_L.length; ei++){
+          var e=_L[ei];
           if(weekendActif && ch(e)<=seuilPetit && [4,5,6].indexOf(d)<0) continue;
           if(estReposReserve(e.id,d) && !(jt[e.id]&&jt[e.id][d])) continue;
           if(!dispoOkJ(e,d,vide.s,vide.e)) continue;
@@ -24325,9 +24421,8 @@ function hrPlacerIntelligentSemaine(repartirZero){
   // on place en parallèle sur les 7 jours → aucun jour n'est sacrifié.
   // Nb de candidats POTENTIELS d'un trait (compétent+dispo, en ignorant l'occupation).
   function nbCandidats(d,t){
-    var n=0;
-    for(var i=0;i<eq.length;i++){ var e=eq[i];
-      if(ch(e)<=0||!hrSaitFaire(e,t.l)) continue;
+    var n=0; var _L=eqPour(t.l);
+    for(var i=0;i<_L.length;i++){ var e=_L[i];
       if(weekendActif && ch(e)<=seuilPetit && [4,5,6].indexOf(d)<0) continue;
       if(estReposReserve(e.id,d)) continue;
       if(!dispoOkJ(e,d,t.s,t.e)) continue;
@@ -24362,9 +24457,9 @@ function hrPlacerIntelligentSemaine(repartirZero){
       var vides=traitsJour[d].filter(function(t){return !t.empId;});
       vides.forEach(function(vide){
         if(vide.empId) return;
-        for(var ei=0; ei<eq.length; ei++){
-          var e=eq[ei];
-          if(ch(e)<=0||!hrSaitFaire(e,vide.l)) continue;
+        var _L=eqPour(vide.l);
+        for(var ei=0; ei<_L.length; ei++){
+          var e=_L[ei];
           if(weekendActif && ch(e)<=seuilPetit && [4,5,6].indexOf(d)<0) continue;
           if(!estReposReserve(e.id,d)) continue;        // ne traiter que ceux en repos ce jour
           if(!dispoOkJ(e,d,vide.s,vide.e)) continue;     // doit pouvoir bosser le créneau
@@ -24401,13 +24496,22 @@ function hrPlacerIntelligentSemaine(repartirZero){
   //   on continue la chaîne. On ne valide QUE si toute la chaîne tient (sinon rollback).
   // C'est ce qui transforme le placement glouton (1 niveau) en placement quasi optimal.
   // Respecte toutes les règles via eligible(). Profondeur et budget bornés (anti-explosion).
-  var _chOps=0, _CH_BUDGET=200000; // borné : évite que le navigateur fige sur les trous impossibles (pics)
+  // ★ BUDGET DES CHAÎNES D'ÉCHANGE (v562) — 200 000 → 25 000.
+  // Mesuré sur les 3 restaurants réels (semaine du 24/08) : le résultat du placement
+  // est RIGOUREUSEMENT IDENTIQUE de 5 000 à 200 000 (mêmes heures placées, mêmes
+  // créneaux vides, mêmes heures de contrat données). Au-delà de ~5 000 explorations,
+  // les chaînes ne trouvent plus rien : elles brassent du vide. Le budget coûtait
+  // jusqu'à 9 s sur BK509 pour zéro gain. 25 000 garde 5x de marge.
+  // Si un jour tu soupçonnes que les chaînes abandonnent trop tôt, c'est cette seule
+  // constante qu'il faut remonter.
+  var _chOps=0, _CH_BUDGET=25000;
   function tenterRemplir(d, vide, prof, usedBars, usedEmp){
     if(_chOps++ > _CH_BUDGET) return false;
-    for(var ei=0; ei<eq.length; ei++){
-      var e=eq[ei];
+    var _L=eqPour(vide.l);
+    if(!_L.length) return false;            // personne ne sait faire ce poste : inutile de creuser
+    for(var ei=0; ei<_L.length; ei++){
+      var e=_L[ei];
       if(usedEmp.indexOf(e.id)>=0) continue;
-      if(ch(e)<=0 || !hrSaitFaire(e,vide.l)) continue;
       if(weekendActif && ch(e)<=seuilPetit && [4,5,6].indexOf(d)<0) continue;
       if(estReposReserve(e.id,d) && !(jt[e.id]&&jt[e.id][d])) continue;
       if(!dispoOkJ(e,d,vide.s,vide.e)) continue;
@@ -24433,7 +24537,7 @@ function hrPlacerIntelligentSemaine(repartirZero){
   function chaineEchange(prof){
     _chOps=0; var g=0; var _p=prof||3;
     var vides=[];
-    for(var d=0; d<7; d++){ traitsJour[d].forEach(function(t){ if(!t.empId) vides.push({d:d,t:t}); }); }
+    for(var d=0; d<7; d++){ traitsJour[d].forEach(function(t){ if(!t.empId && eqPour(t.l).length) vides.push({d:d,t:t}); }); }
     vides.forEach(function(x){ x.nc=nbCandidats(x.d,x.t); });
     vides.sort(function(a,b){ return (_estTard(b.t)-_estTard(a.t)) || (a.nc-b.nc); }); // fermetures puis difficulté
     vides.forEach(function(x){ if(x.t.empId) return; if(tenterRemplir(x.d, x.t, _p, [x.t], [])) g++; });
@@ -24503,14 +24607,16 @@ function hrPlacerIntelligentSemaine(repartirZero){
         if(t.empId) return;
         var dur=t.e-t.s; videsJour[d]+=dur;
         // 1) COMPÉTENTS utilisables ce jour
-        var comp=eq.filter(function(e){ return ch(e)>0 && hrSaitFaire(e,t.l)
-          && !(weekendActif && ch(e)<=seuilPetit && [4,5,6].indexOf(d)<0); });
+        var comp=eqPour(t.l).filter(function(e){
+          return !(weekendActif && ch(e)<=seuilPetit && [4,5,6].indexOf(d)<0); });
         if(!comp.length){ minC.comp+=dur; postesTension[t.l]=(postesTension[t.l]||0)+dur; return; }
         // 2) DISPO sur le créneau
         var dispo=comp.filter(function(e){ return dispoOkJ(e,d,t.s,t.e); });
         if(!dispo.length){ minC.dispo+=dur; return; }
         // 3) reste du CONTRAT à pourvoir
-        var okC=dispo.filter(function(e){ return reste(e)>=60; });
+        // v560 : cohérent avec eligible() — le solde doit couvrir la DURÉE du trait,
+        // sinon on classait à tort ces trous en « à replacer (algo) ».
+        var okC=dispo.filter(function(e){ return _hrResteMax(e)>=dur; });
         if(!okC.length){ minC.contrat+=dur; return; }
         // 4) parmi ces candidats sérieux, quel est le LEVIER le plus simple ?
         var levier=null, prioBest=99;
@@ -24541,10 +24647,10 @@ function hrPlacerIntelligentSemaine(repartirZero){
   // ── COUVERTURE RÉELLE (globale) : placements conservés + nouveaux, tous ──────
   // traits productifs de la semaine. (Avant, on n'affichait QUE les traits
   // remplis lors de ce clic → « 0% » trompeur quand la semaine était déjà placée.)
-  var totProd=0, placeProd=0;
+  var totProd=0, placeProd=0, _rognTot=0, _rognNb=0;
   for(var dg=0; dg<7; dg++){
     (ROWS_BY_DAY[dg]||[]).forEach(function(row){
-      row.bars.forEach(function(b){ if(estTraitEncadrement(b.l)) return; var du=b.e-b.s; totProd+=du; if(b.empId) placeProd+=du; });
+      row.bars.forEach(function(b){ if(estTraitEncadrement(b.l)) return; var du=b.e-b.s; var du0=(b._dur0!=null?b._dur0:du); totProd+=du0; if(b.empId) placeProd+=du; if(du0>du){ _rognTot+=(du0-du); _rognNb++; } });
     });
   }
   var pctG=totProd?Math.round(100*placeProd/totProd):0;
@@ -24577,9 +24683,26 @@ function hrPlacerIntelligentSemaine(repartirZero){
   if(_reglesMin>0)_bilanParts.push('⚖️ Règles (repos/coupure/jours) : '+_dh(_reglesMin));
   if(!_bilanParts.length) _bilanParts.push('✅ 100 % du faisable couvert');
   var ligneBilan='<br>📊 '+_bilanParts.join(' · ');
+  // ── CONTRÔLE DES CONTRATS (v560) : au-dessus du contrat, et au-dessus du plafond ──
+  // m2.sc ne comptait QUE les sous-contrat : un 15h fini à 18h ne déclenchait rien.
+  var _complMin=0, _complNb=0, _horsPlafond=[];
+  eq.forEach(function(e){
+    var pose=minSem[e.id]||0, cont=contratMin(e), plaf=_hrPlafondSem(e);
+    if(pose>cont){ _complMin+=(pose-cont); _complNb++; }
+    if(pose>plaf+0.001) _horsPlafond.push(e.name+' '+_dh(pose)+' > '+_dh(plaf));
+  });
+  var ligneContrats='';
+  if(_complNb>0) ligneContrats+='<br>⏱️ Heures au-delà du contrat (sous plafond légal) : <b>'+_dh(_complMin)+'</b> sur '+_complNb+' salarié(s)';
+  if(_horsPlafond.length) ligneContrats+='<br><b style="color:#ff6b6b">🚨 AU-DESSUS DU PLAFOND LÉGAL : '+_horsPlafond.join(' · ')+'</b>';
+  if(_nbDecoupes>0) ligneContrats+='<br>✂️ Créneaux coupés en deux (2 salariés successifs) : <b>'+_nbDecoupes+'</b>';
+  if(_rognNb>0) ligneContrats+='<br>⚠️ Traits raccourcis sans découpage : '+_rognNb+' (<b>'+_dh(_rognTot)+'</b> — ne devrait plus arriver en v561)';
+  if(_hcJours>0){
+    var _noms=Object.keys(_hcQui).filter(function(k){return k.indexOf('|')<0;}).map(function(k){return _hcQui[k];});
+    ligneContrats+='<br>🚫 Écartés par la date d\'entrée/sortie : '+_hcJours+' jour(s)-salarié'+(_noms.length?(' — '+_noms.join(', ')):'')+' <span style="color:#aaa">(vérifie ces fiches si le chiffre te surprend)</span>';
+  }
   var st=document.getElementById('hrx-assign-status');
   if(st) st.innerHTML='🧠 Placement · <b>'+pctG+'%</b> du besoin couvert ('+_dh(placeProd)+'/'+_dh(totProd)+') · '+m2.vides+' créneaux vides · '+m2.sc+'/'+eq.length+' sous contrat'
-    + ligneBilan
+    + ligneBilan + ligneContrats
     + (causes.length? '<br>⛔ Détail des causes : '+causes.join(' · ') : '')
     + lignePostes + ligneJours;
   try{
@@ -24837,7 +24960,7 @@ function hrAnalyseRecrutementMois(silent, restoArg, refMoisArg){
         if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return;
         var cat=(typeof hrCategorieTrait==='function')?hrCategorieTrait(b.l):'prod';
         if(cat==='np') return; // on ne place que le productif
-        tl.push({l:b.l,s:b.s,e:b.e,empId:null});
+        tl.push({l:b.l,s:b.s,e:b.e,empId:null,_dur0:(b.e-b.s)});
       }); });
       traitsJour.push(tl);
     }
@@ -24888,7 +25011,7 @@ function hrAnalyseRecrutementMois(silent, restoArg, refMoisArg){
     for(var p=1;p<=40;p++){ var g1=reparer(); var g2=deplacerRepos(); passe(); var v=0; traitsJour.forEach(function(ts){ts.forEach(function(t){if(!t.empId)v++;});}); if(prev!=null&&v===prev&&g1===0&&g2===0)break; prev=v; }
     // cumuler dans le mois
     eq.forEach(function(e){ minMois[e.id]+=(minSem[e.id]||0); });
-    for(var d=0;d<7;d++){ traitsJour[d].forEach(function(t){ besoinMoisMin+=(t.e-t.s); if(t.empId){ placeMoisMin+=(t.e-t.s); } else { videsMois.push({sem:semIdx,d:d,l:t.l,s:t.s,e:t.e}); } }); }
+    for(var d=0;d<7;d++){ traitsJour[d].forEach(function(t){ besoinMoisMin+=(t._dur0!=null?t._dur0:(t.e-t.s)); if(t.empId){ placeMoisMin+=(t.e-t.s); } else { videsMois.push({sem:semIdx,d:d,l:t.l,s:t.s,e:t.e}); } }); }
   }
 
   // lancer toutes les semaines
