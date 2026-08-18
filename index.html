@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-18 02:20 · v563 (note interne RH enregistrée en permanence, à toutes les étapes)';
+  var EMBEDDED_VERSION = '2026-08-18 03:00 · v564 (Écran télé + Téléphone équipe déplacés en tuiles dans Paramètres)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -794,8 +794,12 @@ html,body{overflow-x:hidden;}
     </div>
   </div>
   <nav id="main-nav">
-    <button onclick="goPage('dashboard',this)">📺 Écran télé</button>
-    <button class="desktop-only" onclick="goPage('telephone',this)">📱 Téléphone équipe</button>
+    <!-- Onglets « Écran télé » et « Téléphone équipe » retirés de la barre du haut (v564) :
+         accessibles via Paramètres › tuiles 📺 Écran télé et 📱 Téléphone équipe.
+         Les boutons restent dans le DOM (masqués) pour que le surlignage de goPage()
+         et les navigations programmées continuent de fonctionner. -->
+    <button onclick="goPage('dashboard',this)" style="display:none;">📺 Écran télé</button>
+    <button class="desktop-only" onclick="goPage('telephone',this)" style="display:none;">📱 Téléphone équipe</button>
     <button onclick="goPage('actu',this)">📣 Actualité</button>
     <button onclick="goPage('messagerie',this)">💬 Messagerie</button>
     <button onclick="goPage('recrutement',this)">🎯 Recrutement <span id="rbadge" style="background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:none;align-items:center;justify-content:center;font-size:.68rem;margin-left:3px;">0</span></button>
@@ -3064,7 +3068,11 @@ function applyRolePermissions(r){
       var txt = b.textContent.trim();
       var show;
       if (isGlobal) {
-        show = (txt.indexOf('Incidents')<0);           // Admin/RH : tout SAUF Incidents (déplacé dans Paramètres)
+        // Admin/RH : tout SAUF les onglets déplacés dans Paramètres
+        // (Incidents, et depuis la v564 : Écran télé + Téléphone équipe).
+        show = (txt.indexOf('Incidents')<0
+             && txt.indexOf('Écran télé')<0
+             && txt.indexOf('Téléphone équipe')<0);
       } else if (isDir) {
         show = (txt.indexOf('Planning encadrement')>=0 || txt.indexOf('Incidents')>=0 || txt.indexOf('Rapports')>=0); // Directeur : Planning encadrement + Incidents + Rapports
       } else if (isMgr) {
@@ -3953,6 +3961,8 @@ async function supprSignatureDir(){
 window.loadSignatureDir=loadSignatureDir; window.saveSignatureDir=saveSignatureDir; window.supprSignatureDir=supprSignatureDir;
 
 var PARAM_TILES=[
+  {ico:'📺', titre:'Écran télé',    sub:'Pièces affichées au restaurant', type:'page', page:'dashboard',    accent:'#1565c0'},
+  {ico:'📱', titre:'Téléphone équipe', sub:'Ce que l\'équipe voit sur son tél.', type:'page', page:'telephone', accent:'#7e57c2'},
   {ico:'📋', titre:'Incidents',     sub:'Suivi disciplinaire',          type:'page', page:'incidents',      accent:'#D62300'},
   {ico:'📅', titre:'Disponibilité contrat',sub:'Base des contrats (import Excel)', type:'card', card:'pc-dispos',      accent:'#1565c0'},
   {ico:'💶', titre:'Salaires',      sub:'Grille des salaires',          type:'page', page:'salaires',       accent:'#2e7d32'},
