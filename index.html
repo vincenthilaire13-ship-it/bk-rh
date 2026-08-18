@@ -12,7 +12,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-18 01:45 · v562 (découpage créneaux + contrat prioritaire + moteur 10x plus rapide)';
+  var EMBEDDED_VERSION = '2026-08-18 02:20 · v563 (note interne RH enregistrée en permanence, à toutes les étapes)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -2124,12 +2124,19 @@ html,body{overflow-x:hidden;}
     <input type="hidden" id="cand-id">
     <div id="cand-detail"></div>
     <div style="margin-top:16px;border-top:1px solid #333;padding-top:14px;">
-      <label class="flabel">Note interne RH</label>
-      <textarea id="cand-note" class="fi" style="min-height:50px;" placeholder="Remarques internes..."></textarea>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
+        <label class="flabel" style="margin:0;">Note interne RH</label>
+        <span id="cand-note-st" style="font-size:.72rem;color:#888;white-space:nowrap;"></span>
+      </div>
+      <textarea id="cand-note" class="fi" style="min-height:70px;" placeholder="Remarques internes — enregistrées automatiquement, à toutes les étapes." oninput="candNoteTouche()" onblur="candNoteSave()"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;">
+        <span style="font-size:.7rem;color:#666;">Conservée quel que soit le statut : nouveau, entretien, retenu, essai, refusé.</span>
+        <button class="btn btn-gray btn-sm" onclick="candNoteSave(true)">💾 Enregistrer la note</button>
+      </div>
     </div>
     <div id="cand-actions" style="margin-top:14px;"></div>
     <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap;justify-content:flex-end;">
-      <button class="btn btn-gray" onclick="closeModal('modal-cand')">Fermer</button>
+      <button class="btn btn-gray" onclick="candNoteSave();closeModal('modal-cand')">Fermer</button>
     </div>
   </div>
 </div>
@@ -13164,6 +13171,9 @@ function openCand(id){
   document.getElementById('cand-id').value=id;
   document.getElementById('cand-title').textContent='🎯 '+c.prenom+' '+c.nom;
   document.getElementById('cand-note').value=c.noteInterne||'';
+  _candNoteDernier=c.noteInterne||'';       // tampon : évite un enregistrement inutile à l'ouverture
+  if(_candNoteTimer){ clearTimeout(_candNoteTimer); _candNoteTimer=null; }
+  _candNoteStatut('');
   // Âge
   var ageTxt='';
   if(c.dateNaissance){var bd=new Date(c.dateNaissance);var age=Math.floor((Date.now()-bd)/(365.25*24*3600*1000));ageTxt=new Date(c.dateNaissance).toLocaleDateString('fr-FR')+' ('+age+' ans)';}
@@ -13476,6 +13486,54 @@ async function candSupprimer(){
 
 function curCand(){return DB.candidatures.find(function(x){return x.id===_candId;});}
 
+/* ═══════════ NOTE INTERNE RH — ENREGISTREMENT PERMANENT (v563) ═══════════
+ * AVANT : la zone « Note interne RH » était bien affichée à toutes les étapes et
+ * pré-remplie depuis note_interne, mais elle n'avait AUCUN chemin d'enregistrement
+ * à elle. Le champ n'était écrit qu'en EFFET DE BORD d'un changement de statut :
+ * candConvoquer(), candRetenir(), candRefuser(), candNonPresente().
+ * Conséquence : sur « nouveau » (si on ne convoque pas), « retenu », « en essai »
+ * et « refusé », AUCUNE action n'écrivait la note — ce qu'on tapait était perdu à
+ * la fermeture de la fiche. Seul le motif de refus survivait, parce que
+ * candRefuser() l'écrivait dans note_interne — en ÉCRASANT au passage tout ce qui
+ * avait été noté avant.
+ * MAINTENANT : la note s'enregistre toute seule (à la frappe, à la sortie du champ,
+ * à la fermeture) quel que soit le statut, et le motif de refus s'AJOUTE à la note
+ * au lieu de la remplacer.
+ */
+var _candNoteTimer=null, _candNoteDernier=null;
+function _candNoteStatut(txt,col){
+  var s=document.getElementById('cand-note-st');
+  if(s){ s.textContent=txt||''; s.style.color=col||'#888'; }
+}
+function candNoteTouche(){
+  _candNoteStatut('modification en cours…','#e8a020');
+  if(_candNoteTimer) clearTimeout(_candNoteTimer);
+  _candNoteTimer=setTimeout(function(){ candNoteSave(); }, 900);
+}
+async function candNoteSave(manuel){
+  if(_candNoteTimer){ clearTimeout(_candNoteTimer); _candNoteTimer=null; }
+  var n=document.getElementById('cand-note');
+  if(!n || !_candId) return;
+  var val=n.value;
+  if(!manuel && val===_candNoteDernier) return;      // rien de neuf depuis le dernier enregistrement
+  var precedent=_candNoteDernier;
+  _candNoteDernier=val;
+  try{
+    await sb.patch('bks_candidatures','id=eq.'+_candId,{note_interne:val,updated_at:new Date().toISOString()});
+    var c=(DB.candidatures||[]).find(function(x){return x.id===_candId;});
+    if(c) c.noteInterne=val;                          // à jour en mémoire, sans recharger toute la base
+    _candNoteStatut('✔ enregistré','#3ecf8e');
+    if(manuel) toast('Note interne enregistrée ✔','success');
+  }catch(e){
+    _candNoteDernier=precedent;                       // échec : on retentera au prochain enregistrement
+    console.error('candNoteSave',e);
+    _candNoteStatut('⚠️ NON enregistré — réessaie','#ff6b6b');
+    if(manuel) toast('Erreur : la note n\'a pas été enregistrée','error');
+  }
+}
+window.candNoteSave=candNoteSave;
+window.candNoteTouche=candNoteTouche;
+
 // INTÉGRATION ANNULÉE : candidat retenu/en essai qui n'est pas venu ou n'a pas signé.
 // On conserve tout son dossier (données + documents) et on laisse une trace :
 //  - statut « refusé » avec motif « Intégration annulée » (repérable, et « a déjà postulé » s'il revient)
@@ -13532,19 +13590,26 @@ function candRefuser(){
             :(c.statut==='essai')?'pendant la période d\'essai'
             :'avant l\'entretien';
   // Motif INTERNE OBLIGATOIRE — jamais communiqué au candidat, uniquement pour le suivi RH.
-  var _n=document.getElementById('cand-note'); var _pre=_n?_n.value.trim():'';
+  var _n=document.getElementById('cand-note'); var _pre=_n?_n.value.replace(/\s+$/,''):'';
+  // Le champ de saisie du motif part VIDE : avant, il était pré-rempli avec toute la
+  // note interne, ce qui poussait à écraser l'historique par le motif du jour.
   var _motif=prompt('Refus de '+((c.prenom||'')+' '+(c.nom||'')).trim()+' — '+_stade+'.\n\n'
     +'Motif INTERNE du refus (OBLIGATOIRE — non envoyé au candidat) :\n'
-    +'Ex. : profil ne correspond pas · pas assez d\'expérience · disponibilités incompatibles · exigences salariales · mauvaise impression à l\'entretien · poste déjà pourvu…', _pre);
+    +'Ex. : profil ne correspond pas · pas assez d\'expérience · disponibilités incompatibles · exigences salariales · mauvaise impression à l\'entretien · poste déjà pourvu…', '');
   if(_motif===null) return; // annulé → on ne refuse pas
   _motif=(_motif||'').trim();
   if(!_motif){ toast('Refus annulé : un motif interne est obligatoire.','error'); return; }
-  // On reporte le motif dans la note interne RH de la fiche (visible ensuite).
-  if(_n){ _n.value=_motif; }
+  // ★ v563 : le motif s'AJOUTE à la note interne (avant : il l'écrasait, et tout ce
+  // qui avait été noté pendant le recrutement disparaissait).
+  var _dj=new Date().toLocaleDateString('fr-FR');
+  var _ligne='['+_dj+'] Refus '+_stade+' : '+_motif;
+  var _noteFinale=_pre ? (_pre+'\n'+_ligne) : _ligne;
+  if(_n){ _n.value=_noteFinale; }
+  _candNoteDernier=_noteFinale;
   var _full=_motif+' (refus '+_stade+')';
   // Ouvrir le brouillon TOUT DE SUITE (dans le clic) pour éviter le blocage pop-up du navigateur.
   try{ mailRefus(); }catch(e){ console.warn('mailRefus',e); }
-  _candUpdate({statut:'refuse',refus_motif:_full,note_interne:_motif},'Candidature refusée — motif enregistré ✔');
+  _candUpdate({statut:'refuse',refus_motif:_full,note_interne:_noteFinale},'Candidature refusée — motif ajouté à la note ✔');
 }
 // L'entretien a eu lieu mais le candidat NE S'EST PAS PRÉSENTÉ (no-show).
 function candNonPresente(){
