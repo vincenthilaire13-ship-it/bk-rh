@@ -41,7 +41,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-18 04:10 · v565 (portail salarié : rester connecté + icône sur l\'écran d\'accueil)';
+  var EMBEDDED_VERSION = '2026-08-18 11:05 · v572 (iPad : couleurs non productifs, retard, accident du travail, panneau corrigé)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -691,6 +691,7 @@ html,body{overflow-x:hidden;}
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
       <div class="tile tile-mgr" onclick="pickManagerDirect()"><div class="tile-icon">⭐</div><div class="tile-label">Manager</div><div class="tile-sub">Signaler un incident</div></div>
+      <div class="tile tile-ipad" onclick="pickIpad(curResto)" style="border-color:#F5A623;"><div class="tile-icon">📟</div><div class="tile-label">iPad</div><div class="tile-sub">Poste du bureau manager</div></div>
       <div class="tile tile-equipier" onclick="equipierPortail()"><div class="tile-icon">👤</div><div class="tile-label">Espace équipier</div><div class="tile-sub">Mon téléphone équipe</div></div>
     </div>
   </div>
@@ -1737,6 +1738,10 @@ html,body{overflow-x:hidden;}
       <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Réglez ici ce que le salarié voit <strong>en plus</strong> quand il pointe. Vous pouvez envoyer un message à <strong>tout le monde</strong>, seulement aux salariés d'un <strong>poste précis</strong> (ex. Première cabine) ou <strong>à une personne</strong> en particulier. Ajoutez une photo, une période (du…au…) et, pour les fiches produit / LTO, un accusé de lecture obligatoire. Les messages sont propres au restaurant actif (sélecteur en haut).</p>
       <div id="ptg-msg-admin"></div>
     </div>
+    <div class="card param-card" id="pc-ipad" style="display:none;">
+      <div class="sec-title">📟 Poste iPad — bureau manager</div>
+      <div id="pc-ipad-body"></div>
+    </div>
     <div class="card param-card" id="pc-messagerie" style="display:none;">
       <div class="sec-title">💬 Messagerie — qui peut écrire à qui</div>
       <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Pour chaque rôle (à gauche), coche les rôles avec qui il a le droit de communiquer. La règle est <strong>réciproque</strong> : si les équipiers ne peuvent parler qu'aux directeurs, alors seuls les directeurs peuvent leur écrire. Un salarié ne peut démarrer une conversation qu'avec les personnes autorisées.</p>
@@ -2655,6 +2660,7 @@ async function loadAll(light) {
   try{ if(typeof hrChargerTelephoneSupabase==='function'){ await hrChargerTelephoneSupabase(); } }catch(e){}
   try{ if(typeof hrChargerDashboardSupabase==='function'){ await hrChargerDashboardSupabase(); } }catch(e){}
   try{ if(typeof hrChargerVisibiliteSupabase==='function'){ await hrChargerVisibiliteSupabase(); } }catch(e){}
+  try{ if(typeof hrChargerIpadCfg==='function'){ await hrChargerIpadCfg(); } }catch(e){}
   try{ if(typeof hrChargerDisposContratSupabase==='function'){ await hrChargerDisposContratSupabase(); } }catch(e){}
   try{ if(typeof depCharger==='function'){ await depCharger(false); } }catch(e){}
   try{ if(typeof hrChargerPayeRepas==='function'){ await hrChargerPayeRepas(); } }catch(e){}
@@ -3351,6 +3357,9 @@ function _entrerDansApp(r){
     else if (r==='leader'||r==='equipier') startPage='noaccess';
     else if (r==='directeur') startPage='planning';   // Directeur → Planning encadrement
     else startPage='dashboard';   // franchise → Accueil
+    // ★ v566 : l'Admin/RH arrive sur la vue Écran télé EN DIRECT (tuiles + actualité)
+    // et non sur le réglage des pièces (qui reste dans Paramètres › 📺 Écran télé).
+    if(startPage==='dashboard'){ DASH_VUE_DIRECT=true; try{ window.DASH_VUE_DIRECT=true; }catch(_){} }
     try{
       document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
       var sp=document.getElementById('page-'+startPage); if(sp) sp.classList.add('active');
@@ -3990,8 +3999,9 @@ async function supprSignatureDir(){
 window.loadSignatureDir=loadSignatureDir; window.saveSignatureDir=saveSignatureDir; window.supprSignatureDir=supprSignatureDir;
 
 var PARAM_TILES=[
-  {ico:'📺', titre:'Écran télé',    sub:'Pièces affichées au restaurant', type:'page', page:'dashboard',    accent:'#1565c0'},
+  {ico:'📺', titre:'Écran télé',    sub:'Pièces affichées au restaurant', type:'page', page:'dashboard', id:'dashboard', fn:'paramEcranTele()', accent:'#1565c0'},
   {ico:'📱', titre:'Téléphone équipe', sub:'Ce que l\'équipe voit sur son tél.', type:'page', page:'telephone', accent:'#7e57c2'},
+  {ico:'📟', titre:'Poste iPad',    sub:'Bureau manager : absences, incidents', type:'card', card:'pc-ipad', id:'pc-ipad', fn:'paramIpad()', accent:'#F5A623'},
   {ico:'📋', titre:'Incidents',     sub:'Suivi disciplinaire',          type:'page', page:'incidents',      accent:'#D62300'},
   {ico:'📅', titre:'Disponibilité contrat',sub:'Base des contrats (import Excel)', type:'card', card:'pc-dispos',      accent:'#1565c0'},
   {ico:'💶', titre:'Salaires',      sub:'Grille des salaires',          type:'page', page:'salaires',       accent:'#2e7d32'},
@@ -4086,6 +4096,12 @@ function paramOuvrir(type, ref){
     } else { card.parentElement.insertBefore(back, card); back.style.display='inline-block'; }
   }
 }
+// Paramètres › 📺 Écran télé : ouvre le RÉGLAGE des pièces (pas la vue en direct).
+function paramEcranTele(){
+  DASH_VUE_DIRECT=false; try{ window.DASH_VUE_DIRECT=false; }catch(_){}
+  goPage('dashboard');
+}
+window.paramEcranTele=paramEcranTele;
 function paramBiblio(lib){ try{ if(typeof _bibAdmin!=='undefined') _bibAdmin.lib=lib||'produits'; }catch(_){} paramOuvrir('card','pc-biblio'); }
 window.paramBiblio=paramBiblio;
 window.renderParamTiles=renderParamTiles; window.paramOuvrir=paramOuvrir;
@@ -17038,6 +17054,16 @@ window.onload=function(){schedReports();};
 
 /* ════════ DASHBOARD / ACCUEIL ÉQUIPE ════════ */
 var DASH_RESTO=null,_dashClockTm=null,_dashRefreshTm=null,_dashOpenTile=null;
+/* ★ v566 — Deux façons d'ouvrir la page « Écran télé » :
+ *   • VUE EN DIRECT (comme la télé du restaurant : tuiles + fil d'actualité).
+ *     C'est désormais la page d'accueil de l'Admin/RH après connexion.
+ *   • RÉGLAGE DES PIÈCES (interrupteurs + aperçu dans un cadre télé), accessible
+ *     par Paramètres › 📺 Écran télé.
+ * Avant, seul le rôle 'tv' (code 0000 sur la télé) voyait la vue en direct ; la
+ * direction tombait toujours sur le réglage. Ce drapeau permet à l'Admin/RH de
+ * voir la vue en direct SANS changer son rôle (donc sans perdre ses droits). */
+var DASH_VUE_DIRECT=false;
+try{ window.DASH_VUE_DIRECT=DASH_VUE_DIRECT; }catch(_){}
 var DASH_TILES=[
   {id:'horaires',  em:'🗓️', tt:'Mes horaires',     ds:'Planning de la semaine', color:'#1565c0', action:'dashOpenHoraires'},
   {id:'planningjour',em:'📋', tt:'Planning du jour', ds:"Les traits de l'équipe aujourd'hui", color:'#0097a7', action:'dashOpenPlanningJour'},
@@ -18111,7 +18137,7 @@ function dashShowBoard(){
   //   à gauche (non affichés sur la télé) + aperçu dans un CADRE TÉLÉ à droite,
   //   exactement comme le Téléphone équipe. Pas de bouton « roue ».
   try{
-    var _isTV=(curUser && curUser.role==='tv');
+    var _isTV=(curUser && curUser.role==='tv') || DASH_VUE_DIRECT===true;
     var _board=document.getElementById('dash-board');
     var _cfg=document.getElementById('dash-config');
     if(_isTV){ if(_board)_board.style.display='block'; if(_cfg)_cfg.style.display='none'; }
@@ -22097,7 +22123,10 @@ var HR_ETAT_MOTIFS={
   absence: {label:'Absence autorisée / autre', court:'Absence', icon:'🟧', col:'#d98324'},
   injustifiee: {label:'Absence injustifiée', court:'Injustifiée', icon:'⛔', col:'#e8623a'},
   misepied: {label:'Mise à pied', court:'Mise à pied', icon:'🚷', col:'#b5462f'},
-  indispo: {label:'Indispo ponctuelle', court:'Indispo', icon:'🟨', col:'#c9a227'}
+  indispo: {label:'Indispo ponctuelle', court:'Indispo', icon:'🟨', col:'#c9a227'},
+  // Ajouté v572 (demande poste iPad). ⚠️ Le code Silae de l'AT reste à confirmer :
+  // il n'est pas encore dans la table de correspondance de l'export paie.
+  at:      {label:'Accident du travail', court:'AT', icon:'🩹', col:'#a93226'}
 };
 function _etatMotifInfo(m){ return HR_ETAT_MOTIFS[m]||HR_ETAT_MOTIFS.absence; }
 var HR_ETAT_RESTO_FILTRE=''; // resto actif sur l'écran État équipe ('' = celui de la grille)
@@ -31693,5 +31722,857 @@ window.hrParsePDF=hrParsePDF;
   if(document.body){ init(); } else { document.addEventListener('DOMContentLoaded',init); }
 })();
 </script>
+
+<!-- ══════════════════ POSTE iPAD — BUREAU MANAGER (v567) ══════════════════
+ Écran tactile posé dans le bureau manager. Il montre les traits du JOUR et
+ permet, en tapant sur un salarié, de déclarer une absence, signaler un
+ incident, saisir le pointage ou consulter sa fiche.
+ Les actions sensibles demandent le CODE du manager : le code identifie QUI
+ signale (manager d'ouverture, de fermeture, directeur…), et ce nom est
+ enregistré avec l'incident / l'absence.
+ Tout est en surcouche (comme l'Espace équipier) : aucune page existante,
+ aucun rôle et aucune permission ne sont modifiés.
+ La chaîne métier est celle qui existait déjà : ptgEditAbsence() enregistre
+ l'absence puis _absAiguillage() décide — semaine publiée → dépannage 🆘,
+ semaine pas encore transférée → replanification automatique.
+────────────────────────────────────────────────────────────────────────── -->
+<script>
+var _ipadResto=null, _ipadDate=null, _ipadEmp=null, _ipadTick=null;
+// Trait sélectionné : {empId, key, s, e, l}. null = la journée entière.
+var _ipadSel=null;
+
+/* ── Réglages (Paramètres › 📟 Poste iPad) ───────────────────────────────── */
+var IPAD_CFG=null;
+function ipadCfgDefaut(){ return {absence:true, retard:true, incident:true, pointage:true, tousLesSalaries:false, codeTest:true}; }
+function getIpadCfg(){
+  if(IPAD_CFG) return IPAD_CFG;
+  try{ var r=localStorage.getItem('bkrh_ipad_cfg'); if(r){ IPAD_CFG=Object.assign(ipadCfgDefaut(),JSON.parse(r)); return IPAD_CFG; } }catch(_){}
+  IPAD_CFG=ipadCfgDefaut(); return IPAD_CFG;
+}
+function saveIpadCfg(){
+  try{ localStorage.setItem('bkrh_ipad_cfg',JSON.stringify(IPAD_CFG)); }catch(_){}
+  try{ if(typeof SB!=='undefined'&&SB) SB.from('app_config').upsert({cle:'bkrh_ipad_cfg',valeur:IPAD_CFG},{onConflict:'cle'}).then(function(){},function(){}); }catch(_){}
+}
+async function hrChargerIpadCfg(){
+  try{
+    if(typeof SB==='undefined'||!SB) return;
+    var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_ipad_cfg').maybeSingle();
+    if(r&&r.data&&r.data.valeur){ IPAD_CFG=Object.assign(ipadCfgDefaut(),r.data.valeur); try{localStorage.setItem('bkrh_ipad_cfg',JSON.stringify(IPAD_CFG));}catch(_){} }
+  }catch(_){}
+}
+window.hrChargerIpadCfg=hrChargerIpadCfg;
+
+/* ── Utilitaires ─────────────────────────────────────────────────────────── */
+function _ipadISO(d){ d=d||new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+function _ipadHM(min){ min=Math.round(Number(min)||0); var h=Math.floor(min/60)%24, m=min%60; return ('0'+h).slice(-2)+':'+('0'+m).slice(-2); }
+function _ipadEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+// COULEURS DES TRAITS — on réutilise colFor() de la page Horaires pour avoir
+// EXACTEMENT les mêmes couleurs qu'ailleurs.
+// ⚠️ colFor() a besoin de DEUX choses propres au restaurant :
+//    • HR_GRILLE_RESTO  → pour retrouver les couleurs personnalisées (HR_NP_COLORS)
+//    • BASE_MIN         → pour savoir quels postes sont NON PRODUCTIFS (orange)
+// Sans BASE_MIN du bon resto, « OUV MANA », « FERM LEAD »… n'étaient pas reconnus
+// comme non productifs et sortaient en GRIS. On bascule les deux le temps du calcul,
+// puis on REMET TOUT COMME AVANT.
+var _ipadCoulCache=null;
+function _ipadPrepCouleurs(postes){
+  _ipadCoulCache={};
+  try{
+    if(typeof colFor!=='function') return;
+    var R=(_ipadResto||'').toUpperCase(), r=(_ipadResto||'').toLowerCase();
+    var avantR=(typeof HR_GRILLE_RESTO!=='undefined')?HR_GRILLE_RESTO:null;
+    var avantB=(typeof BASE_MIN!=='undefined')?BASE_MIN:null;
+    var bR=false, bB=false;
+    try{ if(avantR!==R){ HR_GRILLE_RESTO=R; bR=true; } }catch(_){}
+    try{
+      var bm=(typeof BASEMIN_BY_RESTO!=='undefined'&&BASEMIN_BY_RESTO)
+        ? (BASEMIN_BY_RESTO[R]||BASEMIN_BY_RESTO[r]||BASEMIN_BY_RESTO[_ipadResto]) : null;
+      if(bm && bm.length){ BASE_MIN=bm; bB=true; }
+    }catch(_){}
+    (postes||[]).forEach(function(p){
+      var u=(p||'').toUpperCase();
+      if(_ipadCoulCache[u]) return;
+      var c=null; try{ c=colFor(p); }catch(_){ c=null; }
+      _ipadCoulCache[u]=(c&&c.bg)?c:{bg:'#607d8b',tx:'#fff'};
+    });
+    if(bR){ try{ HR_GRILLE_RESTO=avantR; }catch(_){} }
+    if(bB){ try{ BASE_MIN=avantB; }catch(_){} }
+  }catch(_){}
+}
+function _ipadCoul(poste){
+  var u=(poste||'').toUpperCase();
+  if(_ipadCoulCache && _ipadCoulCache[u]) return _ipadCoulCache[u];
+  try{ var c=colFor(poste); if(c&&c.bg) return c; }catch(_){}
+  return {bg:'#607d8b',tx:'#fff'};
+}
+// Ce créneau précis est-il déjà marqué absent ? (absence PAR CRÉNEAU)
+function _ipadCrenAbsent(empId, key){
+  try{
+    var all=(typeof ptgGetAll==='function')?ptgGetAll():{};
+    var rec=all[empId+'_'+_ipadDate]||{};
+    var c=(rec.cren||{})[key];
+    return (c&&c.abs)?c.abs:null;
+  }catch(_){ return null; }
+}
+// Segments du salarié aujourd'hui (pour retrouver un créneau par sa clé).
+function _ipadSegs(empId){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
+  if(!e) return [];
+  try{ return _chPlanSegs(e,_ipadDate,_ipadResto)||[]; }catch(_){ return []; }
+}
+function _ipadSegParKey(empId,key){
+  var out=null;
+  _ipadSegs(empId).forEach(function(sg){ if(sg.s+'-'+sg.e===key) out=sg; });
+  return out;
+}
+// Clic sur UN trait : on le sélectionne et on ouvre le panneau pour CE créneau.
+function ipadChoisirTrait(empId, key){
+  var sg=_ipadSegParKey(empId,key);
+  _ipadSel = sg ? {empId:empId, key:key, s:sg.s, e:sg.e, l:sg.l} : null;
+  ipadRender();
+  ipadFiche(empId);
+}
+window.ipadChoisirTrait=ipadChoisirTrait;
+// Courbe de CA ¼h du jour, pour LE restaurant de l'iPad.
+// hrCourbeJour() lit HR_DATA / HR_RESTO de la page Horaires : on bascule le temps
+// de la lecture puis on REMET COMME AVANT, pour ne pas changer le restaurant
+// affiché dans Horaires sur le même navigateur.
+function _ipadCourbe(){
+  var vide={ca:{},source:null};
+  try{
+    if(typeof hrCourbeJour!=='function') return vide;
+    var R=(_ipadResto||'').toUpperCase();
+    var avantData=(typeof HR_DATA!=='undefined')?HR_DATA:null;
+    var avantResto=(typeof HR_RESTO!=='undefined')?HR_RESTO:null;
+    var bascule=false;
+    try{
+      if(typeof HR_ALL!=='undefined' && HR_ALL && HR_ALL[R] && avantResto!==R){
+        HR_DATA=HR_ALL[R]; HR_RESTO=R; bascule=true;
+      }
+    }catch(_){}
+    var cj=vide;
+    try{ cj=hrCourbeJour(_ipadDate)||vide; }catch(_){ cj=vide; }
+    if(bascule){ try{ HR_DATA=avantData; HR_RESTO=avantResto; }catch(_){} }
+    return cj;
+  }catch(_){ return vide; }
+}
+function _ipadLabel(){ try{ return (RESTOS[_ipadResto]&&RESTOS[_ipadResto].label)||_ipadResto||''; }catch(_){ return _ipadResto||''; } }
+function _ipadOv(){
+  var ov=document.getElementById('ipad-poste');
+  if(!ov){ ov=document.createElement('div'); ov.id='ipad-poste'; document.body.appendChild(ov); }
+  ov.style.display='block'; return ov;
+}
+// Les salariés concernés par la journée : ceux qui ont au moins un trait aujourd'hui.
+function _ipadSalariesDuJour(){
+  var iso=_ipadDate, resto=_ipadResto, tous=getIpadCfg().tousLesSalaries;
+  var lst=(DB.employees||[]).filter(function(e){
+    if(e.archived) return false;
+    if(((e.restoId||e.resto_id||'')+'').toLowerCase()!==(resto+'').toLowerCase()) return false;
+    return ['equipier','leader','manager'].indexOf(e.role)>=0;
+  });
+  var out=[];
+  lst.forEach(function(e){
+    var segs=[]; try{ segs=_chPlanSegs(e, iso, resto)||[]; }catch(_){ segs=[]; }
+    var abs=null; try{ abs=(typeof hrAbsenceDuJour==='function')?hrAbsenceDuJour(e.id, iso):null; }catch(_){}
+    if(!segs.length && !abs && !tous) return;
+    out.push({e:e, segs:segs, abs:abs});
+  });
+  // tri : par heure d'arrivée, puis les absents, puis les sans trait
+  out.sort(function(a,b){
+    var sa=a.segs.length?a.segs[0].s:99999, sb=b.segs.length?b.segs[0].s:99999;
+    return sa-sb || (a.e.name||'').localeCompare(b.e.name||'','fr');
+  });
+  return out;
+}
+
+/* ── Entrée : tuile « iPad » du choix de profil ──────────────────────────── */
+function pickIpad(restoId){
+  _ipadResto=(restoId||(typeof curResto!=='undefined'?curResto:'')||'bk500');
+  _ipadDate=_ipadISO();
+  try{ document.getElementById('login-screen').style.display='none'; }catch(_){}
+  try{ document.getElementById('loading-screen').style.display='none'; }catch(_){}
+  _ipadOv();
+  ipadRender('<div class="ip-load">Chargement du planning du jour…</div>');
+  // Les courbes de CA ¼h sont chargées par le module Horaires (depuis Supabase).
+  try{ if(!window.__hrDone && typeof window.__hrInit==='function') window.__hrInit(); }catch(_){}
+  // Les grilles (dont la liste des NON PRODUCTIFS, qui décide de la couleur orange)
+  // arrivent de Supabase : on les demande explicitement pour ce restaurant.
+  try{ if(typeof hrChargerGrilles==='function') hrChargerGrilles(); }catch(_){}
+  // Le planning vit dans app_config (gros fichiers) : on le charge avant d'afficher.
+  try{
+    if(typeof _chLoadPlanning==='function'){ _chLoadPlanning(_ipadResto, function(){ ipadRender(); }); }
+    else ipadRender();
+  }catch(_){ ipadRender(); }
+  // Le CA arrive en différé : on redessine une fois quand il est là.
+  setTimeout(function(){
+    try{ if(document.getElementById('ipad-poste') && !document.getElementById('ip-modal')
+            && Object.keys(_ipadCourbe().ca||{}).length) ipadRender(); }catch(_){}
+  }, 2600);
+  try{ clearInterval(_ipadTick); }catch(_){}
+  _ipadTick=setInterval(function(){ var h=document.getElementById('ip-heure'); if(h) h.textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }, 20000);
+}
+window.pickIpad=pickIpad;
+function ipadQuitter(){
+  try{ clearInterval(_ipadTick); }catch(_){}
+  _ipadEmp=null;
+  var ov=document.getElementById('ipad-poste'); if(ov){ ov.style.display='none'; ov.innerHTML=''; }
+  try{ document.getElementById('login-screen').style.display='block'; }catch(_){}
+  try{ showStep('step-profiles'); }catch(_){}
+}
+window.ipadQuitter=ipadQuitter;
+
+/* ── Écran principal : les traits du jour ────────────────────────────────── */
+function ipadRender(contenuBrut){
+  var ov=_ipadOv();
+  var d=new Date(_ipadDate+'T12:00:00');
+  var jour=d.toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long'});
+  var heure=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  var corps=contenuBrut;
+  var nbAbs=0, nbPres=0;
+  if(!corps){
+    var lst=_ipadSalariesDuJour();
+    lst.forEach(function(o){ if(o.abs) nbAbs++; else nbPres++; });
+    if(!lst.length){
+      corps='<div class="ip-vide">Aucun trait prévu aujourd\'hui pour '+_ipadEsc(_ipadLabel())+'.<br><span>Vérifie que la semaine est bien placée dans Horaires.</span></div>';
+    } else {
+      // ── LA MÊME VUE QUE « HORAIRES » : règle horaire avec le CA prévu et le
+      //    nombre de personnes par heure, puis un trait par créneau. ──────────
+      var _cj=_ipadCourbe(); var ca=_cj.ca||{}, caSrc=_cj.source;
+      // Le CA est stocké par quart d'heure, clés 'HH:MM' (après minuit = +24h).
+      var caMin={}, caTot=0;
+      Object.keys(ca).forEach(function(t){
+        var v=Number(ca[t])||0; if(v<=0) return;
+        var p=(''+t).split(':').map(Number);
+        var mv=(p[0]<5)?(p[0]*60+p[1]+1440):(p[0]*60+p[1]);
+        caMin[mv]=(caMin[mv]||0)+v; caTot+=v;
+      });
+      // Bornes de la journée : ce qui est travaillé ET ce qui fait du chiffre.
+      var minS=null, maxE=null;
+      lst.forEach(function(o){ o.segs.forEach(function(sg){
+        if(minS===null||sg.s<minS) minS=sg.s;
+        if(maxE===null||sg.e>maxE) maxE=sg.e; }); });
+      Object.keys(caMin).forEach(function(k){
+        var m=+k; if(minS===null||m<minS) minS=m; if(maxE===null||m+15>maxE) maxE=m+15; });
+      if(minS===null){ minS=11*60; maxE=24*60; }
+      var H0=Math.floor(minS/60)*60, H1=Math.ceil(maxE/60)*60;
+      if(H1-H0<120) H1=H0+120;
+      var nbH=Math.round((H1-H0)/60), LARG=76, totalPx=nbH*LARG;
+      var pos=function(v){ return ((v-H0)/60)*LARG; };
+      var eur=function(n){ return Math.round(n).toLocaleString('fr-FR')+' €'; };
+      // Règle : heure + CA de l'heure + nombre de personnes présentes.
+      var regle='';
+      for(var hh=0; hh<nbH; hh++){
+        var deb=H0+hh*60, caH=0;
+        for(var q=0;q<60;q+=15) caH+=(caMin[deb+q]||0);
+        var nb=0;
+        lst.forEach(function(o){ if(o.abs) return;
+          if(o.segs.some(function(sg){ return sg.s<deb+60 && sg.e>deb; })) nb++; });
+        var lbl=('0'+(Math.floor(deb/60)%24)).slice(-2)+'h';
+        regle+='<div class="ip-tl-h" style="width:'+LARG+'px;">'
+          +'<div class="ip-h-l">'+lbl+'</div>'
+          +'<div class="ip-h-ca">'+(caH>0?eur(caH):'—')+'</div>'
+          +'<div class="ip-h-nb">'+(nb?('👤 '+nb):'')+'</div></div>';
+      }
+      // couleurs calculées UNE fois, dans le contexte du bon restaurant
+      var _tousPostes=[]; lst.forEach(function(o){ o.segs.forEach(function(sg){ _tousPostes.push(sg.l); }); });
+      _ipadPrepCouleurs(_tousPostes);
+      var lignes=lst.map(function(o){
+        var e=o.e, minJour=0;
+        o.segs.forEach(function(sg){ minJour+=(sg.e-sg.s); });
+        var ct=null; try{ ct=(typeof hrContratHebdo==='function')?hrContratHebdo(e):null; }catch(_){}
+        var barres=o.segs.map(function(sg){
+          var l=pos(sg.s), w=Math.max(pos(sg.e)-pos(sg.s), 34);
+          var c=_ipadCoul(sg.l);
+          var key=sg.s+'-'+sg.e;
+          var absCren=_ipadCrenAbsent(e.id,key);
+          var choisi=(_ipadSel && _ipadSel.empId===e.id && _ipadSel.key===key);
+          // ★ Un clic sélectionne CE trait seulement (pas toute la ligne).
+          return '<div class="ip-bar'+(choisi?' ip-bar-on':'')+(absCren?' ip-bar-abs':'')+'"'
+            +' style="left:'+l+'px;width:'+w+'px;background:'+c.bg+';color:'+(c.tx||'#fff')+';"'
+            +' onclick="event.stopPropagation();ipadChoisirTrait(\''+e.id+'\',\''+key+'\')">'
+            +(absCren?'<span class="ip-bar-x">✕ </span>':'')
+            +_ipadEsc(sg.l||'')+' '+_ipadHM(sg.s)+'–'+_ipadHM(sg.e)+'</div>';
+        }).join('');
+        if(!o.segs.length) barres='<div class="ip-bar-none">Pas de trait aujourd\'hui</div>';
+        var sous='<span class="ip-tl-h2">'+_ipadHM(minJour)+'</span>'+(ct?(' <span class="ip-tl-ct">/ '+ct+'h</span>'):'');
+        if(o.abs){
+          var mi=(typeof _etatMotifInfo==='function')?_etatMotifInfo(o.abs.motif||'absence'):{icon:'🟧',court:'Absent',col:'#d98324'};
+          sous='<span class="ip-badge" style="background:'+mi.col+';">'+mi.icon+' '+_ipadEsc(mi.court)+'</span>';
+        }
+        return '<div class="ip-tl-row'+(o.abs?' ip-tl-abs':'')+'" onclick="_ipadSel=null;ipadFiche(\''+e.id+'\')">'
+          +'<div class="ip-tl-nm"><span class="ip-tl-n1">'+_ipadEsc(e.name||'')+'</span><span class="ip-tl-n2">'+sous+'</span></div>'
+          +'<div class="ip-tl-band" style="width:'+totalPx+'px;">'+barres+'</div></div>';
+      }).join('');
+      var dLong=new Date(_ipadDate+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+      corps='<div class="ip-day"><span class="ip-day-ic">📅</span><span class="ip-day-t">'+_ipadEsc(dLong)+'</span>'
+        +(caTot>0?('<span class="ip-day-ca">'+eur(caTot)+' HT prévus</span>'):'')
+        +(caSrc&&caSrc!=='réel'?('<span class="ip-day-src">prévisionnel</span>'):'')+'</div>'
+        +'<div class="ip-tl"><div class="ip-tl-scroll">'
+        +'<div class="ip-tl-head"><div class="ip-tl-nm ip-tl-nmh"></div><div class="ip-tl-band" style="width:'+totalPx+'px;">'+regle+'</div></div>'
+        +lignes+'</div></div>';
+    }
+  }
+  ov.innerHTML=_ipadCss()
+    +'<div class="ip-wrap"><div class="ip-top">'
+      +'<div><div class="ip-resto">📟 '+_ipadEsc(_ipadLabel())+'</div><div class="ip-jour">'+_ipadEsc(jour)+'</div></div>'
+      +'<div class="ip-right"><div class="ip-heure" id="ip-heure">'+heure+'</div>'
+      +(contenuBrut?'':'<div class="ip-compte">'+nbPres+' présent'+(nbPres>1?'s':'')+(nbAbs?(' · <b>'+nbAbs+' absent'+(nbAbs>1?'s':'')+'</b>'):'')+'</div>')
+      +'</div>'
+      +'<button class="ip-quit" onclick="ipadQuitter()">✕</button></div>'
+    +'<div class="ip-body">'+corps+'</div>'
+    +'<div class="ip-foot">👆 Touche un salarié pour déclarer une absence, signaler un incident ou saisir son pointage.</div>'
+    +'</div>';
+}
+window.ipadRender=ipadRender;
+
+/* ── Panneau d'un salarié ────────────────────────────────────────────────── */
+function ipadFiche(empId){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  _ipadEmp=e;
+  if(_ipadSel && _ipadSel.empId!==empId) _ipadSel=null;
+  var cfg=getIpadCfg();
+  var segs=_ipadSegs(empId);
+  var abs=null; try{ abs=(typeof hrAbsenceDuJour==='function')?hrAbsenceDuJour(e.id,_ipadDate):null; }catch(_){}
+  // Les créneaux, celui qui est sélectionné bien visible.
+  var lignes=segs.length? segs.map(function(sg){
+      var key=sg.s+'-'+sg.e, on=(_ipadSel&&_ipadSel.key===key);
+      var ab=_ipadCrenAbsent(empId,key);
+      var c=_ipadCoul(sg.l);
+      return '<div class="ip-fs'+(on?' ip-fs-on':'')+'" onclick="ipadChoisirTrait(\''+empId+'\',\''+key+'\')">'
+        +'<span class="ip-fs-pt" style="background:'+c.bg+';"></span>'
+        +'<b>'+_ipadHM(sg.s)+' – '+_ipadHM(sg.e)+'</b> · '+_ipadEsc(sg.l||'')
+        +(ab?('<span class="ip-fs-ab">'+((typeof _etatMotifInfo==='function')?_etatMotifInfo(ab).icon+' '+_etatMotifInfo(ab).court:'Absent')+'</span>'):'')
+        +(on?'<span class="ip-fs-ok">✓ choisi</span>':'')+'</div>';
+    }).join('') : '<div class="ip-fs ip-cren-off">Aucun trait aujourd\'hui</div>';
+  var cadre = _ipadSel
+    ? '<div class="ip-scope">Les actions portent sur le créneau <b>'+_ipadEsc(_ipadSel.l||'')+' '+_ipadHM(_ipadSel.s)+'–'+_ipadHM(_ipadSel.e)+'</b>'
+        +' <button class="ip-mini" onclick="_ipadSel=null;ipadRender();ipadFiche(\''+empId+'\')">Toute la journée</button></div>'
+    : (segs.length>1
+        ? '<div class="ip-scope ip-scope-hint">Touche un créneau ci-dessus pour n\'agir que sur celui-là.</div>'
+        : '');
+  var bandeau='';
+  if(abs){
+    var mi=(typeof _etatMotifInfo==='function')?_etatMotifInfo(abs.motif||'absence'):{icon:'🟧',label:'Absent',col:'#d98324'};
+    bandeau='<div class="ip-abs-band" style="border-color:'+mi.col+';">'+mi.icon+' Déclaré <b>'+_ipadEsc(mi.label)+'</b> sur la journée'
+      +'<button class="ip-mini" onclick="ipadRetirerAbsence(\''+e.id+'\')">Il est présent</button>'
+      +'<button class="ip-mini" onclick="ipadRetard(\''+e.id+'\')">Finalement en retard</button></div>';
+  }
+  var btn=function(ico,titre,sous,fn,coul){
+    return '<button class="ip-act" onclick="'+fn+'"><span class="ip-act-ic" style="background:'+coul+';">'+ico+'</span>'
+      +'<span><span class="ip-act-t">'+titre+'</span><span class="ip-act-s">'+sous+'</span></span></button>';
+  };
+  var quoi=_ipadSel?('ce créneau ('+_ipadHM(_ipadSel.s)+'–'+_ipadHM(_ipadSel.e)+')'):'la journée';
+  var actions='';
+  if(cfg.absence!==false)  actions+=btn('🤒','Déclarer une absence','Sur '+quoi+' → remplacement automatique',"ipadAbsence('"+e.id+"')",'#cc5555');
+  if(cfg.retard!==false)   actions+=btn('⏰','Déclarer un retard','Il est arrivé en retard — heure réelle d\'arrivée',"ipadRetard('"+e.id+"')",'#e08600');
+  if(cfg.incident!==false) actions+=btn('⚠️','Déclarer un incident','Même formulaire que la page Incidents',"ipadIncident('"+e.id+"')",'#d98324');
+  if(cfg.pointage!==false) actions+=btn('🕐','Saisir le pointage','Heures réelles, comme dans Contrôle des heures',"ipadPointage('"+e.id+"')",'#2e6fc2');
+  _ipadPanneau(_ipadEsc(e.name||''), '<div class="ip-fcren">'+lignes+'</div>'+cadre+bandeau+'<div class="ip-acts">'+actions+'</div>');
+}
+window.ipadFiche=ipadFiche;
+
+function _ipadPanneau(titre, html, retourFn){
+  var ov=_ipadOv();
+  var vieux=document.getElementById('ip-modal'); if(vieux) vieux.remove();
+  var d=document.createElement('div'); d.id='ip-modal'; d.className='ip-modal';
+  d.innerHTML='<div class="ip-card"><div class="ip-card-top"><button class="ip-back" onclick="'+(retourFn||'ipadFermerPanneau()')+'">‹</button>'
+    +'<div class="ip-card-t">'+titre+'</div><button class="ip-x" onclick="ipadFermerPanneau()">✕</button></div>'
+    +'<div class="ip-card-b">'+html+'</div></div>';
+  ov.appendChild(d);
+  // Le contenu s'ouvrait parfois déjà défiléb: le haut du panneau (le créneau
+  // concerné) était caché. On remet en haut à chaque ouverture.
+  try{ var b=d.querySelector('.ip-card-b'); if(b) b.scrollTop=0; }catch(_){}
+}
+function ipadFermerPanneau(){ var m=document.getElementById('ip-modal'); if(m) m.remove(); ipadRender(); }
+window.ipadFermerPanneau=ipadFermerPanneau;
+
+/* ── CODE MANAGER : identifie QUI signale ────────────────────────────────── */
+// Compare le code saisi aux codes du restaurant (directeur + managers 1 à 4) et
+// renvoie {cle, nom}. Le nom part ensuite dans l'incident / la trace d'absence.
+var _ipadCodeCb=null, _ipadCodeVal='';
+function ipadDemanderCode(titre, sous, cb){
+  _ipadCodeCb=cb; _ipadCodeVal='';
+  var touches='';
+  ['1','2','3','4','5','6','7','8','9','','0','←'].forEach(function(t){
+    touches+= t===''? '<span></span>' : '<button class="ip-key" onclick="ipadTape(\''+t+'\')">'+t+'</button>';
+  });
+  _ipadPanneau('🔐 '+titre,
+     '<div class="ip-code-sub">'+sous+'</div>'
+    +'<div class="ip-dots" id="ip-dots">····</div>'
+    +'<div class="ip-msg" id="ip-code-msg"></div>'
+    +'<div class="ip-pad">'+touches+'</div>'
+    +(getIpadCfg().codeTest!==false
+        ? '<div class="ip-test">🧪 Mode test : le code <b>0000</b> est accepté. À couper dans Paramètres › Poste iPad quand chaque manager aura le sien.</div>'
+        : ''),
+    "ipadFiche('"+(_ipadEmp?_ipadEmp.id:'')+"')");
+}
+function ipadTape(t){
+  if(t==='←') _ipadCodeVal=_ipadCodeVal.slice(0,-1);
+  else if(_ipadCodeVal.length<4) _ipadCodeVal+=t;
+  var dots=document.getElementById('ip-dots');
+  if(dots) dots.textContent=_ipadCodeVal.replace(/./g,'●')+'····'.slice(_ipadCodeVal.length);
+  if(_ipadCodeVal.length===4){
+    var who=_ipadQuiEstCe(_ipadCodeVal);
+    if(!who){
+      var m=document.getElementById('ip-code-msg'); if(m) m.textContent='Code incorrect.';
+      _ipadCodeVal=''; if(dots) dots.textContent='····';
+      return;
+    }
+    var cb=_ipadCodeCb; _ipadCodeCb=null; _ipadCodeVal='';
+    if(cb) cb(who);
+  }
+}
+window.ipadTape=ipadTape;
+var IPAD_CODE_TEST='0000';   // ⚠️ MODE TEST — voir plus bas
+function _ipadQuiEstCe(code){
+  var pins=(DB.restoPins&&DB.restoPins[_ipadResto])||{};
+  var noms=(DB.restoNames&&DB.restoNames[_ipadResto])||{};
+  var libelles={directeur:'Directeur',manager1:'Manager 1',manager2:'Manager 2',manager3:'Manager 3',manager4:'Manager 4'};
+  var cles=Object.keys(libelles);
+  // 1) un vrai code manager du restaurant → on rend son NOM
+  for(var i=0;i<cles.length;i++){
+    var k=cles[i];
+    if(pins[k] && String(pins[k])===String(code)){
+      var nom=noms[k]||libelles[k];
+      return {cle:k, nom:nom, role:(k==='directeur'?'directeur':'manager')};
+    }
+  }
+  // 2) ⚠️ MODE TEST — le code 0000 est accepté pour pouvoir essayer l'iPad avant
+  //    d'avoir donné un code distinct à chaque manager. Les enregistrements sont
+  //    alors signés « Mode test (0000) », donc repérables. À COUPER quand les vrais
+  //    codes seront en place : Paramètres › 📟 Poste iPad › « Mode test ».
+  if(getIpadCfg().codeTest!==false && String(code)===IPAD_CODE_TEST){
+    return {cle:'test', nom:'Mode test (0000)', role:'manager', test:true};
+  }
+  return null;
+}
+
+/* ── Action 1 : déclarer une absence ─────────────────────────────────────── */
+function ipadAbsence(empId){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  _ipadEmp=e;
+  var M=(typeof HR_ETAT_MOTIFS!=='undefined')?HR_ETAT_MOTIFS:{absence:{label:'Absence',icon:'🟧',col:'#d98324'}};
+  var quoi=_ipadSel
+    ? ('le créneau <b>'+_ipadEsc(_ipadSel.l||'')+' '+_ipadHM(_ipadSel.s)+'–'+_ipadHM(_ipadSel.e)+'</b>')
+    : '<b>toute la journée</b>';
+  var html='<div class="ip-code-sub">Motif de l\'absence de <b>'+_ipadEsc(e.name)+'</b> sur '+quoi+'.</div>'
+    +'<div class="ip-lbl">Motif</div><div class="ip-chips">';
+  Object.keys(M).forEach(function(k){
+    var m=M[k];
+    html+='<button class="ip-chip" style="--sc:'+m.col+';" onclick="ipadAbsenceMotif(\''+empId+'\',\''+k+'\')">'
+      +m.icon+' '+_ipadEsc(m.label)+'</button>';
+  });
+  html+='</div>';
+  _ipadPanneau('🤒 Absence', html, "ipadFiche('"+empId+"')");
+}
+window.ipadAbsence=ipadAbsence;
+function ipadAbsenceMotif(empId, motif){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  var mi=(typeof _etatMotifInfo==='function')?_etatMotifInfo(motif):{label:motif};
+  var sel=_ipadSel;
+  var quoi=sel?(_ipadHM(sel.s)+'–'+_ipadHM(sel.e)):'toute la journée';
+  ipadDemanderCode('Ton code manager',
+    'Déclarer <b>'+_ipadEsc(mi.label)+'</b> pour <b>'+_ipadEsc(e.name)+'</b> sur <b>'+quoi+'</b>.<br>Ton code sert à savoir qui l\'a signalé.',
+    function(who){
+      if(sel){
+        // ★ ABSENCE SUR UN SEUL CRÉNEAU : la fonction de l'app qui ne touche pas
+        //   aux autres créneaux du jour.
+        try{ ptgEditCrenAbs(empId, _ipadDate, sel.key, motif); }catch(err){ console.warn('ipad abs créneau',err); }
+        try{ _ipadTracePtg(empId, who, 'absence '+motif+' '+quoi); }catch(_){}
+        // Le créneau libéré part en remplacement / dépannage comme une absence.
+        try{ _absAiguillage(empId, _ipadDate, motif); }catch(_){}
+      } else {
+        try{ ptgEditAbsence(empId, _ipadDate, motif); }catch(err){ console.warn('ipad absence',err); }
+        try{
+          var _tab=(typeof HR_ABSENCES!=='undefined'&&HR_ABSENCES)?HR_ABSENCES:((typeof window!=='undefined'&&window.HR_ABSENCES)||{});
+          var lst=_tab[empId]||[];
+          for(var i=lst.length-1;i>=0;i--){ if(lst[i] && lst[i].from===_ipadDate){ lst[i].par=who.nom; lst[i].parCle=who.cle; break; } }
+          hrSauverAbsences();
+        }catch(_){}
+      }
+      _ipadSel=null;
+      _ipadConfirme('Absence enregistrée',
+        '<b>'+_ipadEsc(e.name)+'</b> — '+_ipadEsc(mi.label)+' · '+_ipadEsc(quoi)
+        +'<br><span class="ip-par">Signalé par '+_ipadEsc(who.nom)+'</span>'
+        +'<div class="ip-suite">Le créneau libéré part en <b>remplacement automatique</b> ou en <b>dépannage 🆘</b> selon que la semaine est déjà transférée à l\'équipe.</div>');
+    });
+}
+window.ipadAbsenceMotif=ipadAbsenceMotif;
+function ipadRetirerAbsence(empId){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  ipadDemanderCode('Ton code manager','Annuler l\'absence de <b>'+_ipadEsc(e.name)+'</b> (il est finalement présent).', function(who){
+    try{ ptgEditPresent(empId,_ipadDate); }catch(err){ console.warn('ipad présent',err); }
+    _ipadConfirme('Absence annulée','<b>'+_ipadEsc(e.name)+'</b> est de nouveau noté présent.<br><span class="ip-par">Par '+_ipadEsc(who.nom)+'</span>');
+  });
+}
+window.ipadRetirerAbsence=ipadRetirerAbsence;
+
+/* ── Déclarer un RETARD ───────────────────────────────────────────────────────
+ * Le salarié est venu, mais en retard. On enlève l'absence éventuelle, on inscrit
+ * son heure RÉELLE d'arrivée dans le pointage (donc Contrôle des heures l'affiche
+ * en rouge, comme un retard), et on garde le nom du manager qui l'a constaté.
+ */
+function ipadRetard(empId){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  _ipadEmp=e;
+  var segs=_ipadSegs(empId);
+  var sel=_ipadSel || (segs.length?{key:segs[0].s+'-'+segs[0].e, s:segs[0].s, e:segs[0].e, l:segs[0].l}:null);
+  if(!sel){ _ipadConfirme('Impossible','<b>'+_ipadEsc(e.name)+'</b> n\'a aucun créneau aujourd\'hui : il n\'y a pas d\'heure de départ prévue pour mesurer un retard.', true); return; }
+  var prevu=_ipadHM(sel.s);
+  // propositions rapides : +5, +10, +15, +30 min, ou heure libre
+  var vite=[5,10,15,30].map(function(m){
+    return '<button class="ip-chip" onclick="ipadRetardMin(\''+empId+'\','+m+')">+'+m+' min ('+_ipadHM(sel.s+m)+')</button>';
+  }).join('');
+  _ipadPanneau('⏰ Retard — '+_ipadEsc(e.name||''),
+     '<div class="ip-code-sub">Créneau <b>'+_ipadEsc(sel.l||'')+' '+prevu+'–'+_ipadHM(sel.e)+'</b>.<br>Il était prévu à <b>'+prevu+'</b> : à quelle heure est-il arrivé ?</div>'
+    +'<div class="ip-lbl">Retard</div><div class="ip-chips">'+vite+'</div>'
+    +'<div class="ip-lbl">ou heure exacte d\'arrivée</div>'
+    +'<input type="time" id="ip-ret-h" class="ip-note" value="'+prevu+'" style="font-size:1.3rem;text-align:center;">'
+    +'<div class="ip-msg" id="ip-ret-msg"></div>'
+    +'<button class="ip-valide" onclick="ipadRetardValider(\''+empId+'\')">Continuer</button>',
+    "ipadFiche('"+empId+"')");
+}
+window.ipadRetard=ipadRetard;
+function ipadRetardMin(empId, min){
+  var segs=_ipadSegs(empId);
+  var sel=_ipadSel || (segs.length?{s:segs[0].s}:null); if(!sel) return;
+  var h=document.getElementById('ip-ret-h'); if(h) h.value=_ipadHM(sel.s+min);
+  ipadRetardValider(empId);
+}
+window.ipadRetardMin=ipadRetardMin;
+function ipadRetardValider(empId){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  var segs=_ipadSegs(empId);
+  var sel=_ipadSel || (segs.length?{key:segs[0].s+'-'+segs[0].e, s:segs[0].s, e:segs[0].e, l:segs[0].l}:null); if(!sel) return;
+  var v=((document.getElementById('ip-ret-h')||{}).value||'').trim();
+  var m=v.match(/^(\d{1,2}):(\d{2})$/);
+  if(!m){ var msg=document.getElementById('ip-ret-msg'); if(msg) msg.textContent='Indique une heure d\'arrivée.'; return; }
+  var mins=(+m[1])*60+(+m[2]); if((+m[1])<5) mins+=1440;
+  var retard=mins-sel.s;
+  if(retard<=0){ var msg2=document.getElementById('ip-ret-msg'); if(msg2) msg2.textContent='Cette heure n\'est pas plus tard que '+_ipadHM(sel.s)+'.'; return; }
+  ipadDemanderCode('Ton code manager',
+    'Déclarer <b>'+retard+' min de retard</b> pour <b>'+_ipadEsc(e.name)+'</b> (arrivé à '+v+').<br>Ton code sert à savoir qui l\'a constaté.',
+    function(who){
+      // 1) il est présent : on retire l'absence éventuelle (jour et créneau)
+      try{ if(_ipadCrenAbsent(empId,sel.key) && typeof ptgEditCrenPresent==='function') ptgEditCrenPresent(empId,_ipadDate,sel.key); }catch(_){}
+      try{ var a=(typeof hrAbsenceDuJour==='function')?hrAbsenceDuJour(empId,_ipadDate):null; if(a) ptgEditPresent(empId,_ipadDate); }catch(_){}
+      // 2) heure réelle d'arrivée sur CE créneau → Contrôle des heures l'affiche en retard
+      try{
+        var ctx=ptgRec(empId,_ipadDate); ctx.rec.cren=ctx.rec.cren||{};
+        var cur=ctx.rec.cren[sel.key]||{};
+        ctx.rec.cren[sel.key]={arrivee:v, depart:(cur.depart||'')};
+        if(!ctx.rec.arrivee) ctx.rec.arrivee=v;
+        ptgSaveAll(ctx.all);
+      }catch(err){ console.warn('ipad retard',err); }
+      try{ _ipadTracePtg(empId, who, 'retard '+retard+' min (arrivé '+v+')'); }catch(_){}
+      try{ if(typeof ptgRenderSuivi==='function') ptgRenderSuivi(); }catch(_){}
+      try{ if(typeof _semRefreshIfActive==='function') _semRefreshIfActive(); }catch(_){}
+      _ipadSel=null;
+      _ipadConfirme('Retard enregistré',
+        '<b>'+_ipadEsc(e.name)+'</b> — arrivé à <b>'+_ipadEsc(v)+'</b> au lieu de '+_ipadHM(sel.s)+' · <b>'+retard+' min</b>'
+        +'<br><span class="ip-par">Constaté par '+_ipadEsc(who.nom)+'</span>'
+        +'<div class="ip-suite">Il apparaît en <b>retard</b> dans Contrôle des heures. Si une absence avait été déclarée, elle a été annulée.</div>');
+    });
+}
+window.ipadRetardValider=ipadRetardValider;
+
+// Trace « qui a fait quoi » dans la fiche de pointage du jour.
+function _ipadTracePtg(empId, who, quoi){
+  try{
+    var ctx=ptgRec(empId,_ipadDate);
+    ctx.rec.parIpad=(ctx.rec.parIpad||[]).concat([{par:who.nom, cle:who.cle, quoi:quoi, ts:Date.now()}]);
+    ptgSaveAll(ctx.all);
+  }catch(_){}
+}
+
+/* ── Action 2 : incident — MÊME formulaire que la page Incidents ─────────────
+ * On réutilise les listes de l'application : PROBS (les 16 motifs, avec leurs
+ * icônes) et SANCTIONS (observation verbale / écrite, avertissement, mise à
+ * pied), ainsi que la même règle de gravité. L'enregistrement écrit dans la même
+ * table bks_incidents, avec les mêmes champs — au nom du manager qui a saisi son
+ * code. Comme dans l'app, un courrier est préparé si la suite n'est pas une
+ * simple observation verbale.
+ */
+var _ipadProbs={}, _ipadSanction='verbal';
+function _ipadListeProbs(){
+  return (typeof PROBS!=='undefined' && PROBS && PROBS.length) ? PROBS
+    : [{id:'retard',icon:'⏰',label:'Retard'},{id:'absence',icon:'🚫',label:'Absence injustifiée'},{id:'autre',icon:'❗',label:'Autre'}];
+}
+function _ipadListeSanctions(){
+  return (typeof SANCTIONS!=='undefined' && SANCTIONS) ? SANCTIONS
+    : {verbal:{label:'Observation verbale',icon:'📝',color:'#F5A623'}};
+}
+function ipadIncident(empId){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  _ipadEmp=e; _ipadProbs={}; _ipadSanction='verbal';
+  var chips=_ipadListeProbs().map(function(p){
+    return '<button class="ip-chip" id="ip-chip-'+p.id+'" onclick="ipadToggleProb(\''+p.id+'\')">'+p.icon+' '+_ipadEsc(p.label)+'</button>';
+  }).join('');
+  var S=_ipadListeSanctions();
+  var sanc=Object.keys(S).map(function(k){
+    return '<button class="ip-sanc'+(k==='verbal'?' ip-sanc-on':'')+'" id="ip-sanc-'+k+'" style="--sc:'+(S[k].color||'#888')+';" onclick="ipadChoisirSanction(\''+k+'\')">'
+      +'<span class="ip-sanc-ic">'+S[k].icon+'</span><span>'+_ipadEsc(S[k].label)+'</span></button>';
+  }).join('');
+  var cren=_ipadSel?('<div class="ip-scope">Créneau concerné : <b>'+_ipadEsc(_ipadSel.l||'')+' '+_ipadHM(_ipadSel.s)+'–'+_ipadHM(_ipadSel.e)+'</b></div>'):'';
+  _ipadPanneau('⚠️ Incident — '+_ipadEsc(e.name||''),
+     cren
+    +'<div class="ip-lbl">Motif</div><div class="ip-chips">'+chips+'</div>'
+    +'<div class="ip-lbl">Suite donnée</div><div class="ip-sancs">'+sanc+'</div>'
+    +'<div class="ip-lbl">Précisions</div>'
+    +'<textarea id="ip-inc-note" class="ip-note" rows="3" placeholder="Ce qui s\'est passé (facultatif)"></textarea>'
+    +'<div class="ip-msg" id="ip-inc-msg"></div>'
+    +'<button class="ip-valide" onclick="ipadIncidentSuite(\''+empId+'\')">Continuer</button>',
+    "ipadFiche('"+empId+"')");
+}
+window.ipadIncident=ipadIncident;
+function ipadToggleProb(id){
+  _ipadProbs[id]=!_ipadProbs[id];
+  var b=document.getElementById('ip-chip-'+id); if(b) b.className='ip-chip'+(_ipadProbs[id]?' ip-chip-on':'');
+}
+window.ipadToggleProb=ipadToggleProb;
+function ipadChoisirSanction(k){
+  _ipadSanction=k;
+  Object.keys(_ipadListeSanctions()).forEach(function(x){
+    var b=document.getElementById('ip-sanc-'+x); if(b) b.className='ip-sanc'+(x===k?' ip-sanc-on':'');
+  });
+}
+window.ipadChoisirSanction=ipadChoisirSanction;
+function ipadIncidentSuite(empId){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  var probs=Object.keys(_ipadProbs).filter(function(k){return _ipadProbs[k];});
+  var note=((document.getElementById('ip-inc-note')||{}).value||'').trim();
+  if(!probs.length){
+    var m=document.getElementById('ip-inc-msg'); if(m) m.textContent='Sélectionnez un motif.';   // même règle que l'app
+    return;
+  }
+  var S=_ipadListeSanctions()[_ipadSanction]||{label:''};
+  ipadDemanderCode('Ton code manager',
+    'Déclarer <b>'+_ipadEsc(S.label)+'</b> pour <b>'+_ipadEsc(e.name)+'</b>.<br>Ton code sert à savoir qui l\'a signalé.',
+    function(who){ _ipadIncidentEnvoyer(e, probs, note, who); });
+}
+window.ipadIncidentSuite=ipadIncidentSuite;
+async function _ipadIncidentEnvoyer(e, probs, note, who){
+  // Même gravité que l'app : verbal/écrit = 2, avertissement = 3, mise à pied = 4.
+  var sev={verbal:'2',ecrit:'2',avert:'3',mise:'4'}[_ipadSanction]||'2';
+  var extra={source:'ipad'};
+  if(_ipadSel) extra.creneau={l:_ipadSel.l, s:_ipadSel.s, e:_ipadSel.e};
+  var data={
+    id:'inc_'+Date.now()+'_'+Math.floor(Math.random()*1000),
+    emp_id:e.id, resto_id:(e.restoId||e.resto_id||_ipadResto),
+    reporter_id:'ipad_'+who.cle, reporter_name:who.nom+' (poste iPad)',
+    inc_datetime:new Date().toISOString(),
+    problems:probs, extra:extra,
+    severity:sev, sanction_type:_ipadSanction,
+    note:note, created_at:new Date().toISOString()
+  };
+  var ok=null;
+  try{ ok=await sb.insert('bks_incidents', data); }catch(err){ console.warn('ipad incident',err); }
+  if(!ok){
+    _ipadConfirme('Enregistrement impossible','L\'incident n\'a pas pu être enregistré (réseau ?). Réessaie dans un moment.', true);
+    return;
+  }
+  var inc=Object.assign({},data,{id:ok.id,empId:e.id,datetime:data.inc_datetime,extraData:extra,sanctionType:_ipadSanction});
+  try{ DB.incidents.unshift(inc); }catch(_){}
+  try{ if(typeof updateIncBadge==='function') updateIncBadge(); }catch(_){}
+  // Comme dans l'app : au-delà de l'observation verbale, un courrier est préparé.
+  var courrier=false;
+  if(_ipadSanction!=='verbal' && typeof createLetterNew==='function'){
+    try{ var lid=await createLetterNew(inc); courrier=!!lid; }catch(err){ console.warn('ipad courrier',err); }
+  }
+  var S=_ipadListeSanctions()[_ipadSanction]||{label:''};
+  var libProbs=_ipadListeProbs().filter(function(p){return probs.indexOf(p.id)>=0;}).map(function(p){return p.label;});
+  _ipadSel=null;
+  _ipadConfirme('Incident enregistré',
+    '<b>'+_ipadEsc(e.name)+'</b><br>'+_ipadEsc(libProbs.join(' · '))
+    +'<br>Suite : <b>'+_ipadEsc(S.label)+'</b>'
+    +'<br><span class="ip-par">Signalé par '+_ipadEsc(who.nom)+'</span>'
+    +'<div class="ip-suite">'+(courrier
+        ? 'Un courrier a été préparé : il est à relire et à envoyer depuis <b>Incidents</b>, au bureau.'
+        : 'Enregistré dans <b>Incidents</b>. Aucun courrier pour une observation verbale.')+'</div>');
+}
+
+/* ── Action 3 : pointage (réutilise l'éditeur existant) ──────────────────── */
+function ipadPointage(empId){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  ipadDemanderCode('Ton code manager','Saisir le pointage de <b>'+_ipadEsc(e.name)+'</b>.<br>Ton nom sera enregistré comme auteur de la saisie.', function(who){
+    // ★ On garde la trace du manager qui saisit le pointage.
+    try{ _ipadTracePtg(empId, who, 'pointage'); }catch(_){}
+    var m=document.getElementById('ip-modal'); if(m) m.remove();
+    // L'éditeur de pointage de l'app se pose sur <body> avec un z-index plus bas
+    // que l'écran iPad : sans ça il s'ouvrait DERRIÈRE et paraissait ne rien faire.
+    setTimeout(function(){
+      try{ var pe=document.getElementById('modal-ptg-edit'); if(pe) pe.style.zIndex='11600'; }catch(_){}
+    }, 60);
+    try{ ptgEditJour(empId, _ipadDate); }catch(err){ console.warn('ipad pointage',err);
+      _ipadConfirme('Indisponible','L\'éditeur de pointage n\'a pas pu s\'ouvrir ici.', true); }
+  });
+}
+window.ipadPointage=ipadPointage;
+
+/* ── Action 4 : sa fiche (lecture seule, sans code) ──────────────────────── */
+function ipadInfos(empId){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  var ch=null; try{ ch=(typeof hrContratHebdo==='function')?hrContratHebdo(e):null; }catch(_){}
+  var sem=null; try{ sem=(typeof hrMinSemaineEmpRows==='function')?hrMinSemaineEmpRows(e.id):null; }catch(_){}
+  var qual=[]; try{ qual=(e.infos&&e.infos.qualifs)||[]; }catch(_){}
+  var ligne=function(l,v){ return v?('<div class="ip-info"><span>'+l+'</span><b>'+_ipadEsc(v)+'</b></div>'):''; };
+  var html=ligne('Contrat', ch?(ch+' h / semaine'):'—')
+    +ligne('Placé cette semaine', (sem!=null)?((sem/60).toFixed(1).replace('.',',')+' h'):'—')
+    +ligne('Téléphone', e.phone||'—')
+    +ligne('Restaurant', _ipadLabel())
+    +(qual.length?('<div class="ip-info ip-info-col"><span>Postes maîtrisés</span><div class="ip-quals">'+qual.map(function(q){return '<span>'+_ipadEsc(q)+'</span>';}).join('')+'</div></div>'):'');
+  _ipadPanneau('👤 '+_ipadEsc(e.name||''), html+'<div class="ip-note-bas">Lecture seule. Les modifications se font au bureau.</div>', "ipadFiche('"+empId+"')");
+}
+window.ipadInfos=ipadInfos;
+
+/* ── Confirmation ────────────────────────────────────────────────────────── */
+function _ipadConfirme(titre, html, erreur){
+  _ipadPanneau((erreur?'⚠️ ':'✅ ')+titre,
+    '<div class="ip-ok'+(erreur?' ip-ko':'')+'">'+html+'</div>'
+    +'<button class="ip-valide" onclick="ipadFermerPanneau()">Terminé</button>', 'ipadFermerPanneau()');
+}
+
+/* ── Habillage ───────────────────────────────────────────────────────────── */
+function _ipadCss(){ return '<style>\
+#ipad-poste{position:fixed;inset:0;z-index:11500;background:#f4f5f7;color:#1c1e22;font-family:\'DM Sans\',system-ui,sans-serif;overflow:hidden;}\
+.ip-wrap{display:flex;flex-direction:column;height:100%;}\
+.ip-top{display:flex;align-items:center;gap:16px;padding:14px 20px;background:linear-gradient(90deg,#D62300,#F5A623);color:#fff;}\
+.ip-resto{font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.8rem;letter-spacing:1px;text-transform:uppercase;line-height:1;}\
+.ip-jour{font-size:.9rem;opacity:.95;text-transform:capitalize;margin-top:3px;}\
+.ip-right{margin-left:auto;text-align:right;}\
+.ip-heure{font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.8rem;line-height:1;}\
+.ip-compte{font-size:.85rem;opacity:.95;margin-top:3px;}\
+.ip-quit{background:rgba(0,0,0,.22);border:none;color:#fff;width:42px;height:42px;border-radius:11px;font-size:1.15rem;cursor:pointer;flex:0 0 auto;}\
+.ip-body{flex:1;overflow-y:auto;padding:14px 16px 8px;-webkit-overflow-scrolling:touch;}\
+.ip-foot{padding:11px 18px 14px;font-size:.88rem;color:#6b7280;border-top:1px solid #e3e5e9;background:#fff;}\
+.ip-day{display:flex;align-items:baseline;gap:11px;flex-wrap:wrap;margin:2px 2px 12px;}\
+.ip-day-ic{font-size:1.3rem;}\
+.ip-day-t{font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.65rem;text-transform:capitalize;letter-spacing:.5px;}\
+.ip-day-ca{font-size:1rem;font-weight:700;color:#0a7d3c;}\
+.ip-day-src{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#8a6500;background:#ffeeba;border-radius:6px;padding:2px 8px;}\
+.ip-tl{border:1px solid #dcdfe4;border-radius:12px;overflow:hidden;background:#fff;}\
+.ip-tl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}\
+.ip-tl-head{display:flex;position:sticky;top:0;z-index:5;background:#fafbfc;border-bottom:1px solid #dcdfe4;}\
+.ip-tl-head .ip-tl-band{display:flex;min-height:0;background-image:none;}\
+.ip-tl-head .ip-tl-nm{min-height:0;background:#fafbfc;}\
+.ip-tl-h{flex:0 0 auto;text-align:center;padding:7px 0 6px;border-right:1px solid #e8eaee;}\
+.ip-h-l{font-size:.86rem;font-weight:800;color:#31353c;font-family:\'DM Mono\',monospace;}\
+.ip-h-ca{font-size:.74rem;color:#c47f00;font-weight:700;font-family:\'DM Mono\',monospace;margin-top:1px;}\
+.ip-h-nb{font-size:.72rem;color:#5b6270;margin-top:1px;min-height:14px;}\
+.ip-tl-row{display:flex;align-items:stretch;border-bottom:1px solid #edeff2;cursor:pointer;min-height:46px;}\
+.ip-tl-row:last-child{border-bottom:none;}\
+.ip-tl-row:active{background:#f0f3f8;}\
+.ip-tl-abs{background:#fbf3f3;}\
+.ip-tl-nm{flex:0 0 216px;width:216px;position:sticky;left:0;z-index:4;background:#fff;border-right:1px solid #dcdfe4;padding:6px 12px;display:flex;flex-direction:column;justify-content:center;gap:2px;}\
+.ip-tl-n1{font-weight:800;font-size:.88rem;line-height:1.2;text-transform:uppercase;letter-spacing:.2px;}\
+.ip-tl-n2{font-size:.74rem;color:#6b7280;display:flex;align-items:center;gap:5px;}\
+.ip-tl-h2{font-family:\'DM Mono\',monospace;font-weight:700;color:#c47f00;}\
+.ip-tl-ct{font-family:\'DM Mono\',monospace;}\
+.ip-tl-nmh{background:#fafbfc;}\
+.ip-tl-band{position:relative;flex:0 0 auto;min-height:46px;background-image:repeating-linear-gradient(to right,transparent 0,transparent 75px,#eef0f3 75px,#eef0f3 76px);}\
+.ip-bar{position:absolute;top:7px;bottom:7px;border-radius:5px;padding:0 8px;display:flex;align-items:center;overflow:hidden;font-size:.72rem;font-weight:700;white-space:nowrap;text-overflow:ellipsis;letter-spacing:.2px;cursor:pointer;}\
+.ip-bar-on{box-shadow:0 0 0 3px #111 inset,0 0 0 3px #ffd400;z-index:9;}\
+.ip-bar-abs{opacity:.45;text-decoration:line-through;}\
+.ip-bar-x{font-weight:900;}\
+.ip-fs{display:flex;align-items:center;gap:9px;cursor:pointer;}\
+.ip-fs-on{outline:2px solid #D62300;outline-offset:-2px;background:#fdeeea;}\
+.ip-fs-pt{width:11px;height:11px;border-radius:3px;flex:0 0 auto;}\
+.ip-fs-ab{margin-left:6px;font-size:.8rem;color:#b3261e;font-weight:700;}\
+.ip-fs-ok{margin-left:auto;font-size:.8rem;color:#D62300;font-weight:800;}\
+.ip-scope{background:#fff6e5;border:1px solid #f0d199;border-radius:10px;padding:10px 13px;margin-bottom:12px;font-size:.9rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}\
+.ip-scope-hint{background:#f3f5f8;border-color:#e2e5ea;color:#6b7280;}\
+.ip-lbl{font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#8a9099;margin:4px 0 7px;}\
+.ip-sancs{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}\
+.ip-sanc{display:flex;align-items:center;gap:10px;background:#f7f8fa;border:1px solid #e2e5ea;border-radius:11px;padding:11px 14px;font:inherit;font-size:.95rem;color:#1c1e22;text-align:left;cursor:pointer;}\
+.ip-sanc-on{border-color:var(--sc);background:#fff;box-shadow:0 0 0 2px var(--sc) inset;font-weight:800;}\
+.ip-sanc-ic{font-size:1.15rem;}\
+.ip-bar-none{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#9aa1ab;font-style:italic;font-size:.82rem;}\
+.ip-badge{font-size:.7rem;font-weight:800;color:#fff;border-radius:8px;padding:1px 8px;white-space:nowrap;align-self:flex-start;}\
+.ip-vide{text-align:center;color:#6b7280;padding:60px 20px;font-size:1.05rem;line-height:1.7;}\
+.ip-vide span{font-size:.9rem;color:#9aa1ab;}\
+.ip-load{text-align:center;color:#6b7280;padding:60px 20px;font-size:1.05rem;}\
+.ip-modal{position:absolute;inset:0;background:rgba(20,22,26,.55);display:flex;align-items:center;justify-content:center;padding:18px;}\
+.ip-card{background:#fff;border:1px solid #dcdfe4;border-radius:18px;width:min(560px,100%);max-height:92%;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.3);}\
+.ip-card-top{display:flex;align-items:center;gap:10px;padding:13px 15px;border-bottom:1px solid #e6e8ec;}\
+.ip-card-t{flex:1;font-weight:800;font-size:1.12rem;}\
+.ip-back,.ip-x{background:#f0f2f5;border:none;color:#4b5158;width:40px;height:40px;border-radius:11px;font-size:1.2rem;cursor:pointer;}\
+.ip-card-b{padding:16px;overflow-y:auto;}\
+.ip-fcren{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}\
+.ip-fs{background:#f3f5f8;border-radius:9px;padding:9px 13px;font-size:.97rem;}\
+.ip-cren-off{color:#9aa1ab;font-style:italic;}\
+.ip-abs-band{border:1px solid;border-radius:11px;padding:11px 14px;margin-bottom:14px;font-size:.94rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fbf3f3;}\
+.ip-mini{margin-left:auto;background:#eceff3;border:none;color:#3d4249;border-radius:9px;padding:7px 12px;font-size:.83rem;cursor:pointer;}\
+.ip-acts{display:flex;flex-direction:column;gap:9px;}\
+.ip-act{display:flex;align-items:center;gap:14px;background:#f7f8fa;border:1px solid #e2e5ea;border-radius:13px;padding:13px 15px;color:#1c1e22;font:inherit;text-align:left;cursor:pointer;min-height:66px;}\
+.ip-act:active{background:#eef1f6;}\
+.ip-act-ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.35rem;flex:0 0 auto;color:#fff;}\
+.ip-act-t{display:block;font-weight:800;font-size:1.02rem;}\
+.ip-act-s{display:block;font-size:.83rem;color:#6b7280;margin-top:2px;}\
+.ip-code-sub{font-size:.97rem;color:#3d4249;margin-bottom:14px;line-height:1.6;}\
+.ip-dots{text-align:center;font-size:2rem;letter-spacing:12px;color:#D62300;margin:6px 0 4px;}\
+.ip-msg{text-align:center;color:#c62828;font-size:.9rem;min-height:20px;}\
+.ip-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px;}\
+.ip-key{background:#f2f4f7;border:1px solid #dfe3e8;border-radius:13px;color:#1c1e22;font-size:1.5rem;font-weight:700;padding:17px 0;cursor:pointer;}\
+.ip-key:active{background:#e4e8ee;}\
+.ip-motifs{display:flex;flex-direction:column;gap:9px;}\
+.ip-motif{display:flex;align-items:center;gap:12px;background:#f7f8fa;border:1px solid;border-radius:12px;padding:13px 15px;color:#1c1e22;font:inherit;font-size:1rem;font-weight:700;text-align:left;cursor:pointer;min-height:58px;}\
+.ip-motif-ic{font-size:1.2rem;}\
+.ip-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}\
+.ip-chip{background:#f2f4f7;border:1px solid var(--sc,#dfe3e8);color:#3d4249;border-radius:20px;padding:10px 16px;font:inherit;font-size:.94rem;cursor:pointer;}\
+.ip-chip:active{background:#e4e8ee;}\
+.ip-chip-on{background:#d98324;border-color:#d98324;color:#fff;font-weight:800;}\
+.ip-note{width:100%;background:#fff;border:1px solid #dfe3e8;border-radius:11px;color:#1c1e22;padding:12px;font:inherit;font-size:1rem;resize:vertical;box-sizing:border-box;}\
+.ip-valide{width:100%;margin-top:14px;background:#D62300;border:none;color:#fff;border-radius:12px;padding:15px;font:inherit;font-size:1.04rem;font-weight:800;cursor:pointer;}\
+.ip-note-bas{margin-top:12px;font-size:.83rem;color:#8a9099;line-height:1.6;}\
+.ip-test{margin-top:14px;background:#fff6e5;border:1px solid #f0d199;border-radius:10px;padding:10px 12px;font-size:.82rem;color:#7a5600;line-height:1.55;}\
+.ip-ok{background:#eaf7ef;border:1px solid #a7ddbc;border-radius:12px;padding:16px;font-size:1.01rem;line-height:1.65;}\
+.ip-ko{background:#fdecea;border-color:#f0b0a8;}\
+.ip-par{font-size:.87rem;color:#0a7d3c;}\
+.ip-ko .ip-par{color:#b3261e;}\
+.ip-suite{margin-top:10px;font-size:.87rem;color:#4b5158;}\
+.ip-info{display:flex;justify-content:space-between;gap:14px;padding:12px 2px;border-bottom:1px solid #edeff2;font-size:1rem;}\
+.ip-info span{color:#6b7280;}\
+.ip-info-col{flex-direction:column;align-items:flex-start;gap:8px;}\
+.ip-quals{display:flex;flex-wrap:wrap;gap:6px;}\
+.ip-quals span{background:#f0f2f5;border-radius:8px;padding:4px 10px;font-size:.84rem;color:#3d4249;}\
+@media(max-width:820px){.ip-tl-nm{flex:0 0 160px;width:160px;}}\
+</style>'; }
+
+/* ── Réglage dans Paramètres ─────────────────────────────────────────────── */
+function paramIpad(){
+  try{ paramOuvrir('card','pc-ipad'); }catch(_){}
+  renderIpadParam();
+}
+window.paramIpad=paramIpad;
+function renderIpadParam(){
+  var box=document.getElementById('pc-ipad-body'); if(!box) return;
+  var cfg=getIpadCfg();
+  var sw=function(k,t,s){
+    var on=cfg[k]!==false;
+    if(k==='tousLesSalaries') on=cfg[k]===true;
+    return '<div style="display:flex;align-items:center;gap:12px;background:#1b1b1f;border:1px solid #333;border-radius:12px;padding:12px 14px;margin-bottom:9px;">'
+      +'<div style="flex:1;"><div style="font-weight:700;">'+t+'</div><div style="font-size:.8rem;color:#999;">'+s+'</div></div>'
+      +'<button onclick="ipadToggleCfg(\''+k+'\')" style="width:52px;height:30px;border-radius:16px;border:none;cursor:pointer;background:'+(on?'#3ecf8e':'#444')+';position:relative;">'
+      +'<span style="position:absolute;top:3px;'+(on?'right:3px':'left:3px')+';width:24px;height:24px;border-radius:50%;background:#fff;"></span></button></div>';
+  };
+  box.innerHTML='<p style="font-size:.84rem;color:#aaa;margin-bottom:14px;">Choisis ce que le manager peut faire depuis l\'iPad du bureau. Les actions sensibles demandent toujours son code — c\'est ce code qui identifie <b>qui</b> a signalé.</p>'
+    +sw('absence','🤒 Déclarer une absence','Déclenche le remplacement automatique ou le dépannage 🆘')
+    +sw('retard','⏰ Déclarer un retard','Heure réelle d\'arrivée ; annule l\'absence si elle avait été déclarée')
+    +sw('incident','⚠️ Signaler un incident','Même formulaire que la page Incidents, au nom du manager')
+    +sw('pointage','🕐 Saisir le pointage','Heures réelles, comme dans Contrôle des heures')
+    +sw('tousLesSalaries','👥 Afficher toute l\'équipe','Par défaut, seuls les salariés qui ont un trait aujourd\'hui')
+    +'<div style="height:10px;"></div>'
+    +sw('codeTest','🧪 Mode test — accepter le code 0000','⚠️ Pour essayer l\'iPad avant d\'avoir donné un code à chaque manager. Les saisies sont signées « Mode test (0000) ». À COUPER une fois les vrais codes en place.')
+    +'<p style="font-size:.8rem;color:#777;margin-top:14px;">Sur l\'iPad : écran de connexion → le restaurant → tuile <b>📟 iPad</b>.</p>';
+}
+window.renderIpadParam=renderIpadParam;
+function ipadToggleCfg(k){
+  var cfg=getIpadCfg();
+  if(k==='tousLesSalaries') cfg[k]=!(cfg[k]===true); else cfg[k]=(cfg[k]===false);
+  saveIpadCfg(); renderIpadParam();
+}
+window.ipadToggleCfg=ipadToggleCfg;
+</script>
+
 </body>
 </html>
