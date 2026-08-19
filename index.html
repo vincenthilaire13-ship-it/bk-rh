@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-19 22:00 · v593 (iPad : il va CHERCHER les pointages et se rafraichit tout seul)';
+  var EMBEDDED_VERSION = '2026-08-20 09:20 · v597 (iPad : alerte quand un salarie n a pas pointe 15 min apres son heure ; conges masques)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -2168,6 +2168,7 @@ html,body{overflow-x:hidden;}
         <div style="display:flex;align-items:center;gap:4px;">
           <button onclick="ptgsDecalerJour(-1)" title="Jour précédent" style="background:#2C2C2C;color:#fff;border:1px solid #444;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:1rem;line-height:1;">‹</button>
           <input type="date" id="ptgs-date" class="fi" style="max-width:170px;" onchange="ptgRenderSuivi()">
+          <button class="btn btn-gray btn-sm" id="ptgs-refresh" onclick="ptgSuiviRafraichir()" title="Rechercher les pointages maintenant (une requête)">🔄</button>
           <button onclick="ptgsDecalerJour(1)" title="Jour suivant" style="background:#2C2C2C;color:#fff;border:1px solid #444;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:1rem;line-height:1;">›</button>
           <button onclick="ptgsAujourdhui()" title="Aujourd'hui" style="background:#2C2C2C;color:#F5A623;border:1px solid #5a4420;border-radius:8px;padding:0 10px;height:30px;cursor:pointer;font-size:.78rem;font-weight:700;">Aujourd'hui</button>
         </div>
@@ -11877,9 +11878,26 @@ function ptgSaveAll(o){
   try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:'bkrh_pointages', valeur:o},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
 }
 // Charge les pointages partagés depuis Supabase puis rafraîchit l'écran donné.
-async function ptgChargerPartage(reRender){
+/* ★ v596 — UNE SEULE DEMANDE SUPABASE POUR TOUS LES ÉCRANS.
+   L'iPad, la badgeuse et Contrôle des heures lisent EXACTEMENT la même chose
+   (bkrh_pointages). Les faire demander chacun de leur côté, c'était payer
+   plusieurs fois la même information.
+   Maintenant : une demande au maximum toutes les 15 minutes, quel que soit
+   l'écran qui la réclame. Les autres se servent de ce qui vient d'être chargé.
+   Le bouton 🔄 force la demande (force = true) : quand tu veux voir tout de
+   suite, tu appuies, et là seulement on repaie une requête.                   */
+var PTG_DERNIER_FETCH=0;
+var PTG_FETCH_INTERVALLE=15*60*1000;      // 15 minutes
+async function ptgChargerPartage(reRender, force){
   try{
     if(typeof SB==='undefined' || !SB) return;
+    if(!force && PTG_DERNIER_FETCH && (Date.now()-PTG_DERNIER_FETCH)<PTG_FETCH_INTERVALLE){
+      // déjà demandé il y a moins de 15 min : on réaffiche, sans rien redemander
+      try{ if(reRender==='suivi' && typeof ptgRenderSuivi==='function') ptgRenderSuivi(); }catch(_){}
+      try{ if(reRender==='badgeuse' && typeof ptgRenderList==='function') ptgRenderList(); }catch(_){}
+      return;
+    }
+    PTG_DERNIER_FETCH=Date.now();
     var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_pointages').maybeSingle();
     if(r && r.data && r.data.valeur && typeof r.data.valeur==='object'){
       var local=ptgGetAll(), remote=r.data.valeur;
@@ -12472,6 +12490,20 @@ function _chJoursSrc(resto, iso){
   try{ var enc=_encTraitsJour(resto, iso); if(enc && enc.length) res=res.concat(enc); }catch(_2){}
   return res;
 }
+// ★ v595 — Jusqu'où tirer le trait d'un salarié qui a pointé son arrivée mais pas
+// son départ. Aujourd'hui : jusqu'à l'heure qu'il est. Un autre jour (oubli de
+// dépointage) : on ne fait pas courir le trait sur toute la journée, on s'arrête
+// à 45 min pour que ça reste lisible et visiblement incomplet.
+function _chFinEnCours(arr, dateISO){
+  try{
+    var d=new Date();
+    var auj=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if(dateISO!==auj) return arr+45;
+    var m=d.getHours()*60+d.getMinutes();
+    if(d.getHours()<5) m+=1440;                 // après minuit
+    return (m>arr+5) ? m : (arr+5);
+  }catch(_){ return arr+45; }
+}
 function _chPlanSegs(emp, iso, resto){
   try{
     var arr=_chJoursSrc(resto, iso);
@@ -12663,7 +12695,11 @@ function ptgCtrlTimeline(dateISO, emps){
           if(gv1>gv0) _segPtg(gv0,gv1,'#2e9e4a','Pointé conforme au prévu',m2hm(aa)+'–'+m2hm(ad));
           else _segPtg(Math.min(aa,ad),Math.max(aa,ad),'#2e9e4a','Pointé',m2hm(aa)+'–'+m2hm(ad));
         } else if(ev.mode==='enposte'){
-          _segPtg(ev.aa,ev.aa+45,'#2e9e4a','En poste (pas encore parti)',m2hm(ev.aa)+' →'); _crenSum.pointe++;
+          // ★ v595 — il a pointé son arrivée mais pas son départ : le trait va
+          // jusqu'à MAINTENANT (et non plus 45 min fixes), comme sur l'iPad.
+          _segPtg(ev.aa, _chFinEnCours(ev.aa, dateISO), '#2e9e4a',
+                  'En poste depuis '+m2hm(ev.aa)+' (pas encore parti)',
+                  m2hm(ev.aa)+' → en cours'); _crenSum.pointe++;
         } else {
           _crenSum.nonPointe++;
           bars+='<div title="Créneau non pointé" style="position:absolute;top:34px;height:4px;left:'+pct(ps)+'%;width:'+(pct(pe)-pct(ps))+'%;background:repeating-linear-gradient(45deg,#d64535,#d64535 4px,rgba(214,69,53,.15) 4px,rgba(214,69,53,.15) 8px);border-radius:2px;"></div>';
@@ -12672,7 +12708,9 @@ function ptgCtrlTimeline(dateISO, emps){
       // Pointage sans aucun prévu (créneaux vides) → barre verte simple
       if(!segs.length && aArr!=null){
         if(aDep!=null){ _segPtg(Math.min(aArr,aDep),Math.max(aArr,aDep),'#2e9e4a','Pointé',m2hm(aArr)+'–'+m2hm(aDep)); _crenSum.reel+=Math.max(0,aDep-aArr); _crenSum.pointe++; }
-        else { _segPtg(aArr,aArr+45,'#2e9e4a','En poste',m2hm(aArr)+' →'); _crenSum.pointe++; }
+        else { _segPtg(aArr, _chFinEnCours(aArr, dateISO), '#2e9e4a',
+                       'En poste depuis '+m2hm(aArr)+' (pas encore parti)',
+                       m2hm(aArr)+' → en cours'); _crenSum.pointe++; }
       }
     }
     // statut court à droite
@@ -13105,6 +13143,16 @@ function depPrendreEcranValider(slotId){
 }
 window.depPrendreEcranValider=depPrendreEcranValider;
 
+// ★ v596 — 🔄 de Contrôle des heures : force la demande, comme sur l'iPad.
+async function ptgSuiviRafraichir(){
+  var b=document.getElementById('ptgs-refresh');
+  if(b){ b.textContent='…'; b.disabled=true; }
+  try{ await ptgChargerPartage('suivi', true); }catch(_){}
+  var b2=document.getElementById('ptgs-refresh');
+  if(b2){ b2.textContent='🔄'; b2.disabled=false; }
+  try{ toast&&toast('Pointages à jour','success'); }catch(_){}
+}
+window.ptgSuiviRafraichir=ptgSuiviRafraichir;
 function ptgRenderSuivi(){
   var box=document.getElementById('ptg-suivi'); if(!box) return;
   var dateISO=((document.getElementById('ptgs-date')||{}).value)||ptgTodayISO();
@@ -33335,6 +33383,11 @@ function _ipadOv(){
   ov.style.display='block'; return ov;
 }
 // Les salariés concernés par la journée : ceux qui ont au moins un trait aujourd'hui.
+// Congé / RTT / repos posé : pas une anomalie du jour, on ne l'affiche pas sur l'iPad.
+function _ipadEstConge(abs){
+  var m=String((abs&&(abs.motif||abs.type))||'').toLowerCase();
+  return m.indexOf('cong')>=0 || m.indexOf('cp')===0 || m.indexOf('rtt')>=0 || m.indexOf('repos')>=0 || m.indexOf('vacance')>=0;
+}
 function _ipadSalariesDuJour(){
   var iso=_ipadDate, resto=_ipadResto, tous=getIpadCfg().tousLesSalaries;
   var lst=(DB.employees||[]).filter(function(e){
@@ -33346,6 +33399,11 @@ function _ipadSalariesDuJour(){
   lst.forEach(function(e){
     var segs=[]; try{ segs=_chPlanSegs(e, iso, resto)||[]; }catch(_){ segs=[]; }
     var abs=null; try{ abs=(typeof hrAbsenceDuJour==='function')?hrAbsenceDuJour(e.id, iso):null; }catch(_){}
+    // ★ v597 — un salarié en CONGÉS n'a rien à faire sur l'iPad du bureau : il
+    // n'était pas prévu, il n'y a rien à déclarer pour lui. Le RH le voit dans
+    // Contrôle des heures, c'est là que ça se suit. Un arrêt maladie ou une
+    // absence, en revanche, reste affiché : c'est ce qui déclenche le dépannage.
+    if(abs && !segs.length && _ipadEstConge(abs) && !tous) return;
     if(!segs.length && !abs && !tous) return;
     out.push({e:e, segs:segs, abs:abs});
   });
@@ -33385,28 +33443,43 @@ function pickIpad(restoId){
   // avait JAMAIS demandés : il ne pouvait donc pas voir qu'un salarié venait de
   // pointer. On les charge à l'ouverture, puis toutes les minutes.
   try{ _ipadChargerPointages(); }catch(_){}
+  // ★ v594 — ÉCONOMIE SUPABASE. Deux rythmes séparés, parce que ce ne sont pas
+  // les mêmes coûts :
+  //   • REDESSINER l'écran = calcul local, gratuit  → toutes les 30 secondes,
+  //     la barre verte « en cours » avance en direct ;
+  //   • INTERROGER Supabase = une requête facturée → toutes les 15 MINUTES,
+  //     et la demande est MUTUALISÉE avec Contrôle des heures (v596).
+  // Avant (v593) : ~960 requêtes/jour/iPad. Maintenant : ~64. Le bouton 🔄 de
+  // l'en-tête force la recherche quand on veut voir tout de suite.
   try{ clearInterval(_ipadTick); }catch(_){}
   var _ipadTock=0;
   _ipadTick=setInterval(function(){
     var h=document.getElementById('ip-heure');
     if(h) h.textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
     _ipadTock++;
-    // toutes les 3 boucles (≈1 min) : on va rechercher les pointages et on
-    // redessine, pour que la barre verte avance et que les nouveaux arrivants
-    // apparaissent sans toucher à l'iPad.
-    if(_ipadTock%3===0){ try{ _ipadChargerPointages(); }catch(_){} }
-  }, 20000);
+    if(_ipadTock%30===0){ try{ _ipadChargerPointages(); }catch(_){} }   // 30 × 30 s = 15 min
+    else { try{ if(document.getElementById('ipad-poste') && !document.getElementById('ip-modal')) ipadRender(); }catch(_){} }
+  }, 30000);
 }
 // Va chercher les pointages partagés, puis redessine la timeline si l'écran
 // est visible et qu'aucune fenêtre n'est ouverte par-dessus (on ne coupe pas
 // le manager en pleine saisie).
-async function _ipadChargerPointages(){
-  try{ if(typeof ptgChargerPartage==='function') await ptgChargerPartage(); }catch(_){}
+async function _ipadChargerPointages(force){
+  try{ if(typeof ptgChargerPartage==='function') await ptgChargerPartage(null, force===true); }catch(_){}
   try{
     if(document.getElementById('ipad-poste') && !document.getElementById('ip-modal')) ipadRender();
   }catch(_){}
 }
 window._ipadChargerPointages=_ipadChargerPointages;
+// Bouton 🔄 : forcer la recherche des pointages tout de suite.
+async function ipadRafraichir(){
+  var b=document.getElementById('ip-refresh');
+  if(b){ b.textContent='…'; b.disabled=true; }
+  try{ await _ipadChargerPointages(true); }catch(_){}     // 🔄 = on repaie une requête, volontairement
+  var b2=document.getElementById('ip-refresh');
+  if(b2){ b2.textContent='🔄'; b2.disabled=false; }
+}
+window.ipadRafraichir=ipadRafraichir;
 window.pickIpad=pickIpad;
 function ipadQuitter(){
   try{ clearInterval(_ipadTick); }catch(_){}
@@ -33438,6 +33511,38 @@ function _ipadMaintenantMin(){
   var d=new Date(), v=d.getHours()*60+d.getMinutes();
   if(d.getHours()<5) v+=1440;
   return v;
+}
+/* ★ v597 — ALERTE « PERSONNE N'A RIEN DIT ».
+   Un salarié était prévu, l'heure est passée de plus de 15 minutes, il n'a
+   PAS pointé et le manager n'a RIEN déclaré (ni absence, ni retard, ni incident).
+   → sa ligne s'allume en rouge sur l'iPad, pour que le manager tranche.
+   Tant que personne ne tranche, le créneau ne part pas en dépannage et le
+   remplacement ne se déclenche pas : c'est exactement le trou qu'on veut voir.
+   Le RH, lui, le retrouve dans Contrôle des heures.                           */
+var IPAD_ALERTE_MIN=15;                 // minutes de tolérance après l'heure prévue
+// Bandeau rouge en haut de l'iPad : « X salarié(s) n'ont pas pointé ».
+function _ipadBandeauAlerte(){
+  try{
+    var n=0;
+    _ipadSalariesDuJour().forEach(function(o){ if(_ipadRetardAlerte(o)) n++; });
+    if(!n) return '';
+    return '<div class="ip-alerte-top">⚠️ '+n+' salarié'+(n>1?'s':'')+(n>1?" n'ont":" n'a")+' pas pointé — à déclarer</div>';
+  }catch(_){ return ''; }
+}
+function _ipadRetardAlerte(o){
+  try{
+    if(!o || !o.segs || !o.segs.length) return null;
+    if(o.abs) return null;                                  // déjà déclaré : rien à signaler
+    if(_ipadDate!==_ipadISO()) return null;                 // seulement aujourd'hui
+    var rec=(typeof ptgRec==='function')?((ptgRec(o.e.id,_ipadDate)||{}).rec||{}):{};
+    if(rec.arrivee) return null;                            // il a pointé : tout va bien
+    // un incident du jour (maladie, injustifiée, mise à pied…) vaut déclaration
+    try{ if(typeof incEtatJour==='function' && incEtatJour(o.e.id,_ipadDate)) return null; }catch(_){}
+    var deb=o.segs[0].s, now=_ipadMaintenantMin();
+    var retard=now-deb;
+    if(retard< IPAD_ALERTE_MIN) return null;
+    return {debut:deb, retard:Math.round(retard)};
+  }catch(_){ return null; }
 }
 function _ipadBarrePointage(e, pos, totalPx){
   try{
@@ -33545,11 +33650,15 @@ function ipadRender(contenuBrut){
         barres+=_ipadBarrePointage(e, pos, totalPx);
         if(!o.segs.length && !barres) barres='<div class="ip-bar-none">Pas de trait aujourd\'hui</div>';
         var sous='<span class="ip-tl-h2">'+_ipadHM(minJour)+'</span>'+(ct?(' <span class="ip-tl-ct">/ '+ct+'h</span>'):'');
+        var alerte=_ipadRetardAlerte(o);
+        if(alerte){
+          sous='<span class="ip-badge ip-badge-al">⚠️ Pas pointé · '+alerte.retard+' min</span>';
+        }
         if(o.abs){
           var mi=(typeof _etatMotifInfo==='function')?_etatMotifInfo(o.abs.motif||'absence'):{icon:'🟧',court:'Absent',col:'#d98324'};
           sous='<span class="ip-badge" style="background:'+mi.col+';">'+mi.icon+' '+_ipadEsc(mi.court)+'</span>';
         }
-        return '<div class="ip-tl-row'+(o.abs?' ip-tl-abs':'')+'" onclick="_ipadSel=null;ipadFiche(\''+e.id+'\')">'
+        return '<div class="ip-tl-row'+(o.abs?' ip-tl-abs':'')+(alerte?' ip-tl-al':'')+'" onclick="_ipadSel=null;ipadFiche(\''+e.id+'\')">'
           +'<div class="ip-tl-nm"><span class="ip-tl-n1">'+_ipadEsc(e.name||'')+'</span><span class="ip-tl-n2">'+sous+'</span></div>'
           +'<div class="ip-tl-band" style="width:'+totalPx+'px;">'+barres+'</div></div>';
       }).join('');
@@ -33566,7 +33675,9 @@ function ipadRender(contenuBrut){
     +'<div class="ip-wrap"><div class="ip-top">'
       +'<div><div class="ip-resto">📟 '+_ipadEsc(_ipadLabel())+'</div><div class="ip-jour">'+_ipadEsc(jour)+'</div></div>'
       +'<div class="ip-right"><div class="ip-heure" id="ip-heure">'+heure+'</div>'
+      +'<button class="ip-refresh" id="ip-refresh" onclick="ipadRafraichir()" title="Rechercher les pointages maintenant">🔄</button>'
       +(contenuBrut?'':'<div class="ip-compte">'+nbPres+' présent'+(nbPres>1?'s':'')+(nbAbs?(' · <b>'+nbAbs+' absent'+(nbAbs>1?'s':'')+'</b>'):'')+'</div>')
+      +(contenuBrut?'':_ipadBandeauAlerte())
       +'</div>'
       +'<button class="ip-quit" onclick="ipadQuitter()">✕</button></div>'
     +'<div class="ip-body">'+corps+'</div>'
@@ -34047,6 +34158,12 @@ function _ipadCss(){ return '<style>\
 .ip-jour{font-size:.9rem;opacity:.95;text-transform:capitalize;margin-top:3px;}\
 .ip-right{margin-left:auto;text-align:right;}\
 .ip-heure{font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.8rem;line-height:1;}\
+.ip-refresh{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);color:#fff;border-radius:9px;font-size:.95rem;line-height:1;padding:5px 9px;margin-top:5px;cursor:pointer;}\
+.ip-alerte-top{background:#d64535;color:#fff;border-radius:9px;padding:5px 11px;font-size:.78rem;font-weight:800;margin-top:6px;letter-spacing:.2px;animation:ipAlPulse 1.8s ease-in-out infinite;}\
+@keyframes ipAlPulse{0%,100%{opacity:1;}50%{opacity:.62;}}\
+.ip-tl-row.ip-tl-al{background:#fff3f1;box-shadow:inset 3px 0 0 #d64535;}\
+.ip-badge-al{background:#d64535 !important;}\
+.ip-refresh:active{background:rgba(255,255,255,.3);}\
 .ip-compte{font-size:.85rem;opacity:.95;margin-top:3px;}\
 .ip-quit{background:rgba(0,0,0,.22);border:none;color:#fff;width:42px;height:42px;border-radius:11px;font-size:1.15rem;cursor:pointer;flex:0 0 auto;}\
 .ip-body{flex:1;overflow-y:auto;padding:14px 16px 8px;-webkit-overflow-scrolling:touch;}\
