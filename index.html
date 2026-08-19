@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-20 13:10 · v599 (Controle des heures demande enfin les pointages des autres postes + bouton Actualiser)';
+  var EMBEDDED_VERSION = '2026-08-20 16:20 · v601 (on ne pointe que si on est programme ; avance et retard a justifier ; alerte sans horaire prevu)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -12372,19 +12372,21 @@ function ptgAction(type){
       return;
     }
     try{ var _pb2=[]; (ptgLineaireDe(e,dateISO)||[]).forEach(function(s){ _pb2.push(_ptgPosteLabel(s.l)); }); var _pbb=_ptgProduitsBoard(e,_pb2); if(_pbb.bloquant){ try{ toast('Validez d\'abord la fiche à lire.','error'); }catch(_){} try{ ptgShowActions(); }catch(_){} return; } }catch(_pg){}
-    // Avance importante sur l'horaire prévu → confirmation (limite les pointages trop en avance).
-    try{ var _pv=ptgPrevuDe(e,dateISO); var _ea=_pv?ptgEcartMin(_pv.arr,now):null;
-      if(_ea!=null && _ea<=-16){ if(!confirm('Vous pointez '+Math.abs(_ea)+' min en avance sur votre horaire prévu ('+_pv.arr+').\nConfirmer votre arrivée maintenant ?')) return; } }catch(_ar){}
-    rec.arrivee=now;
+    /* ★ v601 — ON NE POINTE QUE SI ON EST PROGRAMME, ET A SON HEURE. */
+    var _sgA=ptgCrenPourArrivee(e,dateISO);
+    if(!_sgA){ _ptgHorsPlanning(e, now); return; }          // pas d'horaire → refus + code manager
+    var _ecA=Math.round(_ptgNowMinDom()-_sgA.s);
+    if(_ecA!==0){ _ptgArriveeJustif(e, now, _sgA, _ecA); return; }   // avance OU retard → motif obligatoire
+    _ptgPoserArrivee(e, dateISO, now, _sgA, null);
+    return;
   }
   else if(type==='depart'){
-    // Départ qui s'écarte nettement du prévu (parti >5 min avant, ou resté >15 min après) → demander une raison.
-    try{
-      var _pd=ptgPrevuDe(e,dateISO); var _ecd=_pd?ptgEcartMin(_pd.dep,now):null;
-      if(_ecd!=null && !rec._departRaisonOk && (_ecd<=-6 || _ecd>=16)){ _ptgDepartRaison(e, now, _ecd); return; }
-    }catch(_dp){}
-    if(rec.pauses && rec.pauses.length && !rec.pauses[rec.pauses.length-1].fin) rec.pauses[rec.pauses.length-1].fin=now;
-    rec.depart=now;
+    /* ★ v601 — meme logique au depart : aucune tolerance, motif obligatoire. */
+    var _sgD=ptgCrenPourDepart(e,dateISO);
+    var _ecD=_sgD?Math.round(_ptgNowMinDom()-_sgD.e):null;
+    if(_sgD && _ecD!==0 && !rec._departRaisonOk){ _ptgDepartRaison(e, now, _ecD); return; }
+    _ptgPoserDepart(e, dateISO, now, _sgD, rec.departRaison||null);
+    return;
   }
   else if(type==='pause_debut'){ rec.pauses=rec.pauses||[]; rec.pauses.push({debut:now,fin:''}); }
   else if(type==='pause_fin'){ if(rec.pauses && rec.pauses.length) rec.pauses[rec.pauses.length-1].fin=now; }
@@ -12438,20 +12440,218 @@ function _ptgDepValider(empId, heure){
   if(!_ptgDepRaisonSel){ try{ toast('Choisissez une raison.','error'); }catch(_){} return; }
   var libre=((document.getElementById('ptg-dep-libre')||{}).value||'').trim();
   var raison=_ptgDepRaisonSel+(libre?(' — '+libre):'');
-  var dateISO=ptgTodayISO(); var ctx=ptgRec(e.id,dateISO); var rec=ctx.rec;
-  rec._departRaisonOk=true; rec.departRaison=raison;
-  if(rec.pauses && rec.pauses.length && !rec.pauses[rec.pauses.length-1].fin) rec.pauses[rec.pauses.length-1].fin=heure;
-  rec.depart=heure;
-  try{ ptgMajEcarts(e, rec, dateISO); }catch(_){}
-  try{ ptgSaveAll(ctx.all); }catch(_){}
+  var dateISO=ptgTodayISO();
   var ov=document.getElementById('ptg-dep-ov'); if(ov) ov.remove();
   _ptgDepRaisonSel='';
+  // ★ v601 — le depart est ecrit SUR SON CRENEAU, avec sa raison.
+  _ptgPoserDepart(e, dateISO, heure, ptgCrenPourDepart(e,dateISO), raison);
+}
+window._ptgDepValider=_ptgDepValider;
+/* ═══════════════════════════════════════════════════════════════════════════
+   ★ v601 — LE POINTAGE EST PILOTE PAR LE PLANNING
+   Regle donnee par Vincent :
+     • on ne pointe QUE si on est programme ce jour-la ;
+     • AUCUNE tolerance : on pointe a son heure ;
+     • en avance comme en retard, il faut se justifier (motif obligatoire) ;
+     • pas d horaire du tout (remplacement non saisi, oubli) → refus, et
+       deblocage possible par le CODE D UN MANAGER, avec grosse alerte tracee ;
+     • conges / arret maladie / mise a pied → aucun pointage possible ;
+     • plusieurs creneaux = un pointage par creneau, la coupure doit se pointer.
+   Le bon geste pour un remplacement reste de CREER LE TRAIT : le salarie pointe
+   alors normalement, sans alerte.
+   ═════════════════════════════════════════════════════════════════════════ */
+var PTG_ARR_AVANCE=['Le manager m\'a demandé d\'arriver plus tôt',
+                    'Je remplace quelqu\'un (accord du manager)',
+                    'Il y a du rush / du monde',
+                    'Autre raison'];
+var PTG_ARR_RETARD=['Transport / circulation',
+                    'Le manager m\'a autorisé à arriver plus tard',
+                    'Empêchement personnel',
+                    'J\'ai oublié de pointer en arrivant',
+                    'Autre raison'];
+// Heure qu il est, en minutes « de la journee de travail » (apres minuit = +24 h),
+// pour se comparer aux creneaux qui sont eux aussi dans ce repere.
+function _ptgNowMinDom(){ var d=new Date(); var m=d.getHours()*60+d.getMinutes(); if(d.getHours()<5) m+=1440; return m; }
+function _ptgHmDom(hm){ var v=_ptgHm2min(hm); if(v==null) return null; return (v<300)?v+1440:v; }
+function ptgCleCren(sg){ return sg.s+'-'+sg.e; }
+// Les creneaux prevus du salarie ce jour-la — EXACTEMENT ceux que montre
+// Contrôle des heures, pour que les cles de pointage soient les memes.
+function ptgCreneauxJour(e, iso){
+  try{
+    var r=(e&&e.restoId)||PTG_RESTO;
+    var l=(typeof _chPlanSegs==='function')?(_chPlanSegs(e, iso, r)||[]):[];
+    return l.filter(function(x){ return x && x.s!=null && x.e!=null; })
+            .slice().sort(function(a,b){ return a.s-b.s; });
+  }catch(_){ return []; }
+}
+// Le creneau a pointer en ARRIVANT : le premier qui n a pas encore d arrivee.
+function ptgCrenPourArrivee(e, iso){
+  try{
+    var rc=((ptgRec(e.id,iso)||{}).rec||{}).cren||{};
+    var l=ptgCreneauxJour(e,iso);
+    for(var i=0;i<l.length;i++){ var c=rc[ptgCleCren(l[i])]; if(!c || (!c.arrivee && !c.abs)) return l[i]; }
+  }catch(_){}
+  return null;
+}
+// Le creneau a fermer en PARTANT : celui qui a une arrivee et pas de depart.
+function ptgCrenPourDepart(e, iso){
+  try{
+    var rc=((ptgRec(e.id,iso)||{}).rec||{}).cren||{};
+    var l=ptgCreneauxJour(e,iso);
+    for(var i=0;i<l.length;i++){ var c=rc[ptgCleCren(l[i])]; if(c && c.arrivee && !c.depart) return l[i]; }
+  }catch(_){}
+  return null;
+}
+// Écrit l ARRIVEE, rattachee a son creneau. just = {type,texte,par,ts} ou null.
+function _ptgPoserArrivee(e, dateISO, heure, sg, just){
+  var ctx=ptgRec(e.id,dateISO), rec=ctx.rec;
+  rec.cren=rec.cren||{};
+  if(sg){
+    var k=ptgCleCren(sg), c=rec.cren[k]||{};
+    c.arrivee=heure; if(just) c.just=just; delete c.abs;
+    rec.cren[k]=c;
+  } else {
+    // aucun horaire prevu : on garde la trace de QUI a autorise — c est l alerte.
+    rec.horsPlanning=Object.assign({heure:heure, ts:Date.now()}, just||{});
+  }
+  if(!rec.arrivee) rec.arrivee=heure;
+  try{ ptgMajEcarts(e, rec, dateISO); }catch(_){}
+  try{ ptgSaveAll(ctx.all); }catch(_){}
+  try{ ptgShowActions(); }catch(_){}
+  try{ ptgRenderList(); }catch(_){}
+  try{ toast('Arrivée enregistrée ✔','success'); }catch(_){}
+  try{ _ptgAutoRetour(); }catch(_){}
+}
+// Écrit le DEPART sur le creneau ouvert. Signale la coupure non pointee.
+function _ptgPoserDepart(e, dateISO, heure, sg, raison){
+  var ctx=ptgRec(e.id,dateISO), rec=ctx.rec;
+  rec.cren=rec.cren||{};
+  if(sg){
+    var k=ptgCleCren(sg), c=rec.cren[k]||{};
+    c.depart=heure; if(raison) c.raisonDepart=raison;
+    // COUPURE NON POINTEE : il part alors que le creneau SUIVANT a deja commence.
+    try{
+      var l=ptgCreneauxJour(e,dateISO), nowD=_ptgHmDom(heure), suiv=null;
+      for(var i=0;i<l.length;i++){ if(l[i].s>sg.s){ suiv=l[i]; break; } }
+      if(suiv && nowD!=null && nowD>=suiv.s) c.continu=true;
+    }catch(_){}
+    rec.cren[k]=c;
+  }
+  if(rec.pauses && rec.pauses.length && !rec.pauses[rec.pauses.length-1].fin) rec.pauses[rec.pauses.length-1].fin=heure;
+  rec.depart=heure; if(raison){ rec.departRaison=raison; rec._departRaisonOk=true; }
+  try{ ptgMajEcarts(e, rec, dateISO); }catch(_){}
+  try{ ptgSaveAll(ctx.all); }catch(_){}
   try{ ptgShowActions(); }catch(_){}
   try{ ptgRenderList(); }catch(_){}
   try{ toast('Départ enregistré ✔','success'); }catch(_){}
-  try{ _ptgAutoRetour(); }catch(_){}   // retour auto à la liste
+  try{ _ptgAutoRetour(); }catch(_){}
 }
-window._ptgDepValider=_ptgDepValider;
+// Un code manager du restaurant (meme principe que sur l iPad).
+function ptgQuiEstCeManager(code, resto){
+  try{
+    var pins=(DB.restoPins&&DB.restoPins[resto])||{};
+    var noms=(DB.restoNames&&DB.restoNames[resto])||{};
+    var lib={directeur:'Directeur',manager1:'Manager 1',manager2:'Manager 2',manager3:'Manager 3',manager4:'Manager 4'};
+    var cles=Object.keys(lib);
+    for(var i=0;i<cles.length;i++){
+      var k=cles[i];
+      if(pins[k] && String(pins[k])===String(code)) return {cle:k, nom:(noms[k]||lib[k])};
+    }
+    if(typeof getIpadCfg==='function' && getIpadCfg().codeTest!==false && String(code)==='0000')
+      return {cle:'test', nom:'Mode test (0000)', test:true};
+  }catch(_){}
+  return null;
+}
+window.ptgQuiEstCeManager=ptgQuiEstCeManager;
+
+/* ── Fenetre « je pointe en avance / en retard » : motif OBLIGATOIRE ───────── */
+var _ptgArrSel='';
+function _ptgArriveeJustif(e, heure, sg, ecart){
+  _ptgArrSel='';
+  var avance=(ecart<0), n=Math.abs(Math.round(ecart));
+  var liste=avance?PTG_ARR_AVANCE:PTG_ARR_RETARD;
+  var titre=avance?('🟠 Vous pointez '+n+' min AVANT votre heure')
+                  :('🔴 Vous pointez '+n+' min APRÈS votre heure');
+  var sous='Votre créneau commence à <b>'+_ptgMin2hm(sg.s)+'</b>. Il est <b>'+heure+'</b>.'
+         +'<br>Le pointage n\'est possible qu\'avec un motif.';
+  var ov=document.getElementById('ptg-arr-ov'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='ptg-arr-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.86);z-index:100003;display:flex;align-items:center;justify-content:center;padding:16px;';
+  var btns=liste.map(function(r){
+    return '<button onclick="_ptgArrChoisir(this)" data-r="'+_ptgEsc(r).replace(/"/g,'&quot;')+'" style="display:block;width:100%;text-align:left;background:#1c1c1f;border:1px solid #444;color:#eee;border-radius:10px;padding:12px 13px;margin-bottom:8px;cursor:pointer;font-size:.92rem;">'+_ptgEsc(r)+'</button>';
+  }).join('');
+  ov.innerHTML='<div style="background:#141416;border:1px solid #666;border-radius:16px;max-width:460px;width:100%;padding:20px;max-height:92vh;overflow:auto;">'
+    +'<div style="font-weight:900;color:#fff;font-size:1.1rem;margin-bottom:6px;">'+titre+'</div>'
+    +'<div style="color:#e8a020;font-size:.86rem;margin-bottom:13px;line-height:1.45;">'+sous+'</div>'
+    +btns
+    +'<textarea id="ptg-arr-libre" rows="2" placeholder="Précision (nom du manager, détail…)" style="width:100%;box-sizing:border-box;background:#111;border:1px solid #333;border-radius:8px;color:#eee;padding:8px;font-size:.85rem;font-family:inherit;margin-top:2px;"></textarea>'
+    +'<div style="display:flex;gap:8px;margin-top:12px;">'
+      +'<button onclick="document.getElementById(\'ptg-arr-ov\').remove()" style="flex:1;background:#2a2a2a;border:none;color:#ccc;border-radius:10px;padding:12px;font-weight:700;cursor:pointer;">Annuler</button>'
+      +'<button id="ptg-arr-valider" onclick="_ptgArrValider(\''+e.id+'\',\''+heure+'\',\''+ptgCleCren(sg)+'\','+ecart+')" disabled style="flex:2;background:#666;border:none;color:#fff;border-radius:10px;padding:12px;font-weight:800;cursor:pointer;">Valider mon arrivée</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+}
+function _ptgArrChoisir(btn){
+  _ptgArrSel=btn.getAttribute('data-r')||'';
+  try{ document.querySelectorAll('#ptg-arr-ov [data-r]').forEach(function(b){ b.style.borderColor='#444'; b.style.background='#1c1c1f'; }); }catch(_){}
+  btn.style.borderColor='#e8623a'; btn.style.background='#2a1a14';
+  var v=document.getElementById('ptg-arr-valider'); if(v){ v.disabled=false; v.style.background='#C01E00'; }
+}
+window._ptgArrChoisir=_ptgArrChoisir;
+function _ptgArrValider(empId, heure, key, ecart){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);})||_ptgSel; if(!e) return;
+  if(!_ptgArrSel){ try{ toast('Choisissez un motif.','error'); }catch(_){} return; }
+  var libre=((document.getElementById('ptg-arr-libre')||{}).value||'').trim();
+  var dateISO=ptgTodayISO();
+  var sg=null; ptgCreneauxJour(e,dateISO).forEach(function(x){ if(ptgCleCren(x)===key) sg=x; });
+  var ov=document.getElementById('ptg-arr-ov'); if(ov) ov.remove();
+  _ptgPoserArrivee(e, dateISO, heure, sg, {
+    type:(ecart<0?'avance':'retard'), min:Math.abs(Math.round(ecart)),
+    motif:_ptgArrSel, texte:libre, ts:Date.now()
+  });
+  _ptgArrSel='';
+}
+window._ptgArrValider=_ptgArrValider;
+
+/* ── Fenetre « aucun horaire prevu » : refus + deblocage code manager ──────── */
+function _ptgHorsPlanning(e, heure){
+  var ov=document.getElementById('ptg-hp-ov'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='ptg-hp-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(60,0,0,.92);z-index:100004;display:flex;align-items:center;justify-content:center;padding:16px;';
+  ov.innerHTML='<div style="background:#1a0e0e;border:2px solid #d64535;border-radius:16px;max-width:470px;width:100%;padding:22px;max-height:92vh;overflow:auto;">'
+    +'<div style="font-size:2.4rem;text-align:center;line-height:1;">⛔</div>'
+    +'<div style="font-weight:900;color:#fff;font-size:1.15rem;text-align:center;margin:8px 0 6px;">Aucun horaire prévu aujourd\'hui</div>'
+    +'<div style="color:#f0b8b0;font-size:.88rem;text-align:center;line-height:1.5;margin-bottom:14px;">'
+      +'<b>'+_ptgEsc(e.name)+'</b> n\'est pas planifié'+(/e$/i.test(e.name||'')?'':'')+' ce jour.<br>'
+      +'Si c\'est un <b>remplacement</b>, le manager doit d\'abord <b>créer le trait</b> sur l\'iPad — le pointage sera alors normal.'
+    +'</div>'
+    +'<div style="background:#241010;border:1px solid #6a2a2a;border-radius:11px;padding:13px;">'
+      +'<div style="color:#ffb4a8;font-size:.82rem;font-weight:700;margin-bottom:8px;">Sinon, un manager peut autoriser ce pointage :</div>'
+      +'<input id="ptg-hp-code" type="tel" inputmode="numeric" maxlength="4" placeholder="Code manager" style="width:100%;box-sizing:border-box;background:#111;border:1px solid #6a2a2a;border-radius:9px;color:#fff;padding:11px;font-size:1.2rem;text-align:center;letter-spacing:.5em;font-weight:800;">'
+      +'<div id="ptg-hp-msg" style="color:#e8623a;font-size:.8rem;min-height:16px;margin-top:6px;text-align:center;"></div>'
+    +'</div>'
+    +'<div style="color:#9a7a76;font-size:.74rem;text-align:center;margin-top:9px;">Ce pointage sera signalé comme <b>sans horaire prévu</b> dans Contrôle des heures, au nom du manager.</div>'
+    +'<div style="display:flex;gap:8px;margin-top:14px;">'
+      +'<button onclick="document.getElementById(\'ptg-hp-ov\').remove()" style="flex:1;background:#2a2a2a;border:none;color:#ccc;border-radius:10px;padding:12px;font-weight:700;cursor:pointer;">Fermer</button>'
+      +'<button onclick="_ptgHorsPlanningValider(\''+e.id+'\',\''+heure+'\')" style="flex:2;background:#C01E00;border:none;color:#fff;border-radius:10px;padding:12px;font-weight:800;cursor:pointer;">Autoriser et pointer</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  try{ setTimeout(function(){ var i=document.getElementById('ptg-hp-code'); if(i) i.focus(); },80); }catch(_){}
+}
+function _ptgHorsPlanningValider(empId, heure){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);})||_ptgSel; if(!e) return;
+  var code=((document.getElementById('ptg-hp-code')||{}).value||'').trim();
+  var who=ptgQuiEstCeManager(code, e.restoId||PTG_RESTO);
+  var msg=document.getElementById('ptg-hp-msg');
+  if(!who){ if(msg) msg.textContent='Code manager incorrect.'; return; }
+  var ov=document.getElementById('ptg-hp-ov'); if(ov) ov.remove();
+  _ptgPoserArrivee(e, ptgTodayISO(), heure, null,
+    {motif:'Autorisé par le manager — aucun horaire prévu', par:who.nom, cle:who.cle, test:!!who.test});
+}
+window._ptgHorsPlanningValider=_ptgHorsPlanningValider;
+window.ptgCreneauxJour=ptgCreneauxJour; window.ptgCrenPourArrivee=ptgCrenPourArrivee;
+window.ptgCrenPourDepart=ptgCrenPourDepart; window.ptgCleCren=ptgCleCren;
+
 function ptgHeuresTravaillees(rec){
   if(!rec.arrivee || !rec.depart) return null;
   function m(hm){ var p=hm.split(':'); return (+p[0])*60+(+p[1]); }
@@ -12749,7 +12949,7 @@ function ptgCtrlTimeline(dateISO, emps){
     // ★ v598 — une ligne apparait des qu il y a QUELQUE CHOSE a montrer : un
     // prevu, un pointage (arrivee OU depart OU un creneau), une absence, un
     // incident. Avant, un depart pointe sans arrivee ne s affichait nulle part.
-    var _aQqch=!!(rec && (rec.arrivee || rec.depart || (rec.cren && Object.keys(rec.cren).length)));
+    var _aQqch=!!(rec && (rec.arrivee || rec.depart || rec.horsPlanning || (rec.cren && Object.keys(rec.cren).length)));
     if(!segs.length && !_aQqch && !abs && !incE) return;
     var mn=segs.length?Math.min.apply(null,segs.map(function(s){return s.s;})):(rec&&rec.arrivee?toDom(hm2m(rec.arrivee)):9999);
     lignes.push({e:e,rec:rec,segs:segs,abs:abs,incE:incE,mn:mn});
@@ -12812,10 +13012,20 @@ function ptgCtrlTimeline(dateISO, emps){
       //   créneau qu'il chevauche. Chaque créneau peut être absent indépendamment.
       //   VERT = conforme · ROUGE = retard / parti tôt · ORANGE = avance / dépassement.
       var SEUIL=15;
-      function _segPtg(a,b,col,ti,lab){ if(b<=a) return; bars+='<div title="'+ti+'" style="position:absolute;top:23px;height:14px;left:'+pct(a)+'%;width:'+(pct(b)-pct(a))+'%;background:'+col+';border-radius:3px;color:#fff;font-size:.55rem;font-weight:700;line-height:14px;padding:0 4px;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.22);">'+(lab||'')+'</div>'; }
+      function _segPtg(a,b,col,ti,lab){ if(b<=a) return; bars+='<div title="'+ti+'" style="position:absolute;top:23px;height:14px;min-width:5px;left:'+pct(a)+'%;width:'+(pct(b)-pct(a))+'%;background:'+col+';border-radius:3px;color:#fff;font-size:.55rem;font-weight:700;line-height:14px;padding:0 4px;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.22);">'+(lab||'')+'</div>'; }
       var _colM='#d64535', _colP='#e0a021';
       var _rc=(rec&&rec.cren)||null;
-      _crenSum={retard:0,partiTot:0,avance:0,depass:0,nonPointe:0,pointe:0,absN:0,absMotif:null,reel:0};
+      _crenSum={retard:0,partiTot:0,avance:0,depass:0,nonPointe:0,pointe:0,absN:0,absMotif:null,reel:0,hors:null,
+                horsPlan:(rec&&rec.horsPlanning)||null, continu:false, justifs:[]};
+      // ★ v601 — on remonte les justifications saisies a la badgeuse et la coupure non pointee.
+      try{
+        var _rcj=(rec&&rec.cren)||{};
+        Object.keys(_rcj).forEach(function(_kj){
+          var _cj=_rcj[_kj]; if(!_cj) return;
+          if(_cj.continu) _crenSum.continu=true;
+          if(_cj.just) _crenSum.justifs.push(_cj.just);
+        });
+      }catch(_){}
       function _segEval(sg){
         var key=sg._key||(sg.s+'-'+sg.e);
         if(_rc && _rc[key]){ var c=_rc[key];
@@ -12859,12 +13069,40 @@ function ptgCtrlTimeline(dateISO, emps){
           bars+='<div title="Créneau non pointé" style="position:absolute;top:34px;height:4px;left:'+pct(ps)+'%;width:'+(pct(pe)-pct(ps))+'%;background:repeating-linear-gradient(45deg,#d64535,#d64535 4px,rgba(214,69,53,.15) 4px,rgba(214,69,53,.15) 8px);border-radius:2px;"></div>';
         }
       });
-      // Pointage sans aucun prévu (créneaux vides) → barre verte simple
-      if(!segs.length && aArr!=null){
-        if(aDep!=null){ _segPtg(Math.min(aArr,aDep),Math.max(aArr,aDep),'#2e9e4a','Pointé',m2hm(aArr)+'–'+m2hm(aDep)); _crenSum.reel+=Math.max(0,aDep-aArr); _crenSum.pointe++; }
-        else { _segPtg(aArr, _chFinEnCours(aArr, dateISO), '#2e9e4a',
-                       'En poste depuis '+m2hm(aArr)+' (pas encore parti)',
-                       m2hm(aArr)+' → en cours'); _crenSum.pointe++; }
+      /* ★ v600 — LE POINTAGE QUI NE TOMBE DANS AUCUN CRENEAU PREVU.
+         Avant, on ne dessinait le pointage de la journee QUE si le salarie n avait
+         AUCUN creneau prevu. Consequence : quelqu un de prevu le matin qui pointe
+         le soir n apparaissait NULLE PART — deux creneaux « non pointe », pas la
+         moindre barre — alors que l iPad, lui, l affichait sans probleme (il
+         dessine le pointage a son heure reelle, sans le rattacher a un creneau).
+         C est tout l ecart que tu constatais entre les deux ecrans.
+         Maintenant : des qu un pointage n a ete rattache a aucun creneau, on le
+         dessine quand meme, en vert, et on ecrit « hors prevu ».                */
+      var _ptgRattache=false;
+      try{
+        _ptgRattache=segs.some(function(sg){
+          var _k2=sg._key||(sg.s+'-'+sg.e);
+          if(_rc && _rc[_k2]) return false;            // ce créneau a déjà SON pointage
+          if(aArr!=null && aDep!=null && aArr<sg.e && aDep>sg.s) return true;
+          if(aArr!=null && aDep==null && aArr>=sg.s-30 && aArr<sg.e) return true;
+          return false;
+        });
+      }catch(_){}
+      if(aArr!=null && !_ptgRattache){
+        var _hors=(segs.length>0);
+        if(aDep!=null){
+          _segPtg(Math.min(aArr,aDep), Math.max(aArr,aDep), '#2e9e4a',
+                  _hors?('Pointé HORS des créneaux prévus : '+m2hm(aArr)+'–'+m2hm(aDep)):'Pointé',
+                  m2hm(aArr)+'–'+m2hm(aDep));
+          _crenSum.reel+=Math.max(0,aDep-aArr); _crenSum.pointe++;
+        } else {
+          _segPtg(aArr, _chFinEnCours(aArr, dateISO), '#2e9e4a',
+                  _hors?('En poste depuis '+m2hm(aArr)+' — hors des créneaux prévus')
+                       :('En poste depuis '+m2hm(aArr)+' (pas encore parti)'),
+                  m2hm(aArr)+' → en cours');
+          _crenSum.pointe++;
+        }
+        if(_hors) _crenSum.hors={a:aArr,d:aDep};
       }
     }
     // statut court à droite
@@ -12886,10 +13124,19 @@ function ptgCtrlTimeline(dateISO, emps){
           if(S.partiTot>15) parts.push('🔴 Parti tôt '+S.partiTot+'min');
           if(S.depass>15) parts.push('🟠 Dépass. '+S.depass+'min');
           if(S.avance>15) parts.push('🟠 Avance '+S.avance+'min');
+          // ★ v601 — les trois alertes du nouveau reglement de pointage.
+          if(S.horsPlan) parts.push('⛔ Sans horaire prévu'+(S.horsPlan.par?(' (autorisé '+_ptgEsc(S.horsPlan.par)+')'):''));
+          if(S.continu)  parts.push('⛔ Coupure non pointée');
+          (S.justifs||[]).forEach(function(j){
+            if(!j||!j.type) return;
+            parts.push((j.type==='avance'?'🟠 Avance ':'🔴 Retard ')+(j.min||0)+'min justifié'+(j.motif?(' — '+_ptgEsc(String(j.motif).slice(0,34))):''));
+          });
           if(S.absN>0) parts.push('🏥 '+S.absN+' abs');
+          // ★ v600 — on dit clairement qu il a pointe, mais pas sur son creneau.
+          if(S.hors) parts.push('⏱️ Pointé hors prévu '+m2hm(S.hors.a)+(S.hors.d!=null?('–'+m2hm(S.hors.d)):' → en cours'));
           if(S.nonPointe>0) parts.push('⚠️ '+S.nonPointe+' non pointé');
           if(!parts.length) parts.push('✅ Conforme');
-          var _grave=(S.retard>15||S.partiTot>15||S.nonPointe>0);
+          var _grave=(S.retard>15||S.partiTot>15||S.nonPointe>0||!!S.horsPlan||S.continu);
           stc=_grave?'#c0392b':((S.depass>15||S.avance>15||S.absN>0)?'#c77700':'#1e8e3e');
           st=parts.join('<br>');
         }
@@ -12916,6 +13163,7 @@ function ptgCtrlTimeline(dateISO, emps){
     +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#d64535;border-radius:2px;display:inline-block;"></span>Retard / parti tôt</span>'
     +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#e0a021;border-radius:2px;display:inline-block;"></span>Avance / dépassement</span>'
     +'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:16px;height:9px;background:#cc5555;border-radius:2px;display:inline-block;"></span>Congé / absence</span>'
+    +'<span style="display:inline-flex;align-items:center;gap:5px;color:#666;">Trait vert loin du gris = <b style="color:#2e9e4a;">pointage hors créneau prévu</b></span>'
     +'</div>';
   return '<div style="overflow-x:auto;background:#fafafa;color:#222;border:1px solid #ddd;border-radius:12px;min-width:760px;">'+ruler+(body||'<div style="padding:16px;color:#666;font-size:.9rem;text-align:center;">Aucun salarié prévu, pointé ou absent ce jour.</div>')+'</div>'+legend;
 }
@@ -13340,6 +13588,15 @@ function ptgRenderSuivi(){
   var all=ptgGetAll();
   // Compteurs de synthèse (haut de tableau)
   var nOk=0,nEcart=0,nAbsPointage=0,nPointes=0,nIncomplet=0;
+  var nHorsPlan=0, nJustif=0, nContinu=0;   // ★ v601 — les alertes du règlement de pointage
+  try{
+    emps.forEach(function(e){
+      var r=all[e.id+'_'+dateISO]; if(!r) return;
+      if(r.horsPlanning) nHorsPlan++;
+      var rc=r.cren||{};
+      Object.keys(rc).forEach(function(k){ var c=rc[k]; if(!c) return; if(c.just) nJustif++; if(c.continu) nContinu++; });
+    });
+  }catch(_){}
   var _todayISO=(typeof ptgTodayISO==='function')?ptgTodayISO():dateISO;
   var rows=emps.map(function(e){
     var rec=all[e.id+'_'+dateISO];
@@ -13403,6 +13660,10 @@ function ptgRenderSuivi(){
     +'<span style="background:#3a2a10;border:1px solid #7a5a1a;color:#e8a020;padding:5px 12px;border-radius:20px;font-size:.8rem;font-weight:700;">🟠🔴 '+nEcart+' écart'+(nEcart>1?'s':'')+'</span>'
     +'<span style="background:#3a1616;border:1px solid #6a2a2a;color:#e8623a;padding:5px 12px;border-radius:20px;font-size:.8rem;font-weight:700;">⚠️ '+nAbsPointage+' pas pointé'+(nAbsPointage>1?'s':'')+'</span>'
     +(nIncomplet?('<span style="background:#3a2a10;border:1px solid #7a5a1a;color:#e8a020;padding:5px 12px;border-radius:20px;font-size:.8rem;font-weight:700;">🕓 '+nIncomplet+' pointage'+(nIncomplet>1?'s':'')+' incomplet'+(nIncomplet>1?'s':'')+' (arrivée ou départ manquant)</span>'):'')
+    /* ★ v601 — les alertes du règlement : à vérifier par le RH avant la paye. */
+    +(nHorsPlan?('<span style="background:#3a1010;border:1px solid #d64535;color:#ff8b7a;padding:5px 12px;border-radius:20px;font-size:.8rem;font-weight:800;">⛔ '+nHorsPlan+' pointage'+(nHorsPlan>1?'s':'')+' SANS horaire prévu</span>'):'')
+    +(nContinu?('<span style="background:#3a1010;border:1px solid #d64535;color:#ff8b7a;padding:5px 12px;border-radius:20px;font-size:.8rem;font-weight:800;">⛔ '+nContinu+' coupure'+(nContinu>1?'s':'')+' non pointée'+(nContinu>1?'s':'')+'</span>'):'')
+    +(nJustif?('<span style="background:#2a2010;border:1px solid #7a5a1a;color:#e8a020;padding:5px 12px;border-radius:20px;font-size:.8rem;font-weight:700;">📝 '+nJustif+' avance/retard justifié'+(nJustif>1?'s':'')+'</span>'):'')
     +'</div>';
   var timeline='';
   try{ timeline='<div class="sec-title" style="font-size:1rem;margin:2px 0 10px;">🕐 Contrôle des heures — prévu vs pointé</div>'+ptgCtrlTimeline(dateISO, emps); }catch(_e){ console.warn('ptgCtrlTimeline',_e); }
@@ -33717,8 +33978,22 @@ function _ipadBandeauAlerte(){
   try{
     var n=0;
     _ipadSalariesDuJour().forEach(function(o){ if(_ipadRetardAlerte(o)) n++; });
-    if(!n) return '';
-    return '<div class="ip-alerte-top">⚠️ '+n+' salarié'+(n>1?'s':'')+(n>1?" n'ont":" n'a")+' pas pointé — à déclarer</div>';
+    // ★ v601 — les pointages faits SANS horaire prévu (autorisés par un manager) :
+    // c'est le signal qu'un trait de remplacement n'a pas été créé.
+    var hp=[];
+    try{
+      var all=(typeof ptgGetAll==='function')?ptgGetAll():{};
+      var _lst=(typeof _dashEmployesResto==='function')?_dashEmployesResto(_ipadResto):[];
+      if(!_lst.length) _lst=(DB.employees||[]).filter(function(x){ return x && !x.archived && (''+(x.restoId||'')).toLowerCase()===(''+_ipadResto).toLowerCase(); });
+      _lst.forEach(function(e){
+        var r=all[e.id+'_'+_ipadDate];
+        if(r && r.horsPlanning) hp.push(e.name);
+      });
+    }catch(_){}
+    var h='';
+    if(hp.length) h+='<div class="ip-alerte-top">⛔ '+hp.length+' pointage'+(hp.length>1?'s':'')+' SANS horaire prévu — '+_ipadEsc(hp.slice(0,3).join(', '))+(hp.length>3?('  +'+(hp.length-3)):'')+' — crée le trait de remplacement</div>';
+    if(n) h+='<div class="ip-alerte-top">⚠️ '+n+' salarié'+(n>1?'s':'')+(n>1?" n'ont":" n'a")+' pas pointé — à déclarer</div>';
+    return h;
   }catch(_){ return ''; }
 }
 function _ipadRetardAlerte(o){
