@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-19 17:40 · v577 (dossiers Dropbox : plus de niveau Equipe, dossier complet aux Archives, controle)';
+  var EMBEDDED_VERSION = '2026-08-19 19:20 · v578 (un seul dossier par personne : doublons X et X (1) fusionnes, Equipe vide)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -2549,7 +2549,7 @@ async function dbxFusionner(froms,to){
   var vus={}, aFaire=[];
   for(var i=0;i<froms.length;i++){
     var from=froms[i];
-    if(!from||from===to||vus[from]) continue; vus[from]=1;
+    if(!from||_dbxMemeChemin(from,to)||vus[from.toLowerCase()]) continue; vus[from.toLowerCase()]=1;
     var items=await dbxListSafe(from);
     if(items===null) continue;                       // ce dossier n'existe pas
     aFaire.push({from:from,items:items});
@@ -8063,22 +8063,33 @@ function dbxEmpFolderLegacy(e){ return '/'+_dbxResto(e.restoId)+'/Equipe/'+dbxCl
 function dbxMigrerEquipe(e){ return dbxAssurerDossier(e); }
 
 // ── CONTRÔLE ET RANGEMENT DES DOSSIERS DROPBOX ───────────────────────────────
-// Organisation cible :
-//   /<Resto>/<Nom_Prenom>                          salarié en poste
-//   /<Resto>/Recrutement/<Nouveau|Refuse>/<Nom>    candidat
-//   /Archives/<Resto>/<Nom_Prenom>                 salarié archivé (dossier COMPLET)
-// Le niveau « Equipe » a été supprimé : son contenu remonte à la racine du resto.
+// Règle unique, voulue par la direction :
+//   • un salarié PRÉSENT  → /<Resto>/<Nom>            un seul dossier, complet
+//   • un salarié PARTI    → /Archives/<Resto>/<Nom>   un seul dossier, complet
+//   • un candidat         → /<Resto>/Recrutement/<Nouveau|Refuse>/<Nom>
+// Le dossier « Equipe » ne doit plus exister : son contenu est remonté, jamais effacé.
+// Et il ne doit rester QU'UN dossier par personne : « X » et « X (1) » fusionnent.
 
-// Clé de rapprochement d'un nom : insensible à la casse, aux accents et à
-// l'ORDRE (« MARTIN Léa » et « Lea Martin » donnent la même clé).
+// Retire le suffixe de doublon ajouté par Dropbox : « RENARD_MANON (1) » → « RENARD_MANON ».
+function _dbxSansSuffixe(nom){ return String(nom||'').replace(/\s*\(\d+\)\s*$/,''); }
+// Clé de rapprochement : insensible à la casse, aux accents, aux séparateurs,
+// à l'ORDRE des mots et aux doublons. « sarah_jerhou », « JERHOU_SARAH » et
+// « jerhou_sarah (1) » donnent tous la même clé.
 function _dbxCle(nom){
-  return dbxClean(nom||'').toLowerCase().split('_').filter(Boolean).sort().join(' ');
+  return dbxClean(_dbxSansSuffixe(nom)).toLowerCase().split(/[_\-\s]+/).filter(Boolean).sort().join(' ');
 }
+// Entre plusieurs orthographes d'un même nom, on garde la plus complète.
+function _dbxMeilleurNom(membres){
+  var noms=membres.map(function(m){ return dbxClean(_dbxSansSuffixe(m.nom)); }).filter(Boolean);
+  noms.sort(function(a,b){ return b.length-a.length; });
+  return noms[0]||'Sans_nom';
+}
+function _dbxMemeChemin(a,b){ return String(a||'').toLowerCase()===String(b||'').toLowerCase(); }
+
 var DBX_ZONES_FIXES={'equipe':1,'recrutement':1,'archives':1,'modeles':1,'a_verifier':1,'nouveaux_produits':1,'marchandises':1};
-// Lit toute l'arborescence utile et renvoie la liste des dossiers de personnes
-// trouvés, avec leur zone. Ne modifie RIEN.
+// Lit toute l'arborescence utile. Ne modifie RIEN.
 async function dbxScanDossiers(){
-  var trouves=[];   // { path, nom, cle, zone, resto, nbFichiers }
+  var trouves=[];   // { path, nom, cle, zone, resto }
   function _push(p,zone,resto){
     var nom=p.slice(p.lastIndexOf('/')+1);
     trouves.push({path:p,nom:nom,cle:_dbxCle(nom),zone:zone,resto:resto});
@@ -8087,25 +8098,25 @@ async function dbxScanDossiers(){
   for(var i=0;i<rids.length;i++){
     var rid=rids[i], R=_dbxResto(rid);
     var racine=await dbxListSafe('/'+R);
-    if(racine){
-      for(var k=0;k<racine.length;k++){
-        var it=racine[k]; if(it['.tag']!=='folder') continue;
-        if(DBX_ZONES_FIXES[String(it.name).toLowerCase()]) continue;
-        _push(it.path_display||('/'+R+'/'+it.name),'poste',rid);
-      }
-    }
+    if(racine){ for(var k=0;k<racine.length;k++){ var it=racine[k];
+      if(it['.tag']!=='folder') continue;
+      if(DBX_ZONES_FIXES[String(_dbxSansSuffixe(it.name)).toLowerCase()]) continue;
+      _push(it.path_display||('/'+R+'/'+it.name),'poste',rid); } }
     var eqp=await dbxListSafe('/'+R+'/Equipe');
-    if(eqp){ for(var k2=0;k2<eqp.length;k2++){ var i2=eqp[k2]; if(i2['.tag']==='folder') _push(i2.path_display||('/'+R+'/Equipe/'+i2.name),'equipe',rid); } }
+    if(eqp){ for(var k2=0;k2<eqp.length;k2++){ var i2=eqp[k2];
+      if(i2['.tag']==='folder') _push(i2.path_display||('/'+R+'/Equipe/'+i2.name),'equipe',rid); } }
     var sous=['Nouveau','Refuse'];
     for(var s=0;s<sous.length;s++){
       var rc=await dbxListSafe('/'+R+'/Recrutement/'+sous[s]);
-      if(rc){ for(var k3=0;k3<rc.length;k3++){ var i3=rc[k3]; if(i3['.tag']==='folder') _push(i3.path_display||('/'+R+'/Recrutement/'+sous[s]+'/'+i3.name),'recrut_'+sous[s].toLowerCase(),rid); } }
+      if(rc){ for(var k3=0;k3<rc.length;k3++){ var i3=rc[k3];
+        if(i3['.tag']==='folder') _push(i3.path_display||('/'+R+'/Recrutement/'+sous[s]+'/'+i3.name),'recrut_'+sous[s].toLowerCase(),rid); } }
     }
     var rcRac=await dbxListSafe('/'+R+'/Recrutement');
     if(rcRac){ for(var k4=0;k4<rcRac.length;k4++){ var i4=rcRac[k4];
-      if(i4['.tag']==='folder' && sous.indexOf(i4.name)<0) _push(i4.path_display||('/'+R+'/Recrutement/'+i4.name),'recrut_racine',rid); } }
+      if(i4['.tag']==='folder' && sous.indexOf(_dbxSansSuffixe(i4.name))<0) _push(i4.path_display||('/'+R+'/Recrutement/'+i4.name),'recrut_racine',rid); } }
     var ar=await dbxListSafe('/Archives/'+R);
-    if(ar){ for(var k5=0;k5<ar.length;k5++){ var i5=ar[k5]; if(i5['.tag']==='folder') _push(i5.path_display||('/Archives/'+R+'/'+i5.name),'archives',rid); } }
+    if(ar){ for(var k5=0;k5<ar.length;k5++){ var i5=ar[k5];
+      if(i5['.tag']==='folder') _push(i5.path_display||('/Archives/'+R+'/'+i5.name),'archives',rid); } }
   }
   return trouves;
 }
@@ -8130,93 +8141,125 @@ function dbxAttendus(){
 }
 var DBX_ZONE_LBL={poste:'dans le restaurant',equipe:'dans « Equipe »',archives:'dans les Archives',
   recrut_nouveau:'Recrutement / Nouveau',recrut_refuse:'Recrutement / Refuse',recrut_racine:'Recrutement (à plat)'};
-// Compare l'existant et l'attendu. Ne déplace rien.
+// ── LE PLAN : un dossier unique par personne, et où il doit aller ────────────
+// Regroupe tout ce qui a été trouvé par clé de nom, puis décide de la cible.
+// C'est CE plan que le contrôle affiche et que le rangement applique : les deux
+// ne peuvent donc pas diverger.
+function dbxPlanRangement(trouves){
+  var attendus=dbxAttendus();
+  var parCleAtt={}; attendus.forEach(function(a){ (parCleAtt[a.cle]=parCleAtt[a.cle]||[]).push(a); });
+  var groupes={}; trouves.forEach(function(f){ (groupes[f.cle]=groupes[f.cle]||[]).push(f); });
+  var plan=[];
+  Object.keys(groupes).forEach(function(cle){
+    var l=groupes[cle], att=parCleAtt[cle]||[];
+    if(att.length>1){ plan.push({cle:cle,type:'ambigu',membres:l,nom:att[0].nom,noms:att.map(function(x){return x.nom;})}); return; }
+    if(att.length===1){
+      plan.push({cle:cle,type:'personne',a:att[0],nom:att[0].nom,cible:att[0].cible,membres:l});
+      return;
+    }
+    // Personne inconnue de l'application : on ne devine pas son statut, mais on
+    // la sort quand même de « Equipe » — sans jamais rien supprimer.
+    var nom=_dbxMeilleurNom(l);
+    var enArch=l.filter(function(f){ return f.zone==='archives'; })[0];
+    var toutRecrut=l.every(function(f){ return f.zone.indexOf('recrut')===0; });
+    var R=_dbxResto((enArch||l[0]).resto);
+    var cible = enArch ? ('/Archives/'+R+'/'+nom)
+              : toutRecrut ? l[0].path
+              : ('/'+R+'/'+nom);
+    plan.push({cle:cle,type:'orphelin',nom:nom,cible:cible,membres:l});
+  });
+  plan.forEach(function(p){
+    if(p.type==='ambigu'){ p.action=false; return; }
+    p.action = (p.membres.length>1) || !_dbxMemeChemin(p.membres[0].path,p.cible);
+  });
+  var sans=attendus.filter(function(a){ return !groupes[a.cle]; });
+  return {plan:plan, sans:sans,
+    aRanger:plan.filter(function(p){ return p.action; }),
+    ok:plan.filter(function(p){ return !p.action && p.type!=='ambigu'; }),
+    ambigus:plan.filter(function(p){ return p.type==='ambigu'; })};
+}
+// ── CONTRÔLE : état des lieux, sans rien déplacer ────────────────────────────
 async function dbxControlerDossiers(){
   if(!dbxEstPret()){ alert('Dropbox n\'est pas connecté sur cette version.\n\nCe bouton fonctionne sur le site EN LIGNE, pas sur un aperçu local.'); return null; }
   var box=document.getElementById('dbx-controle-box');
   if(box){ box.style.display='block'; box.innerHTML='<div style="color:#888;font-size:.83rem;">Lecture des dossiers Dropbox…</div>'; }
-  var trouves, attendus=dbxAttendus();
+  var trouves;
   try{ trouves=await dbxScanDossiers(); }
   catch(err){ if(box) box.innerHTML='<div style="color:#e8623a;">Lecture impossible : '+String(err.message||err)+'</div>'; return null; }
-  var parCle={}; trouves.forEach(function(f){ (parCle[f.cle]=parCle[f.cle]||[]).push(f); });
-  var utilisees={};
-  var ok=[], eclates=[], mauvais=[], absents=[];
-  attendus.forEach(function(a){
-    var l=(parCle[a.cle]||[]); utilisees[a.cle]=1;
-    if(!l.length){ absents.push(a); return; }
-    var bons=l.filter(function(f){ return f.path===a.cible; });
-    if(l.length>1){ eclates.push({a:a,l:l}); }
-    else if(bons.length===1){ ok.push(a); }
-    else { mauvais.push({a:a,f:l[0]}); }
-  });
-  var orphelins=trouves.filter(function(f){ return !utilisees[f.cle]; });
-  window.__DBX_CONTROLE={trouves:trouves,eclates:eclates,mauvais:mauvais,absents:absents,orphelins:orphelins,ok:ok};
+  var R=dbxPlanRangement(trouves);
+  R.trouves=trouves;
+  window.__DBX_CONTROLE=R;
   if(box){
-    function _li(rows,f){ return '<ul style="margin:6px 0 0;padding-left:18px;color:#cbd5e1;font-size:.8rem;">'+rows.map(f).join('')+'</ul>'; }
+    var doublons=R.aRanger.filter(function(p){ return p.membres.length>1; });
+    var deplaces=R.aRanger.filter(function(p){ return p.membres.length===1; });
+    var orph=R.aRanger.concat(R.ok).filter(function(p){ return p.type==='orphelin'; });
+    function ul(rows,f){ return '<ul style="margin:6px 0 0;padding-left:18px;color:#cbd5e1;font-size:.8rem;line-height:1.55;">'+rows.map(f).join('')+'</ul>'; }
+    function zl(f){ return (DBX_ZONE_LBL[f.zone]||f.zone)+' · '+_dbxResto(f.resto); }
     var h='';
     h+='<div style="font-weight:800;color:#93c5fd;margin-bottom:8px;">🔍 Contrôle des dossiers Dropbox</div>';
     h+='<div style="color:#cbd5e1;font-size:.85rem;margin-bottom:10px;">'
-      +trouves.length+' dossier(s) lus · <b style="color:#3ecf8e;">'+ok.length+' bien rangés</b>'
-      +' · <b style="color:#f5a623;">'+(mauvais.length+eclates.length)+' à ranger</b>'
-      +' · <b style="color:#fca5a5;">'+orphelins.length+' sans fiche</b></div>';
-    if(eclates.length){
-      h+='<div style="margin-top:10px;"><b style="color:#f5a623;">⚠️ Dossiers éclatés en plusieurs endroits ('+eclates.length+')</b>'
-        +_li(eclates,function(x){ return '<li><b>'+x.a.nom+'</b> : '+x.l.map(function(f){return (DBX_ZONE_LBL[f.zone]||f.zone)+' ('+_dbxResto(f.resto)+')';}).join(' + ')+' → à regrouper dans <code>'+x.a.cible+'</code></li>'; })+'</div>';
+      +trouves.length+' dossier(s) lus · <b style="color:#3ecf8e;">'+R.ok.length+' bien rangés</b>'
+      +' · <b style="color:#f5a623;">'+R.aRanger.length+' à ranger</b>'
+      +(R.ambigus.length?(' · <b style="color:#fca5a5;">'+R.ambigus.length+' homonymes</b>'):'')+'</div>';
+    if(doublons.length){
+      h+='<div style="margin-top:10px;"><b style="color:#f5a623;">👥 Plusieurs dossiers pour la même personne ('+doublons.length+')</b>'
+        +'<div style="font-size:.76rem;color:#888;">Ils seront regroupés en UN seul dossier. Aucun fichier n\'est perdu.</div>'
+        +ul(doublons,function(p){ return '<li><b>'+p.nom+'</b> : '+p.membres.map(function(f){return '<code>'+f.path+'</code>';}).join(' + ')+'<br><span style="color:#8fa4c0;">→ '+p.cible+'</span></li>'; })+'</div>';
     }
-    if(mauvais.length){
-      h+='<div style="margin-top:10px;"><b style="color:#f5a623;">📁 Dossiers au mauvais endroit ('+mauvais.length+')</b>'
-        +_li(mauvais,function(x){ return '<li><b>'+x.a.nom+'</b> : <code>'+x.f.path+'</code> → <code>'+x.a.cible+'</code></li>'; })+'</div>';
+    if(deplaces.length){
+      h+='<div style="margin-top:10px;"><b style="color:#f5a623;">📁 Dossiers au mauvais endroit ('+deplaces.length+')</b>'
+        +ul(deplaces,function(p){ return '<li><b>'+p.nom+'</b> ('+zl(p.membres[0])+') : <code>'+p.membres[0].path+'</code><br><span style="color:#8fa4c0;">→ '+p.cible+'</span></li>'; })+'</div>';
     }
-    if(orphelins.length){
-      h+='<div style="margin-top:10px;"><b style="color:#fca5a5;">❓ Dossiers qui ne correspondent à personne ('+orphelins.length+')</b>'
-        +'<div style="font-size:.76rem;color:#888;">Ancien nom, faute de frappe ou doublon. <b>Rien n\'y est touché</b> — à regarder toi-même.</div>'
-        +_li(orphelins,function(f){ return '<li><code>'+f.path+'</code></li>'; })+'</div>';
+    if(orph.length){
+      h+='<div style="margin-top:10px;"><b style="color:#fca5a5;">❓ Dossiers sans fiche dans l\'application ('+orph.length+')</b>'
+        +'<div style="font-size:.76rem;color:#888;">Ancien salarié supprimé de l\'appli, ancien nom ou import. Ils ne sont <b>jamais effacés</b> : ils sortent de « Equipe » et vont dans les Archives du restaurant si un dossier d\'archive existe déjà à ce nom, sinon à la racine du restaurant. À toi de les vérifier ensuite.</div>'
+        +ul(orph,function(p){ return '<li><b>'+p.nom+'</b> → <code>'+p.cible+'</code></li>'; })+'</div>';
     }
-    if(absents.length){
-      h+='<div style="margin-top:10px;"><b style="color:#94a3b8;">📭 Sans aucun dossier Dropbox ('+absents.length+')</b>'
+    if(R.ambigus.length){
+      h+='<div style="margin-top:10px;"><b style="color:#fca5a5;">⚠️ Deux personnes portent le même nom ('+R.ambigus.length+')</b>'
+        +'<div style="font-size:.76rem;color:#888;">L\'application ne devine pas : ces dossiers ne seront <b>pas touchés</b>.</div>'
+        +ul(R.ambigus,function(p){ return '<li>'+p.noms.join(' / ')+' : '+p.membres.map(function(f){return '<code>'+f.path+'</code>';}).join(', ')+'</li>'; })+'</div>';
+    }
+    if(R.sans.length){
+      h+='<div style="margin-top:10px;"><b style="color:#94a3b8;">📭 Sans aucun dossier Dropbox ('+R.sans.length+')</b>'
         +'<div style="font-size:.76rem;color:#888;">Normal si aucun document n\'a encore été déposé.</div>'
-        +_li(absents.slice(0,40),function(a){ return '<li>'+a.nom+' — '+(a.type==='candidat'?'candidat':'salarié')+' '+_dbxResto(a.resto)+'</li>'; })
-        +(absents.length>40?'<div style="font-size:.76rem;color:#666;">… et '+(absents.length-40)+' autres</div>':'')+'</div>';
+        +ul(R.sans.slice(0,40),function(a){ return '<li>'+a.nom+' — '+(a.type==='candidat'?'candidat':'salarié')+' '+_dbxResto(a.resto)+'</li>'; })
+        +(R.sans.length>40?'<div style="font-size:.76rem;color:#666;">… et '+(R.sans.length-40)+' autres</div>':'')+'</div>';
     }
-    if(!eclates.length && !mauvais.length){
-      h+='<div style="margin-top:10px;color:#3ecf8e;">✅ Tous les dossiers connus sont au bon endroit.</div>';
-    } else {
-      h+='<div style="margin-top:12px;"><button class="btn btn-red btn-sm" onclick="dbxRangerToutMaintenant()">🗂️ Ranger maintenant ('+(mauvais.length+eclates.length)+')</button></div>';
-    }
+    if(!R.aRanger.length){ h+='<div style="margin-top:10px;color:#3ecf8e;">✅ Un seul dossier par personne, tous au bon endroit.</div>'; }
+    else { h+='<div style="margin-top:12px;"><button class="btn btn-red btn-sm" onclick="dbxRangerToutMaintenant()">🗂️ Ranger maintenant ('+R.aRanger.length+')</button></div>'; }
     box.innerHTML=h;
   }
-  return window.__DBX_CONTROLE;
+  return R;
 }
 window.dbxControlerDossiers=dbxControlerDossiers;
 
-// ── RANGEMENT : regroupe chaque dossier au bon endroit ───────────────────────
-// Il s'appuie sur le MÊME scan que le contrôle : on retrouve le dossier d'une
-// personne par son nom, où qu'il soit et quel que soit l'ordre nom/prénom.
-// Rien n'est supprimé : les fichiers sont DÉPLACÉS et les dossiers vidés retirés.
+// ── RANGEMENT : applique exactement le plan affiché par le contrôle ──────────
+// Rien n'est supprimé : les fichiers sont DÉPLACÉS, les dossiers vidés retirés.
 async function dbxRangerToutMaintenant(){
   if(!dbxEstPret()){ alert('Dropbox n\'est pas connecté sur cette version.\n\nCe bouton fonctionne sur le site EN LIGNE (là où Dropbox est branché), pas sur un simple aperçu local.'); return; }
-  var attendus=dbxAttendus();
-  var nbSal=attendus.filter(function(a){return a.type==='salarie';}).length;
-  var nbCand=attendus.length-nbSal;
-  if(!confirm('Ranger tous les dossiers Dropbox ?\n\n'+nbCand+' candidat(s) et '+nbSal+' salarié(s) seront passés en revue.\n\n• chaque salarié archivé récupère SON DOSSIER COMPLET dans /Archives/<Resto>/\n• le niveau « Equipe » est vidé puis supprimé\n• rien n\'est supprimé : les fichiers sont seulement déplacés.\n\nCela peut prendre plusieurs minutes.')) return;
   var st=document.getElementById('dbx-ranger-status');
   function maj(t){ if(st) st.textContent=t; }
   maj('Lecture des dossiers Dropbox…');
   var trouves=await dbxScanDossiers();
-  var parCle={}; trouves.forEach(function(f){ (parCle[f.cle]=parCle[f.cle]||[]).push(f); });
-  // homonymes : deux personnes portant le même nom → on ne devine pas, on signale.
-  var nbParCle={}; attendus.forEach(function(a){ nbParCle[a.cle]=(nbParCle[a.cle]||0)+1; });
-  var done=0, total=attendus.length, fichiers=0, ranges=0, ambigus=[];
+  var R=dbxPlanRangement(trouves);
+  var _amb=R.ambigus.length? ('\n\n⚠️ Non traités car deux personnes portent le même nom : '+R.ambigus.map(function(p){return p.noms.join('/');}).join(', ')+'. À régler à la main.') : '';
+  if(!R.aRanger.length){ maj('✅ Rien à ranger : un seul dossier par personne, tous au bon endroit.'); alert('Rien à ranger : chaque personne a déjà un dossier unique, au bon endroit.'+_amb); return; }
+  var nbDoublons=R.aRanger.filter(function(p){ return p.membres.length>1; }).length;
+  if(!confirm('Ranger '+R.aRanger.length+' dossier(s) ?\n\n'
+    +'• '+nbDoublons+' personne(s) ont plusieurs dossiers → regroupés en UN seul\n'
+    +'• le dossier « Equipe » est vidé puis supprimé\n'
+    +'• un salarié présent → /<Resto>/<Nom> · un salarié parti → /Archives/<Resto>/<Nom>\n'
+    +'• rien n\'est supprimé : les fichiers sont seulement déplacés\n\n'
+    +'Cela peut prendre plusieurs minutes.')) return;
+  var done=0, total=R.aRanger.length, fichiers=0, ranges=0;
   for(var i=0;i<total;i++){
-    var a=attendus[i];
-    done++; maj('Rangement… '+done+'/'+total+' ('+fichiers+' fichier'+(fichiers>1?'s':'')+' regroupé'+(fichiers>1?'s':'')+')');
-    if(nbParCle[a.cle]>1){ ambigus.push(a.nom); continue; }
-    var froms=(parCle[a.cle]||[]).map(function(f){ return f.path; });
-    if(!froms.length) continue;
+    var p=R.aRanger[i];
+    done++; maj('Rangement… '+done+'/'+total+' — '+p.nom+' ('+fichiers+' fichier'+(fichiers>1?'s':'')+' déplacé'+(fichiers>1?'s':'')+')');
     try{
-      var r=await dbxFusionner(froms,a.cible);
+      var r=await dbxFusionner(p.membres.map(function(m){ return m.path; }), p.cible);
       fichiers+=r.fichiers; if(r.fichiers||r.dossiers) ranges++;
-    }catch(err){ console.warn('ranger',a.nom,err); }
+    }catch(err){ console.warn('ranger',p.nom,err); }
   }
   // Le dossier « Equipe » n'a plus lieu d'être : on le retire s'il est vide.
   var restants=0, rids=Object.keys(RESTOS||{});
@@ -8226,11 +8269,11 @@ async function dbxRangerToutMaintenant(){
     if(reste===null) continue;
     if(reste.length===0){ await dbxDelete(chemin); } else restants+=reste.length;
   }
-  maj('✅ Terminé : '+fichiers+' fichier(s) regroupé(s), '+ranges+' dossier(s) rangé(s).');
-  alert('Rangement terminé.\n\n'+fichiers+' fichier(s) regroupé(s) dans le bon dossier.\n'
-    +(restants? ('⚠️ '+restants+' dossier(s) restent dans « Equipe » : ils ne correspondent à personne dans l\'application. Lance le contrôle pour voir lesquels.')
-              : 'Le dossier « Equipe » a été supprimé : il est vide.')
-    +(ambigus.length? ('\n\n⚠️ Non traité(s) car deux personnes portent le même nom : '+ambigus.join(', ')+'. À régler à la main.') : ''));
+  maj('✅ Terminé : '+fichiers+' fichier(s) déplacé(s), '+ranges+' dossier(s) rangé(s).');
+  alert('Rangement terminé.\n\n'+fichiers+' fichier(s) déplacé(s), '+ranges+' dossier(s) regroupé(s).\n'
+    +(restants? ('⚠️ '+restants+' dossier(s) restent dans « Equipe ».')
+              : '« Equipe » est vide : le dossier a été supprimé.')
+    +_amb);
   try{ await dbxControlerDossiers(); }catch(_){}
 }
 window.dbxRangerToutMaintenant=dbxRangerToutMaintenant;
