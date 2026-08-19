@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-20 17:50 · v585 (memes cartes photo sur Mes horaires, Mes conges et Indisponibilites)';
+  var EMBEDDED_VERSION = '2026-08-21 09:30 · v586 (contrats +5% maxi, 35h strict ; planning non conforme corrige tout seul)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -20869,15 +20869,20 @@ function hrPlafondHebdoMin(emp){
 //   • contrat < 35h : contrat + 10% (ex. 15h -> 16h30, 20h -> 22h, 24h -> 26h24)
 //   • contrat >= 35h : 35h pile, aucune heure complémentaire.
 // C'est un plafond DUR appliqué à la main (affectation) et au moteur automatique.
+// PLAFOND HEBDOMADAIRE D'UN SALARIÉ (décision direction, v586) :
+//   • 35 h (et plus) : EXACTEMENT le contrat, aucune heure au-delà ;
+//   • en dessous     : +5 % d'heures complémentaires MAXIMUM (avant : +10 %).
+// Exemples : 24 h → 25 h 12 max · 20 h → 21 h max · 15 h → 15 h 45 max · 35 h → 35 h.
+var HR_MARGE_COMPL = 0.05;             // ← la marge, à un seul endroit
 function hrPlafondMaxMin(emp){
   var h=(typeof hrContratHebdo==='function')?hrContratHebdo(emp):null;
   if(h==null) return null;             // pas de contrat connu -> pas de plafond
   if(h>=35) return Math.round(h*60);   // 35h (et +) : exact, pas de complémentaires
-  return Math.round(h*1.10*60);        // < 35h : +10% d'heures complémentaires max
+  return Math.round(h*(1+HR_MARGE_COMPL)*60);
 }
 try{ window.hrPlafondMaxMin=hrPlafondMaxMin; }catch(_){}
 // Minutes DÉJÀ posées sur la semaine affichée pour un salarié (traits équipier, hors
-// encadrement) — somme des 7 jours de ROWS_BY_DAY. Sert au contrôle du plafond +10%.
+// encadrement) — somme des 7 jours de ROWS_BY_DAY. Sert au contrôle du plafond (+5%).
 function hrMinSemaineEmpRows(empId){
   var tot=0;
   try{
@@ -24915,7 +24920,7 @@ function hrAutoAssignMonth(isoRefArg, silencieux, lundiUnique, filtreEtape){
         if(_lissageAlertes.indexOf(nm)<0) _lissageAlertes.push(nm);
       }
       // Le moteur place jusqu'à ce plafond ; on autorise la cible + marge technique
-      // pour boucher les traits, MAIS jamais au-delà du plafond dur (+10% ; 35h=35h).
+      // pour boucher les traits, MAIS jamais au-delà du plafond dur (+5% ; 35h=35h).
       var _pm=(typeof hrPlafondMaxMin==='function')?hrPlafondMaxMin(emp):null;
       return (_pm!=null)?Math.min(c.plafondMin,_pm):c.plafondMin;
     };
@@ -25318,7 +25323,7 @@ function hrPlacerIntelligentSemaine(repartirZero){
     // JAMAIS comparer la durée du créneau au solde. Un salarié à qui il restait 1h
     // pouvait donc prendre un trait de 4h = 3h au-dessus du contrat, en silence.
     // MAINTENANT : on refuse tout créneau qui ferait dépasser le plafond DUR
-    // (hrPlafondMaxMin : contrat +10% sous 35h, 35h pile au-delà). placerSurTrait
+    // (hrPlafondMaxMin : contrat +5% sous 35h, 35h pile au-delà). placerSurTrait
     // raccourcit déjà les traits par pas de 15 min : il s'ajuste tout seul au solde.
     if(_hrResteMax(emp) < (e-s)) return false;
     if(!hrSaitFaire(emp,poste)) return false;
@@ -27245,7 +27250,7 @@ function hrPlacerSurCreneau(id, jour, s, e, poste){
       _conflit=(ROWS_BY_DAY[jour]||[]).some(function(row){ return (row.bars||[]).some(function(b){ if(String(b.empId)!==String(emp.id)) return false; var be=(b.e!=null?b.e:b.s+60); return s < be && b.s < _en; }); });
     }
     if(_conflit){ if(typeof toast==='function') toast(emp.name+' a déjà un créneau qui se chevauche à cette heure','error'); return; }
-    // PLAFOND HEBDO (contrat +10% ; 35h = 35h) : refuser si ce créneau ferait dépasser.
+    // PLAFOND HEBDO (contrat +5% ; 35h = 35h) : refuser si ce créneau ferait dépasser.
     if(typeof hrPlafondMaxMin==='function'){
       var _capP=hrPlafondMaxMin(emp);
       if(_capP!=null){
@@ -28381,7 +28386,7 @@ function hrTraitChoisir(empId){
       catch(_){ alert(emp.name+' est déjà sur un créneau qui chevauche cette heure ('+_plage+').'); }
       return;
     }
-    // PLAFOND HEBDO (heures complémentaires) : contrat +10% ; 35h = 35h. On refuse si ce
+    // PLAFOND HEBDO (heures complémentaires) : contrat +5% ; 35h = 35h. On refuse si ce
     // créneau ferait dépasser le maximum de la semaine affichée.
     if(typeof hrPlafondMaxMin==='function'){
       var _cap=hrPlafondMaxMin(emp);
@@ -28390,7 +28395,7 @@ function hrTraitChoisir(empId){
         if(_proj>_cap){
           var _ch=(typeof hrContratHebdo==='function')?hrContratHebdo(emp):null;
           var _f=(typeof _hrFmtHMin==='function')?_hrFmtHMin:function(m){return Math.round(m/60)+'h';};
-          var _motif=(_ch!=null&&_ch>=35)?'35h max, aucune heure complémentaire':'contrat +10% d\'heures complémentaires';
+          var _motif=(_ch!=null&&_ch>=35)?'35h max, aucune heure complémentaire':'contrat +5% d\'heures complémentaires';
           try{ toast(emp.name+(_ch!=null?' ('+_ch+'h)':'')+' : ce créneau porterait la semaine à '+_f(_proj)+', au-delà du maximum '+_f(_cap)+' ('+_motif+'). Réduis un autre créneau d\'abord.','error'); }
           catch(_){ alert(emp.name+' dépasserait son maximum d\'heures hebdomadaires ('+_f(_cap)+').'); }
           return;
@@ -31506,7 +31511,7 @@ function hrControleReglesPlanning(){
       seqs.forEach(function(sq){
         var dur=sq.e-sq.s;
         if(dur>vacMax+0.001){
-          infractions.push({type:'5h', emp:nom, jour:d,
+          infractions.push({type:'5h', emp:nom, empId:id, jour:d, s:sq.s, e:sq.e,
             detail:JN[d]+' : vacation continue '+_hrMinToHHMM(sq.s)+'→'+_hrMinToHHMM(sq.e)+' = '+_hrDureeTxt(dur)+' (max autorisé '+_hrDureeTxt(vacMax)+')'});
         }
       });
@@ -31520,7 +31525,7 @@ function hrControleReglesPlanning(){
       if(finVeille<0 || debutJour===Infinity) continue;
       var repos=(debutJour+1440)-finVeille;   // même calcul que la règle R1 du placement
       if(repos<reposMin-0.001){
-        infractions.push({type:'12h', emp:nom, jour:dd,
+        infractions.push({type:'12h', emp:nom, empId:id, jour:dd, finVeille:finVeille, debutJour:debutJour, manque:(reposMin-repos),
           detail:JN[dd-1]+' fin '+_hrMinToHHMM(finVeille)+' → '+JN[dd]+' début '+_hrMinToHHMM(debutJour)+' = '+_hrDureeTxt(Math.max(0,repos))+' de repos (minimum requis '+_hrDureeTxt(reposMin)+')'});
       }
     }
@@ -31547,7 +31552,8 @@ function hrBloquerSiReglesKO(actionLbl){
     return h+'</div>';
   }
   var body=''
-    + '<div style="font-size:.82rem;color:#bbb;margin-bottom:12px;">'+(actionLbl||'Validation')+' bloquée : le planning ne respecte pas les règles suivantes. Corrigez les créneaux concernés puis réessayez.</div>'
+    + '<div style="font-size:.82rem;color:#bbb;margin-bottom:12px;">'+(actionLbl||'Validation')+' bloquée : le planning ne respecte pas les règles ci-dessous.<br>'
+      + '<b style="color:#3ecf8e;">Tu n\'as rien à chercher :</b> le bouton <b>« Corriger automatiquement »</b> reprend les créneaux fautifs et les replace dans les règles. Ce qui ne peut pas être replacé reste simplement à pourvoir.</div>'
     + bloc('Repos minimum de 12 h non respecté', '🛌', v12)
     + bloc('Vacation continue de plus de 5 h', '⏱️', v5);
   var mv=document.getElementById('modal-bloc-regles');
@@ -31556,7 +31562,9 @@ function hrBloquerSiReglesKO(actionLbl){
     mv.innerHTML='<div class="modal" style="width:560px;max-width:96vw;">'
       +'<div class="modal-title" style="color:var(--red);">🚫 Planning non conforme</div>'
       +'<div id="modal-bloc-regles-body" style="max-height:60vh;overflow-y:auto;"></div>'
-      +'<div style="display:flex;justify-content:flex-end;margin-top:14px;"><button class="btn btn-red" onclick="closeModal(\'modal-bloc-regles\')">J\'ai compris</button></div>'
+      +'<div style="display:flex;justify-content:space-between;gap:10px;margin-top:14px;flex-wrap:wrap;">'
+      +'<button class="btn" id="btn-corriger-auto" style="background:#1d7a3a;color:#fff;" onclick="hrCorrigerEtReessayer()">✅ Corriger automatiquement</button>'
+      +'<button class="btn btn-gray" onclick="closeModal(\'modal-bloc-regles\')">Fermer</button></div>'
       +'</div>';
     document.body.appendChild(mv);
   }
@@ -31567,6 +31575,142 @@ function hrBloquerSiReglesKO(actionLbl){
 }
 window.hrControleReglesPlanning=hrControleReglesPlanning;
 window.hrBloquerSiReglesKO=hrBloquerSiReglesKO;
+
+/* ══ CORRECTION AUTOMATIQUE DU PLANNING ═══════════════════════════════════════
+   Tu ne dois pas avoir à chercher toi-même quel créneau déplacer. Quand le
+   planning n'est pas conforme, l'application :
+     1. identifie le créneau fautif de chaque infraction ;
+     2. le LIBÈRE (le trait reste, il redevient « à pourvoir ») ;
+     3. relance le placement, qui ne repose la personne que si les règles
+        (repos 12 h, vacation 5 h, plafond du contrat) sont respectées ;
+     4. recommence tant qu'il reste des infractions (4 tours maximum).
+   Aucun trait n'est supprimé : au pire un créneau reste vide et se voit.       */
+function _hrBarsDeJour(d){
+  var out=[];
+  ((typeof ROWS_BY_DAY!=='undefined'&&ROWS_BY_DAY[d])||[]).forEach(function(row){
+    (row.bars||[]).forEach(function(b){ out.push(b); });
+  });
+  return out;
+}
+// Créneaux d'un salarié un jour donné (hors encadrement : l'encadrement ne se
+// replace pas par ce moteur, on n'y touche pas).
+function _hrBarsEmpJour(empId,d){
+  return _hrBarsDeJour(d).filter(function(b){
+    return b.empId && String(b.empId)===String(empId) &&
+           !(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l));
+  });
+}
+// Quel créneau libérer pour lever l'infraction ? Le moins coûteux :
+//  • repos 12 h → le dernier de la veille OU le premier du lendemain, le plus court ;
+//  • vacation 5 h → le dernier créneau de la séquence trop longue.
+function _hrBarsALiberer(inf){
+  var out=[];
+  if(inf.type==='12h'){
+    var veille=_hrBarsEmpJour(inf.empId, inf.jour-1).filter(function(b){ return (b.e||b.s)>=inf.finVeille-0.001; });
+    var jour  =_hrBarsEmpJour(inf.empId, inf.jour).filter(function(b){ return b.s<=inf.debutJour+0.001; });
+    var cand=veille.concat(jour);
+    if(!cand.length) return out;
+    cand.sort(function(a,b){ return ((a.e||a.s)-a.s)-((b.e||b.s)-b.s); });   // le plus court d'abord
+    out.push(cand[0]);
+  } else if(inf.type==='5h'){
+    var arr=_hrBarsEmpJour(inf.empId, inf.jour).filter(function(b){
+      return b.s>=inf.s-0.001 && (b.e||b.s)<=inf.e+0.001;
+    }).sort(function(a,b){ return a.s-b.s; });
+    if(arr.length>1) out.push(arr[arr.length-1]);        // on coupe la fin de la séquence
+    else if(arr.length===1) out.push(arr[0]);
+  }
+  return out;
+}
+// Salariés au-dessus de leur plafond (contrat +5 % ; 35 h = 35 h).
+function hrDepassementsContrat(){
+  var tot={}, nom={};
+  for(var d=0; d<7; d++){
+    _hrBarsDeJour(d).forEach(function(b){
+      if(!b.empId) return;
+      if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return;
+      tot[b.empId]=(tot[b.empId]||0)+((b.e!=null?b.e:b.s+60)-b.s);
+      nom[b.empId]=b.emp||b.empId;
+    });
+  }
+  var out=[];
+  Object.keys(tot).forEach(function(id){
+    var e=(DB.employees||[]).filter(function(x){ return String(x.id)===String(id); })[0];
+    if(!e) return;
+    var p=(typeof hrPlafondMaxMin==='function')?hrPlafondMaxMin(e):null;
+    if(p==null) return;
+    if(tot[id]>p+0.001) out.push({empId:id, nom:nom[id], minutes:tot[id], plafond:p, exces:tot[id]-p});
+  });
+  return out;
+}
+window.hrDepassementsContrat=hrDepassementsContrat;
+// Libère juste ce qu'il faut pour repasser sous le plafond (les créneaux les plus
+// courts d'abord : on rend le moins d'heures possible).
+function _hrLibererExces(dep){
+  var bars=[];
+  for(var d=0; d<7; d++){
+    _hrBarsEmpJour(dep.empId,d).forEach(function(b){ bars.push(b); });
+  }
+  bars.sort(function(a,b){ return ((a.e||a.s)-a.s)-((b.e||b.s)-b.s); });
+  var reste=dep.exces, n=0;
+  for(var i=0;i<bars.length && reste>0.001;i++){
+    var dur=(bars[i].e||bars[i].s)-bars[i].s;
+    bars[i].empId=null; bars[i].emp=null; reste-=dur; n++;
+  }
+  return n;
+}
+async function hrCorrigerConformite(){
+  if(typeof ROWS_BY_DAY==='undefined'){ return null; }
+  var libres=0, tours=0;
+  var st=document.getElementById('hrx-assign-status');
+  function maj(t){ try{ if(st) st.innerHTML=t; }catch(_){} }
+  for(tours=0; tours<4; tours++){
+    var inf=hrControleReglesPlanning();
+    var dep=hrDepassementsContrat();
+    if(!inf.length && !dep.length) break;
+    maj('🛠️ Correction du planning… (tour '+(tours+1)+')');
+    var vus={};
+    inf.forEach(function(x){
+      _hrBarsALiberer(x).forEach(function(b){
+        var k=(b.l||'')+'|'+b.s+'|'+b.e;
+        if(vus[k]) return; vus[k]=1;
+        b.empId=null; b.emp=null; libres++;
+      });
+    });
+    dep.forEach(function(x){ libres+=_hrLibererExces(x); });
+    // On rend la main au moteur : il ne replacera que ce qui est légal.
+    try{ if(typeof hrPlacerIntelligentSemaine==='function') hrPlacerIntelligentSemaine(); }catch(e){ console.warn('replacement',e); }
+  }
+  var reste=hrControleReglesPlanning();
+  var resteDep=hrDepassementsContrat();
+  var vides=0; for(var d=0; d<7; d++){ _hrBarsDeJour(d).forEach(function(b){ if(!b.empId) vides++; }); }
+  maj('');
+  return {libres:libres, tours:tours, reste:reste, resteDep:resteDep, vides:vides};
+}
+window.hrCorrigerConformite=hrCorrigerConformite;
+// Bouton « Corriger automatiquement » de la fenêtre de blocage.
+async function hrCorrigerEtReessayer(){
+  var btn=document.getElementById('btn-corriger-auto');
+  if(btn){ btn.disabled=true; btn.textContent='Correction en cours…'; }
+  var r=null;
+  try{ r=await hrCorrigerConformite(); }catch(e){ console.error('correction',e); }
+  if(btn){ btn.disabled=false; btn.innerHTML='✅ Corriger automatiquement'; }
+  try{ if(typeof hrRenderSemaine==='function') hrRenderSemaine(); }catch(_){}
+  try{ if(typeof hrRefreshVue==='function') hrRefreshVue(); }catch(_){}
+  if(!r){ toast&&toast('Correction impossible','error'); return; }
+  if(r.reste.length || r.resteDep.length){
+    // il reste des cas : on réaffiche le détail, mais au moins la liste a fondu
+    try{ closeModal('modal-bloc-regles'); }catch(_){}
+    hrBloquerSiReglesKO('Enregistrement');
+    toast&&toast(r.libres+' créneau(x) repris — il reste '+(r.reste.length+r.resteDep.length)+' cas','error');
+    return;
+  }
+  try{ closeModal('modal-bloc-regles'); }catch(_){}
+  alert('✅ Planning corrigé.\n\n'+r.libres+' créneau(x) ont été repris et replacés dans les règles.\n'
+    +'Il reste '+r.vides+' créneau(x) non pourvus sur la semaine (visibles en gris).\n\n'
+    +'Tu peux enregistrer.');
+  toast&&toast('Planning conforme ✔','success');
+}
+window.hrCorrigerEtReessayer=hrCorrigerEtReessayer;
 
 function hrEnregistrerSemaineManuel(){
   try{
