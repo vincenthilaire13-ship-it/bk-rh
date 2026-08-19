@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-20 11:40 · v598 (pointages : plus de zombies, iPad et Controle des heures lisent la meme chose, la date ne saute plus)';
+  var EMBEDDED_VERSION = '2026-08-20 13:10 · v599 (Controle des heures demande enfin les pointages des autres postes + bouton Actualiser)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -3911,12 +3911,17 @@ function renderSemaineDetail(lundi, dayIdx){
     }catch(_e){}
   }
   window._SEM_CUR={lundi:lundi,day:dayIdx};
+  try{ _semChargerPointages(false); }catch(_){}   // ★ v599 — les pointages des autres postes
   var d0=new Date(lundi+'T12:00:00');
   var JN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
   var JS=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
   var h='<div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><button class="btn btn-gray btn-sm" onclick="renderSemaines()">← Contrôle des heures</button>'
     +'<button onclick="_ctrlPdfVierge(\''+lundi+'\')" style="background:#12324a;border:1px solid #2f6ea5;color:#9fd3ff;border-radius:8px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:.8rem;">📄 PDF prévu (vierge)</button>'
-    +'<button onclick="_ctrlPdfPointe(\''+lundi+'\')" style="background:#16321f;border:1px solid #2e5e33;color:#7fe0a0;border-radius:8px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:.8rem;">📄 PDF pointé</button></div>'
+    +'<button onclick="_ctrlPdfPointe(\''+lundi+'\')" style="background:#16321f;border:1px solid #2e5e33;color:#7fe0a0;border-radius:8px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:.8rem;">📄 PDF pointé</button>'
+    /* ★ v599 — la roulette qui manquait ici. */
+    +'<button id="sem-refresh" onclick="semRafraichirPointages()" title="Aller rechercher les pointages faits sur les autres postes (badgeuse, iPad)" style="background:#12324a;border:1px solid #2f6ea5;color:#9fd3ff;border-radius:8px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:.8rem;">🔄 Actualiser les pointages</button>'
+    +(_SEM_PTG_LE?('<span style="font-size:.74rem;color:#7f8c96;">pointages relus à '+_SEM_PTG_LE+'</span>'):'')
+    +'</div>'
     +'<div class="sec-title">🕐 Contrôle des heures · Semaine du '+_semDateFr(d0)+'</div>';
   h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 12px;">';
   for(var t=0;t<7;t++){
@@ -3935,7 +3940,19 @@ function renderSemaineDetail(lundi, dayIdx){
   +'</div>';
   h+='<div style="font-weight:700;color:#F5A623;font-size:1.05rem;margin-bottom:4px;">'+JN[dayIdx]+' '+dd.getDate()+'/'+('0'+(dd.getMonth()+1)).slice(-2)+'</div>'
     +'<p style="font-size:.76rem;color:#888;margin-bottom:8px;"><b>Prévu</b> en gris + <b>pointé</b> à l\'intérieur : <b style="color:#2e9e4a;">vert</b> conforme · <b style="color:#d64535;">rouge</b> retard / parti tôt · <b style="color:#e0a021;">orange</b> avance / dépassement. 👆 Clique sur un salarié pour saisir le pointage ou le marquer <b>absent</b> (arrêt maladie, CP, absence injustifiée…).</p>';
-  var emps=[]; try{ emps=(DB.employees||[]).filter(function(e){ return e && !e.archived && (''+(e.restoId||'')).toLowerCase()===(''+resto).toLowerCase() && ['equipier','leader','manager'].indexOf(e.role)>=0; }); }catch(_){ emps=[]; }
+  /* ★ v599 — avant, seuls equipiers / leaders / managers etaient regardes : un
+     directeur ou un RH qui avait pointe n apparaissait NULLE PART. Maintenant on
+     ajoute systematiquement toute personne du restaurant qui a pointe ce jour la. */
+  var emps=[]; try{
+    var _rl=(''+resto).toLowerCase();
+    var _tous=(DB.employees||[]).filter(function(e){ return e && !e.archived && (''+(e.restoId||'')).toLowerCase()===_rl; });
+    var _pall={}; try{ _pall=(typeof ptgGetAll==='function')?(ptgGetAll()||{}):{}; }catch(_){}
+    emps=_tous.filter(function(e){
+      if(['equipier','leader','manager'].indexOf(e.role)>=0) return true;
+      var r=_pall[e.id+'_'+iso];
+      return !!(r && (r.arrivee || r.depart || (r.cren && Object.keys(r.cren).length)));
+    });
+  }catch(_){ emps=[]; }
   var tl=''; try{ tl=(typeof ptgCtrlTimeline==='function')?ptgCtrlTimeline(iso, emps):''; }catch(e){ console.error('ptgCtrlTimeline',e); tl=''; }
   // SECOURS : si le contrôle de pointage n'affiche rien (cas limite), on montre quand même
   // le PRÉVU directement depuis l'instantané transféré (ou HR_AFFECT) — le planning de la journée.
@@ -3965,6 +3982,43 @@ function _semRenderPrevu(resto, iso, emps){
   });
   return h+'</div>';
 }
+/* ★ v599 — LE POINT QUI MANQUAIT VRAIMENT.
+   Le menu « 🕐 Contrôle des heures » ouvre la page SEMAINES (renderSemaineDetail),
+   pas l ecran « Contrôle des pointages ». Or cette page n a JAMAIS demande les
+   pointages partages : elle ne lisait que la memoire de CE poste. Un pointage
+   fait sur la badgeuse ou vu sur l iPad ne pouvait donc pas y apparaitre — et il
+   n y avait meme pas de bouton pour rafraichir. C est exactement ce que tu as
+   constate avec Paris Enzo et avec Candela.
+   Maintenant : on demande les pointages en arrivant sur la journee, et un bouton
+   🔄 permet de redemander quand on veut. Le garde-fou de 60 s evite de repayer
+   une requete a chaque clic sur un jour de la semaine.                          */
+var _SEM_PTG_T=0, _SEM_PTG_BUSY=false, _SEM_PTG_LE='';
+function _semChargerPointages(force){
+  try{
+    if(typeof ptgChargerPartage!=='function') return;
+    if(_SEM_PTG_BUSY) return;
+    if(!force && _SEM_PTG_T && (Date.now()-_SEM_PTG_T)<60000) return;
+    _SEM_PTG_BUSY=true; _SEM_PTG_T=Date.now();
+    ptgChargerPartage(null, true).then(function(){
+      _SEM_PTG_BUSY=false;
+      try{ _SEM_PTG_LE=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }catch(_){}
+      try{ _semRefreshIfActive(); }catch(_){}
+    }).catch(function(){ _SEM_PTG_BUSY=false; });
+  }catch(_){ _SEM_PTG_BUSY=false; }
+}
+async function semRafraichirPointages(){
+  var b=document.getElementById('sem-refresh');
+  if(b){ b.textContent='…'; b.disabled=true; }
+  _SEM_PTG_T=0;                       // on annule le garde-fou : tu demandes, on demande
+  try{ _semChargerPointages(true); }catch(_){}
+  setTimeout(function(){
+    var b2=document.getElementById('sem-refresh');
+    if(b2){ b2.textContent='🔄 Actualiser les pointages'; b2.disabled=false; }
+    try{ toast&&toast('Pointages à jour','success'); }catch(_){}
+  }, 900);
+}
+window.semRafraichirPointages=semRafraichirPointages;
+window._semChargerPointages=_semChargerPointages;
 function _semRefreshIfActive(){ try{ var p=document.getElementById('page-semaines'); if(p&&p.classList.contains('active')&&window._SEM_CUR){ renderSemaineDetail(window._SEM_CUR.lundi, window._SEM_CUR.day); } }catch(_){} }
 window._semRefreshIfActive=_semRefreshIfActive;
 window.renderSemaines=renderSemaines; window.renderSemaineDetail=renderSemaineDetail;
