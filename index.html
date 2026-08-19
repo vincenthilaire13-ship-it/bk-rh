@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-19 21:10 · v579 (Recrutement sorti des restaurants, comme Archives ; candidat embauche reconnu)';
+  var EMBEDDED_VERSION = '2026-08-20 09:40 · v581 (corbeille retiree : un salarie s archive, il ne se supprime plus)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -259,7 +259,23 @@ html.theme-light .rpt-table,html.theme-light .tel-tv-actu,html.theme-light .tel-
 .ptg-search{width:100%;background:#1A1A1A;border:2px solid #333;border-radius:16px;padding:16px 20px;font-size:1.05rem;color:#fff;outline:none;transition:border-color .15s;box-sizing:border-box;}
 .ptg-search:focus{border-color:#FF8732;}
 .ptg-search::placeholder{color:#888;}
-.ptg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;}
+.ptg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:12px;}
+/* ★ v580 — carte de pointage : le PORTRAIT en grand, comme une carte de badgeuse */
+.ptg-tile.ptg-ph{padding:0;text-align:center;}
+.ptg-ph-wrap{position:relative;width:100%;aspect-ratio:1/1;overflow:hidden;background:#111;}
+.ptg-ph-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
+.ptg-ph-ini{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:3.4rem;font-weight:800;color:#fff;letter-spacing:1px;}
+.ptg-ph-foot{padding:11px 9px 13px;}
+.ptg-ph-h{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.72);border-radius:9px;padding:3px 9px;font-size:.82rem;font-weight:800;color:#fff;letter-spacing:.5px;}
+.ptg-ph-st{position:absolute;top:9px;right:9px;width:15px;height:15px;border-radius:50%;box-shadow:0 0 0 3px rgba(0,0,0,.45);}
+.ptg-tile.ptg-fait{opacity:.5;}
+.ptg-sec{grid-column:1/-1;display:flex;align-items:baseline;gap:10px;margin:14px 0 0;}
+.ptg-sec b{font-size:1rem;font-weight:800;color:#F5A623;text-transform:uppercase;letter-spacing:1.2px;}
+.ptg-sec span{font-size:.78rem;color:#888;}
+.ptg-abc{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
+.ptg-abc button{background:#1A1A1A;border:1px solid #333;color:#bbb;border-radius:11px;min-width:42px;height:44px;font-size:1.02rem;font-weight:800;cursor:pointer;transition:all .12s;}
+.ptg-abc button:hover{border-color:#FF8732;color:#fff;}
+.ptg-abc button.on{background:#FF8732;border-color:#FF8732;color:#141414;}
 .ptg-tile{position:relative;text-align:left;background:#1A1A1A;border:1px solid #2e2e2e;border-radius:18px;padding:18px 18px 16px;cursor:pointer;transition:transform .12s,border-color .15s,box-shadow .15s;overflow:hidden;}
 .ptg-tile:hover{transform:translateY(-3px);border-color:#FF8732;box-shadow:0 8px 22px rgba(0,0,0,.35);}
 .ptg-tile-av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.15rem;font-weight:800;color:#fff;margin-bottom:12px;}
@@ -1821,6 +1837,10 @@ html,body{overflow-x:hidden;}
       <div class="sec-title">📟 Poste iPad — bureau manager</div>
       <div id="pc-ipad-body"></div>
     </div>
+    <div class="card param-card" id="pc-badgeuse" style="display:none;">
+      <div class="sec-title">⏱️ Badgeuse — écran de pointage</div>
+      <div id="pc-badgeuse-body"></div>
+    </div>
     <div class="card param-card" id="pc-messagerie" style="display:none;">
       <div class="sec-title">💬 Messagerie — qui peut écrire à qui</div>
       <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Pour chaque rôle (à gauche), coche les rôles avec qui il a le droit de communiquer. La règle est <strong>réciproque</strong> : si les équipiers ne peuvent parler qu'aux directeurs, alors seuls les directeurs peuvent leur écrire. Un salarié ne peut démarrer une conversation qu'avec les personnes autorisées.</p>
@@ -2037,6 +2057,9 @@ html,body{overflow-x:hidden;}
   <div class="ptg-search-wrap">
     <input type="text" id="ptg-search" class="ptg-search" placeholder="🔎 Tapez les premières lettres de votre nom…" oninput="ptgRenderList()">
   </div>
+
+  <!-- ★ v580 : raccourci par 1re lettre — un seul appui pour arriver à sa carte -->
+  <div class="ptg-abc" id="ptg-abc"></div>
 
   <div id="ptg-list" class="ptg-grid"></div>
 </div>
@@ -4176,6 +4199,7 @@ var PARAM_TILES=[
   {ico:'📺', titre:'Écran télé',    sub:'Pièces affichées au restaurant', type:'page', page:'dashboard', id:'dashboard', fn:'paramEcranTele()', accent:'#1565c0'},
   {ico:'📱', titre:'Téléphone équipe', sub:'Ce que l\'équipe voit sur son tél.', type:'page', page:'telephone', accent:'#7e57c2'},
   {ico:'📟', titre:'Poste iPad',    sub:'Bureau manager : absences, incidents', type:'card', card:'pc-ipad', id:'pc-ipad', fn:'paramIpad()', accent:'#F5A623'},
+  {ico:'⏱️', titre:'Badgeuse',      sub:'Écran de pointage des salariés', type:'card', card:'pc-badgeuse', id:'pc-badgeuse', fn:'paramBadgeuse()', accent:'#3ecf8e'},
   {ico:'📋', titre:'Incidents',     sub:'Suivi disciplinaire',          type:'page', page:'incidents',      accent:'#D62300'},
   {ico:'📅', titre:'Disponibilité contrat',sub:'Base des contrats (import Excel)', type:'card', card:'pc-dispos',      accent:'#1565c0'},
   {ico:'💶', titre:'Salaires',      sub:'Grille des salaires',          type:'page', page:'salaires',       accent:'#2e7d32'},
@@ -7744,7 +7768,8 @@ function empCardHtml(e,ro,canView,canManage){
     +(canManage&&arch?'<button class="btn btn-gray btn-sm" onclick="openEdit(\''+e.id+'\')">✏️</button>':'')
     +(canManage&&arch?'<button class="btn btn-gray btn-sm" onclick="openHistorique(\''+e.id+'\')">📋 Historique</button>':'')
     +(canManage&&arch?'<button class="btn btn-gray btn-sm" style="background:#1A3A1A;border-color:#3A7A3A;color:#4CAF50;" onclick="reactivateEmp(\''+e.id+'\')">♻️ Réactiver</button>':'')
-    +((curUser&&curUser.role==='franchise')?'<button class="btn-danger" title="Supprimer définitivement (erreur / doublon)" onclick="supprimerFicheDefinitif(\''+e.id+'\')">🗑️</button>':'')
+    // ★ v581 : plus de corbeille. Un salarié s'ARCHIVE (📤) et se réactive (♻️).
+    //    Sa fiche, ses incidents, ses courriers et ses documents restent.
     +'</div></div>';
 }
 function renderEquipe(){
@@ -7936,15 +7961,21 @@ async function reactivateEmp(id, skipConfirm){
 }
 
 async function delEmp(id){
-  // Suppression normale désactivée : on archive (📤). La suppression DÉFINITIVE
-  // (erreur/doublon) passe par supprimerFicheDefinitif, réservée à l'administrateur.
-  toast('Les salariés s\'archivent (📤). Suppression définitive réservée à l\'administrateur (🗑️).','');
+  // ★ v581 : la suppression n'existe plus. On archive (📤), on réactive (♻️).
+  toast('Un salarié s\'archive (📤) — il ne se supprime pas. Il reste réactivable (♻️).','');
   return;
 }
 
-// SUPPRESSION DÉFINITIVE d'une fiche (erreur / doublon). Réservée à l'admin (franchise).
-// Efface la fiche + ses incidents + ses documents + ses courriers. IRRÉVERSIBLE.
+// ★ v581 — SUPPRESSION DÉFINITIVE DÉSACTIVÉE.
+// Décision : on n'efface jamais un salarié. Il s'archive (📤), et tout son
+// historique reste consultable. Le bouton corbeille a été retiré de la liste ;
+// la fonction reste ici mais REFUSE, pour qu'aucun ancien lien, raccourci ou
+// page en cache ne puisse effacer une fiche.
 async function supprimerFicheDefinitif(id){
+  try{ alert('La suppression d\'une fiche salarié est désactivée.\n\nUn salarié s\'ARCHIVE (📤) : il quitte l\'équipe active, son historique et ses documents sont conservés, et il peut être réactivé (♻️).'); }catch(_){}
+  try{ toast('Suppression désactivée : un salarié s\'archive (📤).','error'); }catch(_){}
+  return;
+  /* eslint-disable no-unreachable */
   if(!curUser || curUser.role!=='franchise'){ toast('Suppression définitive réservée à l\'administrateur.','error'); return; }
   var e=DB.employees.find(function(x){return x.id===id;}); if(!e) return;
   var rl=RESTOS[e.restoId]?RESTOS[e.restoId].label:e.restoId;
@@ -11497,11 +11528,35 @@ function ptgRoleLabel(r){
   return ({directeur:'Directeur',manager:'Manager',leader:'Leader',equipier:'Équipier',rh:'RH',superviseur:'Superviseur'})[r]||r||'';
 }
 
+/* ── Réglages badgeuse (Paramètres › ⏱️ Badgeuse) ────────────────────────── */
+var PTG_CFG=null;
+function ptgCfgDefaut(){ return {code:false, prioMaintenant:true}; }
+function getPtgCfg(){
+  if(PTG_CFG) return PTG_CFG;
+  try{ var r=localStorage.getItem('bkrh_ptg_cfg'); if(r){ PTG_CFG=Object.assign(ptgCfgDefaut(),JSON.parse(r)); return PTG_CFG; } }catch(_){}
+  PTG_CFG=ptgCfgDefaut(); return PTG_CFG;
+}
+function savePtgCfg(){
+  try{ localStorage.setItem('bkrh_ptg_cfg',JSON.stringify(PTG_CFG)); }catch(_){}
+  try{ if(typeof SB!=='undefined'&&SB) SB.from('app_config').upsert({cle:'bkrh_ptg_cfg',valeur:PTG_CFG},{onConflict:'cle'}).then(function(){},function(){}); }catch(_){}
+}
+async function hrChargerPtgCfg(){
+  try{
+    if(typeof SB==='undefined'||!SB) return;
+    var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_ptg_cfg').maybeSingle();
+    if(r&&r.data&&r.data.valeur){ PTG_CFG=Object.assign(ptgCfgDefaut(),r.data.valeur);
+      try{ localStorage.setItem('bkrh_ptg_cfg',JSON.stringify(PTG_CFG)); }catch(_){}
+      try{ if(document.getElementById('ptg-list')) ptgRenderList(); }catch(_){} }
+  }catch(_){}
+}
+window.hrChargerPtgCfg=hrChargerPtgCfg;
+
 // ─── Écran salarié ───
 function ptgInit(){
   try{ ptgChargerPartage('badgeuse'); }catch(e){}   // pointages partagés (autres tablettes)
   try{ ptgMsgCharger('badgeuse'); }catch(e){}        // messages/infos partagés
   try{ ptgVusCharger(); }catch(e){}                 // accusés de lecture fiches produit
+  try{ getPtgCfg(); hrChargerPtgCfg(); }catch(e){}  // réglages badgeuse (code, tri)
   var vis=ptgRestosVisibles();
   if(!PTG_RESTO || vis.indexOf(PTG_RESTO)<0) PTG_RESTO=vis[0];
   var hr=document.getElementById('ptg-hero-resto');
@@ -11539,26 +11594,94 @@ function ptgEmployesResto(resto){
              .sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
 }
 
+// ★ v580 — trouver sa carte vite.
+// Le salarié arrive à son heure : on met devant ceux qui ont un créneau qui
+// commence (ou se termine) autour de MAINTENANT. Ensuite le reste de la journée,
+// puis toute l'équipe. Une barre de lettres permet aussi d'aller droit au but.
+var PTG_LETTRE='';
+function ptgNowMin(){ var d=new Date(); return d.getHours()*60+d.getMinutes(); }
+function ptgSegsJour(e,iso){ try{ return (typeof ptgLineaireDe==='function')?(ptgLineaireDe(e,iso)||[]):[]; }catch(_){ return []; } }
+// Rang : 0 = c'est son moment · 1 = prévu aujourd'hui · 2 = le reste de l'équipe
+function ptgRangEmp(e,iso,rec){
+  var segs=ptgSegsJour(e,iso);
+  if(!segs.length) return {r:2, d:0};
+  var now=ptgNowMin();
+  var deb=segs[0].s, fin=segs[segs.length-1].e;
+  var cible = (rec.arrivee && !rec.depart) ? fin : deb;   // il pointera son départ
+  var ecart = Math.abs(cible-now);
+  if(rec.arrivee && rec.depart) return {r:1, d:deb};      // sa journée est finie
+  if(ecart<=120) return {r:0, d:ecart};
+  return {r:1, d:deb};
+}
+function ptgLettre(l){ PTG_LETTRE=(PTG_LETTRE===l)?'':l; ptgRenderList(); }
+window.ptgLettre=ptgLettre;
+function _ptgCarte(e,iso){
+  var rec=ptgRec(e.id,iso).rec;
+  var dot,txt;
+  if(rec.arrivee && !rec.depart){ dot='#3ecf8e'; txt='Présent depuis '+rec.arrivee; }
+  else if(rec.arrivee && rec.depart){ dot='#888'; txt='Parti à '+rec.depart; }
+  else { dot='#555'; txt='Pas encore pointé'; }
+  var pu=(typeof empPhotoUrl==='function')?empPhotoUrl(e):'';
+  var segs=ptgSegsJour(e,iso);
+  var hDeb=segs.length?_ptgMin2hm(segs[0].s):'';
+  var fini=(rec.arrivee&&rec.depart)?' ptg-fait':'';
+  return '<div class="ptg-tile ptg-ph'+fini+'" onclick="ptgOpen(\''+e.id+'\')">'
+    +'<div class="ptg-ph-wrap">'
+    +(pu?('<img src="'+pu+'" alt="">')
+        :('<div class="ptg-ph-ini" style="background:'+ptgAvColor(e.name)+'">'+ptgInitials(e.name)+'</div>'))
+    +(hDeb?('<div class="ptg-ph-h">'+hDeb+'</div>'):'')
+    +'<div class="ptg-ph-st" style="background:'+dot+'"></div>'
+    +'</div>'
+    +'<div class="ptg-ph-foot">'
+    +'<div class="ptg-tile-nm">'+e.name+'</div>'
+    +'<div class="ptg-tile-role">'+ptgRoleLabel(e.role)+'</div>'
+    +'<div class="ptg-tile-state" style="color:'+dot+';justify-content:center;">'+txt+'</div>'
+    +'</div></div>';
+}
+function ptgRenderAbc(){
+  var box=document.getElementById('ptg-abc'); if(!box) return;
+  var dispo={}; ptgEmployesResto().forEach(function(e){ var c=((e.name||'').trim()[0]||'').toUpperCase(); if(c) dispo[c]=1; });
+  var lettres=Object.keys(dispo).sort();
+  if(lettres.length<2){ box.innerHTML=''; return; }
+  box.innerHTML=lettres.map(function(l){
+    return '<button class="'+(PTG_LETTRE===l?'on':'')+'" onclick="ptgLettre(\''+l+'\')">'+l+'</button>';
+  }).join('')+(PTG_LETTRE?'<button onclick="ptgLettre(\''+PTG_LETTRE+'\')" style="min-width:80px;">Tout</button>':'');
+}
 function ptgRenderList(){
   var box=document.getElementById('ptg-list'); if(!box) return;
+  ptgRenderAbc();
   var q=((document.getElementById('ptg-search')||{}).value||'').toLowerCase().trim();
-  var emps=ptgEmployesResto().filter(function(e){ return !q || (e.name||'').toLowerCase().indexOf(q)>=0; });
+  var emps=ptgEmployesResto().filter(function(e){
+    if(q) return (e.name||'').toLowerCase().indexOf(q)>=0;
+    if(PTG_LETTRE) return ((e.name||'').trim()[0]||'').toUpperCase()===PTG_LETTRE;
+    return true;
+  });
   if(!emps.length){ box.innerHTML='<div class="ptg-empty">Aucun salarié trouvé.</div>'; return; }
-  var dateISO=ptgTodayISO();
-  box.innerHTML=emps.map(function(e){
-    var rec=ptgRec(e.id,dateISO).rec;
-    var dot,txt;
-    if(rec.arrivee && !rec.depart){ dot='#3ecf8e'; txt='Présent depuis '+rec.arrivee; }
-    else if(rec.arrivee && rec.depart){ dot='#888'; txt='Parti à '+rec.depart; }
-    else { dot='#555'; txt='Pas encore pointé'; }
-    var _pu=(typeof empPhotoUrl==='function')?empPhotoUrl(e):'';
-    return '<div class="ptg-tile" onclick="ptgOpen(\''+e.id+'\')">'
-      +(_pu?'<img src="'+_pu+'" class="ptg-tile-av" style="object-fit:cover;">':'<div class="ptg-tile-av" style="background:'+ptgAvColor(e.name)+'">'+ptgInitials(e.name)+'</div>')
-      +'<div class="ptg-tile-nm">'+e.name+'</div>'
-      +'<div class="ptg-tile-role">'+ptgRoleLabel(e.role)+'</div>'
-      +'<div class="ptg-tile-state" style="color:'+dot+'"><span class="ptg-dot" style="background:'+dot+'"></span>'+txt+'</div>'
-      +'</div>';
-  }).join('');
+  var iso=ptgTodayISO();
+  // Recherche ou lettre : liste simple, sans sections (on sait déjà qui on cherche)
+  if(q||PTG_LETTRE||!getPtgCfg().prioMaintenant){
+    box.innerHTML=emps.map(function(e){ return _ptgCarte(e,iso); }).join('');
+    return;
+  }
+  var g=[[],[],[]];
+  emps.forEach(function(e){
+    var rec=ptgRec(e.id,iso).rec;
+    var r=ptgRangEmp(e,iso,rec);
+    g[r.r].push({e:e,d:r.d});
+  });
+  g[0].sort(function(a,b){ return a.d-b.d; });
+  g[1].sort(function(a,b){ return a.d-b.d; });
+  g[2].sort(function(a,b){ return (a.e.name||'').localeCompare(b.e.name||''); });
+  var titres=[['C\'EST VOTRE MOMENT','arrivée ou départ prévu dans les 2 heures'],
+              ['AUJOURD\'HUI','le reste des personnes prévues'],
+              ['TOUTE L\'ÉQUIPE','pas de créneau prévu aujourd\'hui']];
+  var h='';
+  for(var i=0;i<3;i++){
+    if(!g[i].length) continue;
+    h+='<div class="ptg-sec"><b>'+titres[i][0]+'</b><span>'+titres[i][1]+' · '+g[i].length+'</span></div>';
+    h+=g[i].map(function(x){ return _ptgCarte(x.e,iso); }).join('');
+  }
+  box.innerHTML=h;
 }
 
 // Modale : saisie du code puis actions
@@ -11566,9 +11689,10 @@ function ptgOpen(empId){
   var e=(DB.employees||[]).find(function(x){return x.id===empId;});
   if(!e) return;
   _ptgSel=e;
-  // PIN DÉSACTIVÉ (Paramètres › Codes PIN) : accès SANS code → on ouvre directement
-  // les actions de pointage (arrivée / départ / pause), sans demander le code.
-  if(e.infos && e.infos.pinInactif){ document.getElementById('modal-ptg').classList.add('open'); ptgShowActions(); return; }
+  // ★ v580 : par défaut la badgeuse NE DEMANDE PLUS DE CODE — on touche sa photo,
+  // on pointe. Le code reste réactivable dans Paramètres › ⏱️ Badgeuse.
+  var _sansCode = !getPtgCfg().code || (e.infos && e.infos.pinInactif);
+  if(_sansCode){ document.getElementById('modal-ptg').classList.add('open'); ptgShowActions(); return; }
   var body=document.getElementById('ptg-modal-body');
   body.innerHTML='<div class="ptg-tile-av" style="background:'+ptgAvColor(e.name)+';margin:0 auto 12px;width:56px;height:56px;font-size:1.3rem;">'+ptgInitials(e.name)+'</div>'
     +'<div class="ptg-modal-name">'+e.name+'</div>'
@@ -33108,6 +33232,38 @@ function _ipadCss(){ return '<style>\
 .ip-quals span{background:#f0f2f5;border-radius:8px;padding:4px 10px;font-size:.84rem;color:#3d4249;}\
 @media(max-width:820px){.ip-tl-nm{flex:0 0 160px;width:160px;}}\
 </style>'; }
+
+/* ── Réglage BADGEUSE dans Paramètres ────────────────────────────────────── */
+function paramBadgeuse(){
+  try{ paramOuvrir('card','pc-badgeuse'); }catch(_){}
+  renderBadgeuseParam();
+}
+window.paramBadgeuse=paramBadgeuse;
+function renderBadgeuseParam(){
+  var box=document.getElementById('pc-badgeuse-body'); if(!box) return;
+  var cfg=(typeof getPtgCfg==='function')?getPtgCfg():{code:false,prioMaintenant:true};
+  var sw=function(k,on,t,s){
+    return '<div style="display:flex;align-items:center;gap:12px;background:#1b1b1f;border:1px solid #333;border-radius:12px;padding:12px 14px;margin-bottom:9px;">'
+      +'<div style="flex:1;"><div style="font-weight:700;">'+t+'</div><div style="font-size:.8rem;color:#999;">'+s+'</div></div>'
+      +'<button onclick="ptgToggleCfg(\''+k+'\')" style="width:52px;height:30px;border-radius:16px;border:none;cursor:pointer;background:'+(on?'#3ecf8e':'#444')+';position:relative;">'
+      +'<span style="position:absolute;top:3px;'+(on?'right:3px':'left:3px')+';width:24px;height:24px;border-radius:50%;background:#fff;"></span></button></div>';
+  };
+  box.innerHTML='<p style="font-size:.84rem;color:#aaa;margin-bottom:14px;">L\'écran où les salariés pointent leur arrivée, leur pause et leur départ. Ils touchent leur <b>portrait</b> : le pointage est enregistré à leur nom.</p>'
+    +sw('prioMaintenant', cfg.prioMaintenant!==false, '⏱️ Mettre devant ceux qui pointent maintenant',
+        'Les personnes dont le créneau commence ou finit dans les 2 heures apparaissent en premier. Sinon : tout le monde par ordre alphabétique.')
+    +sw('code', cfg.code===true, '🔒 Demander le code à 4 chiffres',
+        'Coupé : on touche sa photo et on pointe, sans code. Activé : chacun retape jour + mois de naissance.')
+    +'<p style="font-size:.8rem;color:#777;margin-top:14px;">Les portraits viennent de la fiche du salarié (Équipe → ✏️ → Photo). Sans photo, ses initiales s\'affichent en grand.</p>';
+}
+window.renderBadgeuseParam=renderBadgeuseParam;
+function ptgToggleCfg(k){
+  var cfg=getPtgCfg();
+  if(k==='code') cfg.code=!(cfg.code===true);
+  else cfg[k]=(cfg[k]===false);
+  savePtgCfg(); renderBadgeuseParam();
+  try{ if(document.getElementById('ptg-list')) ptgRenderList(); }catch(_){}
+}
+window.ptgToggleCfg=ptgToggleCfg;
 
 /* ── Réglage dans Paramètres ─────────────────────────────────────────────── */
 function paramIpad(){
