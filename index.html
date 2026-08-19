@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-19 20:10 · v591 (agenda des entretiens : compact et aux couleurs de la page)';
+  var EMBEDDED_VERSION = '2026-08-19 21:05 · v592 (iPad : trait du POINTAGE reel sous le trait prevu, en direct)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -33394,6 +33394,55 @@ function ipadQuitter(){
 window.ipadQuitter=ipadQuitter;
 
 /* ── Écran principal : les traits du jour ────────────────────────────────── */
+/* ── POINTAGE RÉEL SUR LA TIMELINE iPad (v592) ────────────────────────────────
+   On lit le même enregistrement que Contrôle des heures (ptgRec) : arrivée,
+   pauses, départ. On en fait une barre fine sous le trait prévu :
+     • encore en poste  → vert, s'arrête à l'heure qu'il est, et clignote ;
+     • journée terminée → gris-vert, de l'arrivée au départ ;
+     • pauses           → creux dans la barre.
+   Aucune écriture : c'est de la lecture, l'iPad ne modifie rien ici.          */
+function _ipadMinDe(hm){
+  if(!hm) return null;
+  var m=String(hm).replace('h',':').split(':');
+  var h=parseInt(m[0],10), mi=parseInt(m[1]||'0',10);
+  if(isNaN(h)) return null;
+  var v=h*60+(isNaN(mi)?0:mi);
+  if(h<5) v+=1440;                     // après minuit
+  return v;
+}
+function _ipadMaintenantMin(){
+  var d=new Date(), v=d.getHours()*60+d.getMinutes();
+  if(d.getHours()<5) v+=1440;
+  return v;
+}
+function _ipadBarrePointage(e, pos, totalPx){
+  try{
+    if(typeof ptgRec!=='function') return '';
+    var rec=(ptgRec(e.id, _ipadDate)||{}).rec||{};
+    var arr=_ipadMinDe(rec.arrivee);
+    if(arr==null) return '';                       // pas encore pointé
+    var dep=_ipadMinDe(rec.depart);
+    var enCours=(dep==null);
+    // aujourd'hui seulement : on ne fait pas courir la barre sur un autre jour
+    var estAuj=(_ipadDate===_ipadISO());
+    var fin = enCours ? (estAuj?_ipadMaintenantMin():arr+1) : dep;
+    if(fin<=arr) fin=arr+1;
+    var l=pos(arr), w=Math.max(pos(fin)-pos(arr), 6);
+    var cls='ip-ptg'+(enCours?' ip-ptg-live':'');
+    var txt=_ipadHM(arr)+' → '+(enCours?'en cours':_ipadHM(dep));
+    var h='<div class="'+cls+'" style="left:'+l+'px;width:'+w+'px;" title="Pointage : '+txt+'">'
+      +'<span class="ip-ptg-t">'+(enCours?'● ':'')+txt+'</span></div>';
+    // pauses : petits creux gris sur la barre
+    try{
+      (rec.pauses||[]).forEach(function(p){
+        var ps=_ipadMinDe(p.debut||p.de||p.start), pe=_ipadMinDe(p.fin||p.a||p.end);
+        if(ps==null) return; if(pe==null||pe<=ps) pe=ps+1;
+        h+='<div class="ip-ptg-pause" style="left:'+pos(ps)+'px;width:'+Math.max(pos(pe)-pos(ps),4)+'px;"></div>';
+      });
+    }catch(_p){}
+    return h;
+  }catch(_){ return ''; }
+}
 function ipadRender(contenuBrut){
   var ov=_ipadOv();
   var d=new Date(_ipadDate+'T12:00:00');
@@ -33465,7 +33514,12 @@ function ipadRender(contenuBrut){
             +(absCren?'<span class="ip-bar-x">✕ </span>':'')
             +_ipadEsc(sg.l||'')+' '+_ipadHM(sg.s)+'–'+_ipadHM(sg.e)+'</div>';
         }).join('');
-        if(!o.segs.length) barres='<div class="ip-bar-none">Pas de trait aujourd\'hui</div>';
+        // ★ v592 — LE POINTAGE RÉEL, juste sous le trait prévu.
+        // Trait du haut = ce qui était prévu · trait du bas = ce qu'il a réellement
+        // pointé. Tant qu'il n'a pas pointé son départ, la barre s'arrête à
+        // MAINTENANT et clignote : on voit d'un coup d'œil qui est en poste.
+        barres+=_ipadBarrePointage(e, pos, totalPx);
+        if(!o.segs.length && !barres) barres='<div class="ip-bar-none">Pas de trait aujourd\'hui</div>';
         var sous='<span class="ip-tl-h2">'+_ipadHM(minJour)+'</span>'+(ct?(' <span class="ip-tl-ct">/ '+ct+'h</span>'):'');
         if(o.abs){
           var mi=(typeof _etatMotifInfo==='function')?_etatMotifInfo(o.abs.motif||'absence'):{icon:'🟧',court:'Absent',col:'#d98324'};
@@ -33987,7 +34041,7 @@ function _ipadCss(){ return '<style>\
 .ip-h-l{font-size:.86rem;font-weight:800;color:#31353c;font-family:\'DM Mono\',monospace;}\
 .ip-h-ca{font-size:.74rem;color:#c47f00;font-weight:700;font-family:\'DM Mono\',monospace;margin-top:1px;}\
 .ip-h-nb{font-size:.72rem;color:#5b6270;margin-top:1px;min-height:14px;}\
-.ip-tl-row{display:flex;align-items:stretch;border-bottom:1px solid #edeff2;cursor:pointer;min-height:46px;}\
+.ip-tl-row{display:flex;align-items:stretch;border-bottom:1px solid #edeff2;cursor:pointer;min-height:58px;}\
 .ip-tl-row:last-child{border-bottom:none;}\
 .ip-tl-row:active{background:#f0f3f8;}\
 .ip-tl-abs{background:#fbf3f3;}\
@@ -33998,7 +34052,13 @@ function _ipadCss(){ return '<style>\
 .ip-tl-ct{font-family:\'DM Mono\',monospace;}\
 .ip-tl-nmh{background:#fafbfc;}\
 .ip-tl-band{position:relative;flex:0 0 auto;min-height:46px;background-image:repeating-linear-gradient(to right,transparent 0,transparent 75px,#eef0f3 75px,#eef0f3 76px);}\
-.ip-bar{position:absolute;top:7px;bottom:7px;border-radius:5px;padding:0 8px;display:flex;align-items:center;overflow:hidden;font-size:.72rem;font-weight:700;white-space:nowrap;text-overflow:ellipsis;letter-spacing:.2px;cursor:pointer;}\
+.ip-bar{position:absolute;top:6px;bottom:20px;border-radius:5px;padding:0 8px;display:flex;align-items:center;overflow:hidden;font-size:.72rem;font-weight:700;white-space:nowrap;text-overflow:ellipsis;letter-spacing:.2px;cursor:pointer;}\
+/* ★ v592 — trait du POINTAGE RÉEL, sous le trait prévu */\
+.ip-ptg{position:absolute;bottom:5px;height:13px;border-radius:7px;background:#1d7a3a;display:flex;align-items:center;padding:0 7px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.18);}\
+.ip-ptg-t{font-size:.6rem;font-weight:800;color:#fff;white-space:nowrap;letter-spacing:.2px;}\
+.ip-ptg-live{background:linear-gradient(90deg,#1d7a3a,#3ecf8e);animation:ipPtgPulse 1.6s ease-in-out infinite;}\
+@keyframes ipPtgPulse{0%,100%{box-shadow:0 0 0 0 rgba(62,207,142,.55);}50%{box-shadow:0 0 0 5px rgba(62,207,142,0);}}\
+.ip-ptg-pause{position:absolute;bottom:5px;height:13px;border-radius:7px;background:#b9bcc4;box-shadow:0 0 0 1px #fff inset;}\
 .ip-bar-on{box-shadow:0 0 0 3px #111 inset,0 0 0 3px #ffd400;z-index:9;}\
 .ip-bar-abs{opacity:.45;text-decoration:line-through;}\
 .ip-bar-x{font-weight:900;}\
