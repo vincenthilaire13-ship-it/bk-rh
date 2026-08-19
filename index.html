@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-19 19:20 · v578 (un seul dossier par personne : doublons X et X (1) fusionnes, Equipe vide)';
+  var EMBEDDED_VERSION = '2026-08-19 21:10 · v579 (Recrutement sorti des restaurants, comme Archives ; candidat embauche reconnu)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1595,7 +1595,7 @@ html,body{overflow-x:hidden;}
         <summary style="cursor:pointer;color:#8fa4c0;font-size:.85rem;">Autre option : rattacher des dossiers déjà présents dans Dropbox</summary>
         <p style="font-size:.8rem;color:#888;margin:10px 0 12px;">Utile pour les salariés créés à la main dont le dossier existe déjà dans Dropbox. Indiquez le dossier à scanner, vérifiez l'association proposée par le nom, puis importez. Rien n'est déplacé ni supprimé.</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">
-          <div style="flex:1;min-width:200px;"><div class="flabel">Dossier Dropbox à scanner (vide = racine)</div><input type="text" id="dbximp-path" class="fi" placeholder="/ ou /BK_500/Equipe" value=""></div>
+          <div style="flex:1;min-width:200px;"><div class="flabel">Dossier Dropbox à scanner (vide = racine)</div><input type="text" id="dbximp-path" class="fi" placeholder="/ ou /BK_500 ou /Recrutement/BK_500" value=""></div>
           <button class="btn btn-gray btn-sm" onclick="dbxImportScan()">🔍 Scanner</button>
         </div>
         <div id="dbximp-results"></div>
@@ -2501,6 +2501,8 @@ function dbxEmpFolderCandidats(e,nomForce,restoForce){
     out.push('/'+R+'/'+nom);
     out.push('/'+R+'/Equipe/'+nom);
     out.push('/Archives/'+R+'/'+nom);
+    out.push('/Recrutement/'+R+'/Nouveau/'+nom);
+    out.push('/Recrutement/'+R+'/Refuse/'+nom);
     out.push('/'+R+'/Recrutement/'+nom);
     out.push('/'+R+'/Recrutement/Nouveau/'+nom);
     out.push('/'+R+'/Recrutement/Refuse/'+nom);
@@ -2588,18 +2590,20 @@ function dbxCandFolder(c){
   var resto=RESTOS[rid]?RESTOS[rid].label:(rid||'Autre');
   return '/'+dbxClean(resto)+'/'+dbxClean((c.nom||'')+' '+(c.prenom||''));
 }
-// dossier RECRUTEMENT d'un candidat, par ÉTAPE :
-//   /<Resto>/Recrutement/<Etape>/<Nom Prenom>   (Etape = 'Nouveau' | 'Refuse')
+// ── v579 : le RECRUTEMENT sort des dossiers de restaurant, exactement comme
+//    les Archives. Un dossier de restaurant ne contient donc plus QUE des gens
+//    qui travaillent aujourd'hui.
+//      /Recrutement/<Resto>/<Nouveau|Refuse>/<Nom Prenom>
 function dbxRecrutFolder(rid,nom,prenom,sous){
-  var resto=RESTOS[rid]?RESTOS[rid].label:(rid||'Autre');
   var etape=(sous?dbxClean(sous):'Nouveau');
-  return '/'+dbxClean(resto)+'/Recrutement/'+etape+'/'+dbxClean((nom||'')+' '+(prenom||''));
+  return '/Recrutement/'+_dbxResto(rid)+'/'+etape+'/'+dbxClean((nom||'')+' '+(prenom||''));
 }
-// Ancien emplacement « à plat » (avant les sous-dossiers d'étape) — sert de repli
-// pour retrouver et déplacer les dossiers déjà présents (au fil de l'eau).
+// Anciens emplacements (dans le restaurant) — servent de source de reprise.
 function dbxRecrutFolderLegacy(rid,nom,prenom){
-  var resto=RESTOS[rid]?RESTOS[rid].label:(rid||'Autre');
-  return '/'+dbxClean(resto)+'/Recrutement/'+dbxClean((nom||'')+' '+(prenom||''));
+  return '/'+_dbxResto(rid)+'/Recrutement/'+dbxClean((nom||'')+' '+(prenom||''));
+}
+function dbxRecrutFolderLegacy2(rid,nom,prenom,sous){
+  return '/'+_dbxResto(rid)+'/Recrutement/'+(sous?dbxClean(sous):'Nouveau')+'/'+dbxClean((nom||'')+' '+(prenom||''));
 }
 // Étape (sous-dossier Recrutement) correspondant au statut d'un candidat.
 // 'essai' n'est pas ici : à l'embauche le dossier part dans « Équipe » (voir dbxEmpFolder).
@@ -4357,7 +4361,7 @@ async function dbxImportScan(){
   try{
     var entries=await dbxList(path);
     var folders=entries.filter(function(x){return x['.tag']==='folder';});
-    if(!folders.length){ box.innerHTML='<p style="color:#888;">Aucun dossier trouvé ici. Essayez un autre chemin (ex. /BK_500 ou /BK_500/Equipe).</p>'; return; }
+    if(!folders.length){ box.innerHTML='<p style="color:#888;">Aucun dossier trouvé ici. Essayez un autre chemin (ex. /BK_500, /Archives/BK_500 ou /Recrutement/BK_500).</p>'; return; }
     var emps=(DB.employees||[]).slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
     _dbxScan=folders.map(function(f){
       var k=_nomKey(f.name);
@@ -8087,6 +8091,13 @@ function _dbxMeilleurNom(membres){
 function _dbxMemeChemin(a,b){ return String(a||'').toLowerCase()===String(b||'').toLowerCase(); }
 
 var DBX_ZONES_FIXES={'equipe':1,'recrutement':1,'archives':1,'modeles':1,'a_verifier':1,'nouveaux_produits':1,'marchandises':1};
+// Sous-dossiers d'ÉTAPE du recrutement : ce ne sont pas des personnes.
+var DBX_ETAPES=['Nouveau','Refuse','Integration_annulee'];
+function _dbxEstEtape(nom){
+  var n=dbxClean(_dbxSansSuffixe(nom)).toLowerCase();
+  for(var i=0;i<DBX_ETAPES.length;i++){ if(DBX_ETAPES[i].toLowerCase()===n) return true; }
+  return false;
+}
 // Lit toute l'arborescence utile. Ne modifie RIEN.
 async function dbxScanDossiers(){
   var trouves=[];   // { path, nom, cle, zone, resto }
@@ -8105,15 +8116,20 @@ async function dbxScanDossiers(){
     var eqp=await dbxListSafe('/'+R+'/Equipe');
     if(eqp){ for(var k2=0;k2<eqp.length;k2++){ var i2=eqp[k2];
       if(i2['.tag']==='folder') _push(i2.path_display||('/'+R+'/Equipe/'+i2.name),'equipe',rid); } }
-    var sous=['Nouveau','Refuse'];
-    for(var s=0;s<sous.length;s++){
-      var rc=await dbxListSafe('/'+R+'/Recrutement/'+sous[s]);
-      if(rc){ for(var k3=0;k3<rc.length;k3++){ var i3=rc[k3];
-        if(i3['.tag']==='folder') _push(i3.path_display||('/'+R+'/Recrutement/'+sous[s]+'/'+i3.name),'recrut_'+sous[s].toLowerCase(),rid); } }
+    // Recrutement : le nouvel emplacement /Recrutement/<Resto>/… ET les anciens,
+    // restés dans le dossier du restaurant.
+    var bases=['/Recrutement/'+R, '/'+R+'/Recrutement'];
+    for(var bi=0;bi<bases.length;bi++){
+      var base=bases[bi];
+      for(var s=0;s<DBX_ETAPES.length;s++){
+        var rc=await dbxListSafe(base+'/'+DBX_ETAPES[s]);
+        if(rc){ for(var k3=0;k3<rc.length;k3++){ var i3=rc[k3];
+          if(i3['.tag']==='folder') _push(i3.path_display||(base+'/'+DBX_ETAPES[s]+'/'+i3.name),'recrut_'+DBX_ETAPES[s].toLowerCase(),rid); } }
+      }
+      var rcRac=await dbxListSafe(base);
+      if(rcRac){ for(var k4=0;k4<rcRac.length;k4++){ var i4=rcRac[k4];
+        if(i4['.tag']==='folder' && !_dbxEstEtape(i4.name)) _push(i4.path_display||(base+'/'+i4.name),'recrut_racine',rid); } }
     }
-    var rcRac=await dbxListSafe('/'+R+'/Recrutement');
-    if(rcRac){ for(var k4=0;k4<rcRac.length;k4++){ var i4=rcRac[k4];
-      if(i4['.tag']==='folder' && sous.indexOf(_dbxSansSuffixe(i4.name))<0) _push(i4.path_display||('/'+R+'/Recrutement/'+i4.name),'recrut_racine',rid); } }
     var ar=await dbxListSafe('/Archives/'+R);
     if(ar){ for(var k5=0;k5<ar.length;k5++){ var i5=ar[k5];
       if(i5['.tag']==='folder') _push(i5.path_display||('/Archives/'+R+'/'+i5.name),'archives',rid); } }
@@ -8140,11 +8156,32 @@ function dbxAttendus(){
   return out;
 }
 var DBX_ZONE_LBL={poste:'dans le restaurant',equipe:'dans « Equipe »',archives:'dans les Archives',
-  recrut_nouveau:'Recrutement / Nouveau',recrut_refuse:'Recrutement / Refuse',recrut_racine:'Recrutement (à plat)'};
+  recrut_nouveau:'Recrutement / Nouveau',recrut_refuse:'Recrutement / Refuse',
+  recrut_integration_annulee:'Recrutement / Intégration annulée',recrut_racine:'Recrutement (à plat)'};
 // ── LE PLAN : un dossier unique par personne, et où il doit aller ────────────
 // Regroupe tout ce qui a été trouvé par clé de nom, puis décide de la cible.
 // C'est CE plan que le contrôle affiche et que le rangement applique : les deux
 // ne peuvent donc pas diverger.
+// Un dossier de recrutement sans fiche : il reste dans le recrutement, mais au
+// NOUVEL emplacement (/Recrutement/<Resto>/<Etape>/), jamais dans le restaurant.
+function _dbxCibleRecrut(l,nom){
+  var f=l.filter(function(x){ return x.zone!=='recrut_refuse'; })[0]||l[0];
+  var et=(f.zone==='recrut_refuse')?'Refuse'
+        :(f.zone==='recrut_integration_annulee')?'Integration_annulee':'Nouveau';
+  return '/Recrutement/'+_dbxResto(f.resto)+'/'+et+'/'+nom;
+}
+// Un même nom peut apparaître deux fois dans l'application sans être un homonyme :
+// le plus souvent c'est un CANDIDAT qui a été EMBAUCHÉ — sa candidature existe
+// encore à côté de sa fiche salarié. Dans ce cas le salarié l'emporte, et son
+// ancien dossier de recrutement le rejoint. On ne renonce que devant deux vrais
+// salariés du même nom.
+function _dbxTrancher(att){
+  var sal=att.filter(function(a){ return a.type==='salarie'; });
+  if(sal.length===1) return sal[0];
+  if(sal.length>1) return null;                       // vrais homonymes
+  var actifs=att.filter(function(a){ return a.zone!=='recrut_refuse'; });
+  return (actifs[0]||att[0]);                         // deux candidatures : la vivante
+}
 function dbxPlanRangement(trouves){
   var attendus=dbxAttendus();
   var parCleAtt={}; attendus.forEach(function(a){ (parCleAtt[a.cle]=parCleAtt[a.cle]||[]).push(a); });
@@ -8152,7 +8189,11 @@ function dbxPlanRangement(trouves){
   var plan=[];
   Object.keys(groupes).forEach(function(cle){
     var l=groupes[cle], att=parCleAtt[cle]||[];
-    if(att.length>1){ plan.push({cle:cle,type:'ambigu',membres:l,nom:att[0].nom,noms:att.map(function(x){return x.nom;})}); return; }
+    if(att.length>1){
+      var choix=_dbxTrancher(att);
+      if(choix){ plan.push({cle:cle,type:'personne',a:choix,nom:choix.nom,cible:choix.cible,membres:l}); return; }
+      plan.push({cle:cle,type:'ambigu',membres:l,nom:att[0].nom,noms:att.map(function(x){return x.nom;})}); return;
+    }
     if(att.length===1){
       plan.push({cle:cle,type:'personne',a:att[0],nom:att[0].nom,cible:att[0].cible,membres:l});
       return;
@@ -8164,7 +8205,7 @@ function dbxPlanRangement(trouves){
     var toutRecrut=l.every(function(f){ return f.zone.indexOf('recrut')===0; });
     var R=_dbxResto((enArch||l[0]).resto);
     var cible = enArch ? ('/Archives/'+R+'/'+nom)
-              : toutRecrut ? l[0].path
+              : toutRecrut ? _dbxCibleRecrut(l,nom)
               : ('/'+R+'/'+nom);
     plan.push({cle:cle,type:'orphelin',nom:nom,cible:cible,membres:l});
   });
@@ -8248,7 +8289,8 @@ async function dbxRangerToutMaintenant(){
   var nbDoublons=R.aRanger.filter(function(p){ return p.membres.length>1; }).length;
   if(!confirm('Ranger '+R.aRanger.length+' dossier(s) ?\n\n'
     +'• '+nbDoublons+' personne(s) ont plusieurs dossiers → regroupés en UN seul\n'
-    +'• le dossier « Equipe » est vidé puis supprimé\n'
+    +'• « Equipe » et le « Recrutement » du restaurant sont vidés puis supprimés\n'
+    +'• le recrutement part dans /Recrutement/<Resto>/, à côté des Archives\n'
     +'• un salarié présent → /<Resto>/<Nom> · un salarié parti → /Archives/<Resto>/<Nom>\n'
     +'• rien n\'est supprimé : les fichiers sont seulement déplacés\n\n'
     +'Cela peut prendre plusieurs minutes.')) return;
@@ -8261,18 +8303,27 @@ async function dbxRangerToutMaintenant(){
       fichiers+=r.fichiers; if(r.fichiers||r.dossiers) ranges++;
     }catch(err){ console.warn('ranger',p.nom,err); }
   }
-  // Le dossier « Equipe » n'a plus lieu d'être : on le retire s'il est vide.
+  // « Equipe » et l'ancien « Recrutement » du restaurant n'ont plus lieu d'être :
+  // on les retire quand ils sont vides (sous-dossiers d'étape compris).
   var restants=0, rids=Object.keys(RESTOS||{});
   for(var k=0;k<rids.length;k++){
-    var chemin='/'+_dbxResto(rids[k])+'/Equipe';
-    var reste=await dbxListSafe(chemin);
-    if(reste===null) continue;
-    if(reste.length===0){ await dbxDelete(chemin); } else restants+=reste.length;
+    var R2=_dbxResto(rids[k]);
+    for(var e2=0;e2<DBX_ETAPES.length;e2++){
+      var ce=R2 && ('/'+R2+'/Recrutement/'+DBX_ETAPES[e2]);
+      var re=await dbxListSafe(ce);
+      if(re && re.length===0) await dbxDelete(ce);
+    }
+    var aVider=['/'+R2+'/Equipe','/'+R2+'/Recrutement'];
+    for(var v=0;v<aVider.length;v++){
+      var reste=await dbxListSafe(aVider[v]);
+      if(reste===null) continue;
+      if(reste.length===0){ await dbxDelete(aVider[v]); } else restants+=reste.length;
+    }
   }
   maj('✅ Terminé : '+fichiers+' fichier(s) déplacé(s), '+ranges+' dossier(s) rangé(s).');
   alert('Rangement terminé.\n\n'+fichiers+' fichier(s) déplacé(s), '+ranges+' dossier(s) regroupé(s).\n'
-    +(restants? ('⚠️ '+restants+' dossier(s) restent dans « Equipe ».')
-              : '« Equipe » est vide : le dossier a été supprimé.')
+    +(restants? ('⚠️ '+restants+' dossier(s) restent dans « Equipe » ou l\'ancien « Recrutement » du restaurant.')
+              : '« Equipe » et l\'ancien « Recrutement » du restaurant ont été supprimés : ils sont vides.')
     +_amb);
   try{ await dbxControlerDossiers(); }catch(_){}
 }
@@ -13965,6 +14016,8 @@ async function candAnnulerIntegration(){
             dbxRecrutFolder(c.restoId,c.nom,c.prenom,'Refuse'),
             dbxRecrutFolder(c.restoId,c.nom,c.prenom,'Nouveau'),
             dbxRecrutFolderLegacy(c.restoId,c.nom,c.prenom),
+            dbxRecrutFolderLegacy2(c.restoId,c.nom,c.prenom,'Nouveau'),
+            dbxRecrutFolderLegacy2(c.restoId,c.nom,c.prenom,'Refuse'),
             dbxEmpFolder({restoId:c.restoId,name:((c.prenom||'')+' '+(c.nom||'')).trim()})
           ];
           try{ await dbxFusionner(srcs, dest); }catch(_){}
@@ -14382,7 +14435,9 @@ async function dbxSuivreCandidat(c,patch){
   await dbxFusionner([
     from,
     dbxRecrutFolder(oldR,c.nom,c.prenom,dbxRecrutSous(newStatut)),
-    dbxRecrutFolderLegacy(oldR,c.nom,c.prenom)
+    dbxRecrutFolderLegacy(oldR,c.nom,c.prenom),
+    dbxRecrutFolderLegacy2(oldR,c.nom,c.prenom,'Nouveau'),
+    dbxRecrutFolderLegacy2(oldR,c.nom,c.prenom,'Refuse')
   ], to);
 }
 window.dbxSuivreCandidat=dbxSuivreCandidat;
@@ -14706,7 +14761,9 @@ async function candContratSigne(){
       await dbxFusionner([
         dbxRecrutFolder(c.restoId,c.nom,c.prenom,'Nouveau'),
         dbxRecrutFolder(c.restoId,c.nom,c.prenom,'Refuse'),
-        dbxRecrutFolderLegacy(c.restoId,c.nom,c.prenom)
+        dbxRecrutFolderLegacy(c.restoId,c.nom,c.prenom),
+        dbxRecrutFolderLegacy2(c.restoId,c.nom,c.prenom,'Nouveau'),
+        dbxRecrutFolderLegacy2(c.restoId,c.nom,c.prenom,'Refuse')
       ], postePath);
     }catch(e){console.warn('Bascule dossier embauche',e);}
   }
