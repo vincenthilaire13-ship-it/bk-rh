@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-20 09:20 · v597 (iPad : alerte quand un salarie n a pas pointe 15 min apres son heure ; conges masques)';
+  var EMBEDDED_VERSION = '2026-08-20 11:40 · v598 (pointages : plus de zombies, iPad et Controle des heures lisent la meme chose, la date ne saute plus)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -11873,9 +11873,56 @@ function ptgGetAll(){ try{ return JSON.parse(localStorage.getItem(ptgStoreKey())
 function ptgSaveAllLocal(o){ try{ localStorage.setItem(ptgStoreKey(), JSON.stringify(o)); }catch(e){} }
 // Enregistre en local ET en ligne (app_config, partagé tous appareils) → le suivi RH
 // voit les pointages faits depuis n'importe quelle tablette. Upsert « fire-and-forget ».
+/* ★ v598 — CHAQUE POINTAGE PORTE SA DATE DE MODIFICATION (_maj).
+   Avant, quand deux appareils se parlaient, la regle etait « celui qui a le plus
+   d infos gagne ». Un pointage EFFACE, pour la machine, ce n est pas « efface » :
+   c est « moins complet ». L appareil qui avait encore l ancien le remettait, et
+   le renvoyait meme dans la base : le pointage supprime revenait partout.
+   Maintenant chaque enregistrement est date. Le PLUS RECENT gagne — une
+   suppression aussi, puisqu elle est datee. Plus de pointage zombie.           */
+function _ptgEmpreinte(r){
+  try{ var c=Object.assign({},r); delete c._maj; return JSON.stringify(c); }catch(_){ return ''; }
+}
 function ptgSaveAll(o){
+  var now=Date.now();
+  try{
+    var avant=ptgGetAll();
+    Object.keys(o||{}).forEach(function(k){
+      var b=o[k]; if(!b||typeof b!=='object') return;
+      var a=avant[k];
+      if(!a || _ptgEmpreinte(a)!==_ptgEmpreinte(b)) b._maj=now;      // modifie maintenant
+      else if(!b._maj) b._maj=(a&&a._maj)||now;                      // inchange : on garde sa date
+    });
+    // PIERRE TOMBALE : une cle qui disparait devient une suppression DATEE, pour
+    // que les autres appareils sachent qu elle a ete retiree (et non « perdue »).
+    Object.keys(avant).forEach(function(k){
+      if(o&&o[k]) return;
+      var a=avant[k]||{};
+      o[k]={empId:a.empId||'', date:a.date||'', arrivee:'', depart:'', pauses:[], _suppr:true, _maj:now};
+    });
+  }catch(_){}
   ptgSaveAllLocal(o);
-  try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:'bkrh_pointages', valeur:o},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
+  try{ if(typeof SB!=='undefined' && SB) _ptgPousser(o); }catch(e){}
+}
+/* ★ v598 — ON N ECRASE PLUS LA BASE AVEC UNE PHOTO PERIMEE.
+   Avant, chaque enregistrement renvoyait TOUT le paquet de pointages. Un iPad qui
+   ne se mettait a jour que toutes les 15 min renvoyait donc sa vieille photo par
+   dessus la base : ce qui avait ete fait ailleurs entre temps sautait (c est ce
+   qui a fait disparaitre un pointage tout frais). Maintenant on relit la base,
+   on fusionne au plus recent, et on ecrit le resultat.                          */
+async function _ptgPousser(o){
+  try{
+    if(typeof SB==='undefined' || !SB) return;
+    var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_pointages').maybeSingle();
+    var remote=(r&&r.data&&r.data.valeur&&typeof r.data.valeur==='object')?r.data.valeur:{};
+    var fus=ptgFusionner(o, remote);
+    ptgSaveAllLocal(fus);
+    PTG_DERNIER_FETCH=Date.now();          // on vient de lire : pas besoin de relire tout de suite
+    await SB.from('app_config').upsert({cle:'bkrh_pointages', valeur:fus},{onConflict:'cle'});
+  }catch(e){
+    // repli : au pire on pousse tel quel, on ne perd pas le pointage du manager
+    try{ if(typeof SB!=='undefined'&&SB) SB.from('app_config').upsert({cle:'bkrh_pointages', valeur:o},{onConflict:'cle'}).then(function(){}).catch(function(){}); }catch(_){}
+  }
 }
 // Charge les pointages partagés depuis Supabase puis rafraîchit l'écran donné.
 /* ★ v596 — UNE SEULE DEMANDE SUPABASE POUR TOUS LES ÉCRANS.
@@ -11888,6 +11935,39 @@ function ptgSaveAll(o){
    suite, tu appuies, et là seulement on repaie une requête.                   */
 var PTG_DERNIER_FETCH=0;
 var PTG_FETCH_INTERVALLE=15*60*1000;      // 15 minutes
+/* ★ v598 — LA REGLE DE FUSION, UNE SEULE FOIS, POUR TOUT LE MONDE.
+   Pour chaque pointage : celui qui a ete modifie EN DERNIER gagne. Une
+   suppression et une correction a la baisse comptent comme des modifications :
+   elles ne peuvent plus etre « annulees » par un appareil resté en arriere.
+   Les vieux enregistrements sans date (ceux d avant cette version) gardent
+   l ancienne regle entre eux, pour ne rien perdre au moment du passage.        */
+var PTG_TOMBE_JOURS=60;                   // on oublie les pierres tombales apres 60 jours
+function ptgFusionner(local, remote){
+  local=local||{}; remote=remote||{};
+  var merged={};
+  Object.keys(remote).forEach(function(k){ merged[k]=remote[k]; });
+  Object.keys(local).forEach(function(k){
+    var l=local[k]; if(!l) return;
+    var m=merged[k];
+    if(!m){ merged[k]=l; return; }                       // la base ne l a jamais vu
+    var tl=+(l._maj||0), tm=+(m._maj||0);
+    if(tl>tm){ merged[k]=l; return; }                    // le plus recent gagne
+    if(tl<tm) return;
+    if(!tl && !tm){                                      // deux anciens : ancienne regle
+      if(((l.depart?1:0)+(l.arrivee?1:0)) > ((m.depart?1:0)+(m.arrivee?1:0))) merged[k]=l;
+    }
+  });
+  // menage : les pierres tombales anciennes n ont plus rien a dire
+  try{
+    var lim=Date.now()-PTG_TOMBE_JOURS*86400000;
+    Object.keys(merged).forEach(function(k){
+      var v=merged[k];
+      if(v && v._suppr && +(v._maj||0) && +(v._maj) < lim) delete merged[k];
+    });
+  }catch(_){}
+  return merged;
+}
+window.ptgFusionner=ptgFusionner;
 async function ptgChargerPartage(reRender, force){
   try{
     if(typeof SB==='undefined' || !SB) return;
@@ -11900,15 +11980,7 @@ async function ptgChargerPartage(reRender, force){
     PTG_DERNIER_FETCH=Date.now();
     var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_pointages').maybeSingle();
     if(r && r.data && r.data.valeur && typeof r.data.valeur==='object'){
-      var local=ptgGetAll(), remote=r.data.valeur;
-      // Fusion : la base fait foi, mais on garde une entrée locale PLUS complète
-      // (ex. départ pointé à l'instant, pas encore synchronisé ailleurs).
-      var merged=Object.assign({}, local, remote);
-      Object.keys(local).forEach(function(k){
-        var l=local[k], m=remote[k];
-        if(l && (!m || ((l.depart?1:0)+(l.arrivee?1:0)) > ((m&&m.depart?1:0)+(m&&m.arrivee?1:0)))) merged[k]=l;
-      });
-      ptgSaveAllLocal(merged);
+      ptgSaveAllLocal(ptgFusionner(ptgGetAll(), r.data.valeur));
     }
   }catch(e){ console.warn('ptg charger partagé',e); }
   try{ if(reRender==='suivi' && typeof ptgRenderSuivi==='function') ptgRenderSuivi(); }catch(e){}
@@ -12380,7 +12452,11 @@ function ptgMajEcarts(emp, rec, iso){
 
 // ─── Écran suivi (RH / direction) ───
 function ptgSuiviInit(){
-  try{ ptgChargerPartage('suivi'); }catch(e){}   // pointages partagés (toutes tablettes)
+  // ★ v598 — on ARRIVE sur l ecran : on redemande vraiment, meme si la derniere
+  // demande date de moins de 15 min. Sinon on regarde une photo perimee sans le
+  // savoir (« je viens de pointer et je ne vois rien »). Ca reste rare : une
+  // requete quand on ouvre la page, pas toutes les minutes.
+  try{ ptgChargerPartage('suivi', true); }catch(e){}   // pointages partagés (toutes tablettes)
   try{ ptgMsgCharger('suivi'); }catch(e){}       // messages/infos partagés
   var vis=ptgRestosVisibles();
   // Restaurant à suivre : celui demandé (rapport / bandeau actif) sinon le 1er visible.
@@ -12405,7 +12481,15 @@ function ptgSuiviInit(){
       if(_ptgsAutoJump && sd){
         var cur=sd.value||ptgTodayISO();
         var hasCur=false; try{ hasCur=(_chJoursSrc(PTGS_RESTO,cur)||[]).length>0; }catch(_){}
-        if(!hasCur){ var np=_chJourProcheAvecTraits(PTGS_RESTO,cur); if(np){ sd.value=np; } }
+        // ★ v598 — on ne quitte JAMAIS un jour ou quelqu un a pointe. Avant, si le
+        // planning n avait pas de trait ce jour la, l ecran changeait de date tout
+        // seul : on croyait regarder le 19, on regardait autre chose.
+        if(!hasCur){ try{ hasCur=_ptgJourAPointages(PTGS_RESTO,cur); }catch(_){} }
+        if(!hasCur){
+          var np=_chJourProcheAvecTraits(PTGS_RESTO,cur);
+          // ★ v598 — et quand on change quand meme de date, on le DIT.
+          if(np && np!==cur){ sd.value=np; window._ptgsJumpDe=cur; window._ptgsJumpVers=np; }
+        }
         _ptgsAutoJump=false;
       }
     }catch(_){}
@@ -12415,17 +12499,29 @@ function ptgSuiviInit(){
   try{ ptgRenderMsgAdmin(); }catch(e){}
 }
 var _ptgsAutoJump=false;
-function ptgsSetResto(r){ PTGS_RESTO=r; ptgSuiviInit(); }
+/* ★ v598 — Y a-t-il un pointage ce jour la dans ce restaurant ? Sert a ne pas
+   sauter par-dessus un jour ou du monde a pointe mais ou le planning est vide.  */
+function _ptgJourAPointages(resto, iso){
+  try{
+    var all=ptgGetAll(), emps=ptgEmployesResto(resto)||[];
+    for(var i=0;i<emps.length;i++){
+      var r=all[emps[i].id+'_'+iso];
+      if(r && (r.arrivee || r.depart || (r.cren && Object.keys(r.cren).length))) return true;
+    }
+  }catch(_){}
+  return false;
+}
+function ptgsSetResto(r){ window._ptgsJumpDe=null; PTGS_RESTO=r; ptgSuiviInit(); }
 // Flèches ‹ › : avancer/reculer d'un jour sans ouvrir le calendrier.
 function ptgsDecalerJour(delta){
-  _ptgsAutoJump=false;
+  _ptgsAutoJump=false; window._ptgsJumpDe=null;
   var sd=document.getElementById('ptgs-date'); if(!sd) return;
   var base=sd.value||ptgTodayISO();
   var d=new Date(base+'T12:00:00'); d.setDate(d.getDate()+delta);
   sd.value=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
   ptgRenderSuivi();
 }
-function ptgsAujourdhui(){ _ptgsAutoJump=false; var sd=document.getElementById('ptgs-date'); if(sd){ sd.value=ptgTodayISO(); ptgRenderSuivi(); } }
+function ptgsAujourdhui(){ _ptgsAutoJump=false; window._ptgsJumpDe=null; var sd=document.getElementById('ptgs-date'); if(sd){ sd.value=ptgTodayISO(); ptgRenderSuivi(); } }
 window.ptgsDecalerJour=ptgsDecalerJour; window.ptgsAujourdhui=ptgsAujourdhui;
 
 // ══ CONTRÔLE DES HEURES — frise prévu (gris) vs pointé (vert) ═══════════════════
@@ -12596,7 +12692,11 @@ function ptgCtrlTimeline(dateISO, emps){
     var abs=null; try{ abs=(typeof hrAbsenceDuJour==='function')?hrAbsenceDuJour(e.id,dateISO):null; }catch(_){}
     if(abs && (abs.statut==='attente'||abs.statut==='refuse')) abs=null;
     var incE=null; try{ incE=(typeof incEtatJour==='function')?incEtatJour(e.id,dateISO):null; }catch(_){}
-    if(!segs.length && !(rec&&rec.arrivee) && !abs && !incE) return;
+    // ★ v598 — une ligne apparait des qu il y a QUELQUE CHOSE a montrer : un
+    // prevu, un pointage (arrivee OU depart OU un creneau), une absence, un
+    // incident. Avant, un depart pointe sans arrivee ne s affichait nulle part.
+    var _aQqch=!!(rec && (rec.arrivee || rec.depart || (rec.cren && Object.keys(rec.cren).length)));
+    if(!segs.length && !_aQqch && !abs && !incE) return;
     var mn=segs.length?Math.min.apply(null,segs.map(function(s){return s.s;})):(rec&&rec.arrivee?toDom(hm2m(rec.arrivee)):9999);
     lignes.push({e:e,rec:rec,segs:segs,abs:abs,incE:incE,mn:mn});
   });
@@ -12834,6 +12934,28 @@ function ptgEditCrenPresent(empId,dateISO,key){
   ptgEditJour(empId,dateISO);
 }
 window.ptgEditSaveCren=ptgEditSaveCren; window.ptgEditCrenAbs=ptgEditCrenAbs; window.ptgEditCrenPresent=ptgEditCrenPresent;
+/* ★ v598 — Efface TOUT le pointage d un salarie pour un jour : l arrivee, le
+   depart, les pauses et chaque creneau. L absence eventuelle n est pas touchee
+   (c est le bloc « Etat de la journee » qui s en occupe). La suppression est
+   datee : elle ne peut plus etre annulee par un appareil resté en arriere.    */
+function ptgEditViderJour(empId,dateISO){
+  try{
+    var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
+    var nom=(e&&e.name)||'ce salarié';
+    if(!confirm('Retirer le pointage de '+nom+' pour le '+dateISO+' ?\n\nL\'arrivée, le départ et les pointages par créneau seront effacés sur tous les appareils.')) return;
+  }catch(_){}
+  try{
+    var ctx=ptgRec(empId,dateISO);
+    ctx.rec.arrivee=''; ctx.rec.depart=''; ctx.rec.pauses=[]; ctx.rec.cren={};
+    ctx.rec.ecartArr=null; ctx.rec.ecartDep=null;
+    ptgSaveAll(ctx.all);
+  }catch(_){}
+  ptgEditFermer();
+  try{ ptgRenderSuivi(); }catch(_){}
+  try{ _semRefreshIfActive(); }catch(_){}
+  try{ toast('Pointage retiré','success'); }catch(_){}
+}
+window.ptgEditViderJour=ptgEditViderJour;
 function ptgEditJour(empId, dateISO, focusKey){
   dateISO = dateISO || ((document.getElementById('ptgs-date')||{}).value) || ptgTodayISO();
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
@@ -12913,6 +13035,10 @@ function ptgEditJour(empId, dateISO, focusKey){
   }
   window.__ptgCrenKeys=keys;
   var saveBtn=keys.length?('<button onclick="ptgEditSaveCren(\''+empId+'\',\''+dateISO+'\')" class="btn btn-red btn-sm" style="width:100%;margin-top:2px;">💾 Enregistrer tous les pointages</button>'):'';
+  /* ★ v598 — RETIRER UN POINTAGE, POUR DE BON. Sert a faire le menage des
+     pointages fantomes laisses par l ancienne synchro : maintenant la
+     suppression est datee, donc elle tient sur tous les appareils.            */
+  saveBtn+='<button onclick="ptgEditViderJour(\''+empId+'\',\''+dateISO+'\')" style="width:100%;margin-top:7px;background:#2a1414;border:1px solid #6a2a2a;color:#e88;border-radius:9px;padding:8px 12px;cursor:pointer;font-size:.8rem;font-weight:700;">🗑️ Retirer le pointage de cette journée</button>';
   // ── ÉTAT DE LA JOURNÉE (remplace tout) : correction rapide au niveau du JOUR entier.
   // Écrase le pointage ET tout autre motif du jour (y compris un état venu d'un incident)
   // et le remplace par le choix fait ici. Réutilise ptgEditAbsence/ptgEditPresent qui
@@ -13230,7 +13356,19 @@ function ptgRenderSuivi(){
     +'<thead><tr style="color:#888;text-align:left;border-bottom:1px solid #333;">'
     +'<th style="padding:7px 10px;">Salarié</th><th style="padding:7px 10px;">Prévu</th><th style="padding:7px 10px;">Arrivée</th><th style="padding:7px 10px;">Départ</th><th style="padding:7px 10px;">Total</th><th style="padding:7px 10px;">Contrôle</th><th style="padding:7px 10px;">Note</th>'
     +'</tr></thead><tbody>'+(rows||'<tr><td style="padding:12px;color:#888;" colspan="7">Aucun salarié.</td></tr>')+'</tbody></table></div>';
-  box.innerHTML=synth+timeline
+  // ★ v598 — bandeau : on dit toujours QUEL restaurant et QUELLE date on regarde,
+  // et si la date a ete changee automatiquement, on l ecrit noir sur blanc.
+  var _rlab=(typeof RESTOS!=='undefined'&&RESTOS[PTGS_RESTO||PTG_RESTO])?RESTOS[PTGS_RESTO||PTG_RESTO].label:(PTGS_RESTO||PTG_RESTO||'');
+  var _djj=''; try{ _djj=new Date(dateISO+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long'}); }catch(_){ _djj=dateISO; }
+  var bandeau='<div style="background:#14243a;border:1px solid #2b4a6f;border-radius:9px;padding:7px 12px;margin-bottom:10px;color:#bcd6f5;font-size:.82rem;font-weight:700;">'
+    +'📍 '+_ptgEsc(_rlab)+' — '+_ptgEsc(_djj)+'</div>';
+  if(window._ptgsJumpDe && window._ptgsJumpVers===dateISO){
+    var _dav=''; try{ _dav=new Date(window._ptgsJumpDe+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long'}); }catch(_){ _dav=window._ptgsJumpDe; }
+    bandeau+='<div style="background:#3a2a10;border:1px solid #7a5a1a;border-radius:9px;padding:7px 12px;margin-bottom:10px;color:#e8a020;font-size:.82rem;font-weight:700;">'
+      +'ℹ️ Aucun planning et aucun pointage le '+_ptgEsc(_dav)+' pour ce restaurant — la date a ete avancee au '+_ptgEsc(_djj)+'.'
+      +' <button onclick="window._ptgsJumpDe=null;document.getElementById(\'ptgs-date\').value=\''+window._ptgsJumpDe+'\';ptgRenderSuivi();" style="background:#7a5a1a;color:#fff;border:0;border-radius:6px;padding:3px 9px;font-size:.76rem;font-weight:700;cursor:pointer;margin-left:6px;">Revenir au '+_ptgEsc(window._ptgsJumpDe)+'</button></div>';
+  }
+  box.innerHTML=bandeau+synth+timeline
     +'<details style="margin-top:16px;"><summary style="cursor:pointer;color:#8fbced;font-size:.82rem;font-weight:700;padding:6px 0;">📋 Détail par salarié (tableau + notes)</summary><div style="margin-top:10px;">'+table+'</div></details>';
 }
 // Note RH sur un pointage (partagée). Crée l'enregistrement du jour si besoin.
@@ -33442,7 +33580,7 @@ function pickIpad(restoId){
   // (bkrh_pointages dans app_config). La badgeuse les écrit, mais l'iPad ne les
   // avait JAMAIS demandés : il ne pouvait donc pas voir qu'un salarié venait de
   // pointer. On les charge à l'ouverture, puis toutes les minutes.
-  try{ _ipadChargerPointages(); }catch(_){}
+  try{ _ipadChargerPointages(true); }catch(_){}   // ★ v598 — a l ouverture, on redemande vraiment
   // ★ v594 — ÉCONOMIE SUPABASE. Deux rythmes séparés, parce que ce ne sont pas
   // les mêmes coûts :
   //   • REDESSINER l'écran = calcul local, gratuit  → toutes les 30 secondes,
@@ -33544,31 +33682,54 @@ function _ipadRetardAlerte(o){
     return {debut:deb, retard:Math.round(retard)};
   }catch(_){ return null; }
 }
+/* ★ v598 — L IPAD ET CONTROLE DES HEURES LISENT LA MEME CHOSE.
+   Avant, l iPad ne regardait QUE le pointage de la journee (rec.arrivee /
+   rec.depart), alors que Contrôle des heures regarde d abord le pointage PAR
+   CRENEAU (rec.cren). Deux memoires pour la meme info : deux ecrans qui ne
+   racontaient pas la meme histoire. Maintenant les deux suivent la meme regle :
+   le pointage par creneau d abord, celui de la journee a defaut.               */
+function _ipadPointagesDe(empId){
+  var out=[];
+  try{
+    if(typeof ptgRec!=='function') return out;
+    var rec=(ptgRec(empId, _ipadDate)||{}).rec||{};
+    var rc=rec.cren||{};
+    Object.keys(rc).forEach(function(k){
+      var c=rc[k]; if(!c || c.abs || !c.arrivee) return;
+      out.push({arr:_ipadMinDe(c.arrivee), dep:_ipadMinDe(c.depart), pauses:[]});
+    });
+    if(!out.length && rec.arrivee){
+      out.push({arr:_ipadMinDe(rec.arrivee), dep:_ipadMinDe(rec.depart), pauses:(rec.pauses||[])});
+    }
+  }catch(_){}
+  return out.filter(function(o){ return o.arr!=null; })
+            .sort(function(a,b){ return a.arr-b.arr; });
+}
 function _ipadBarrePointage(e, pos, totalPx){
   try{
-    if(typeof ptgRec!=='function') return '';
-    var rec=(ptgRec(e.id, _ipadDate)||{}).rec||{};
-    var arr=_ipadMinDe(rec.arrivee);
-    if(arr==null) return '';                       // pas encore pointé
-    var dep=_ipadMinDe(rec.depart);
-    var enCours=(dep==null);
-    // aujourd'hui seulement : on ne fait pas courir la barre sur un autre jour
+    var lst=_ipadPointagesDe(e.id);
+    if(!lst.length) return '';                     // pas encore pointé
     var estAuj=(_ipadDate===_ipadISO());
-    var fin = enCours ? (estAuj?_ipadMaintenantMin():arr+1) : dep;
-    if(fin<=arr) fin=arr+1;
-    var l=pos(arr), w=Math.max(pos(fin)-pos(arr), 6);
-    var cls='ip-ptg'+(enCours?' ip-ptg-live':'');
-    var txt=_ipadHM(arr)+' → '+(enCours?'en cours':_ipadHM(dep));
-    var h='<div class="'+cls+'" style="left:'+l+'px;width:'+w+'px;" title="Pointage : '+txt+'">'
-      +'<span class="ip-ptg-t">'+(enCours?'● ':'')+txt+'</span></div>';
-    // pauses : petits creux gris sur la barre
-    try{
-      (rec.pauses||[]).forEach(function(p){
-        var ps=_ipadMinDe(p.debut||p.de||p.start), pe=_ipadMinDe(p.fin||p.a||p.end);
-        if(ps==null) return; if(pe==null||pe<=ps) pe=ps+1;
-        h+='<div class="ip-ptg-pause" style="left:'+pos(ps)+'px;width:'+Math.max(pos(pe)-pos(ps),4)+'px;"></div>';
-      });
-    }catch(_p){}
+    var h='';
+    lst.forEach(function(pt){
+      var arr=pt.arr, dep=pt.dep;
+      var enCours=(dep==null);
+      var fin = enCours ? (estAuj?_ipadMaintenantMin():arr+1) : dep;
+      if(fin<=arr) fin=arr+1;
+      var l=pos(arr), w=Math.max(pos(fin)-pos(arr), 6);
+      var cls='ip-ptg'+(enCours?' ip-ptg-live':'');
+      var txt=_ipadHM(arr)+' → '+(enCours?'en cours':_ipadHM(dep));
+      h+='<div class="'+cls+'" style="left:'+l+'px;width:'+w+'px;" title="Pointage : '+txt+'">'
+        +'<span class="ip-ptg-t">'+(enCours?'● ':'')+txt+'</span></div>';
+      // pauses : petits creux gris sur la barre
+      try{
+        (pt.pauses||[]).forEach(function(p){
+          var ps=_ipadMinDe(p.debut||p.de||p.start), pe=_ipadMinDe(p.fin||p.a||p.end);
+          if(ps==null) return; if(pe==null||pe<=ps) pe=ps+1;
+          h+='<div class="ip-ptg-pause" style="left:'+pos(ps)+'px;width:'+Math.max(pos(pe)-pos(ps),4)+'px;"></div>';
+        });
+      }catch(_p){}
+    });
     return h;
   }catch(_){ return ''; }
 }
