@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-20 09:40 · v581 (corbeille retiree : un salarie s archive, il ne se supprime plus)';
+  var EMBEDDED_VERSION = '2026-08-20 17:50 · v585 (memes cartes photo sur Mes horaires, Mes conges et Indisponibilites)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -272,6 +272,18 @@ html.theme-light .rpt-table,html.theme-light .tel-tv-actu,html.theme-light .tel-
 .ptg-sec{grid-column:1/-1;display:flex;align-items:baseline;gap:10px;margin:14px 0 0;}
 .ptg-sec b{font-size:1rem;font-weight:800;color:#F5A623;text-transform:uppercase;letter-spacing:1.2px;}
 .ptg-sec span{font-size:.78rem;color:#888;}
+/* ★ v583 — carte de pointage de l'Écran télé : la PHOTO en fond, le nom par-dessus */
+.ptgc{position:relative;border-radius:18px;overflow:hidden;cursor:pointer;aspect-ratio:3/4;background:#1A1A1A;border:1px solid #2e2e2e;transition:transform .12s,box-shadow .15s,border-color .15s;}
+.ptgc:hover{transform:translateY(-3px);border-color:#FF8732;box-shadow:0 10px 26px rgba(0,0,0,.45);}
+.ptgc-bg{position:absolute;inset:0;background-size:cover;background-position:center 20%;}
+.ptgc-ini{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:3.4rem;font-weight:800;color:rgba(255,255,255,.94);letter-spacing:1px;}
+.ptgc-ov{position:absolute;left:0;right:0;bottom:0;padding:36px 11px 12px;background:linear-gradient(to top,rgba(0,0,0,.93) 14%,rgba(0,0,0,.7) 48%,rgba(0,0,0,0));}
+.ptgc-nm{font-size:1rem;font-weight:800;color:#fff;line-height:1.15;text-shadow:0 1px 3px rgba(0,0,0,.85);}
+.ptgc-rl{font-size:.72rem;color:#d5d5d5;margin-top:2px;}
+.ptgc-st{font-size:.75rem;font-weight:700;margin-top:6px;display:flex;align-items:center;gap:6px;}
+.ptgc-h{position:absolute;top:9px;left:9px;background:rgba(0,0,0,.78);border-radius:9px;padding:3px 9px;font-size:.82rem;font-weight:800;color:#fff;letter-spacing:.5px;}
+.ptgc-dot{position:absolute;top:10px;right:10px;width:15px;height:15px;border-radius:50%;box-shadow:0 0 0 3px rgba(0,0,0,.5);}
+.ptgc.fait{opacity:.42;}
 .ptg-abc{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
 .ptg-abc button{background:#1A1A1A;border:1px solid #333;color:#bbb;border-radius:11px;min-width:42px;height:44px;font-size:1.02rem;font-weight:800;cursor:pointer;transition:all .12s;}
 .ptg-abc button:hover{border-color:#FF8732;color:#fff;}
@@ -1711,6 +1723,14 @@ html,body{overflow-x:hidden;}
           <p style="font-size:.74rem;color:#666;margin-top:10px;">L'affiche PDF contient le QR code et votre phrase d'accroche, prête à imprimer ou envoyer (mail/WhatsApp).</p>
         </div>
       </div>
+      <hr style="border:none;border-top:1px solid #333;margin:22px 0 18px;">
+      <div class="sec-title">📺 QR code — écran télé, un par restaurant</div>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">À scanner depuis la télé (ou la box) du restaurant : elle s'ouvre <b>directement sur l'écran télé de CE restaurant</b>, sans code et sans choisir quoi que ce soit. Pratique aussi pour rebrancher un écran après une coupure.</p>
+      <div id="qr-ecran-list" style="display:flex;gap:22px;flex-wrap:wrap;"></div>
+      <hr style="border:none;border-top:1px solid #333;margin:22px 0 18px;">
+      <div class="sec-title">📟 QR code — poste iPad, un par restaurant</div>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">À scanner depuis l'iPad du bureau manager : il s'ouvre <b>directement sur les traits du jour de CE restaurant</b>. Aucun code pour regarder — le code du manager reste demandé au moment de déclarer une absence, un retard, un incident ou un pointage.</p>
+      <div id="qr-ipad-list" style="display:flex;gap:22px;flex-wrap:wrap;"></div>
       </div>
     <div class="card param-card" id="pc-pin" style="display:none;">
       <div class="sec-title">🔑 Codes PIN</div>
@@ -3158,6 +3178,17 @@ function startRealtime(){
       try { equipierPortail(); } catch(e){ console.warn('lien équipier', e); }
       return;
     }
+    // Lien direct POSTE iPad d'un restaurant : #ipad/bk500 → écran du bureau manager.
+    // Pas de code pour REGARDER (le code manager est demandé au moment d'agir).
+    if (hash.indexOf('#ipad/') === 0) {
+      var _ir = (hash.split('/')[1] || '').toLowerCase();
+      document.getElementById('loading-screen').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'none';
+      if (typeof RESTOS !== 'undefined' && RESTOS[_ir] && typeof pickIpad === 'function') {
+        try { pickIpad(_ir); } catch(e){ console.warn('lien iPad', e); document.getElementById('login-screen').style.display='block'; }
+      } else { document.getElementById('login-screen').style.display = 'block'; }
+      return;
+    }
     // Lien direct ÉCRAN TV d'un restaurant : #ecran/bk500 → tableau du resto, sans code.
     if (hash.indexOf('#ecran/') === 0) {
       var _er = (hash.split('/')[1] || '').toLowerCase();
@@ -4274,7 +4305,7 @@ function paramOuvrir(type, ref){
     if(ref==='pc-integration'){ try{ renderIntegrationParam(); }catch(_){} }
     if(ref==='pc-visite'){ try{ loadVisiteConfig(); }catch(_){} }
     if(ref==='pc-mutuelle'){ try{ loadMutuelleConfig(); }catch(_){} }
-    if(ref==='pc-qr'){ try{ renderQr(); }catch(_){} try{ renderQrAppli(); }catch(_){} }
+    if(ref==='pc-qr'){ try{ renderQr(); }catch(_){} try{ renderQrAppli(); }catch(_){} try{ renderQrRestos(); }catch(_){} }
     if(ref==='pc-pin'){ try{ renderPinSettings(); }catch(_){} }
     if(ref==='pc-photo'){ try{ photoParamInit(); }catch(_){} }
     if(ref==='pc-pointer'){ try{ ptgMsgCharger('suivi'); }catch(_){} try{ ptgRenderMsgAdmin(); }catch(_){} }
@@ -8250,6 +8281,34 @@ function dbxPlanRangement(trouves){
     ok:plan.filter(function(p){ return !p.action && p.type!=='ambigu'; }),
     ambigus:plan.filter(function(p){ return p.type==='ambigu'; })};
 }
+// ★ v582 — Vide COMPLÈTEMENT une zone qui ne doit plus exister (« Equipe », le
+// « Recrutement » d'un restaurant) et la supprime. Contrairement au rangement par
+// personne, on emporte ici TOUT ce qui traîne : fichiers isolés, sous-dossiers
+// inconnus, dossiers ne correspondant à personne. Sinon la zone reste visible
+// pour un simple fichier oublié dedans.
+async function dbxViderEtSupprimer(from,to){
+  var items=await dbxListSafe(from);
+  if(items===null) return 0;                        // la zone n'existe pas
+  var n=0;
+  if(items.length){ try{ var r=await dbxFusionner([from],to); n=r.fichiers; }catch(_){} }
+  var reste=await dbxListSafe(from);
+  if(reste && reste.length===0){ await dbxDelete(from); }
+  return n;
+}
+// ★ v582 — Chaque salarié doit AVOIR un dossier, même vide : en poste dans son
+// restaurant, sorti dans les Archives. Ça évite de se demander « où est le sien ? »
+// et ça donne un endroit où déposer sa première pièce.
+async function dbxCreerDossiersManquants(sans){
+  var n=0;
+  for(var i=0;i<(sans||[]).length;i++){
+    var a=sans[i];
+    if(a.type!=='salarie' || !a.cible) continue;
+    var l=await dbxListSafe(a.cible);
+    if(l===null){ await dbxCreerDossier(a.cible); n++; }
+  }
+  return n;
+}
+
 // ── CONTRÔLE : état des lieux, sans rien déplacer ────────────────────────────
 async function dbxControlerDossiers(){
   if(!dbxEstPret()){ alert('Dropbox n\'est pas connecté sur cette version.\n\nCe bouton fonctionne sur le site EN LIGNE, pas sur un aperçu local.'); return null; }
@@ -8292,14 +8351,23 @@ async function dbxControlerDossiers(){
         +'<div style="font-size:.76rem;color:#888;">L\'application ne devine pas : ces dossiers ne seront <b>pas touchés</b>.</div>'
         +ul(R.ambigus,function(p){ return '<li>'+p.noms.join(' / ')+' : '+p.membres.map(function(f){return '<code>'+f.path+'</code>';}).join(', ')+'</li>'; })+'</div>';
     }
-    if(R.sans.length){
-      h+='<div style="margin-top:10px;"><b style="color:#94a3b8;">📭 Sans aucun dossier Dropbox ('+R.sans.length+')</b>'
-        +'<div style="font-size:.76rem;color:#888;">Normal si aucun document n\'a encore été déposé.</div>'
-        +ul(R.sans.slice(0,40),function(a){ return '<li>'+a.nom+' — '+(a.type==='candidat'?'candidat':'salarié')+' '+_dbxResto(a.resto)+'</li>'; })
-        +(R.sans.length>40?'<div style="font-size:.76rem;color:#666;">… et '+(R.sans.length-40)+' autres</div>':'')+'</div>';
+    var sansSal=R.sans.filter(function(a){ return a.type==='salarie'; });
+    if(sansSal.length){
+      h+='<div style="margin-top:10px;"><b style="color:#60a5fa;">📁 Dossiers à créer ('+sansSal.length+')</b>'
+        +'<div style="font-size:.76rem;color:#888;">Ces salariés n\'ont aucun dossier. Un dossier <b>vide</b> sera créé au bon endroit : dans leur restaurant s\'ils travaillent, dans les Archives s\'ils sont sortis.</div>'
+        +ul(sansSal.slice(0,40),function(a){ return '<li>'+a.nom+' → <code>'+a.cible+'</code></li>'; })
+        +(sansSal.length>40?'<div style="font-size:.76rem;color:#666;">… et '+(sansSal.length-40)+' autres</div>':'')+'</div>';
     }
-    if(!R.aRanger.length){ h+='<div style="margin-top:10px;color:#3ecf8e;">✅ Un seul dossier par personne, tous au bon endroit.</div>'; }
-    else { h+='<div style="margin-top:12px;"><button class="btn btn-red btn-sm" onclick="dbxRangerToutMaintenant()">🗂️ Ranger maintenant ('+R.aRanger.length+')</button></div>'; }
+    var sansCand=R.sans.filter(function(a){ return a.type!=='salarie'; });
+    if(sansCand.length){
+      h+='<div style="margin-top:10px;"><b style="color:#94a3b8;">📭 Candidats sans dossier ('+sansCand.length+')</b>'
+        +'<div style="font-size:.76rem;color:#888;">Normal si aucune pièce n\'a été déposée. Aucun dossier n\'est créé pour un candidat.</div>'
+        +ul(sansCand.slice(0,25),function(a){ return '<li>'+a.nom+' — '+_dbxResto(a.resto)+'</li>'; })
+        +(sansCand.length>25?'<div style="font-size:.76rem;color:#666;">… et '+(sansCand.length-25)+' autres</div>':'')+'</div>';
+    }
+    var nAct=R.aRanger.length+sansSal.length;
+    if(!nAct){ h+='<div style="margin-top:10px;color:#3ecf8e;">✅ Un dossier par personne, tous au bon endroit.</div>'; }
+    else { h+='<div style="margin-top:12px;"><button class="btn btn-red btn-sm" onclick="dbxRangerToutMaintenant()">🗂️ Ranger maintenant ('+nAct+')</button></div>'; }
     box.innerHTML=h;
   }
   return R;
@@ -8316,10 +8384,12 @@ async function dbxRangerToutMaintenant(){
   var trouves=await dbxScanDossiers();
   var R=dbxPlanRangement(trouves);
   var _amb=R.ambigus.length? ('\n\n⚠️ Non traités car deux personnes portent le même nom : '+R.ambigus.map(function(p){return p.noms.join('/');}).join(', ')+'. À régler à la main.') : '';
-  if(!R.aRanger.length){ maj('✅ Rien à ranger : un seul dossier par personne, tous au bon endroit.'); alert('Rien à ranger : chaque personne a déjà un dossier unique, au bon endroit.'+_amb); return; }
+  var sansSal=R.sans.filter(function(a){ return a.type==='salarie'; });
+  if(!R.aRanger.length && !sansSal.length){ maj('✅ Rien à faire : un dossier par personne, tous au bon endroit.'); alert('Rien à faire : chaque salarié a déjà son dossier, au bon endroit.'+_amb); return; }
   var nbDoublons=R.aRanger.filter(function(p){ return p.membres.length>1; }).length;
-  if(!confirm('Ranger '+R.aRanger.length+' dossier(s) ?\n\n'
-    +'• '+nbDoublons+' personne(s) ont plusieurs dossiers → regroupés en UN seul\n'
+  if(!confirm('Ranger les dossiers Dropbox ?\n\n'
+    +'• '+R.aRanger.length+' dossier(s) à replacer, dont '+nbDoublons+' personne(s) qui en ont plusieurs → regroupés en UN seul\n'
+    +'• '+sansSal.length+' salarié(s) sans dossier → un dossier VIDE leur est créé\n'
     +'• « Equipe » et le « Recrutement » du restaurant sont vidés puis supprimés\n'
     +'• le recrutement part dans /Recrutement/<Resto>/, à côté des Archives\n'
     +'• un salarié présent → /<Resto>/<Nom> · un salarié parti → /Archives/<Resto>/<Nom>\n'
@@ -8334,27 +8404,32 @@ async function dbxRangerToutMaintenant(){
       fichiers+=r.fichiers; if(r.fichiers||r.dossiers) ranges++;
     }catch(err){ console.warn('ranger',p.nom,err); }
   }
-  // « Equipe » et l'ancien « Recrutement » du restaurant n'ont plus lieu d'être :
-  // on les retire quand ils sont vides (sous-dossiers d'étape compris).
+  // ★ v582 — « Equipe » et le « Recrutement » du restaurant ne doivent PLUS
+  // EXISTER. On ne se contente plus de les supprimer s'ils sont vides : on les
+  // VIDE d'abord entièrement (fichiers isolés et sous-dossiers inconnus compris),
+  // sinon un seul fichier oublié suffisait à les laisser affichés.
   var restants=0, rids=Object.keys(RESTOS||{});
+  maj('Nettoyage des dossiers « Equipe » et « Recrutement »…');
   for(var k=0;k<rids.length;k++){
     var R2=_dbxResto(rids[k]);
     for(var e2=0;e2<DBX_ETAPES.length;e2++){
-      var ce=R2 && ('/'+R2+'/Recrutement/'+DBX_ETAPES[e2]);
-      var re=await dbxListSafe(ce);
-      if(re && re.length===0) await dbxDelete(ce);
+      fichiers+=await dbxViderEtSupprimer('/'+R2+'/Recrutement/'+DBX_ETAPES[e2], '/Recrutement/'+R2+'/'+DBX_ETAPES[e2]);
     }
-    var aVider=['/'+R2+'/Equipe','/'+R2+'/Recrutement'];
-    for(var v=0;v<aVider.length;v++){
-      var reste=await dbxListSafe(aVider[v]);
-      if(reste===null) continue;
-      if(reste.length===0){ await dbxDelete(aVider[v]); } else restants+=reste.length;
-    }
+    fichiers+=await dbxViderEtSupprimer('/'+R2+'/Recrutement', '/Recrutement/'+R2);
+    fichiers+=await dbxViderEtSupprimer('/'+R2+'/Equipe', '/'+R2);
+    var l1=await dbxListSafe('/'+R2+'/Equipe');      if(l1) restants+=l1.length;
+    var l2=await dbxListSafe('/'+R2+'/Recrutement'); if(l2) restants+=l2.length;
   }
-  maj('✅ Terminé : '+fichiers+' fichier(s) déplacé(s), '+ranges+' dossier(s) rangé(s).');
-  alert('Rangement terminé.\n\n'+fichiers+' fichier(s) déplacé(s), '+ranges+' dossier(s) regroupé(s).\n'
-    +(restants? ('⚠️ '+restants+' dossier(s) restent dans « Equipe » ou l\'ancien « Recrutement » du restaurant.')
-              : '« Equipe » et l\'ancien « Recrutement » du restaurant ont été supprimés : ils sont vides.')
+  // ★ v582 — chaque salarié doit avoir SON dossier, même vide.
+  maj('Création des dossiers manquants…');
+  var crees=0;
+  try{ crees=await dbxCreerDossiersManquants(sansSal); }catch(_cr){ console.warn('creation dossiers',_cr); }
+  maj('✅ Terminé : '+fichiers+' fichier(s) déplacé(s), '+ranges+' dossier(s) rangé(s), '+crees+' dossier(s) créé(s).');
+  alert('Rangement terminé.\n\n'
+    +fichiers+' fichier(s) déplacé(s), '+ranges+' dossier(s) regroupé(s).\n'
+    +crees+' dossier(s) vide(s) créé(s) pour les salariés qui n\'en avaient pas.\n'
+    +(restants? ('⚠️ '+restants+' élément(s) restent dans « Equipe » ou « Recrutement » du restaurant.')
+              : '« Equipe » et le « Recrutement » des restaurants ont été supprimés.')
     +_amb);
   try{ await dbxControlerDossiers(); }catch(_){}
 }
@@ -10226,6 +10301,72 @@ function renderQrAppli(){
   _qrDans('qr-appli-box', url, 170);
 }
 window.renderQrAppli=renderQrAppli;
+
+/* ── QR CODE PAR RESTAURANT (écran télé · poste iPad) ─────────────────────────
+   Un QR par restaurant et par usage : on colle celui du BK 509 derrière la télé
+   du BK 509, celui de l'iPad sur l'iPad. Un scan et l'appareil est au bon écran,
+   sur le bon restaurant, sans rien choisir.                                    */
+function urlEcranResto(rid){ return publicBaseUrl()+'#ecran/'+rid; }
+function urlIpadResto(rid){  return publicBaseUrl()+'#ipad/'+rid; }
+window.urlEcranResto=urlEcranResto; window.urlIpadResto=urlIpadResto;
+function _qrRestoBloc(kind,rid,lbl,url){
+  var id='qr-'+kind+'-'+rid;
+  return '<div style="text-align:center;">'
+    +'<div style="font-weight:800;color:#F5A623;font-size:.9rem;margin-bottom:8px;letter-spacing:1px;">'+lbl+'</div>'
+    +'<div style="background:#fff;padding:12px;border-radius:12px;display:inline-block;" id="'+id+'"></div>'
+    +'<div style="font-size:.7rem;color:#777;margin-top:7px;word-break:break-all;max-width:180px;">'+url+'</div>'
+    +'<div style="display:flex;gap:6px;justify-content:center;margin-top:8px;">'
+    +'<button class="btn btn-gray btn-sm" onclick="qrRestoCopier(\''+kind+'\',\''+rid+'\')">📋 Copier</button>'
+    +'<button class="btn btn-gray btn-sm" onclick="qrRestoImprimer(\''+kind+'\',\''+rid+'\')">🖨️ Imprimer</button>'
+    +'</div></div>';
+}
+function _qrRestoUrl(kind,rid){ return (kind==='ipad')?urlIpadResto(rid):urlEcranResto(rid); }
+function _qrRestoTitre(kind,lbl){ return (kind==='ipad')?('📟 Poste iPad — '+lbl):('📺 Écran télé — '+lbl); }
+function renderQrRestos(){
+  var rids=Object.keys(RESTOS||{});
+  [['ecran','qr-ecran-list'],['ipad','qr-ipad-list']].forEach(function(p){
+    var kind=p[0], box=document.getElementById(p[1]); if(!box) return;
+    box.innerHTML=rids.map(function(rid){
+      var lbl=(RESTOS[rid]&&RESTOS[rid].label)||rid;
+      return _qrRestoBloc(kind,rid,lbl,_qrRestoUrl(kind,rid));
+    }).join('');
+    rids.forEach(function(rid){ _qrDans('qr-'+kind+'-'+rid, _qrRestoUrl(kind,rid), 150); });
+  });
+}
+window.renderQrRestos=renderQrRestos;
+function qrRestoCopier(kind,rid){
+  var url=_qrRestoUrl(kind,rid);
+  try{
+    var t=document.createElement('textarea'); t.value=url; document.body.appendChild(t);
+    t.select(); document.execCommand('copy'); document.body.removeChild(t);
+    toast&&toast('Lien copié','success');
+  }catch(_){ try{ prompt('Lien à copier :', url); }catch(__){} }
+}
+window.qrRestoCopier=qrRestoCopier;
+function qrRestoImprimer(kind,rid){
+  var url=_qrRestoUrl(kind,rid);
+  var lbl=(RESTOS[rid]&&RESTOS[rid].label)||rid;
+  var titre=_qrRestoTitre(kind,lbl);
+  var sous=(kind==='ipad')
+    ? 'Scanne ce code depuis l\'iPad du bureau : il ouvre les traits du jour de ce restaurant.'
+    : 'Scanne ce code depuis la télé du restaurant : elle ouvre son écran directement.';
+  var tmp=document.createElement('div');
+  try{ new QRCode(tmp,{text:url,width:420,height:420,colorDark:'#1A1A1A',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M}); }catch(_){}
+  setTimeout(function(){
+    var img=tmp.querySelector('img')||tmp.querySelector('canvas');
+    var s=img?(img.src||(img.toDataURL&&img.toDataURL())):'';
+    var w=window.open('','_blank'); if(!w) return;
+    w.document.write('<html><head><title>'+titre+'</title></head>'
+      +'<body style="font-family:sans-serif;text-align:center;padding:44px;">'
+      +'<h1 style="font-size:30px;margin-bottom:6px;">'+titre+'</h1>'
+      +'<p style="font-size:15px;color:#555;margin-top:0;">'+sous+'</p>'
+      +(s?'<img src="'+s+'" style="width:420px;height:420px;">':'')
+      +'<p style="font-size:13px;color:#888;word-break:break-all;">'+url+'</p>'
+      +'</body></html>');
+    w.document.close(); setTimeout(function(){ try{ w.print(); }catch(_){} },350);
+  },320);
+}
+window.qrRestoImprimer=qrRestoImprimer;
 function copyQrAppli(){
   var inp=document.getElementById('qr-appli-link'); if(!inp) return;
   inp.select(); try{ document.execCommand('copy'); toast&&toast('Lien copié','success'); }catch(_){}
@@ -19357,7 +19498,7 @@ function dashOpenHoraires(){
   var body=dashOpenPanel('Mes horaires — '+lbl);
   // Chaque salarié clique sur sa tuile puis saisit son code (jour+mois de naissance)
   // pour voir SON calendrier personnel (façon Google), uniquement ses horaires.
-  _dashRenderTuiles(body, resto, 'dashHorairesOpen');
+  dashCartesEmployes(body, resto, 'dashHorairesOpen', 'horaire');
 }
 // ══ PLANNING DU JOUR — frise linéaire de TOUTE l'équipe (traits par poste) ══════
 // Écran télé : l'équipe voit d'un coup d'œil qui est posté où aujourd'hui.
@@ -19650,7 +19791,109 @@ function dashOpenPointer(){
   try{ PTG_RESTO=resto; window.__ptgRestoActif=resto; }catch(e){}
   var lbl=(dashRestoList().find(function(x){return x.id===resto;})||{}).label||'';
   var body=dashOpenPanel('Pointer — '+lbl);
-  _dashRenderTuiles(body, resto, 'ptgOpen');
+  // ★ v583 : écran dédié (photo en fond, recherche, lettres, tri par heure).
+  // « Mes congés » et « Indisponibilités » gardent leurs tuiles d'origine.
+  dashCartesEmployes(body, resto, 'ptgOpen', 'pointage');
+}
+
+/* ── ÉCRAN « POINTER » ────────────────────────────────────────────────────────
+   Le salarié doit retrouver SA carte en un coup d'œil :
+     • sa photo en fond, son nom par-dessus ;
+     • les personnes attendues MAINTENANT en premier ;
+     • une barre de lettres et une recherche pour aller droit au but.
+   Le clic ouvre le pointage (sans code, cf. Paramètres › ⏱️ Badgeuse).        */
+var _dashPtgResto=null, _dashPtgLettre='', _dashPtgAction='ptgOpen', _dashPtgMode='pointage';
+// ★ v585 — le même écran sert à Pointer, Mes horaires, Mes congés et
+// Indisponibilités. Seuls changent l'action au clic et ce qu'on écrit sous le nom :
+//   • mode 'pointage' → état du pointage (pas encore pointé / présent / parti)
+//   • mode 'horaire'  → le créneau prévu aujourd'hui
+function dashPtgRender(body){
+  body=body||document.getElementById('dash-panel-body'); if(!body) return;
+  if(!document.getElementById('dashptg-grid')){
+    body.innerHTML='<div class="ptg-search-wrap"><input type="text" id="dashptg-search" class="ptg-search" placeholder="🔎 Tapez les premières lettres de votre nom…" oninput="dashPtgRender()"></div>'
+      +'<div class="ptg-abc" id="dashptg-abc"></div>'
+      +'<div class="ptg-grid" id="dashptg-grid"></div>';
+  }
+  var grid=document.getElementById('dashptg-grid'), abc=document.getElementById('dashptg-abc');
+  var liste=_dashEmployesResto(_dashPtgResto);
+  if(!liste.length){ grid.innerHTML='<div class="ptg-empty">Aucun salarié pour ce restaurant.</div>'; abc.innerHTML=''; return; }
+  // barre des lettres
+  var dispo={}; liste.forEach(function(e){ var c=((e.name||'').trim()[0]||'').toUpperCase(); if(c) dispo[c]=1; });
+  var lettres=Object.keys(dispo).sort();
+  abc.innerHTML=(lettres.length<2)?'':(lettres.map(function(l){
+      return '<button class="'+(_dashPtgLettre===l?'on':'')+'" onclick="dashPtgLettre(\''+l+'\')">'+l+'</button>';
+    }).join('')+(_dashPtgLettre?('<button onclick="dashPtgLettre(\''+_dashPtgLettre+'\')" style="min-width:80px;">Tout</button>'):''));
+  var q=((document.getElementById('dashptg-search')||{}).value||'').toLowerCase().trim();
+  var emps=liste.filter(function(e){
+    if(q) return (e.name||'').toLowerCase().indexOf(q)>=0;
+    if(_dashPtgLettre) return ((e.name||'').trim()[0]||'').toUpperCase()===_dashPtgLettre;
+    return true;
+  });
+  if(!emps.length){ grid.innerHTML='<div class="ptg-empty">Aucun salarié trouvé.</div>'; return; }
+  var iso=(typeof ptgTodayISO==='function')?ptgTodayISO():'';
+  var prio=true; try{ prio=(getPtgCfg().prioMaintenant!==false); }catch(_){}
+  if(_dashPtgMode!=='pointage') prio=false;   // hors pointage : ordre alphabétique
+  if(q||_dashPtgLettre||!prio){
+    grid.innerHTML=emps.map(function(e){ return _dashPtgCarte(e,iso); }).join('');
+    return;
+  }
+  var g=[[],[],[]];
+  emps.forEach(function(e){
+    var rec=ptgRec(e.id,iso).rec;
+    var r=ptgRangEmp(e,iso,rec);
+    g[r.r].push({e:e,d:r.d});
+  });
+  g[0].sort(function(a,b){ return a.d-b.d; });
+  g[1].sort(function(a,b){ return a.d-b.d; });
+  g[2].sort(function(a,b){ return (a.e.name||'').localeCompare(b.e.name||''); });
+  var titres=[['C\'EST VOTRE MOMENT','arrivée ou départ prévu dans les 2 heures'],
+              ['AUJOURD\'HUI','le reste des personnes prévues'],
+              ['TOUTE L\'ÉQUIPE','pas de créneau prévu aujourd\'hui']];
+  var h='';
+  for(var i=0;i<3;i++){
+    if(!g[i].length) continue;
+    h+='<div class="ptg-sec"><b>'+titres[i][0]+'</b><span>'+titres[i][1]+' · '+g[i].length+'</span></div>';
+    h+=g[i].map(function(x){ return _dashPtgCarte(x.e,iso); }).join('');
+  }
+  grid.innerHTML=h;
+}
+window.dashPtgRender=dashPtgRender;
+// Ouvre l'écran de cartes pour un usage donné (action au clic + mode d'affichage).
+function dashCartesEmployes(body, resto, action, mode){
+  _dashPtgResto=resto; _dashPtgAction=action||'ptgOpen'; _dashPtgMode=mode||'pointage';
+  _dashPtgLettre='';
+  if(body) body.innerHTML='';
+  dashPtgRender(body);
+}
+window.dashCartesEmployes=dashCartesEmployes;
+function dashPtgLettre(l){ _dashPtgLettre=(_dashPtgLettre===l)?'':l; dashPtgRender(); }
+window.dashPtgLettre=dashPtgLettre;
+function _dashPtgCarte(e,iso){
+  var rec=ptgRec(e.id,iso).rec;
+  var segs=(typeof ptgSegsJour==='function')?ptgSegsJour(e,iso):[];
+  var hDeb=segs.length?_ptgMin2hm(segs[0].s):'';
+  var dot,txt;
+  if(_dashPtgMode==='horaire'){
+    // Mes horaires / Mes congés / Indisponibilités : on montre le créneau du jour.
+    if(segs.length){ dot='#F5A623'; txt=_ptgMin2hm(segs[0].s)+' → '+_ptgMin2hm(segs[segs.length-1].e); }
+    else { dot='#cfcfcf'; txt='Pas de créneau aujourd\'hui'; }
+  } else {
+    if(rec.arrivee && !rec.depart){ dot='#3ecf8e'; txt='Présent depuis '+rec.arrivee; }
+    else if(rec.arrivee && rec.depart){ dot='#9aa0a6'; txt='Parti à '+rec.depart; }
+    else { dot='#cfcfcf'; txt='Pas encore pointé'; }
+  }
+  var pu=(typeof empPhotoUrl==='function')?empPhotoUrl(e):'';
+  var fini=(_dashPtgMode==='pointage' && rec.arrivee && rec.depart)?' fait':'';
+  return '<div class="ptgc'+fini+'" onclick="'+_dashPtgAction+'(\''+e.id+'\')">'
+    +(pu?('<div class="ptgc-bg" style="background-image:url(\''+pu+'\');"></div>')
+        :('<div class="ptgc-ini" style="background:'+ptgAvColor(e.name)+'">'+ptgInitials(e.name)+'</div>'))
+    +(hDeb?('<div class="ptgc-h">'+hDeb+'</div>'):'')
+    +'<div class="ptgc-dot" style="background:'+dot+'"></div>'
+    +'<div class="ptgc-ov">'
+    +'<div class="ptgc-nm">'+e.name+'</div>'
+    +'<div class="ptgc-rl">'+ptgRoleLabel(e.role)+'</div>'
+    +'<div class="ptgc-st" style="color:'+dot+'">'+txt+'</div>'
+    +'</div></div>';
 }
 // ── DEMANDES SALARIÉ (congés / indisponibilités) — tuiles + code PIN du pointage ──
 // Affiche les salariés en tuiles (comme Pointage). Clic → modale code PIN (JJ+MM de
@@ -19691,7 +19934,7 @@ function dashOpenConges(){
   _dashDemType='conges';
   var lbl=(dashRestoList().find(function(x){return x.id===resto;})||{}).label||'';
   var body=dashOpenPanel('Mes congés — '+lbl);
-  _dashRenderTuiles(body, resto, 'dashDemOpen');
+  dashCartesEmployes(body, resto, 'dashDemOpen', 'horaire');
 }
 function dashOpenIndispo(){
   var resto=DASH_RESTO;
@@ -19699,7 +19942,7 @@ function dashOpenIndispo(){
   _dashDemType='indispo';
   var lbl=(dashRestoList().find(function(x){return x.id===resto;})||{}).label||'';
   var body=dashOpenPanel('Indisponibilités — '+lbl);
-  _dashRenderTuiles(body, resto, 'dashDemOpen');
+  dashCartesEmployes(body, resto, 'dashDemOpen', 'horaire');
 }
 // Clic sur une tuile → modale code PIN
 function dashDemOpen(empId, direct){
