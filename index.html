@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-21 09:30 · v586 (contrats +5% maxi, 35h strict ; planning non conforme corrige tout seul)';
+  var EMBEDDED_VERSION = '2026-08-19 18:30 · v589 (sur ta v588 correctif conso : grandes icones ecran tele + disponible a partir de)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -552,6 +552,18 @@ body.tv-mode #eye-viewas{display:none!important;}
 .dash-tile{position:relative;border-radius:18px;padding:22px 18px;min-height:150px;border:1px solid #3a3a3a;background:linear-gradient(155deg,#2E2E2E,#1E1E1E);cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;}
 .dash-tile:hover{transform:translateY(-5px);box-shadow:0 14px 34px rgba(0,0,0,.5);border-color:var(--orange);}
 .dash-tile .dt-em{font-size:2.6rem;line-height:1;}
+/* ★ v589 — Écran télé : l'icône passe au CENTRE et triple de taille. Sur une télé
+   vue de loin, c'est elle qu'on reconnaît, pas le texte. Ne concerne QUE l'écran
+   télé (#dash-grid) : les tuiles de Paramètres et des restaurants ne bougent pas. */
+#dash-grid .dash-tile{ min-height:230px; padding:26px 16px 20px; text-align:center; }
+#dash-grid .dash-tile .dt-em{ font-size:7rem; line-height:1; flex:1 1 auto;
+  display:flex; align-items:center; justify-content:center; margin:6px 0 4px;
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,.45)); }
+#dash-grid .dash-tile .dt-tt{ margin-top:6px; font-size:1.35rem; }
+@media(max-width:900px){
+  #dash-grid .dash-tile{ min-height:170px; }
+  #dash-grid .dash-tile .dt-em{ font-size:4.4rem; }
+}
 .dash-tile .dt-tt{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:1px;color:#fff;text-transform:uppercase;margin-top:14px;}
 .dash-tile .dt-ds{font-size:.8rem;color:#9a9a9a;margin-top:3px;line-height:1.35;}
 .dash-tile .dt-accent{position:absolute;top:0;left:0;width:100%;height:5px;}
@@ -1861,6 +1873,10 @@ html,body{overflow-x:hidden;}
       <div class="sec-title">⏱️ Badgeuse — écran de pointage</div>
       <div id="pc-badgeuse-body"></div>
     </div>
+    <div class="card param-card" id="pc-grille-contrats" style="display:none;">
+      <div class="sec-title">📋 Grille des contrats — dispo contrat / dispo réelles</div>
+      <div id="pc-grille-contrats-body"></div>
+    </div>
     <div class="card param-card" id="pc-messagerie" style="display:none;">
       <div class="sec-title">💬 Messagerie — qui peut écrire à qui</div>
       <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Pour chaque rôle (à gauche), coche les rôles avec qui il a le droit de communiquer. La règle est <strong>réciproque</strong> : si les équipiers ne peuvent parler qu'aux directeurs, alors seuls les directeurs peuvent leur écrire. Un salarié ne peut démarrer une conversation qu'avec les personnes autorisées.</p>
@@ -2795,20 +2811,32 @@ const SANCTIONS = {
 function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):'';}
 
 // ── CHARGEMENT SUPABASE ───────────────────────────────────────────────────────
+// ★ v588 — CORRECTIF EGRESS (3/4). Les deux tables lourdes (bks_employees ~1,4 Mo
+// et bks_candidatures ~1,4 Mo) représentaient 93 % du poids téléchargé, et elles
+// étaient re-téléchargées ENTIÈREMENT à chaque synchro de fond. On les met en
+// cache 60 s : uniquement pour les synchros de fond (loadAll(true)). Tout appel
+// explicite — loadAll() sans argument, après un ajout/une modif — recharge
+// toujours en direct, donc rien ne change pour l'utilisateur.
+var _bkCacheEmps=null, _bkCacheCands=null, _bkCacheTs=0, _bkCacheMs=60000;
+function bkInvaliderCacheLourd(){ _bkCacheTs=0; }   // à appeler si besoin de forcer
+window.bkInvaliderCacheLourd=bkInvaliderCacheLourd;
 async function loadAll(light) {
   // light=true : synchro de fond — on évite la colonne lourde "photo" des candidats
   // (les photos restent celles déjà en mémoire ; rechargées au 1er chargement et à l'ouverture du recrutement)
   var candCols = light
     ? 'id,prenom,nom,email,phone,resto_id,restos,poste,niveau_apprentissage,dispos,questionnaire,motivation,statut,entretien_date,note_interne,created_at,date_naissance,etudiant,rqth,dernier_emploi,transport,trajet,adresse,code_postal,ville,nationalite,sexe,contrat_type,contrat_label,contrat_heures,cv_name,onboarding,date_debut,essai_rappels,avis_managers,refus_motif,documents,contact_urgence,tailles_tenue,bku_identifiant,bku_motdepasse,docs_soumis,videos_faites,essai_alerte,contrat_signe,visite_faite,visite_date,contrat_signe_doc,refus_date'
     : 'id,prenom,nom,email,phone,resto_id,restos,poste,niveau_apprentissage,dispos,questionnaire,motivation,statut,entretien_date,note_interne,created_at,date_naissance,etudiant,rqth,dernier_emploi,transport,trajet,adresse,code_postal,ville,nationalite,sexe,photo,contrat_type,contrat_label,contrat_heures,cv_name,onboarding,date_debut,essai_rappels,avis_managers,refus_motif,documents,contact_urgence,tailles_tenue,bku_identifiant,bku_motdepasse,docs_soumis,videos_faites,essai_alerte,contrat_signe,visite_faite,visite_date,contrat_signe_doc,refus_date';
+  // ★ v588 (3/4) — réutilisation du cache 60 s, SEULEMENT en synchro de fond.
+  var _reuse = (light===true) && _bkCacheEmps && _bkCacheCands && (Date.now()-_bkCacheTs < _bkCacheMs);
   const [emps, incs, lets, settArr, cands, empDocs] = await Promise.all([
-    sb.get('bks_employees','select=*&order=name.asc'),
+    _reuse ? Promise.resolve(_bkCacheEmps) : sb.get('bks_employees','select=*&order=name.asc'),
     sb.get('bks_incidents','select=*&order=created_at.desc'),
     sb.get('bks_letters','select=*&order=created_at.desc'),
     sb.get('bks_settings','select=*&id=eq.main'),
-    sb.get('bks_candidatures','select='+candCols+'&order=created_at.desc').catch(function(){return [];}),
+    _reuse ? Promise.resolve(_bkCacheCands) : sb.get('bks_candidatures','select='+candCols+'&order=created_at.desc').catch(function(){return [];}),
     sb.get('bks_emp_docs','select=*&order=created_at.desc').catch(function(){return [];}),
   ]);
+  if(!_reuse){ _bkCacheEmps=emps; _bkCacheCands=cands; _bkCacheTs=Date.now(); }
   DB.empDocs = (empDocs||[]).map(function(d){
     return {id:d.id,empId:d.emp_id,categorie:d.categorie||'autre',label:d.label||'',link:d.link||'',name:d.name||'',dbxPath:d.dbx_path||'',createdAt:d.created_at};
   });
@@ -2906,6 +2934,11 @@ async function saveDB() {
 
 // Rafraîchissement léger commun (appelé par le Temps réel ou par le filet de sécurité)
 var _syncBusy=false, _syncQueued=false;
+// ★ v588 — CORRECTIF EGRESS (2/4). Pause minimale entre deux rafraîchissements
+// complets. Avant, un cycle qui se terminait pouvait en relancer un autre
+// INSTANTANÉMENT (aucun temps mort), ce qui laissait tourner la boucle à plein
+// régime. 2 s suffisent : c'est imperceptible à l'écran et ça borne le débit.
+var _softMinGapMs=2000, _lastSoftTs=0;
 async function doSoftRefresh(){
   if(!curUser) return;
   // ÉCRAN RESTAURANT (télé) : rafraîchissement ULTRA-LÉGER — on ne recharge PAS
@@ -2918,6 +2951,15 @@ async function doSoftRefresh(){
     return;
   }
   if(_syncBusy){ _syncQueued=true; return; }   // évite les rafraîchissements qui se chevauchent
+  // ★ v588 (2/4) — si le dernier cycle date de moins de 2 s, on ne recharge pas
+  // maintenant : on reprogramme une seule fois et on sort.
+  try{
+    if(_lastSoftTs && (Date.now()-_lastSoftTs)<_softMinGapMs){
+      if(window.__softDeferTm) clearTimeout(window.__softDeferTm);
+      window.__softDeferTm=setTimeout(doSoftRefresh, _softMinGapMs);
+      return;
+    }
+  }catch(_){}
   // FIX compétences/dispos : ne pas recharger juste après une écriture locale (un refresh temps réel
   // pendant une saisie remplaçait l'objet salarié → « l'un annule l'autre »). On diffère.
   try{
@@ -2928,6 +2970,7 @@ async function doSoftRefresh(){
     }
   }catch(_){}
   _syncBusy=true;
+  _lastSoftTs=Date.now();   // ★ v588 (2/4)
   try{
     await loadAll(true);   // version allégée (ne recharge pas les photos candidats)
     // Recharge l'état de validation partagé du planning (vert/orange).
@@ -2950,7 +2993,8 @@ async function doSoftRefresh(){
     try{ hrRefreshPageActive(); }catch(e){ console.warn('refresh page active', e); }
   }catch(e){ console.warn('refresh',e); }
   _syncBusy=false;
-  if(_syncQueued){ _syncQueued=false; doSoftRefresh(); }
+  // ★ v588 (2/4) — relance DIFFÉRÉE au lieu d'immédiate.
+  if(_syncQueued){ _syncQueued=false; setTimeout(doSoftRefresh, _softMinGapMs); }
 }
 
 // Redessine la page actuellement affichée, en s'alignant sur les fonctions de
@@ -3081,13 +3125,27 @@ function startRealtime(){
         if(data.event==='phx_reply' && data.payload && data.payload.status==='ok'){ _rtOk=true; }
         if(data.event==='postgres_changes' || (data.payload && data.payload.data)){
           // Un changement est arrivé.
-          // Sur la page Horaires : synchro INSTANTANÉE et ciblée des traits posés
-          // (sans le délai de 800 ms et sans recharger toute l'app), pour voir
-          // immédiatement le travail fait sur un autre appareil.
+          // ★ v588 — CORRECTIF EGRESS (4/4). L'abonnement renvoie le NOM de la table
+          // modifiée : on s'en sert pour ne vider le cache des tables lourdes que
+          // lorsqu'elles ont réellement changé. Résultat : l'affichage reste
+          // instantané (un nouveau candidat apparaît tout de suite) sans que
+          // chaque évènement re-télécharge 2,8 Mo pour rien.
+          var _tbl='';
+          try{ _tbl=(data.payload && data.payload.data && data.payload.data.table) || ''; }catch(_){}
+          try{
+            if(!_tbl || _tbl==='bks_employees' || _tbl==='bks_candidatures'){
+              if(typeof bkInvaliderCacheLourd==='function') bkInvaliderCacheLourd();
+            }
+          }catch(_){}
+          // Sur la page Horaires : synchro ciblée des traits posés (sans recharger
+          // toute l'app), pour voir le travail fait sur un autre appareil.
+          // ★ v588 (4/4) — regroupée sur 1 s : avant, elle partait sur CHAQUE
+          // message reçu, sans aucun regroupement.
           try{
             var _ep=document.getElementById('page-horaires');
             if(_ep && _ep.classList.contains('active') && typeof hrFastSyncAffect==='function'){
-              hrFastSyncAffect();
+              if(window.__rtFastTm) clearTimeout(window.__rtFastTm);
+              window.__rtFastTm=setTimeout(function(){ try{ hrFastSyncAffect(); }catch(_){} }, 1000);
             }
           }catch(e){}
           // Pour le reste de l'app : rafraîchissement doux groupé (debounce).
@@ -4129,6 +4187,154 @@ window.visDim=visDim; window.visMark=visMark;
 function visPanel(){ return ''; }  // ancien panneau : désactivé (remplacé par visLayout)
 function visBadge(){ return ''; }  // ancien affichage par tuile : désactivé
 
+
+/* ══ GRILLE DES DISPONIBILITÉS PAR CONTRAT (v587) ═════════════════════════════
+   Tableau « H contrats » de la direction. Pour chaque contrat (15h · 20h · 24h)
+   et chaque profil de transport, DEUX jeux de créneaux :
+
+     • « contrat » → ce qu'on écrit dans le CONTRAT que le salarié signe ;
+     • « réelles » → ce qu'on met dans SES DISPONIBILITÉS, celles qui servent au
+       placement des horaires (elles sont plus larges).
+
+   VÉHICULÉ = tout sauf « transports en commun » (à pied compris : il habite à côté).
+   35 h ET PLUS : aucune disponibilité — dispo totale. La loi n'impose des
+   disponibilités qu'en dessous de 35 h.
+
+   ⚠️ Rien n'est appliqué aux salariés déjà en place : uniquement aux NOUVELLES
+   embauches, au moment où l'on démarre la période d'essai.                     */
+var GRC_JK=['lun','mar','mer','jeu','ven','sam','dim'];
+function _grcS(){ var a=[]; for(var i=0;i<arguments.length;i+=2) a.push({from:arguments[i],to:arguments[i+1]}); return a; }
+function grilleContratsDefaut(){
+  function jours(o){ var r={}; GRC_JK.forEach(function(j){ r[j]=o[j]||[]; }); return r; }
+  var G={};
+  // ── 15 h — vendredi, samedi, dimanche ──────────────────────────────────────
+  G['15h']={
+    veh:{
+      contrat: jours({ven:_grcS('18:00','01:30'),
+                      sam:_grcS('11:00','15:00','17:30','01:30'),
+                      dim:_grcS('11:00','15:00','17:30','01:30')}),
+      reelles: jours({ven:_grcS('18:00','01:30'),
+                      sam:_grcS('08:30','01:30'),
+                      dim:_grcS('08:30','01:30')})},
+    nonveh:{
+      contrat: jours({ven:_grcS('18:00','23:00'),
+                      sam:_grcS('11:00','23:00'),
+                      dim:_grcS('11:00','23:00')}),
+      reelles: jours({ven:_grcS('18:00','23:00'),
+                      sam:_grcS('08:30','23:00'),
+                      dim:_grcS('08:30','23:00')})}
+  };
+  // ── 20 h — lundi au vendredi le soir + week-end ────────────────────────────
+  function sem(a,b){ var r={}; ['lun','mar','mer','jeu','ven'].forEach(function(j){ r[j]=_grcS(a,b); }); return r; }
+  G['20h']={
+    veh:{
+      contrat: jours(Object.assign(sem('18:00','01:30'),{
+                      sam:_grcS('11:30','15:00','18:00','01:30'),
+                      dim:_grcS('11:30','15:00','18:00','01:30')})),
+      reelles: jours(Object.assign(sem('18:00','01:30'),{
+                      sam:_grcS('08:30','01:30'),
+                      dim:_grcS('08:30','01:30')}))},
+    nonveh:{
+      contrat: jours(Object.assign(sem('18:00','23:00'),{
+                      sam:_grcS('11:00','23:00'),
+                      dim:_grcS('11:00','23:00')})),
+      reelles: jours(Object.assign(sem('18:00','23:00'),{
+                      sam:_grcS('08:30','23:00'),
+                      dim:_grcS('08:30','23:00')}))}
+  };
+  // ── 24 h — toute la semaine ────────────────────────────────────────────────
+  G['24h']={
+    veh:{
+      contrat: jours({lun:_grcS('11:00','14:30','18:30','01:30'),
+                      mar:_grcS('11:00','14:30','18:30','01:30'),
+                      mer:_grcS('11:00','14:30','18:30','01:30'),
+                      jeu:_grcS('11:00','14:30','18:30','01:30'),
+                      ven:_grcS('11:00','14:30','19:00','01:30'),
+                      sam:_grcS('11:00','14:30','19:00','01:30'),
+                      dim:_grcS('11:00','14:30','19:00','01:30')}),
+      reelles: jours({lun:_grcS('08:30','01:30'),mar:_grcS('08:30','01:30'),mer:_grcS('08:30','01:30'),
+                      jeu:_grcS('08:30','01:30'),ven:_grcS('08:30','01:30'),sam:_grcS('08:30','01:30'),
+                      dim:_grcS('08:30','01:30')})},
+    nonveh:{
+      contrat: jours({lun:_grcS('11:00','15:00','18:00','23:00'),
+                      mar:_grcS('11:00','15:00','18:00','23:00'),
+                      mer:_grcS('11:00','23:00'),
+                      jeu:_grcS('11:00','15:00','18:00','23:00'),
+                      ven:_grcS('11:00','15:00','18:00','23:00'),
+                      sam:_grcS('11:00','23:00'),
+                      dim:_grcS('11:00','23:00')}),
+      reelles: jours({lun:_grcS('08:30','23:00'),mar:_grcS('08:30','23:00'),mer:_grcS('08:30','23:00'),
+                      jeu:_grcS('08:30','23:00'),ven:_grcS('08:30','23:00'),sam:_grcS('08:30','23:00'),
+                      dim:_grcS('08:30','23:00')})}
+  };
+  return G;
+}
+var GRILLE_CONTRATS=null;
+function getGrilleContrats(){
+  if(GRILLE_CONTRATS) return GRILLE_CONTRATS;
+  try{ var raw=localStorage.getItem('bkrh_grille_contrats');
+       if(raw){ GRILLE_CONTRATS=JSON.parse(raw); return GRILLE_CONTRATS; } }catch(_){}
+  GRILLE_CONTRATS=grilleContratsDefaut(); return GRILLE_CONTRATS;
+}
+function saveGrilleContrats(){
+  try{ localStorage.setItem('bkrh_grille_contrats',JSON.stringify(GRILLE_CONTRATS)); }catch(_){}
+  try{ if(typeof SB!=='undefined'&&SB) SB.from('app_config').upsert({cle:'bkrh_grille_contrats',valeur:GRILLE_CONTRATS},{onConflict:'cle'}).then(function(){},function(){}); }catch(_){}
+}
+async function hrChargerGrilleContrats(){
+  try{
+    if(typeof SB==='undefined'||!SB) return;
+    var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_grille_contrats').maybeSingle();
+    if(r&&r.data&&r.data.valeur){ GRILLE_CONTRATS=r.data.valeur;
+      try{ localStorage.setItem('bkrh_grille_contrats',JSON.stringify(GRILLE_CONTRATS)); }catch(_){} }
+  }catch(_){}
+}
+window.hrChargerGrilleContrats=hrChargerGrilleContrats;
+// « Véhiculé » = capable de rentrer après le dernier bus. Seuls les transports en
+// commun ne le permettent pas ; à pied = habite tout près, donc véhiculé.
+function grcEstVehicule(transport){
+  var t=String(transport||'').toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g,'');
+  if(!t) return true;                       // non renseigné : on ne restreint pas
+  return !(t.indexOf('transport')>=0 && t.indexOf('commun')>=0);
+}
+window.grcEstVehicule=grcEstVehicule;
+// Clé de contrat : 15h / 20h / 24h. null au-dessus (35h : dispo totale).
+function grcCleContrat(heures){
+  var h=parseFloat(String(heures).replace(',','.').replace(/[^0-9.]/g,''));
+  if(!isFinite(h)||h<=0) return null;
+  if(h>=35) return null;                    // 35 h et plus : aucune disponibilité
+  if(h<=15) return '15h';
+  if(h<=20) return '20h';
+  return '24h';
+}
+window.grcCleContrat=grcCleContrat;
+// Renvoie les dispos au format de la fiche salarié : {lun:{on,from,to,creneaux}}
+// base = 'contrat' (document signé) ou 'reelles' (placement des horaires).
+function grcDisposPour(heures, transport, base){
+  var cle=grcCleContrat(heures);
+  if(!cle) return null;                     // 35 h et plus → dispo totale
+  var G=getGrilleContrats();
+  var bloc=G[cle]; if(!bloc) return null;
+  var prof=bloc[grcEstVehicule(transport)?'veh':'nonveh']; if(!prof) return null;
+  var src=prof[(base==='contrat')?'contrat':'reelles']; if(!src) return null;
+  var out={};
+  GRC_JK.forEach(function(j){
+    var cr=(src[j]||[]).map(function(x){ return {from:x.from,to:x.to}; });
+    out[j]= cr.length ? {on:true, from:cr[0].from, to:cr[0].to, creneaux:cr}
+                      : {on:false, creneaux:[]};
+  });
+  return out;
+}
+window.grcDisposPour=grcDisposPour;
+// Résumé lisible, pour l'écran et pour la trace.
+function grcResume(heures, transport){
+  var cle=grcCleContrat(heures);
+  if(!cle) return 'Contrat 35 h ou plus : aucune disponibilité (dispo totale).';
+  return 'Contrat '+cle+' · '+(grcEstVehicule(transport)?'véhiculé':'non véhiculé')
+        +' — contrat signé et disponibilités pré-remplis depuis la grille.';
+}
+window.grcResume=grcResume;
+
 // ══ DISPONIBILITÉS DU CONTRAT — base par TYPE de contrat (15h/20h/24h/35h) ═══════
 // L'admin fixe une fois, jour par jour, les créneaux standards de chaque type de
 // contrat. Ces créneaux servent de base au contrat du salarié (modifiables ensuite
@@ -4150,7 +4356,14 @@ async function hrChargerDisposContratSupabase(){
 }
 window.hrChargerDisposContratSupabase=hrChargerDisposContratSupabase;
 // Renvoie les dispos de base pour un type de contrat (objet {jk:{on,from,to}}).
-function disposContratPour(typeHeures){
+// Créneaux de base pour LE CONTRAT d'un salarié.
+// ★ v587 : si le salarié a été embauché avec la grille (infos.disposContrat), c'est
+// ELLE qui fait foi — c'est ce que la direction a décidé de faire signer. Sinon on
+// retombe sur l'ancienne base par type de contrat, inchangée.
+function disposContratPour(typeHeures, emp){
+  try{
+    if(emp && emp.infos && emp.infos.disposContrat) return emp.infos.disposContrat;
+  }catch(_){}
   var cfg=getDisposContrat(); var key=(''+typeHeures).replace(/[^0-9]/g,'')+'h';
   return cfg[key]||cfg[_dcTypeSel]||{};
 }
@@ -4231,6 +4444,7 @@ var PARAM_TILES=[
   {ico:'📱', titre:'Téléphone équipe', sub:'Ce que l\'équipe voit sur son tél.', type:'page', page:'telephone', accent:'#7e57c2'},
   {ico:'📟', titre:'Poste iPad',    sub:'Bureau manager : absences, incidents', type:'card', card:'pc-ipad', id:'pc-ipad', fn:'paramIpad()', accent:'#F5A623'},
   {ico:'⏱️', titre:'Badgeuse',      sub:'Écran de pointage des salariés', type:'card', card:'pc-badgeuse', id:'pc-badgeuse', fn:'paramBadgeuse()', accent:'#3ecf8e'},
+  {ico:'📋', titre:'Grille des contrats', sub:'Dispo contrat / dispo réelles', type:'card', card:'pc-grille-contrats', id:'pc-grille-contrats', fn:'paramGrilleContrats()', accent:'#B57EDC'},
   {ico:'📋', titre:'Incidents',     sub:'Suivi disciplinaire',          type:'page', page:'incidents',      accent:'#D62300'},
   {ico:'📅', titre:'Disponibilité contrat',sub:'Base des contrats (import Excel)', type:'card', card:'pc-dispos',      accent:'#1565c0'},
   {ico:'💶', titre:'Salaires',      sub:'Grille des salaires',          type:'page', page:'salaires',       accent:'#2e7d32'},
@@ -4306,6 +4520,7 @@ function paramOuvrir(type, ref){
     if(ref==='pc-visite'){ try{ loadVisiteConfig(); }catch(_){} }
     if(ref==='pc-mutuelle'){ try{ loadMutuelleConfig(); }catch(_){} }
     if(ref==='pc-qr'){ try{ renderQr(); }catch(_){} try{ renderQrAppli(); }catch(_){} try{ renderQrRestos(); }catch(_){} }
+    if(ref==='pc-grille-contrats'){ try{ renderGrilleContrats(); }catch(_){} }
     if(ref==='pc-pin'){ try{ renderPinSettings(); }catch(_){} }
     if(ref==='pc-photo'){ try{ photoParamInit(); }catch(_){} }
     if(ref==='pc-pointer'){ try{ ptgMsgCharger('suivi'); }catch(_){} try{ ptgRenderMsgAdmin(); }catch(_){} }
@@ -13475,7 +13690,11 @@ function _empCand(e){
 // (opts.heures) et la société ; laisse les autres tels quels (à compléter dans l'aperçu).
 // Génère le tableau des PLAGES DE PLANIFICATION à partir des disponibilités réelles du salarié.
 function _plagesPlanifTxt(e){
-  var inf=(e&&e.infos)||{}; var dispos=inf.dispos||{};
+  var inf=(e&&e.infos)||{};
+  // ★ v587 — LE CONTRAT porte les « dispo contrat » (ce que le salarié signe),
+  // PAS ses disponibilités réelles, qui sont plus larges et servent au placement.
+  // Salariés d'avant la grille : aucun disposContrat → on garde l'ancien comportement.
+  var dispos=inf.disposContrat||inf.dispos||{};
   var JN=[['lun','Lundi'],['mar','Mardi'],['mer','Mercredi'],['jeu','Jeudi'],['ven','Vendredi'],['sam','Samedi'],['dim','Dimanche']];
   function toMin(hm){ if(!hm) return null; var p=String(hm).replace('h',':').split(':'); var h=parseInt(p[0],10); var m=parseInt(p[1]||'0',10); if(isNaN(h))return null; return h*60+(isNaN(m)?0:m); }
   function fmt(hm){ if(!hm) return ''; var p=String(hm).replace('h',':').split(':'); var h=parseInt(p[0],10)||0; var m=parseInt(p[1]||'0',10)||0; return ('0'+h).slice(-2)+'h'+('0'+m).slice(-2); }
@@ -13864,7 +14083,7 @@ function renderCandidatures(){
         +'<span style="color:'+col+';font-size:1.3rem;">›</span>'
         +'</div>';
     }
-    if(c.statut==='nouveau'){meta=(c.poste||'—')+' · '+resto+' · reçu le '+_candDT(c.createdAt);}
+    if(c.statut==='nouveau'){meta=(c.poste||'—')+' · '+resto+' · reçu le '+_candDT(c.createdAt)+_candDesTxt(c,' · ');}
     else if(c.statut==='entretien'){meta='Entretien : '+(c.entretienDate?new Date(c.entretienDate).toLocaleString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'à programmer')+' · '+resto;}
     else if(c.statut==='retenu'){var dok=docsComplets(c)&&c.docsSoumis;var vok=!!c.videosFaites;var st=(dok&&vok)?'✅ dossier validé':((dok?'📎 docs ok':'📎 docs en attente')+' · '+(vok?'🎓 vidéos ok':'🎓 vidéos en attente'));meta='Retenu · '+resto+' · '+st+(c.dateDebut?' · début '+new Date(c.dateDebut).toLocaleDateString('fr-FR'):'');}
     else if(c.statut==='essai'){var ess=essaiInfo(c);meta='Début '+(c.dateDebut?new Date(c.dateDebut).toLocaleDateString('fr-FR'):'?')+' · '+(ess?ess.label:'')+' · '+resto;}
@@ -13964,6 +14183,7 @@ function openCand(id){
     +'<div><div class="flabel">Type de contrat</div><span style="color:#eee;font-size:.85rem;">'+(c.contratLabel||c.poste||'—')+(c.niveauApprentissage&&!c.contratLabel?' · '+c.niveauApprentissage:'')+'</span></div>'
     +'<div><div class="flabel">Restaurant assigné</div><select onchange="candChangeResto(this.value)" style="background:#1A1A1A;border:1px solid #444;border-radius:6px;color:#eee;font-size:.85rem;padding:5px 6px;width:100%;">'+Object.keys(RESTOS).map(function(r){return '<option value="'+r+'"'+(r===c.restoId?' selected':'')+'>'+RESTOS[r].label+'</option>';}).join('')+'</select>'+((c.restos&&c.restos.split(',').filter(Boolean).length>1)?'<div style="font-size:.68rem;color:#888;margin-top:3px;">Souhaits du candidat : '+c.restos.split(',').filter(Boolean).map(function(r){return RESTOS[r]?RESTOS[r].label:r;}).join(', ')+'</div>':'')+'</div>'
     +'<div><div class="flabel">Transport</div><span style="color:#eee;font-size:.85rem;">'+(c.transport||'—')+(c.trajet?' · '+c.trajet:'')+'</span></div>'
+    +'<div><div class="flabel">Disponible à partir de</div><span style="color:#eee;font-size:.85rem;">'+((candDispoDes(c)||{}).txt||'—')+'</span></div>'
     +'<div><div class="flabel">Dernier emploi</div><span style="color:#eee;font-size:.85rem;">'+(c.dernierEmploi||'—')+'</span></div>'
     +'<div><div class="flabel">Nationalité</div><span style="color:#eee;font-size:.85rem;">'+(c.nationalite||'—')+'</span></div>'
     +'<div><div class="flabel">Sexe</div><span style="color:#eee;font-size:.85rem;">'+(c.sexe||'—')+'</span></div>'
@@ -15064,6 +15284,27 @@ async function candContratSigne(){
       var _infosEmb={};
       if(String(c.rqth||'').toLowerCase()==='oui') _infosEmb.rqth='oui';
       if(c.photo) _infosEmb.photo=c.photo;   // la photo du candidat suit sur sa fiche salarié
+      // ★ v587 — GRILLE DES CONTRATS (uniquement à l'embauche, jamais sur un
+      // salarié déjà en place) : selon le contrat (15/20/24 h) et le transport
+      // déclaré à la candidature, on pose DEUX jeux de créneaux :
+      //   • infos.disposContrat → ce qui part dans le CONTRAT qu'il signe ;
+      //   • infos.dispos        → ses DISPONIBILITÉS, celles du placement.
+      // 35 h et plus : rien n'est posé (dispo totale).
+      try{
+        var _hC=(c.contratHeures!=null?c.contratHeures:(c.contrat_heures!=null?c.contrat_heures:null));
+        if(_hC==null && c.contratLabel) _hC=String(c.contratLabel);
+        if(_hC==null && c.contratType)  _hC=String(c.contratType);
+        var _tr=c.transport||'';
+        var _dReel=(typeof grcDisposPour==='function')?grcDisposPour(_hC,_tr,'reelles'):null;
+        var _dCont=(typeof grcDisposPour==='function')?grcDisposPour(_hC,_tr,'contrat'):null;
+        if(_dReel) _infosEmb.dispos=_dReel;
+        if(_dCont) _infosEmb.disposContrat=_dCont;
+        if(_dReel||_dCont){
+          _infosEmb.disposSource={ grille:(typeof grcCleContrat==='function')?grcCleContrat(_hC):null,
+                                   vehicule:(typeof grcEstVehicule==='function')?grcEstVehicule(_tr):null,
+                                   transport:_tr, le:new Date().toISOString().slice(0,10) };
+        }
+      }catch(_grc){ console.warn('grille contrats embauche',_grc); }
       // Rôle déduit du poste choisi au recrutement (Leader/Manager/Directeur/Apprenti/Équipier)
       var _posteC=String(c.poste||'').toLowerCase();
       var _roleEmb='equipier';
@@ -15539,6 +15780,20 @@ function showPostulerPage(presetResto){
     +Object.keys(PUBLIC_RESTOS).map(function(k){return '<label data-resto="'+k+'" style="display:flex;align-items:center;gap:10px;background:#1A1A1A;border:2px solid #333;border-radius:10px;padding:12px 14px;cursor:pointer;" onclick="pickRestoChoice(this,\''+k+'\')"><span class="resto-check" style="font-size:1.2rem;width:22px;">⬜</span><span style="font-weight:600;color:#eee;">'+PUBLIC_RESTOS[k]+'</span></label>';}).join('')
     +'</div><input type="hidden" id="p-resto" value=""></div>'
     +'<div class="card"><div class="sec-title">📅 Vos disponibilités</div>'
+    // ★ v589 — À partir de quand la personne peut commencer. Posé AVANT les
+    // créneaux : c'est la première chose à savoir pour caler une embauche.
+    +'<div style="background:#0E1A22;border:1px solid #1E3A4A;border-radius:8px;padding:12px 14px;margin-bottom:14px;">'
+    +'<div style="font-weight:700;color:var(--orange);font-size:.88rem;margin-bottom:8px;">🚀 À partir de quand pouvez-vous travailler ? *</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+    +'<button type="button" id="p-des-oui" onclick="pickDispoDes(1)" style="flex:1;min-width:150px;background:#1A1A1A;border:2px solid #333;color:#eee;border-radius:10px;padding:12px;font-size:.9rem;font-weight:700;cursor:pointer;">✅ Tout de suite</button>'
+    +'<button type="button" id="p-des-non" onclick="pickDispoDes(0)" style="flex:1;min-width:150px;background:#1A1A1A;border:2px solid #333;color:#eee;border-radius:10px;padding:12px;font-size:.9rem;font-weight:700;cursor:pointer;">📆 À partir d\'une date</button>'
+    +'</div>'
+    +'<div id="p-des-date-wrap" style="display:none;margin-top:10px;">'
+    +'<label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Date à partir de laquelle vous êtes disponible *</label>'
+    +'<input type="date" id="p-des-date" class="fi" style="margin-top:5px;">'
+    +'</div>'
+    +'<input type="hidden" id="p-des" value="">'
+    +'</div>'
     +'<div style="background:#1A1208;border:1px solid #4A3000;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:.8rem;color:#ddd;line-height:1.5;">'
     +'🍔 Le restaurant accueille la clientèle de <strong style="color:var(--orange);">11h à minuit</strong>.<br>'
     +'👥 Nous avons besoin d\'équipiers de <strong style="color:var(--orange);">'+minToLabel(amp.start)+' à '+minToLabel(amp.end)+'</strong> (ouverture et fermeture incluses).</div>'
@@ -15788,6 +16043,42 @@ function handlePhoto(input){
   reader.readAsDataURL(file);
 }
 
+// ★ v589 — « disponible à partir de » : lecture et affichage.
+// Rangé dans dispos._des à la candidature ({immediat:true/false, date:'AAAA-MM-JJ'}) :
+// aucune colonne à créer en base.
+function candDispoDes(c){
+  try{
+    var d=(c&&c.dispos&&c.dispos._des)||null;
+    if(!d) return null;
+    if(d.immediat) return {immediat:true, date:'', txt:'Dispo tout de suite'};
+    if(!d.date) return {immediat:false, date:'', txt:'Date de dispo non précisée'};
+    var j=new Date(d.date+'T12:00:00');
+    return {immediat:false, date:d.date, dateObj:j, futur:(j> new Date()),
+            txt:'Dispo à partir du '+j.toLocaleDateString('fr-FR')};
+  }catch(_){ return null; }
+}
+window.candDispoDes=candDispoDes;
+function _candDesTxt(c,sep){ var d=candDispoDes(c); return d?((sep||'')+d.txt):''; }
+function candDesBadge(c){
+  var d=candDispoDes(c); if(!d) return '';
+  var col=d.immediat?'#3ecf8e':(d.futur?'#F5A623':'#3ecf8e');
+  return '<span style="background:'+col+';color:#141414;border-radius:10px;padding:2px 8px;font-size:.68rem;font-weight:800;margin-left:6px;white-space:nowrap;">'+(d.immediat?'⚡':'📆')+' '+d.txt+'</span>';
+}
+window.candDesBadge=candDesBadge;
+// Choix « tout de suite » / « à partir du … » sur le formulaire public.
+function pickDispoDes(immediat){
+  var h=document.getElementById('p-des'); if(h) h.value=immediat?'oui':'non';
+  var w=document.getElementById('p-des-date-wrap'); if(w) w.style.display=immediat?'none':'block';
+  ['p-des-oui','p-des-non'].forEach(function(id,i){
+    var b=document.getElementById(id); if(!b) return;
+    var on=(i===0)===!!immediat;
+    b.style.borderColor=on?'#D62300':'#333';
+    b.style.background=on?'rgba(214,35,0,.16)':'#1A1A1A';
+    b.style.color=on?'#fff':'#eee';
+  });
+  if(!immediat){ var d=document.getElementById('p-des-date'); if(d) setTimeout(function(){ d.focus(); },80); }
+}
+window.pickDispoDes=pickDispoDes;
 async function submitPostuler(){
   // ANTI DOUBLE-SOUMISSION : si un envoi est déjà en cours, on ignore tout clic
   // supplémentaire (évite les candidatures dupliquées quand la candidate ré-appuie
@@ -15838,6 +16129,11 @@ async function submitPostuler(){
   var dejaBk=document.getElementById('p-dejabk')?document.getElementById('p-dejabk').value:'';
   var dejaBkOu=document.getElementById('p-dernier')?document.getElementById('p-dernier').value.trim():'';
   var dernier=dejaBk==='oui'?('Oui — '+dejaBkOu):(dejaBk==='non'?'Non, première expérience':'');
+  // ★ v589 — disponibilité de départ
+  var desChoix=(document.getElementById('p-des')||{}).value||'';
+  var desDate=((document.getElementById('p-des-date')||{}).value||'').trim();
+  if(!desChoix){ alert('Merci d\'indiquer à partir de quand vous pouvez travailler.'); return; }
+  if(desChoix==='non' && !desDate){ alert('Merci d\'indiquer la date à partir de laquelle vous êtes disponible.'); return; }
   if(!prenom||!nom){alert('Merci d\'indiquer votre prénom et nom.');return;}
   if(!sexe){alert('Merci d\'indiquer votre sexe.');return;}
   if(!naissance){alert('Merci d\'indiquer votre date de naissance (jour, mois et année).');return;}
@@ -15942,7 +16238,8 @@ async function submitPostuler(){
     rqth:rqth,
     dernier_emploi:dernier,
     transport:transport,trajet:trajet,
-    dispos:dispos,motivation:motivation,
+    dispos:(function(){ try{ dispos._des={immediat:(desChoix==='oui'), date:(desChoix==='oui'?'':desDate)}; }catch(_){} return dispos; })(),
+    motivation:motivation,
     statut:'nouveau',created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
   var btn=event&&event.target;if(btn){btn.disabled=true;btn.textContent='Envoi...';}
   // ── UPLOAD CV + PHOTO SUR DROPBOX (lien en base, plus de base64) ──────────────
@@ -18350,7 +18647,20 @@ async function msgLoadMsgs(convId){
 function msgGetLus(){ if(MSG_LUS) return MSG_LUS; try{var ls=localStorage.getItem('bkrh_msg_lus'); if(ls){MSG_LUS=JSON.parse(ls)||{}; return MSG_LUS;}}catch(e){} MSG_LUS={}; return MSG_LUS; }
 async function msgSaveLus(){ try{localStorage.setItem('bkrh_msg_lus',JSON.stringify(MSG_LUS));}catch(e){} try{ if(typeof SB!=='undefined'&&SB) await SB.from('app_config').upsert({cle:'bkrh_msg_lus',valeur:MSG_LUS},{onConflict:'cle'}); }catch(e){} }
 async function msgChargerLus(){ try{ if(typeof SB==='undefined'||!SB) return; var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_msg_lus').maybeSingle(); if(r&&r.data&&r.data.valeur&&typeof r.data.valeur==='object'){ MSG_LUS=r.data.valeur; try{localStorage.setItem('bkrh_msg_lus',JSON.stringify(MSG_LUS));}catch(e){} } }catch(e){} }
-function msgMarquerLu(meId, convId){ var l=msgGetLus(); if(!l[meId])l[meId]={}; l[meId][convId]=new Date().toISOString(); msgSaveLus(); }
+// ★ v588 — CORRECTIF EGRESS (1/4). Avant : chaque redessin du fil réécrivait un
+// NOUVEL horodatage dans app_config. Cette écriture déclenchait un évènement
+// Temps réel, qui faisait recharger tous les postes, ce qui redessinait le fil,
+// ce qui réécrivait l'horodatage... (effet Larsen, ~37 000 tours/jour).
+// Désormais : on n'écrit que si la conversation n'a pas déjà été marquée lue
+// il y a moins de 60 s. Le comportement visible (badges non-lus) est identique.
+function msgMarquerLu(meId, convId){
+  var l=msgGetLus(); if(!l[meId])l[meId]={};
+  try{
+    var prec=l[meId][convId];
+    if(prec){ var age=Date.now()-new Date(prec).getTime(); if(age>=0 && age<60000) return; }
+  }catch(_){}
+  l[meId][convId]=new Date().toISOString(); msgSaveLus();
+}
 function msgNonLus(meId, conv, msgs){ var l=msgGetLus(); var last=(l[meId]&&l[meId][conv.id])||''; return (msgs||[]).filter(function(m){ return String(m.sender_id)!==String(meId) && (m.created_at||'')>last; }).length; }
 // ── Rendu ──
 function msgRender(){
@@ -22771,12 +23081,18 @@ window.hrFastSyncAffect=hrFastSyncAffect;
 var _hrAffectPoll=null;
 function hrDemarrerSyncHoraires(){
   if(_hrAffectPoll) return;
+  // ★ v588 (4/4) — le filet passe de 3 s à 15 s, et il ne se déclenche QUE si le
+  // Temps réel est indisponible (_rtOk faux). Quand le WebSocket fonctionne, il
+  // prévient déjà instantanément : le filet faisait doublon 20 fois par minute,
+  // sur chaque poste, en permanence.
   _hrAffectPoll=setInterval(function(){
     try{
+      if(typeof _rtOk!=='undefined' && _rtOk) return;   // temps réel actif → filet inutile
+      if(typeof curUser==='undefined' || !curUser) return;
       var ep=document.getElementById('page-horaires');
       if(ep && ep.classList.contains('active')){ hrFastSyncAffect(); }
     }catch(e){}
-  }, 3000);
+  }, 15000);
 }
 window.hrDemarrerSyncHoraires=hrDemarrerSyncHoraires;
 try{ hrDemarrerSyncHoraires(); }catch(e){}
@@ -33651,6 +33967,81 @@ function ptgToggleCfg(k){
   try{ if(document.getElementById('ptg-list')) ptgRenderList(); }catch(_){}
 }
 window.ptgToggleCfg=ptgToggleCfg;
+
+/* ── Paramètres › 📋 Grille des contrats ───────────────────────────────────── */
+var _grcSelC='15h', _grcSelP='veh';
+function paramGrilleContrats(){
+  try{ paramOuvrir('card','pc-grille-contrats'); }catch(_){}
+  renderGrilleContrats();
+}
+window.paramGrilleContrats=paramGrilleContrats;
+function _grcTxt(list){
+  return (list||[]).map(function(x){ return x.from+'-'+x.to; }).join(', ');
+}
+// « 11:00-14:30, 18:30-01:30 » → [{from,to},…]. Tolère h, espaces, point-virgule.
+function _grcParse(txt){
+  var out=[];
+  String(txt||'').split(/[;,]/).forEach(function(p){
+    var m=String(p).replace(/h/gi,':').match(/(\d{1,2}):?(\d{2})?\s*[-–>]+\s*(\d{1,2}):?(\d{2})?/);
+    if(!m) return;
+    var a=('0'+m[1]).slice(-2)+':'+(m[2]||'00');
+    var b=('0'+m[3]).slice(-2)+':'+(m[4]||'00');
+    out.push({from:a,to:b});
+  });
+  return out;
+}
+function grcSel(c,p){ if(c) _grcSelC=c; if(p) _grcSelP=p; renderGrilleContrats(); }
+window.grcSel=grcSel;
+function renderGrilleContrats(){
+  var box=document.getElementById('pc-grille-contrats-body'); if(!box) return;
+  var G=getGrilleContrats();
+  var JN=[['lun','Lundi'],['mar','Mardi'],['mer','Mercredi'],['jeu','Jeudi'],['ven','Vendredi'],['sam','Samedi'],['dim','Dimanche']];
+  var bloc=(G[_grcSelC]||{})[_grcSelP]||{contrat:{},reelles:{}};
+  function tab(kind,lbl){ return '<button class="rtab'+(_grcSelC===kind?' on':'')+'" onclick="grcSel(\''+kind+'\')">'+lbl+'</button>'; }
+  function tabP(kind,lbl){ return '<button class="rtab'+(_grcSelP===kind?' on':'')+'" onclick="grcSel(null,\''+kind+'\')">'+lbl+'</button>'; }
+  var h='';
+  h+='<p style="font-size:.84rem;color:#aaa;margin-bottom:12px;">Ce que l\'application pose <b>à l\'embauche d\'un nouveau salarié</b>, selon son contrat et son moyen de transport déclaré à la candidature.<br>'
+    +'<b style="color:#B57EDC;">Dispo contrat</b> = ce qui part dans le contrat qu\'il signe · <b style="color:#3ecf8e;">Dispo réelles</b> = ses disponibilités dans État équipe, celles qui servent au placement des horaires.<br>'
+    +'<span style="color:#888;">« Non véhiculé » = uniquement les transports en commun. 35 h et plus : aucune disponibilité (dispo totale). Les salariés déjà en place ne sont jamais modifiés.</span></p>';
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">'+tab('15h','15 h')+tab('20h','20 h')+tab('24h','24 h')+'</div>';
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">'+tabP('veh','🚗 Véhiculé')+tabP('nonveh','🚌 Non véhiculé')+'</div>';
+  h+='<div style="overflow-x:auto;"><table class="rpt-table" style="min-width:620px;width:100%;">'
+    +'<tr><th style="text-align:left;">Jour</th><th style="color:#B57EDC;">Dispo contrat (signé)</th><th style="color:#3ecf8e;">Dispo réelles (horaires)</th></tr>';
+  JN.forEach(function(d){
+    h+='<tr><td style="font-weight:700;">'+d[1]+'</td>'
+      +'<td><input class="fi" style="font-size:.82rem;" value="'+_grcTxt((bloc.contrat||{})[d[0]])+'" onchange="grcSetJour(\'contrat\',\''+d[0]+'\',this.value)" placeholder="ex. 11:00-14:30, 18:30-01:30"></td>'
+      +'<td><input class="fi" style="font-size:.82rem;" value="'+_grcTxt((bloc.reelles||{})[d[0]])+'" onchange="grcSetJour(\'reelles\',\''+d[0]+'\',this.value)" placeholder="vide = repos"></td></tr>';
+  });
+  h+='</table></div>';
+  h+='<div style="display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap;">'
+    +'<button class="btn btn-red btn-sm" onclick="grcSave()">💾 Enregistrer la grille</button>'
+    +'<button class="btn btn-gray btn-sm" onclick="grcReset()">↩️ Revenir au tableau d\'origine</button>'
+    +'<span id="grc-status" style="font-size:.78rem;color:#888;"></span></div>';
+  box.innerHTML=h;
+}
+window.renderGrilleContrats=renderGrilleContrats;
+function grcSetJour(base,jk,val){
+  var G=getGrilleContrats();
+  if(!G[_grcSelC]) G[_grcSelC]={};
+  if(!G[_grcSelC][_grcSelP]) G[_grcSelC][_grcSelP]={contrat:{},reelles:{}};
+  if(!G[_grcSelC][_grcSelP][base]) G[_grcSelC][_grcSelP][base]={};
+  G[_grcSelC][_grcSelP][base][jk]=_grcParse(val);
+}
+window.grcSetJour=grcSetJour;
+function grcSave(){
+  saveGrilleContrats();
+  var s=document.getElementById('grc-status');
+  if(s){ s.textContent='✅ Grille enregistrée'; setTimeout(function(){ if(s)s.textContent=''; },2500); }
+  try{ toast('Grille des contrats enregistrée','success'); }catch(_){}
+  renderGrilleContrats();
+}
+window.grcSave=grcSave;
+function grcReset(){
+  if(!confirm('Revenir au tableau d\'origine (celui que tu m\'as envoyé) ?\n\nTes modifications de la grille seront perdues.')) return;
+  GRILLE_CONTRATS=grilleContratsDefaut(); saveGrilleContrats(); renderGrilleContrats();
+  try{ toast('Grille remise à l\'origine','success'); }catch(_){}
+}
+window.grcReset=grcReset;
 
 /* ── Réglage dans Paramètres ─────────────────────────────────────────────── */
 function paramIpad(){
