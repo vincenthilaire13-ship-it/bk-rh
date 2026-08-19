@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-19 21:05 · v592 (iPad : trait du POINTAGE reel sous le trait prevu, en direct)';
+  var EMBEDDED_VERSION = '2026-08-19 22:00 · v593 (iPad : il va CHERCHER les pointages et se rafraichit tout seul)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -33380,9 +33380,33 @@ function pickIpad(restoId){
     try{ if(document.getElementById('ipad-poste') && !document.getElementById('ip-modal')
             && Object.keys(_ipadCourbe().ca||{}).length) ipadRender(); }catch(_){}
   }, 2600);
+  // ★ v593 — LE POINT QUI MANQUAIT : les pointages sont partagés par la base
+  // (bkrh_pointages dans app_config). La badgeuse les écrit, mais l'iPad ne les
+  // avait JAMAIS demandés : il ne pouvait donc pas voir qu'un salarié venait de
+  // pointer. On les charge à l'ouverture, puis toutes les minutes.
+  try{ _ipadChargerPointages(); }catch(_){}
   try{ clearInterval(_ipadTick); }catch(_){}
-  _ipadTick=setInterval(function(){ var h=document.getElementById('ip-heure'); if(h) h.textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }, 20000);
+  var _ipadTock=0;
+  _ipadTick=setInterval(function(){
+    var h=document.getElementById('ip-heure');
+    if(h) h.textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    _ipadTock++;
+    // toutes les 3 boucles (≈1 min) : on va rechercher les pointages et on
+    // redessine, pour que la barre verte avance et que les nouveaux arrivants
+    // apparaissent sans toucher à l'iPad.
+    if(_ipadTock%3===0){ try{ _ipadChargerPointages(); }catch(_){} }
+  }, 20000);
 }
+// Va chercher les pointages partagés, puis redessine la timeline si l'écran
+// est visible et qu'aucune fenêtre n'est ouverte par-dessus (on ne coupe pas
+// le manager en pleine saisie).
+async function _ipadChargerPointages(){
+  try{ if(typeof ptgChargerPartage==='function') await ptgChargerPartage(); }catch(_){}
+  try{
+    if(document.getElementById('ipad-poste') && !document.getElementById('ip-modal')) ipadRender();
+  }catch(_){}
+}
+window._ipadChargerPointages=_ipadChargerPointages;
 window.pickIpad=pickIpad;
 function ipadQuitter(){
   try{ clearInterval(_ipadTick); }catch(_){}
