@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-19 18:30 · v589 (sur ta v588 correctif conso : grandes icones ecran tele + disponible a partir de)';
+  var EMBEDDED_VERSION = '2026-08-19 20:10 · v591 (agenda des entretiens : compact et aux couleurs de la page)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -552,6 +552,54 @@ body.tv-mode #eye-viewas{display:none!important;}
 .dash-tile{position:relative;border-radius:18px;padding:22px 18px;min-height:150px;border:1px solid #3a3a3a;background:linear-gradient(155deg,#2E2E2E,#1E1E1E);cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;}
 .dash-tile:hover{transform:translateY(-5px);box-shadow:0 14px 34px rgba(0,0,0,.5);border-color:var(--orange);}
 .dash-tile .dt-em{font-size:2.6rem;line-height:1;}
+/* ★ v591 — AGENDA DES ENTRETIENS ────────────────────────────────────────────
+   Compact, et aux couleurs de la page : la page Recrutement est en thème CLAIR,
+   un bloc sombre y faisait une tache. On suit donc le même schéma que les autres
+   cartes de l'application (règle html.theme-light plus bas).                   */
+.ag-wrap{background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:12px 12px 10px;margin-bottom:14px;}
+.ag-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:9px;}
+.ag-mois{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.15rem;letter-spacing:1px;color:#e8901a;text-transform:uppercase;line-height:1;}
+.ag-nav{display:flex;align-items:center;gap:4px;}
+.ag-nav button{background:#1E1E1E;border:1px solid #3a3a3a;color:#ddd;border-radius:8px;height:28px;min-width:28px;font-size:.86rem;font-weight:700;cursor:pointer;padding:0 9px;transition:all .12s;}
+.ag-nav button:hover{border-color:#e8901a;color:#fff;}
+.ag-cnt{font-size:.76rem;color:#8a8a8a;}
+.ag-cnt b{color:#e8901a;}
+.ag-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.ag-dow{text-align:center;font-size:.66rem;color:#8a8a8a;font-weight:800;text-transform:uppercase;letter-spacing:1px;padding-bottom:2px;}
+.ag-cell{min-height:56px;background:#191919;border:1px solid #262626;border-radius:8px;padding:3px 4px 4px;display:flex;flex-direction:column;gap:2px;overflow:hidden;}
+.ag-cell.ag-vide{background:#151515;border-color:#202020;}
+.ag-cell.ag-hors{background:transparent;border-color:transparent;}
+.ag-cell.ag-week{background:#171412;}
+.ag-cell.ag-auj{border-color:#e8901a;}
+.ag-num{font-size:.68rem;font-weight:800;color:#7a7a7a;line-height:1;display:flex;align-items:center;justify-content:space-between;}
+.ag-cell.ag-auj .ag-num{color:#e8901a;}
+.ag-num .ag-pastille{background:#e8901a;color:#fff;border-radius:9px;padding:0 5px;font-size:.6rem;font-weight:800;}
+.ag-ev{display:flex;align-items:center;gap:4px;background:#e8901a;color:#fff;border-radius:6px;padding:1px 3px;cursor:pointer;transition:filter .1s;}
+.ag-ev:hover{filter:brightness(1.1);}
+.ag-ev img{width:15px;height:15px;border-radius:50%;object-fit:cover;flex:0 0 auto;}
+.ag-ev .ag-ini{width:15px;height:15px;border-radius:50%;background:rgba(0,0,0,.28);color:#fff;font-size:.5rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.ag-ev .ag-h{font-size:.62rem;font-weight:800;flex:0 0 auto;}
+.ag-ev .ag-nm{font-size:.62rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ag-plus{font-size:.58rem;color:#999;text-align:center;line-height:1;}
+.ag-empty{text-align:center;color:#888;font-size:.8rem;padding:10px 0 4px;}
+/* Thème clair (celui de la page Recrutement) — même schéma que les autres cartes */
+html.theme-light .ag-wrap{background:#ffffff !important;border-color:#d7d8de !important;}
+html.theme-light .ag-cell{background:#f7f8fa !important;border-color:#e2e4ea !important;}
+html.theme-light .ag-cell.ag-vide{background:#fcfcfd !important;border-color:#eceef2 !important;}
+html.theme-light .ag-cell.ag-week{background:#f2f3f7 !important;}
+html.theme-light .ag-cell.ag-hors{background:transparent !important;border-color:transparent !important;}
+html.theme-light .ag-cell.ag-auj{border-color:#e8901a !important;background:#fff7ec !important;}
+html.theme-light .ag-num{color:#8b9099 !important;}
+html.theme-light .ag-dow{color:#8b9099 !important;}
+html.theme-light .ag-cnt{color:#6b7079 !important;}
+html.theme-light .ag-nav button{background:#eceef2 !important;color:#4a4f57 !important;border-color:#d7d8de !important;}
+html.theme-light .ag-plus{color:#8b9099 !important;}
+html.theme-light .ag-empty{color:#8b9099 !important;}
+@media(max-width:900px){
+  .ag-cell{min-height:46px;}
+  .ag-ev .ag-nm{display:none;}
+}
+}
 /* ★ v589 — Écran télé : l'icône passe au CENTRE et triple de taille. Sur une télé
    vue de loin, c'est elle qu'on reconnaît, pas le texte. Ne concerne QUE l'écran
    télé (#dash-grid) : les tuiles de Paramètres et des restaurants ne bougent pas. */
@@ -1317,6 +1365,7 @@ html,body{overflow-x:hidden;}
       <!-- agenda (visible en Entretien) — calendrier retiré (trop encombrant),
            on garde le rappel + la liste des candidats avec leur date d'entretien -->
       <div id="rec-agenda-wrap" style="display:none;margin-bottom:16px;">
+        <div id="rec-agenda-cal"></div>
         <div id="rappel-demain"></div>
         <div style="font-size:.9rem;color:var(--yellow);font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:4px 0 10px;">📅 Candidats en entretien</div>
       </div>
@@ -14014,6 +14063,7 @@ function setCandFilter(f){
   document.getElementById('rec-resto-filter').style.display=_restoVerrouille()?'none':'flex';
   // agenda visible seulement en Entretien
   document.getElementById('rec-agenda-wrap').style.display=(f==='entretien')?'block':'none';
+  if(f==='entretien'){ try{ renderAgendaEntretiens(); }catch(_){} }
   if(f==='entretien')renderAgenda();
   renderCandidatures();
 }
@@ -16042,6 +16092,88 @@ function handlePhoto(input){
   };
   reader.readAsDataURL(file);
 }
+
+/* ── AGENDA DES ENTRETIENS (v590) ─────────────────────────────────────────────
+   Le mois entier, une case par jour, les entretiens dedans avec la photo et
+   l'heure. Clic sur un entretien → la fiche du candidat, comme depuis la liste.
+   La liste d'origine reste affichée juste en dessous : rien n'est remplacé.    */
+var _agMois=null;
+function _agCle(d){ return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2); }
+function agMois(delta){
+  var b=_agMois?new Date(_agMois+'-01T12:00:00'):new Date();
+  b.setMonth(b.getMonth()+delta); _agMois=_agCle(b); renderAgendaEntretiens();
+}
+function agAujourdhui(){ _agMois=_agCle(new Date()); renderAgendaEntretiens(); }
+window.agMois=agMois; window.agAujourdhui=agAujourdhui;
+function _agEntretiens(){
+  var l=(DB.candidatures||[]).filter(function(c){ return (c.statut||'')==='entretien' && c.entretienDate; });
+  try{
+    if(typeof restoFilter!=='undefined' && restoFilter && restoFilter!=='all')
+      l=l.filter(function(c){ return (c.restoId||'')===restoFilter; });
+  }catch(_){}
+  return l;
+}
+function renderAgendaEntretiens(){
+  var box=document.getElementById('rec-agenda-cal'); if(!box) return;
+  var cands=_agEntretiens();
+  if(!_agMois){
+    var auj0=new Date(new Date().toDateString());
+    var futurs=cands.map(function(c){ return new Date(c.entretienDate); })
+                    .filter(function(d){ return !isNaN(d) && d>=auj0; }).sort(function(a,b){ return a-b; });
+    _agMois=_agCle(futurs[0]||new Date());
+  }
+  var base=new Date(_agMois+'-01T12:00:00'), an=base.getFullYear(), mo=base.getMonth();
+  var parJour={}, totMois=0;
+  cands.forEach(function(c){
+    var d=new Date(c.entretienDate); if(isNaN(d)) return;
+    if(d.getFullYear()!==an || d.getMonth()!==mo) return;
+    (parJour[d.getDate()]=parJour[d.getDate()]||[]).push({c:c,d:d}); totMois++;
+  });
+  Object.keys(parJour).forEach(function(k){ parJour[k].sort(function(a,b){ return a.d-b.d; }); });
+  var nb=new Date(an,mo+1,0).getDate();
+  var decal=(new Date(an,mo,1).getDay()+6)%7;              // lundi en 1re colonne
+  var auj=new Date(), moisCourant=(auj.getFullYear()===an && auj.getMonth()===mo);
+  var JN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  var moisTxt=base.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  var apres=cands.filter(function(c){ var d=new Date(c.entretienDate); return !isNaN(d)&&d>=new Date(auj.toDateString()); }).length;
+
+  var h='<div class="ag-wrap">';
+  h+='<div class="ag-top">'
+    +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">'
+    +'<span class="ag-mois">'+moisTxt+'</span>'
+    +'<span class="ag-nav"><button onclick="agMois(-1)" title="Mois précédent">‹</button>'
+    +'<button onclick="agAujourdhui()">Aujourd\'hui</button>'
+    +'<button onclick="agMois(1)" title="Mois suivant">›</button></span></div>'
+    +'<span class="ag-cnt"><b>'+totMois+'</b> entretien'+(totMois>1?'s':'')+' ce mois-ci · <b>'+apres+'</b> à venir au total</span>'
+    +'</div>';
+  h+='<div class="ag-grid">';
+  JN.forEach(function(j){ h+='<div class="ag-dow">'+j+'</div>'; });
+  for(var i=0;i<decal;i++) h+='<div class="ag-cell ag-hors"></div>';
+  for(var jour=1;jour<=nb;jour++){
+    var lst=parJour[jour]||[];
+    var dow=new Date(an,mo,jour).getDay();
+    var cls='ag-cell'+(lst.length?'':' ag-vide')+((dow===0||dow===6)?' ag-week':'')
+           +((moisCourant && auj.getDate()===jour)?' ag-auj':'');
+    h+='<div class="'+cls+'"><div class="ag-num"><span>'+jour+'</span>'
+      +(lst.length>1?('<span class="ag-pastille">'+lst.length+'</span>'):'')+'</div>';
+    lst.slice(0,2).forEach(function(x){
+      var c=x.c, hm=x.d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      var ini=(((c.prenom||' ')[0]||'')+((c.nom||' ')[0]||'')).toUpperCase();
+      var nomC=((c.prenom||'')+' '+(c.nom||'')).trim().replace(/"/g,'');
+      h+='<div class="ag-ev" onclick="openCand(\''+c.id+'\')" title="'+nomC+' — '+hm+'">'
+        +(c.photo?('<img src="'+c.photo+'" alt="">'):('<span class="ag-ini">'+ini+'</span>'))
+        +'<span class="ag-h">'+hm+'</span>'
+        +'<span class="ag-nm">'+(c.prenom||'')+'</span></div>';
+    });
+    if(lst.length>2) h+='<div class="ag-plus">+'+(lst.length-2)+'</div>';
+    h+='</div>';
+  }
+  h+='</div>';
+  if(!totMois) h+='<div class="ag-empty">Aucun entretien programmé en '+moisTxt+'.</div>';
+  h+='</div>';
+  box.innerHTML=h;
+}
+window.renderAgendaEntretiens=renderAgendaEntretiens;
 
 // ★ v589 — « disponible à partir de » : lecture et affichage.
 // Rangé dans dispos._des à la candidature ({immediat:true/false, date:'AAAA-MM-JJ'}) :
