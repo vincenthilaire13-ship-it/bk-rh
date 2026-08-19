@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-22 13:40 · v613 (theme clair : tout redevient lisible, contraste mesure sur les vraies combinaisons)';
+  var EMBEDDED_VERSION = '2026-08-23 09:40 · v619 (ecran de pointage refait : Depart / Fin / total ; iPad montre ceux qui ont pointe sans trait)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -194,369 +194,463 @@ html.theme-light [style*="solid #333"],html.theme-light [style*="solid #444"],
 html.theme-light [style*="solid #2A2A2A"],html.theme-light [style*="solid #2a2a2a"],
 html.theme-light [style*="solid #555"],html.theme-light [style*="solid #2e2e2e"]
 { border-color:#d7d8de !important; }
-/* ════ THÈME CLAIR — COMPLÉMENT GÉNÉRÉ ET MESURÉ (★ v613) ════════════════
+/* ════ THÈME CLAIR — COMPLÉMENT GÉNÉRÉ ET MESURÉ (★ v614) ════════════════
    Le thème clair marchait par deux listes de couleurs écrites à la main : on
    éclaircissait CERTAINS fonds sombres, on fonçait CERTAINS textes clairs. Dès
    qu'une teinte manquait d'une des deux listes, ça donnait du texte foncé sur
-   un fond resté sombre — invisible. C'est ce qui arrivait sur la fiche
-   candidat, et à 35 autres endroits de l'application.
-   Ces règles sont GÉNÉRÉES à partir du fichier lui-même, puis le contraste de
-   chaque combinaison réellement utilisée est MESURÉ dans un vrai navigateur.
+   un fond resté sombre — invisible (la fiche candidat, et 35 autres endroits).
+
+   ★ v614 — DEUX PIÈGES qu'il a fallu corriger, et qui expliquent qu'une
+   première tentative n'ait pas suffi :
+     1. la CASSE — l'application écrit tantôt #1A1A1A tantôt #1a1a1a (56
+        couleurs concernées) ; le drapeau « i » rend la comparaison
+        insensible aux majuscules ;
+     2. l'ÉCRITURE COURTE — #fff, #666, #e88 : un sélecteur écrit #ffffff ne
+        les voit pas. On génère donc une règle par ORTHOGRAPHE réellement
+        présente dans le fichier.
+
+   Le contraste de chaque combinaison réellement utilisée est ensuite MESURÉ
+   dans un vrai navigateur, avec la casse et l'écriture exactes du fichier.
    Principe : un fond sombre devient un pastel de la MÊME teinte ; un texte
-   clair devient une version foncée de la MÊME teinte. Le vert reste vert, le
-   rouge reste rouge — mais tout se lit. */
-html.theme-light [style*="background:#0a0a0c"],html.theme-light [style*="background: #0a0a0c"]{ background:#f0f0f2 !important; }
-html.theme-light [style*="background:#0d2818"],html.theme-light [style*="background: #0d2818"]{ background:#edf5f0 !important; }
-html.theme-light [style*="background:#0e1a22"],html.theme-light [style*="background: #0e1a22"]{ background:#edf2f5 !important; }
-html.theme-light [style*="background:#0f1115"],html.theme-light [style*="background: #0f1115"]{ background:#eff0f3 !important; }
-html.theme-light [style*="background:#0f1510"],html.theme-light [style*="background: #0f1510"]{ background:#eff3ef !important; }
-html.theme-light [style*="background:#0f1e2e"],html.theme-light [style*="background: #0f1e2e"]{ background:#edf1f5 !important; }
-html.theme-light [style*="background:#0f2417"],html.theme-light [style*="background: #0f2417"]{ background:#edf5f0 !important; }
-html.theme-light [style*="background:#10304d"],html.theme-light [style*="background: #10304d"]{ background:#edf1f5 !important; }
-html.theme-light [style*="background:#11160f"],html.theme-light [style*="background: #11160f"]{ background:#f0f4ee !important; }
-html.theme-light [style*="background:#12161c"],html.theme-light [style*="background: #12161c"]{ background:#eef0f4 !important; }
-html.theme-light [style*="background:#12210f"],html.theme-light [style*="background: #12210f"]{ background:#eef5ed !important; }
-html.theme-light [style*="background:#12211a"],html.theme-light [style*="background: #12211a"]{ background:#edf5f1 !important; }
-html.theme-light [style*="background:#12233a"],html.theme-light [style*="background: #12233a"]{ background:#edf0f5 !important; }
-html.theme-light [style*="background:#12324a"],html.theme-light [style*="background: #12324a"]{ background:#edf2f5 !important; }
-html.theme-light [style*="background:#132a1e"],html.theme-light [style*="background: #132a1e"]{ background:#edf5f1 !important; }
-html.theme-light [style*="background:#141416"],html.theme-light [style*="background: #141416"]{ background:#f0f0f2 !important; }
-html.theme-light [style*="background:#14243a"],html.theme-light [style*="background: #14243a"]{ background:#edf0f5 !important; }
-html.theme-light [style*="background:#152116"],html.theme-light [style*="background: #152116"]{ background:#eef4ee !important; }
-html.theme-light [style*="background:#161618"],html.theme-light [style*="background: #161618"]{ background:#f0f0f2 !important; }
-html.theme-light [style*="background:#16223a"],html.theme-light [style*="background: #16223a"]{ background:#edf0f5 !important; }
-html.theme-light [style*="background:#16321f"],html.theme-light [style*="background: #16321f"]{ background:#edf5ef !important; }
-html.theme-light [style*="background:#163a2a"],html.theme-light [style*="background: #163a2a"]{ background:#edf5f1 !important; }
-html.theme-light [style*="background:#17110f"],html.theme-light [style*="background: #17110f"]{ background:#f4efee !important; }
-html.theme-light [style*="background:#171412"],html.theme-light [style*="background: #171412"]{ background:#f3f1ef !important; }
-html.theme-light [style*="background:#173a2a"],html.theme-light [style*="background: #173a2a"]{ background:#edf5f1 !important; }
-html.theme-light [style*="background:#181122"],html.theme-light [style*="background: #181122"]{ background:#f0edf5 !important; }
-html.theme-light [style*="background:#1a0a0a"],html.theme-light [style*="background: #1a0a0a"]{ background:#f5eded !important; }
-html.theme-light [style*="background:#1a1000"],html.theme-light [style*="background: #1a1000"]{ background:#f5f2ed !important; }
-html.theme-light [style*="background:#1a1208"],html.theme-light [style*="background: #1a1208"]{ background:#f5f1ed !important; }
-html.theme-light [style*="background:#1a1400"],html.theme-light [style*="background: #1a1400"]{ background:#f5f3ed !important; }
-html.theme-light [style*="background:#1a1614"],html.theme-light [style*="background: #1a1614"]{ background:#f3f0ef !important; }
-html.theme-light [style*="background:#1a1a1e"],html.theme-light [style*="background: #1a1a1e"]{ background:#f0f0f2 !important; }
-html.theme-light [style*="background:#1a2a1a"],html.theme-light [style*="background: #1a2a1a"]{ background:#eef4ee !important; }
-html.theme-light [style*="background:#1a2a3a"],html.theme-light [style*="background: #1a2a3a"]{ background:#edf1f5 !important; }
-html.theme-light [style*="background:#1a3a1a"],html.theme-light [style*="background: #1a3a1a"]{ background:#edf5ed !important; }
-html.theme-light [style*="background:#1b1b1f"],html.theme-light [style*="background: #1b1b1f"]{ background:#f0f0f2 !important; }
-html.theme-light [style*="background:#1c1630"],html.theme-light [style*="background: #1c1630"]{ background:#efedf5 !important; }
-html.theme-light [style*="background:#1c1c1f"],html.theme-light [style*="background: #1c1c1f"]{ background:#f0f0f2 !important; }
-html.theme-light [style*="background:#1d1d1d"],html.theme-light [style*="background: #1d1d1d"]{ background:#f1f1f1 !important; }
-html.theme-light [style*="background:#1d3a2a"],html.theme-light [style*="background: #1d3a2a"]{ background:#edf5f1 !important; }
-html.theme-light [style*="background:#1e1a10"],html.theme-light [style*="background: #1e1a10"]{ background:#f5f3ed !important; }
-html.theme-light [style*="background:#1e1a3a"],html.theme-light [style*="background: #1e1a3a"]{ background:#eeedf5 !important; }
-html.theme-light [style*="background:#1e2a1e"],html.theme-light [style*="background: #1e2a1e"]{ background:#eff3ef !important; }
-html.theme-light [style*="background:#1e3a1e"],html.theme-light [style*="background: #1e3a1e"]{ background:#edf5ed !important; }
-html.theme-light [style*="background:#1e3a5f"],html.theme-light [style*="background: #1e3a5f"]{ background:#edf0f5 !important; }
-html.theme-light [style*="background:#20160c"],html.theme-light [style*="background: #20160c"]{ background:#f5f1ed !important; }
-html.theme-light [style*="background:#20180a"],html.theme-light [style*="background: #20180a"]{ background:#f5f2ed !important; }
-html.theme-light [style*="background:#202833"],html.theme-light [style*="background: #202833"]{ background:#eef0f4 !important; }
-html.theme-light [style*="background:#231a0a"],html.theme-light [style*="background: #231a0a"]{ background:#f5f2ed !important; }
-html.theme-light [style*="background:#241400"],html.theme-light [style*="background: #241400"]{ background:#f5f1ed !important; }
-html.theme-light [style*="background:#241414"],html.theme-light [style*="background: #241414"]{ background:#f5eded !important; }
-html.theme-light [style*="background:#2a0a0a"],html.theme-light [style*="background: #2a0a0a"]{ background:#f5eded !important; }
-html.theme-light [style*="background:#2a1414"],html.theme-light [style*="background: #2a1414"]{ background:#f5eded !important; }
-html.theme-light [style*="background:#2a1800"],html.theme-light [style*="background: #2a1800"]{ background:#f5f2ed !important; }
-html.theme-light [style*="background:#2a1a00"],html.theme-light [style*="background: #2a1a00"]{ background:#f5f2ed !important; }
-html.theme-light [style*="background:#2a1a1a"],html.theme-light [style*="background: #2a1a1a"]{ background:#f4eeee !important; }
-html.theme-light [style*="background:#2a1a3a"],html.theme-light [style*="background: #2a1a3a"]{ background:#f1edf5 !important; }
-html.theme-light [style*="background:#2a1d3a"],html.theme-light [style*="background: #2a1d3a"]{ background:#f1edf5 !important; }
-html.theme-light [style*="background:#2a1e3a"],html.theme-light [style*="background: #2a1e3a"]{ background:#f0edf5 !important; }
-html.theme-light [style*="background:#2a2000"],html.theme-light [style*="background: #2a2000"]{ background:#f5f3ed !important; }
-html.theme-light [style*="background:#2a2010"],html.theme-light [style*="background: #2a2010"]{ background:#f5f2ed !important; }
-html.theme-light [style*="background:#2a2410"],html.theme-light [style*="background: #2a2410"]{ background:#f5f3ed !important; }
-html.theme-light [style*="background:#2a2416"],html.theme-light [style*="background: #2a2416"]{ background:#f5f3ed !important; }
-html.theme-light [style*="background:#2a3a4a"],html.theme-light [style*="background: #2a3a4a"]{ background:#edf1f5 !important; }
-html.theme-light [style*="background:#3a0d0d"],html.theme-light [style*="background: #3a0d0d"]{ background:#f5eded !important; }
-html.theme-light [style*="background:#3a1010"],html.theme-light [style*="background: #3a1010"]{ background:#f5eded !important; }
-html.theme-light [style*="background:#3a1616"],html.theme-light [style*="background: #3a1616"]{ background:#f5eded !important; }
-html.theme-light [style*="background:#3a1a1a"],html.theme-light [style*="background: #3a1a1a"]{ background:#f5eded !important; }
-html.theme-light [style*="background:#3a1d4d"],html.theme-light [style*="background: #3a1d4d"]{ background:#f2edf5 !important; }
-html.theme-light [style*="background:#3a1e1e"],html.theme-light [style*="background: #3a1e1e"]{ background:#f5eded !important; }
-html.theme-light [style*="background:#3a2a00"],html.theme-light [style*="background: #3a2a00"]{ background:#f5f3ed !important; }
-html.theme-light [style*="background:#3a2a10"],html.theme-light [style*="background: #3a2a10"]{ background:#f5f2ed !important; }
-html.theme-light [style*="background:#3a2a16"],html.theme-light [style*="background: #3a2a16"]{ background:#f5f1ed !important; }
-html.theme-light [style*="background:#3a2a1e"],html.theme-light [style*="background: #3a2a1e"]{ background:#f5f0ed !important; }
-html.theme-light [style*="background:#3a2a5a"],html.theme-light [style*="background: #3a2a5a"]{ background:#f0edf5 !important; }
-html.theme-light [style*="background:#3a2e00"],html.theme-light [style*="background: #3a2e00"]{ background:#f5f3ed !important; }
-html.theme-light [style*="background:#3a2e12"],html.theme-light [style*="background: #3a2e12"]{ background:#f5f3ed !important; }
-html.theme-light [style*="background:#3a3000"],html.theme-light [style*="background: #3a3000"]{ background:#f5f4ed !important; }
-html.theme-light [style*="background:#441111"],html.theme-light [style*="background: #441111"]{ background:#f5eded !important; }
-html.theme-light [style*="background:#7a2020"],html.theme-light [style*="background: #7a2020"]{ background:#f5eded !important; }
-html.theme-light [style*="background:#8b1500"],html.theme-light [style*="background: #8b1500"]{ background:#f5eeed !important; }
-html.theme-light [style*="color:#16a085"],html.theme-light [style*="color: #16a085"]{ color:#128770 !important; }
-html.theme-light [style*="color:#1a9850"],html.theme-light [style*="color: #1a9850"]{ color:#168345 !important; }
-html.theme-light [style*="color:#2e9e4a"],html.theme-light [style*="color: #2e9e4a"]{ color:#237638 !important; }
-html.theme-light [style*="color:#3ecf8e"],html.theme-light [style*="color: #3ecf8e"]{ color:#1e7b51 !important; }
-html.theme-light [style*="color:#4caf50"],html.theme-light [style*="color: #4caf50"]{ color:#2e6b30 !important; }
-html.theme-light [style*="color:#5b9bd5"],html.theme-light [style*="color: #5b9bd5"]{ color:#1f4f7a !important; }
-html.theme-light [style*="color:#5ba3f5"],html.theme-light [style*="color: #5ba3f5"]{ color:#094890 !important; }
-html.theme-light [style*="color:#5bb8c4"],html.theme-light [style*="color: #5bb8c4"]{ color:#286871 !important; }
-html.theme-light [style*="color:#60a5fa"],html.theme-light [style*="color: #60a5fa"]{ color:#054594 !important; }
-html.theme-light [style*="color:#64748b"],html.theme-light [style*="color: #64748b"]{ color:#2e476b !important; }
-html.theme-light [style*="color:#6a6f77"],html.theme-light [style*="color: #6a6f77"]{ color:#2b2f36 !important; }
-html.theme-light [style*="color:#6b7079"],html.theme-light [style*="color: #6b7079"]{ color:#2b2f36 !important; }
-html.theme-light [style*="color:#6b7280"],html.theme-light [style*="color: #6b7280"]{ color:#2e426b !important; }
-html.theme-light [style*="color:#77ee99"],html.theme-light [style*="color: #77ee99"]{ color:#118833 !important; }
-html.theme-light [style*="color:#78909c"],html.theme-light [style*="color: #78909c"]{ color:#2e576b !important; }
-html.theme-light [style*="color:#7a7a7a"],html.theme-light [style*="color: #7a7a7a"]{ color:#2b2f36 !important; }
-html.theme-light [style*="color:#7ab8d8"],html.theme-light [style*="color: #7ab8d8"]{ color:#235a76 !important; }
-html.theme-light [style*="color:#7aca7a"],html.theme-light [style*="color: #7aca7a"]{ color:#2c6d2c !important; }
-html.theme-light [style*="color:#7cffa0"],html.theme-light [style*="color: #7cffa0"]{ color:#00992a !important; }
-html.theme-light [style*="color:#7ee0a6"],html.theme-light [style*="color: #7ee0a6"]{ color:#1e7b44 !important; }
-html.theme-light [style*="color:#7f8c96"],html.theme-light [style*="color: #7f8c96"]{ color:#2e506b !important; }
-html.theme-light [style*="color:#7fa8cc"],html.theme-light [style*="color: #7fa8cc"]{ color:#2c4f6d !important; }
-html.theme-light [style*="color:#7fae90"],html.theme-light [style*="color: #7fae90"]{ color:#2e6b44 !important; }
-html.theme-light [style*="color:#7fb3ff"],html.theme-light [style*="color: #7fb3ff"]{ color:#003e99 !important; }
-html.theme-light [style*="color:#7fbfff"],html.theme-light [style*="color: #7fbfff"]{ color:#004c99 !important; }
-html.theme-light [style*="color:#7fe0a0"],html.theme-light [style*="color: #7fe0a0"]{ color:#1e7b3e !important; }
-html.theme-light [style*="color:#7fffc4"],html.theme-light [style*="color: #7fffc4"]{ color:#009952 !important; }
-html.theme-light [style*="color:#81c784"],html.theme-light [style*="color: #81c784"]{ color:#2e6b31 !important; }
-html.theme-light [style*="color:#8a7a70"],html.theme-light [style*="color: #8a7a70"]{ color:#6b452e !important; }
-html.theme-light [style*="color:#8a8a8a"],html.theme-light [style*="color: #8a8a8a"]{ color:#2b2f36 !important; }
-html.theme-light [style*="color:#8a9099"],html.theme-light [style*="color: #8a9099"]{ color:#2b2f36 !important; }
-html.theme-light [style*="color:#8b9099"],html.theme-light [style*="color: #8b9099"]{ color:#2b2f36 !important; }
-html.theme-light [style*="color:#8f8f8f"],html.theme-light [style*="color: #8f8f8f"]{ color:#2b2f36 !important; }
-html.theme-light [style*="color:#8fa4c0"],html.theme-light [style*="color: #8fa4c0"]{ color:#2e486b !important; }
-html.theme-light [style*="color:#8fbced"],html.theme-light [style*="color: #8fbced"]{ color:#154a84 !important; }
-html.theme-light [style*="color:#8fbfa2"],html.theme-light [style*="color: #8fbfa2"]{ color:#2e6b46 !important; }
-html.theme-light [style*="color:#8fc3f5"],html.theme-light [style*="color: #8fc3f5"]{ color:#0d4e8c !important; }
-html.theme-light [style*="color:#8fc3ff"],html.theme-light [style*="color: #8fc3ff"]{ color:#004799 !important; }
-html.theme-light [style*="color:#8fe6a8"],html.theme-light [style*="color: #8fe6a8"]{ color:#1c7d38 !important; }
-html.theme-light [style*="color:#93c5fd"],html.theme-light [style*="color: #93c5fd"]{ color:#034896 !important; }
-html.theme-light [style*="color:#94a3b8"],html.theme-light [style*="color: #94a3b8"]{ color:#2e476b !important; }
-html.theme-light [style*="color:#98a0a8"],html.theme-light [style*="color: #98a0a8"]{ color:#2e4c6b !important; }
-html.theme-light [style*="color:#99aaaa"],html.theme-light [style*="color: #99aaaa"]{ color:#2e6b6b !important; }
-html.theme-light [style*="color:#9a8fb5"],html.theme-light [style*="color: #9a8fb5"]{ color:#402e6b !important; }
-html.theme-light [style*="color:#9a9aaa"],html.theme-light [style*="color: #9a9aaa"]{ color:#2e2e6b !important; }
-html.theme-light [style*="color:#9aa0a8"],html.theme-light [style*="color: #9aa0a8"]{ color:#2b2f36 !important; }
-html.theme-light [style*="color:#9aa1ab"],html.theme-light [style*="color: #9aa1ab"]{ color:#2e476b !important; }
-html.theme-light [style*="color:#9b7fd4"],html.theme-light [style*="color: #9b7fd4"]{ color:#402673 !important; }
-html.theme-light [style*="color:#9fc0ff"],html.theme-light [style*="color: #9fc0ff"]{ color:#003599 !important; }
-html.theme-light [style*="color:#9fc4d8"],html.theme-light [style*="color: #9fc4d8"]{ color:#2c566d !important; }
-html.theme-light [style*="color:#9fcfae"],html.theme-light [style*="color: #9fcfae"]{ color:#2e6b41 !important; }
-html.theme-light [style*="color:#9fd3ff"],html.theme-light [style*="color: #9fd3ff"]{ color:#005399 !important; }
-html.theme-light [style*="color:#a6d8bd"],html.theme-light [style*="color: #a6d8bd"]{ color:#2e6b4a !important; }
-html.theme-light [style*="color:#a855f7"],html.theme-light [style*="color: #a855f7"]{ color:#4e0792 !important; }
-html.theme-light [style*="color:#a9c6e6"],html.theme-light [style*="color: #a9c6e6"]{ color:#224a77 !important; }
-html.theme-light [style*="color:#b08fd0"],html.theme-light [style*="color: #b08fd0"]{ color:#4d2d6c !important; }
-html.theme-light [style*="color:#b57edc"],html.theme-light [style*="color: #b57edc"]{ color:#542178 !important; }
-html.theme-light [style*="color:#b8860b"],html.theme-light [style*="color: #b8860b"]{ color:#906909 !important; }
-html.theme-light [style*="color:#b9b9b9"],html.theme-light [style*="color: #b9b9b9"]{ color:#2b2f36 !important; }
-html.theme-light [style*="color:#bbccdd"],html.theme-light [style*="color: #bbccdd"]{ color:#2e4c6b !important; }
-html.theme-light [style*="color:#bcd6f5"],html.theme-light [style*="color: #bcd6f5"]{ color:#144885 !important; }
-html.theme-light [style*="color:#c39bd3"],html.theme-light [style*="color: #c39bd3"]{ color:#5a2e6b !important; }
-html.theme-light [style*="color:#c47f00"],html.theme-light [style*="color: #c47f00"]{ color:#996300 !important; }
-html.theme-light [style*="color:#c9a0ff"],html.theme-light [style*="color: #c9a0ff"]{ color:#420099 !important; }
-html.theme-light [style*="color:#c9b3ff"],html.theme-light [style*="color: #c9b3ff"]{ color:#2c0099 !important; }
-html.theme-light [style*="color:#c9b79c"],html.theme-light [style*="color: #c9b79c"]{ color:#6b532e !important; }
-html.theme-light [style*="color:#cbd5e1"],html.theme-light [style*="color: #cbd5e1"]{ color:#2e4a6b !important; }
-html.theme-light [style*="color:#cc5555"],html.theme-light [style*="color: #cc5555"]{ color:#762323 !important; }
-html.theme-light [style*="color:#cc7777"],html.theme-light [style*="color: #cc7777"]{ color:#6f2a2a !important; }
-html.theme-light [style*="color:#cc9999"],html.theme-light [style*="color: #cc9999"]{ color:#6b2e2e !important; }
-html.theme-light [style*="color:#ccaaaa"],html.theme-light [style*="color: #ccaaaa"]{ color:#6b2e2e !important; }
-html.theme-light [style*="color:#ccbbbb"],html.theme-light [style*="color: #ccbbbb"]{ color:#6b2e2e !important; }
-html.theme-light [style*="color:#ccffee"],html.theme-light [style*="color: #ccffee"]{ color:#009966 !important; }
-html.theme-light [style*="color:#cfcfcf"],html.theme-light [style*="color: #cfcfcf"]{ color:#2b2f36 !important; }
-html.theme-light [style*="color:#cfe0f0"],html.theme-light [style*="color: #cfe0f0"]{ color:#244e75 !important; }
-html.theme-light [style*="color:#cfead7"],html.theme-light [style*="color: #cfead7"]{ color:#2e6b40 !important; }
-html.theme-light [style*="color:#d5d5d5"],html.theme-light [style*="color: #d5d5d5"]{ color:#2b2f36 !important; }
-html.theme-light [style*="color:#d6ffe6"],html.theme-light [style*="color: #d6ffe6"]{ color:#00993c !important; }
-html.theme-light [style*="color:#d8b4fe"],html.theme-light [style*="color: #d8b4fe"]{ color:#4a0297 !important; }
-html.theme-light [style*="color:#d9a8ff"],html.theme-light [style*="color: #d9a8ff"]{ color:#560099 !important; }
-html.theme-light [style*="color:#dbe7ff"],html.theme-light [style*="color: #dbe7ff"]{ color:#003399 !important; }
-html.theme-light [style*="color:#dd9999"],html.theme-light [style*="color: #dd9999"]{ color:#732626 !important; }
-html.theme-light [style*="color:#ddffff"],html.theme-light [style*="color: #ddffff"]{ color:#009999 !important; }
-html.theme-light [style*="color:#dfffe9"],html.theme-light [style*="color: #dfffe9"]{ color:#009930 !important; }
-html.theme-light [style*="color:#e05a5a"],html.theme-light [style*="color: #e05a5a"]{ color:#811818 !important; }
-html.theme-light [style*="color:#e08600"],html.theme-light [style*="color: #e08600"]{ color:#995c00 !important; }
-html.theme-light [style*="color:#e0a021"],html.theme-light [style*="color: #e0a021"]{ color:#866013 !important; }
-html.theme-light [style*="color:#e2e8f0"],html.theme-light [style*="color: #e2e8f0"]{ color:#2e486b !important; }
-html.theme-light [style*="color:#e57368"],html.theme-light [style*="color: #e57368"]{ color:#832016 !important; }
-html.theme-light [style*="color:#e57373"],html.theme-light [style*="color: #e57373"]{ color:#811818 !important; }
-html.theme-light [style*="color:#e74c3c"],html.theme-light [style*="color: #e74c3c"]{ color:#881c11 !important; }
-html.theme-light [style*="color:#e8623a"],html.theme-light [style*="color: #e8623a"]{ color:#892c10 !important; }
-html.theme-light [style*="color:#e87722"],html.theme-light [style*="color: #e87722"]{ color:#8b440e !important; }
-html.theme-light [style*="color:#e8901a"],html.theme-light [style*="color: #e8901a"]{ color:#8b560e !important; }
-html.theme-light [style*="color:#e8a020"],html.theme-light [style*="color: #e8a020"]{ color:#8b5e0e !important; }
-html.theme-light [style*="color:#e8c468"],html.theme-light [style*="color: #e8c468"]{ color:#856514 !important; }
-html.theme-light [style*="color:#e8c890"],html.theme-light [style*="color: #e8c890"]{ color:#7f5a1a !important; }
-html.theme-light [style*="color:#e8c9a0"],html.theme-light [style*="color: #e8c9a0"]{ color:#7b531e !important; }
-html.theme-light [style*="color:#e8d6ff"],html.theme-light [style*="color: #e8d6ff"]{ color:#430099 !important; }
-html.theme-light [style*="color:#e8d98a"],html.theme-light [style*="color: #e8d98a"]{ color:#806f19 !important; }
-html.theme-light [style*="color:#e8d9a0"],html.theme-light [style*="color: #e8d9a0"]{ color:#7b681e !important; }
-html.theme-light [style*="color:#eaffea"],html.theme-light [style*="color: #eaffea"]{ color:#009900 !important; }
-html.theme-light [style*="color:#ee8888"],html.theme-light [style*="color: #ee8888"]{ color:#861313 !important; }
-html.theme-light [style*="color:#f0a0a0"],html.theme-light [style*="color: #f0a0a0"]{ color:#841515 !important; }
-html.theme-light [style*="color:#f0b450"],html.theme-light [style*="color: #f0b450"]{ color:#8d5d0c !important; }
-html.theme-light [style*="color:#f0f0f2"],html.theme-light [style*="color: #f0f0f2"]{ color:#2b2f36 !important; }
-html.theme-light [style*="color:#f4f4f4"],html.theme-light [style*="color: #f4f4f4"]{ color:#2b2f36 !important; }
-html.theme-light [style*="color:#f5a623"],html.theme-light [style*="color: #f5a623"]{ color:#925e07 !important; }
-html.theme-light [style*="color:#f5c97a"],html.theme-light [style*="color: #f5c97a"]{ color:#8e5f0b !important; }
-html.theme-light [style*="color:#f87171"],html.theme-light [style*="color: #f87171"]{ color:#920707 !important; }
-html.theme-light [style*="color:#fbbf24"],html.theme-light [style*="color: #fbbf24"]{ color:#966d03 !important; }
-html.theme-light [style*="color:#fca5a5"],html.theme-light [style*="color: #fca5a5"]{ color:#940505 !important; }
-html.theme-light [style*="color:#ff5252"],html.theme-light [style*="color: #ff5252"]{ color:#990000 !important; }
-html.theme-light [style*="color:#ff6b35"],html.theme-light [style*="color: #ff6b35"]{ color:#992900 !important; }
-html.theme-light [style*="color:#ff6b6b"],html.theme-light [style*="color: #ff6b6b"]{ color:#990000 !important; }
-html.theme-light [style*="color:#ff8732"],html.theme-light [style*="color: #ff8732"]{ color:#993f00 !important; }
-html.theme-light [style*="color:#ff8a80"],html.theme-light [style*="color: #ff8a80"]{ color:#990c00 !important; }
-html.theme-light [style*="color:#ff8b7a"],html.theme-light [style*="color: #ff8b7a"]{ color:#991400 !important; }
-html.theme-light [style*="color:#ff9090"],html.theme-light [style*="color: #ff9090"]{ color:#990000 !important; }
-html.theme-light [style*="color:#ffb347"],html.theme-light [style*="color: #ffb347"]{ color:#995a00 !important; }
-html.theme-light [style*="color:#ffb74d"],html.theme-light [style*="color: #ffb74d"]{ color:#995b00 !important; }
-html.theme-light [style*="color:#ffc97a"],html.theme-light [style*="color: #ffc97a"]{ color:#995b00 !important; }
-html.theme-light [style*="color:#ffcccc"],html.theme-light [style*="color: #ffcccc"]{ color:#990000 !important; }
-html.theme-light [style*="color:#ffcf70"],html.theme-light [style*="color: #ffcf70"]{ color:#996600 !important; }
-html.theme-light [style*="color:#ffd479"],html.theme-light [style*="color: #ffd479"]{ color:#996800 !important; }
-html.theme-light [style*="color:#ffd54f"],html.theme-light [style*="color: #ffd54f"]{ color:#997400 !important; }
-html.theme-light [style*="color:#ffd6d6"],html.theme-light [style*="color: #ffd6d6"]{ color:#990000 !important; }
-html.theme-light [style*="color:#ffd98a"],html.theme-light [style*="color: #ffd98a"]{ color:#996700 !important; }
-html.theme-light [style*="color:#ffddee"],html.theme-light [style*="color: #ffddee"]{ color:#99004d !important; }
-html.theme-light [style*="color:#ffe8a8"],html.theme-light [style*="color: #ffe8a8"]{ color:#997100 !important; }
-html.theme-light [style*="color:#ffffdd"],html.theme-light [style*="color: #ffffdd"]{ color:#999900 !important; }
-html.theme-light [style*="color:#ffffee"],html.theme-light [style*="color: #ffffee"]{ color:#999900 !important; }
+   clair devient une version foncée de la MÊME teinte. Le vert reste vert. */
+html.theme-light [style*="background:#0a0a0c" i],html.theme-light [style*="background: #0a0a0c" i]{ background:#f0f0f2 !important; }
+html.theme-light [style*="background:#0d2818" i],html.theme-light [style*="background: #0d2818" i]{ background:#edf5f0 !important; }
+html.theme-light [style*="background:#0e1a22" i],html.theme-light [style*="background: #0e1a22" i]{ background:#edf2f5 !important; }
+html.theme-light [style*="background:#0f1115" i],html.theme-light [style*="background: #0f1115" i]{ background:#eff0f3 !important; }
+html.theme-light [style*="background:#0f1510" i],html.theme-light [style*="background: #0f1510" i]{ background:#eff3ef !important; }
+html.theme-light [style*="background:#0f1e2e" i],html.theme-light [style*="background: #0f1e2e" i]{ background:#edf1f5 !important; }
+html.theme-light [style*="background:#0f2417" i],html.theme-light [style*="background: #0f2417" i]{ background:#edf5f0 !important; }
+html.theme-light [style*="background:#10304d" i],html.theme-light [style*="background: #10304d" i]{ background:#edf1f5 !important; }
+html.theme-light [style*="background:#11160f" i],html.theme-light [style*="background: #11160f" i]{ background:#f0f4ee !important; }
+html.theme-light [style*="background:#12161c" i],html.theme-light [style*="background: #12161c" i]{ background:#eef0f4 !important; }
+html.theme-light [style*="background:#12210f" i],html.theme-light [style*="background: #12210f" i]{ background:#eef5ed !important; }
+html.theme-light [style*="background:#12211a" i],html.theme-light [style*="background: #12211a" i]{ background:#edf5f1 !important; }
+html.theme-light [style*="background:#12233a" i],html.theme-light [style*="background: #12233a" i]{ background:#edf0f5 !important; }
+html.theme-light [style*="background:#12324a" i],html.theme-light [style*="background: #12324a" i]{ background:#edf2f5 !important; }
+html.theme-light [style*="background:#132a1e" i],html.theme-light [style*="background: #132a1e" i]{ background:#edf5f1 !important; }
+html.theme-light [style*="background:#141416" i],html.theme-light [style*="background: #141416" i]{ background:#f0f0f2 !important; }
+html.theme-light [style*="background:#14243a" i],html.theme-light [style*="background: #14243a" i]{ background:#edf0f5 !important; }
+html.theme-light [style*="background:#152116" i],html.theme-light [style*="background: #152116" i]{ background:#eef4ee !important; }
+html.theme-light [style*="background:#161618" i],html.theme-light [style*="background: #161618" i]{ background:#f0f0f2 !important; }
+html.theme-light [style*="background:#16223a" i],html.theme-light [style*="background: #16223a" i]{ background:#edf0f5 !important; }
+html.theme-light [style*="background:#16321f" i],html.theme-light [style*="background: #16321f" i]{ background:#edf5ef !important; }
+html.theme-light [style*="background:#163a2a" i],html.theme-light [style*="background: #163a2a" i]{ background:#edf5f1 !important; }
+html.theme-light [style*="background:#17110f" i],html.theme-light [style*="background: #17110f" i]{ background:#f4efee !important; }
+html.theme-light [style*="background:#171412" i],html.theme-light [style*="background: #171412" i]{ background:#f3f1ef !important; }
+html.theme-light [style*="background:#173a2a" i],html.theme-light [style*="background: #173a2a" i]{ background:#edf5f1 !important; }
+html.theme-light [style*="background:#181122" i],html.theme-light [style*="background: #181122" i]{ background:#f0edf5 !important; }
+html.theme-light [style*="background:#1a0a0a" i],html.theme-light [style*="background: #1a0a0a" i]{ background:#f5eded !important; }
+html.theme-light [style*="background:#1a1000" i],html.theme-light [style*="background: #1a1000" i]{ background:#f5f2ed !important; }
+html.theme-light [style*="background:#1a1208" i],html.theme-light [style*="background: #1a1208" i]{ background:#f5f1ed !important; }
+html.theme-light [style*="background:#1a1400" i],html.theme-light [style*="background: #1a1400" i]{ background:#f5f3ed !important; }
+html.theme-light [style*="background:#1a1614" i],html.theme-light [style*="background: #1a1614" i]{ background:#f3f0ef !important; }
+html.theme-light [style*="background:#1a1a1e" i],html.theme-light [style*="background: #1a1a1e" i]{ background:#f0f0f2 !important; }
+html.theme-light [style*="background:#1a2a1a" i],html.theme-light [style*="background: #1a2a1a" i]{ background:#eef4ee !important; }
+html.theme-light [style*="background:#1a2a3a" i],html.theme-light [style*="background: #1a2a3a" i]{ background:#edf1f5 !important; }
+html.theme-light [style*="background:#1a3a1a" i],html.theme-light [style*="background: #1a3a1a" i]{ background:#edf5ed !important; }
+html.theme-light [style*="background:#1b1b1f" i],html.theme-light [style*="background: #1b1b1f" i]{ background:#f0f0f2 !important; }
+html.theme-light [style*="background:#1c1630" i],html.theme-light [style*="background: #1c1630" i]{ background:#efedf5 !important; }
+html.theme-light [style*="background:#1c1c1f" i],html.theme-light [style*="background: #1c1c1f" i]{ background:#f0f0f2 !important; }
+html.theme-light [style*="background:#1d1d1d" i],html.theme-light [style*="background: #1d1d1d" i]{ background:#f1f1f1 !important; }
+html.theme-light [style*="background:#1d3a2a" i],html.theme-light [style*="background: #1d3a2a" i]{ background:#edf5f1 !important; }
+html.theme-light [style*="background:#1e1a10" i],html.theme-light [style*="background: #1e1a10" i]{ background:#f5f3ed !important; }
+html.theme-light [style*="background:#1e1a3a" i],html.theme-light [style*="background: #1e1a3a" i]{ background:#eeedf5 !important; }
+html.theme-light [style*="background:#1e2a1e" i],html.theme-light [style*="background: #1e2a1e" i]{ background:#eff3ef !important; }
+html.theme-light [style*="background:#1e3a1e" i],html.theme-light [style*="background: #1e3a1e" i]{ background:#edf5ed !important; }
+html.theme-light [style*="background:#1e3a5f" i],html.theme-light [style*="background: #1e3a5f" i]{ background:#edf0f5 !important; }
+html.theme-light [style*="background:#20160c" i],html.theme-light [style*="background: #20160c" i]{ background:#f5f1ed !important; }
+html.theme-light [style*="background:#20180a" i],html.theme-light [style*="background: #20180a" i]{ background:#f5f2ed !important; }
+html.theme-light [style*="background:#202833" i],html.theme-light [style*="background: #202833" i]{ background:#eef0f4 !important; }
+html.theme-light [style*="background:#231a0a" i],html.theme-light [style*="background: #231a0a" i]{ background:#f5f2ed !important; }
+html.theme-light [style*="background:#241400" i],html.theme-light [style*="background: #241400" i]{ background:#f5f1ed !important; }
+html.theme-light [style*="background:#241414" i],html.theme-light [style*="background: #241414" i]{ background:#f5eded !important; }
+html.theme-light [style*="background:#2a0a0a" i],html.theme-light [style*="background: #2a0a0a" i]{ background:#f5eded !important; }
+html.theme-light [style*="background:#2a1414" i],html.theme-light [style*="background: #2a1414" i]{ background:#f5eded !important; }
+html.theme-light [style*="background:#2a1800" i],html.theme-light [style*="background: #2a1800" i]{ background:#f5f2ed !important; }
+html.theme-light [style*="background:#2a1a00" i],html.theme-light [style*="background: #2a1a00" i]{ background:#f5f2ed !important; }
+html.theme-light [style*="background:#2a1a1a" i],html.theme-light [style*="background: #2a1a1a" i]{ background:#f4eeee !important; }
+html.theme-light [style*="background:#2a1a3a" i],html.theme-light [style*="background: #2a1a3a" i]{ background:#f1edf5 !important; }
+html.theme-light [style*="background:#2a1d3a" i],html.theme-light [style*="background: #2a1d3a" i]{ background:#f1edf5 !important; }
+html.theme-light [style*="background:#2a1e3a" i],html.theme-light [style*="background: #2a1e3a" i]{ background:#f0edf5 !important; }
+html.theme-light [style*="background:#2a2000" i],html.theme-light [style*="background: #2a2000" i]{ background:#f5f3ed !important; }
+html.theme-light [style*="background:#2a2010" i],html.theme-light [style*="background: #2a2010" i]{ background:#f5f2ed !important; }
+html.theme-light [style*="background:#2a2410" i],html.theme-light [style*="background: #2a2410" i]{ background:#f5f3ed !important; }
+html.theme-light [style*="background:#2a2416" i],html.theme-light [style*="background: #2a2416" i]{ background:#f5f3ed !important; }
+html.theme-light [style*="background:#2a3a4a" i],html.theme-light [style*="background: #2a3a4a" i]{ background:#edf1f5 !important; }
+html.theme-light [style*="background:#3a0d0d" i],html.theme-light [style*="background: #3a0d0d" i]{ background:#f5eded !important; }
+html.theme-light [style*="background:#3a1010" i],html.theme-light [style*="background: #3a1010" i]{ background:#f5eded !important; }
+html.theme-light [style*="background:#3a1616" i],html.theme-light [style*="background: #3a1616" i]{ background:#f5eded !important; }
+html.theme-light [style*="background:#3a1a1a" i],html.theme-light [style*="background: #3a1a1a" i]{ background:#f5eded !important; }
+html.theme-light [style*="background:#3a1d4d" i],html.theme-light [style*="background: #3a1d4d" i]{ background:#f2edf5 !important; }
+html.theme-light [style*="background:#3a1e1e" i],html.theme-light [style*="background: #3a1e1e" i]{ background:#f5eded !important; }
+html.theme-light [style*="background:#3a2a00" i],html.theme-light [style*="background: #3a2a00" i]{ background:#f5f3ed !important; }
+html.theme-light [style*="background:#3a2a10" i],html.theme-light [style*="background: #3a2a10" i]{ background:#f5f2ed !important; }
+html.theme-light [style*="background:#3a2a16" i],html.theme-light [style*="background: #3a2a16" i]{ background:#f5f1ed !important; }
+html.theme-light [style*="background:#3a2a1e" i],html.theme-light [style*="background: #3a2a1e" i]{ background:#f5f0ed !important; }
+html.theme-light [style*="background:#3a2a5a" i],html.theme-light [style*="background: #3a2a5a" i]{ background:#f0edf5 !important; }
+html.theme-light [style*="background:#3a2e00" i],html.theme-light [style*="background: #3a2e00" i]{ background:#f5f3ed !important; }
+html.theme-light [style*="background:#3a2e12" i],html.theme-light [style*="background: #3a2e12" i]{ background:#f5f3ed !important; }
+html.theme-light [style*="background:#3a3000" i],html.theme-light [style*="background: #3a3000" i]{ background:#f5f4ed !important; }
+html.theme-light [style*="background:#441111" i],html.theme-light [style*="background: #441111" i]{ background:#f5eded !important; }
+html.theme-light [style*="background:#7a2020" i],html.theme-light [style*="background: #7a2020" i]{ background:#f5eded !important; }
+html.theme-light [style*="background:#8b1500" i],html.theme-light [style*="background: #8b1500" i]{ background:#f5eeed !important; }
+html.theme-light [style*="color:#16a085" i],html.theme-light [style*="color: #16a085" i]{ color:#128770 !important; }
+html.theme-light [style*="color:#1a9850" i],html.theme-light [style*="color: #1a9850" i]{ color:#168345 !important; }
+html.theme-light [style*="color:#2e9e4a" i],html.theme-light [style*="color: #2e9e4a" i]{ color:#237638 !important; }
+html.theme-light [style*="color:#3ecf8e" i],html.theme-light [style*="color: #3ecf8e" i]{ color:#1e7b51 !important; }
+html.theme-light [style*="color:#4caf50" i],html.theme-light [style*="color: #4caf50" i]{ color:#2e6b30 !important; }
+html.theme-light [style*="color:#5b9bd5" i],html.theme-light [style*="color: #5b9bd5" i]{ color:#1f4f7a !important; }
+html.theme-light [style*="color:#5ba3f5" i],html.theme-light [style*="color: #5ba3f5" i]{ color:#094890 !important; }
+html.theme-light [style*="color:#5bb8c4" i],html.theme-light [style*="color: #5bb8c4" i]{ color:#286871 !important; }
+html.theme-light [style*="color:#60a5fa" i],html.theme-light [style*="color: #60a5fa" i]{ color:#054594 !important; }
+html.theme-light [style*="color:#64748b" i],html.theme-light [style*="color: #64748b" i]{ color:#2e476b !important; }
+html.theme-light [style*="color:#6a6f77" i],html.theme-light [style*="color: #6a6f77" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="color:#6b7079" i],html.theme-light [style*="color: #6b7079" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="color:#6b7280" i],html.theme-light [style*="color: #6b7280" i]{ color:#2e426b !important; }
+html.theme-light [style*="color:#7e9" i],html.theme-light [style*="color: #7e9" i]{ color:#118833 !important; }
+html.theme-light [style*="color:#78909c" i],html.theme-light [style*="color: #78909c" i]{ color:#2e576b !important; }
+html.theme-light [style*="color:#7a7a7a" i],html.theme-light [style*="color: #7a7a7a" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="color:#7ab8d8" i],html.theme-light [style*="color: #7ab8d8" i]{ color:#235a76 !important; }
+html.theme-light [style*="color:#7aca7a" i],html.theme-light [style*="color: #7aca7a" i]{ color:#2c6d2c !important; }
+html.theme-light [style*="color:#7cffa0" i],html.theme-light [style*="color: #7cffa0" i]{ color:#00992a !important; }
+html.theme-light [style*="color:#7ee0a6" i],html.theme-light [style*="color: #7ee0a6" i]{ color:#1e7b44 !important; }
+html.theme-light [style*="color:#7f8c96" i],html.theme-light [style*="color: #7f8c96" i]{ color:#2e506b !important; }
+html.theme-light [style*="color:#7fa8cc" i],html.theme-light [style*="color: #7fa8cc" i]{ color:#2c4f6d !important; }
+html.theme-light [style*="color:#7fae90" i],html.theme-light [style*="color: #7fae90" i]{ color:#2e6b44 !important; }
+html.theme-light [style*="color:#7fb3ff" i],html.theme-light [style*="color: #7fb3ff" i]{ color:#003e99 !important; }
+html.theme-light [style*="color:#7fbfff" i],html.theme-light [style*="color: #7fbfff" i]{ color:#004c99 !important; }
+html.theme-light [style*="color:#7fe0a0" i],html.theme-light [style*="color: #7fe0a0" i]{ color:#1e7b3e !important; }
+html.theme-light [style*="color:#7fffc4" i],html.theme-light [style*="color: #7fffc4" i]{ color:#009952 !important; }
+html.theme-light [style*="color:#81c784" i],html.theme-light [style*="color: #81c784" i]{ color:#2e6b31 !important; }
+html.theme-light [style*="color:#8a7a70" i],html.theme-light [style*="color: #8a7a70" i]{ color:#6b452e !important; }
+html.theme-light [style*="color:#8a8a8a" i],html.theme-light [style*="color: #8a8a8a" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="color:#8a9099" i],html.theme-light [style*="color: #8a9099" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="color:#8b9099" i],html.theme-light [style*="color: #8b9099" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="color:#8f8f8f" i],html.theme-light [style*="color: #8f8f8f" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="color:#8fa4c0" i],html.theme-light [style*="color: #8fa4c0" i]{ color:#2e486b !important; }
+html.theme-light [style*="color:#8fbced" i],html.theme-light [style*="color: #8fbced" i]{ color:#154a84 !important; }
+html.theme-light [style*="color:#8fbfa2" i],html.theme-light [style*="color: #8fbfa2" i]{ color:#2e6b46 !important; }
+html.theme-light [style*="color:#8fc3f5" i],html.theme-light [style*="color: #8fc3f5" i]{ color:#0d4e8c !important; }
+html.theme-light [style*="color:#8fc3ff" i],html.theme-light [style*="color: #8fc3ff" i]{ color:#004799 !important; }
+html.theme-light [style*="color:#8fe6a8" i],html.theme-light [style*="color: #8fe6a8" i]{ color:#1c7d38 !important; }
+html.theme-light [style*="color:#93c5fd" i],html.theme-light [style*="color: #93c5fd" i]{ color:#034896 !important; }
+html.theme-light [style*="color:#94a3b8" i],html.theme-light [style*="color: #94a3b8" i]{ color:#2e476b !important; }
+html.theme-light [style*="color:#98a0a8" i],html.theme-light [style*="color: #98a0a8" i]{ color:#2e4c6b !important; }
+html.theme-light [style*="color:#9aa" i],html.theme-light [style*="color: #9aa" i]{ color:#2e6b6b !important; }
+html.theme-light [style*="color:#9a8fb5" i],html.theme-light [style*="color: #9a8fb5" i]{ color:#402e6b !important; }
+html.theme-light [style*="color:#9a9aaa" i],html.theme-light [style*="color: #9a9aaa" i]{ color:#2e2e6b !important; }
+html.theme-light [style*="color:#9aa0a8" i],html.theme-light [style*="color: #9aa0a8" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="color:#9aa1ab" i],html.theme-light [style*="color: #9aa1ab" i]{ color:#2e476b !important; }
+html.theme-light [style*="color:#9b7fd4" i],html.theme-light [style*="color: #9b7fd4" i]{ color:#402673 !important; }
+html.theme-light [style*="color:#9fc0ff" i],html.theme-light [style*="color: #9fc0ff" i]{ color:#003599 !important; }
+html.theme-light [style*="color:#9fc4d8" i],html.theme-light [style*="color: #9fc4d8" i]{ color:#2c566d !important; }
+html.theme-light [style*="color:#9fcfae" i],html.theme-light [style*="color: #9fcfae" i]{ color:#2e6b41 !important; }
+html.theme-light [style*="color:#9fd3ff" i],html.theme-light [style*="color: #9fd3ff" i]{ color:#005399 !important; }
+html.theme-light [style*="color:#a6d8bd" i],html.theme-light [style*="color: #a6d8bd" i]{ color:#2e6b4a !important; }
+html.theme-light [style*="color:#a855f7" i],html.theme-light [style*="color: #a855f7" i]{ color:#4e0792 !important; }
+html.theme-light [style*="color:#a9c6e6" i],html.theme-light [style*="color: #a9c6e6" i]{ color:#224a77 !important; }
+html.theme-light [style*="color:#b08fd0" i],html.theme-light [style*="color: #b08fd0" i]{ color:#4d2d6c !important; }
+html.theme-light [style*="color:#b57edc" i],html.theme-light [style*="color: #b57edc" i]{ color:#542178 !important; }
+html.theme-light [style*="color:#b8860b" i],html.theme-light [style*="color: #b8860b" i]{ color:#906909 !important; }
+html.theme-light [style*="color:#b9b9b9" i],html.theme-light [style*="color: #b9b9b9" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="color:#bcd" i],html.theme-light [style*="color: #bcd" i]{ color:#2e4c6b !important; }
+html.theme-light [style*="color:#bcd6f5" i],html.theme-light [style*="color: #bcd6f5" i]{ color:#144885 !important; }
+html.theme-light [style*="color:#c39bd3" i],html.theme-light [style*="color: #c39bd3" i]{ color:#5a2e6b !important; }
+html.theme-light [style*="color:#c47f00" i],html.theme-light [style*="color: #c47f00" i]{ color:#996300 !important; }
+html.theme-light [style*="color:#c9a0ff" i],html.theme-light [style*="color: #c9a0ff" i]{ color:#420099 !important; }
+html.theme-light [style*="color:#c9b3ff" i],html.theme-light [style*="color: #c9b3ff" i]{ color:#2c0099 !important; }
+html.theme-light [style*="color:#c9b79c" i],html.theme-light [style*="color: #c9b79c" i]{ color:#6b532e !important; }
+html.theme-light [style*="color:#cbd5e1" i],html.theme-light [style*="color: #cbd5e1" i]{ color:#2e4a6b !important; }
+html.theme-light [style*="color:#cc5555" i],html.theme-light [style*="color: #cc5555" i]{ color:#762323 !important; }
+html.theme-light [style*="color:#cc7777" i],html.theme-light [style*="color: #cc7777" i]{ color:#6f2a2a !important; }
+html.theme-light [style*="color:#c99" i],html.theme-light [style*="color: #c99" i]{ color:#6b2e2e !important; }
+html.theme-light [style*="color:#caa" i],html.theme-light [style*="color: #caa" i]{ color:#6b2e2e !important; }
+html.theme-light [style*="color:#cbb" i],html.theme-light [style*="color: #cbb" i]{ color:#6b2e2e !important; }
+html.theme-light [style*="color:#cfe" i],html.theme-light [style*="color: #cfe" i]{ color:#009966 !important; }
+html.theme-light [style*="color:#cfcfcf" i],html.theme-light [style*="color: #cfcfcf" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="color:#cfe0f0" i],html.theme-light [style*="color: #cfe0f0" i]{ color:#244e75 !important; }
+html.theme-light [style*="color:#cfead7" i],html.theme-light [style*="color: #cfead7" i]{ color:#2e6b40 !important; }
+html.theme-light [style*="color:#d5d5d5" i],html.theme-light [style*="color: #d5d5d5" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="color:#d6ffe6" i],html.theme-light [style*="color: #d6ffe6" i]{ color:#00993c !important; }
+html.theme-light [style*="color:#d8b4fe" i],html.theme-light [style*="color: #d8b4fe" i]{ color:#4a0297 !important; }
+html.theme-light [style*="color:#d9a8ff" i],html.theme-light [style*="color: #d9a8ff" i]{ color:#560099 !important; }
+html.theme-light [style*="color:#dbe7ff" i],html.theme-light [style*="color: #dbe7ff" i]{ color:#003399 !important; }
+html.theme-light [style*="color:#dd9999" i],html.theme-light [style*="color: #dd9999" i]{ color:#732626 !important; }
+html.theme-light [style*="color:#dff" i],html.theme-light [style*="color: #dff" i]{ color:#009999 !important; }
+html.theme-light [style*="color:#dfffe9" i],html.theme-light [style*="color: #dfffe9" i]{ color:#009930 !important; }
+html.theme-light [style*="color:#e05a5a" i],html.theme-light [style*="color: #e05a5a" i]{ color:#811818 !important; }
+html.theme-light [style*="color:#e08600" i],html.theme-light [style*="color: #e08600" i]{ color:#995c00 !important; }
+html.theme-light [style*="color:#e0a021" i],html.theme-light [style*="color: #e0a021" i]{ color:#866013 !important; }
+html.theme-light [style*="color:#e2e8f0" i],html.theme-light [style*="color: #e2e8f0" i]{ color:#2e486b !important; }
+html.theme-light [style*="color:#e57368" i],html.theme-light [style*="color: #e57368" i]{ color:#832016 !important; }
+html.theme-light [style*="color:#e57373" i],html.theme-light [style*="color: #e57373" i]{ color:#811818 !important; }
+html.theme-light [style*="color:#e74c3c" i],html.theme-light [style*="color: #e74c3c" i]{ color:#881c11 !important; }
+html.theme-light [style*="color:#e8623a" i],html.theme-light [style*="color: #e8623a" i]{ color:#892c10 !important; }
+html.theme-light [style*="color:#e87722" i],html.theme-light [style*="color: #e87722" i]{ color:#8b440e !important; }
+html.theme-light [style*="color:#e8901a" i],html.theme-light [style*="color: #e8901a" i]{ color:#8b560e !important; }
+html.theme-light [style*="color:#e8a020" i],html.theme-light [style*="color: #e8a020" i]{ color:#8b5e0e !important; }
+html.theme-light [style*="color:#e8c468" i],html.theme-light [style*="color: #e8c468" i]{ color:#856514 !important; }
+html.theme-light [style*="color:#e8c890" i],html.theme-light [style*="color: #e8c890" i]{ color:#7f5a1a !important; }
+html.theme-light [style*="color:#e8c9a0" i],html.theme-light [style*="color: #e8c9a0" i]{ color:#7b531e !important; }
+html.theme-light [style*="color:#e8d6ff" i],html.theme-light [style*="color: #e8d6ff" i]{ color:#430099 !important; }
+html.theme-light [style*="color:#e8d98a" i],html.theme-light [style*="color: #e8d98a" i]{ color:#806f19 !important; }
+html.theme-light [style*="color:#e8d9a0" i],html.theme-light [style*="color: #e8d9a0" i]{ color:#7b681e !important; }
+html.theme-light [style*="color:#eaffea" i],html.theme-light [style*="color: #eaffea" i]{ color:#009900 !important; }
+html.theme-light [style*="color:#e88" i],html.theme-light [style*="color: #e88" i]{ color:#861313 !important; }
+html.theme-light [style*="color:#f0a0a0" i],html.theme-light [style*="color: #f0a0a0" i]{ color:#841515 !important; }
+html.theme-light [style*="color:#f0b450" i],html.theme-light [style*="color: #f0b450" i]{ color:#8d5d0c !important; }
+html.theme-light [style*="color:#f0f0f2" i],html.theme-light [style*="color: #f0f0f2" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="color:#f4f4f4" i],html.theme-light [style*="color: #f4f4f4" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="color:#f5a623" i],html.theme-light [style*="color: #f5a623" i]{ color:#925e07 !important; }
+html.theme-light [style*="color:#f5c97a" i],html.theme-light [style*="color: #f5c97a" i]{ color:#8e5f0b !important; }
+html.theme-light [style*="color:#f87171" i],html.theme-light [style*="color: #f87171" i]{ color:#920707 !important; }
+html.theme-light [style*="color:#fbbf24" i],html.theme-light [style*="color: #fbbf24" i]{ color:#966d03 !important; }
+html.theme-light [style*="color:#fca5a5" i],html.theme-light [style*="color: #fca5a5" i]{ color:#940505 !important; }
+html.theme-light [style*="color:#ff5252" i],html.theme-light [style*="color: #ff5252" i]{ color:#990000 !important; }
+html.theme-light [style*="color:#ff6b35" i],html.theme-light [style*="color: #ff6b35" i]{ color:#992900 !important; }
+html.theme-light [style*="color:#ff6b6b" i],html.theme-light [style*="color: #ff6b6b" i]{ color:#990000 !important; }
+html.theme-light [style*="color:#ff8732" i],html.theme-light [style*="color: #ff8732" i]{ color:#993f00 !important; }
+html.theme-light [style*="color:#ff8a80" i],html.theme-light [style*="color: #ff8a80" i]{ color:#990c00 !important; }
+html.theme-light [style*="color:#ff8b7a" i],html.theme-light [style*="color: #ff8b7a" i]{ color:#991400 !important; }
+html.theme-light [style*="color:#ff9090" i],html.theme-light [style*="color: #ff9090" i]{ color:#990000 !important; }
+html.theme-light [style*="color:#ffb347" i],html.theme-light [style*="color: #ffb347" i]{ color:#995a00 !important; }
+html.theme-light [style*="color:#ffb74d" i],html.theme-light [style*="color: #ffb74d" i]{ color:#995b00 !important; }
+html.theme-light [style*="color:#ffc97a" i],html.theme-light [style*="color: #ffc97a" i]{ color:#995b00 !important; }
+html.theme-light [style*="color:#fcc" i],html.theme-light [style*="color: #fcc" i]{ color:#990000 !important; }
+html.theme-light [style*="color:#ffcf70" i],html.theme-light [style*="color: #ffcf70" i]{ color:#996600 !important; }
+html.theme-light [style*="color:#ffd479" i],html.theme-light [style*="color: #ffd479" i]{ color:#996800 !important; }
+html.theme-light [style*="color:#ffd54f" i],html.theme-light [style*="color: #ffd54f" i]{ color:#997400 !important; }
+html.theme-light [style*="color:#ffd6d6" i],html.theme-light [style*="color: #ffd6d6" i]{ color:#990000 !important; }
+html.theme-light [style*="color:#ffd98a" i],html.theme-light [style*="color: #ffd98a" i]{ color:#996700 !important; }
+html.theme-light [style*="color:#fde" i],html.theme-light [style*="color: #fde" i]{ color:#99004d !important; }
+html.theme-light [style*="color:#ffe8a8" i],html.theme-light [style*="color: #ffe8a8" i]{ color:#997100 !important; }
+html.theme-light [style*="color:#ffd" i],html.theme-light [style*="color: #ffd" i]{ color:#999900 !important; }
+html.theme-light [style*="color:#ffe" i],html.theme-light [style*="color: #ffe" i]{ color:#999900 !important; }
 /* ── Combinaisons exactes fond+texte présentes dans l'application ──────────
-   Quand les deux sont écrits dans le même style, on tranche sans ambiguïté :
-   fond éclairci → texte foncé ; fond conservé (aplat de marque : rouge BK,
-   vert, bleu) → le texte garde sa couleur d'origine, donc le blanc reste blanc
-   sur le rouge. */
-html.theme-light [style*="background:#0e0e0e"][style*="color:#ffffff"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#111111"][style*="color:#eeeeee"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#1a1a1a"][style*="color:#eeeeee"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#16321f"][style*="color:#7fe0a0"]{ color:#1e7b3e !important; }
-html.theme-light [style*="background:#141414"][style*="color:#dddddd"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#1a1a1a"][style*="color:#ffffff"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#16321f"][style*="color:#3ecf8e"]{ color:#1e7b51 !important; }
-html.theme-light [style*="background:#0e0e0e"][style*="color:#eeeeee"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#d62300"][style*="color:#ffffff"]{ color:#ffffff !important; }
-html.theme-light [style*="background:#3a2a10"][style*="color:#e8a020"]{ color:#8b5e0e !important; }
-html.theme-light [style*="background:#111111"][style*="color:#ffffff"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#141414"][style*="color:#888888"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#fafafa"][style*="color:#111111"]{ color:#111111 !important; }
-html.theme-light [style*="background:#f4f4f5"][style*="color:#111111"]{ color:#111111 !important; }
-html.theme-light [style*="background:#1d7a3a"][style*="color:#ffffff"]{ color:#ffffff !important; }
-html.theme-light [style*="background:#0e0e0e"][style*="color:#9a9a9a"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#1a1a1a"][style*="color:#555555"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#3a1a1a"][style*="color:#cc5555"]{ color:#762323 !important; }
-html.theme-light [style*="background:#333333"][style*="color:#cccccc"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#141414"][style*="color:#eeeeee"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#2c2c2c"][style*="color:#ffffff"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#12233a"][style*="color:#8fc3f5"]{ color:#0d4e8c !important; }
-html.theme-light [style*="background:#2a2a2a"][style*="color:#cccccc"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#1a1a1a"][style*="color:#9fd3ff"]{ color:#005399 !important; }
-html.theme-light [style*="background:#cc5555"][style*="color:#ffffff"]{ color:#ffffff !important; }
-html.theme-light [style*="background:#222222"][style*="color:#cccccc"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#b8860b"][style*="color:#000000"]{ color:#000000 !important; }
-html.theme-light [style*="background:#2a2a2a"][style*="color:#dddddd"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#2a3a4a"][style*="color:#bbccdd"]{ color:#2e4c6b !important; }
-html.theme-light [style*="background:#1a2a3a"][style*="color:#9fd3ff"]{ color:#005399 !important; }
-html.theme-light [style*="background:#2a2000"][style*="color:#f5a623"]{ color:#925e07 !important; }
-html.theme-light [style*="background:#3a1616"][style*="color:#f0a0a0"]{ color:#841515 !important; }
-html.theme-light [style*="background:#3a1616"][style*="color:#e8623a"]{ color:#892c10 !important; }
-html.theme-light [style*="background:#141414"][style*="color:#bbbbbb"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#1d1d1d"][style*="color:#ffffff"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#1c1c1f"][style*="color:#eeeeee"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#666666"][style*="color:#ffffff"]{ color:#ffffff !important; }
-html.theme-light [style*="background:#1e3a1e"][style*="color:#7aca7a"]{ color:#2c6d2c !important; }
-html.theme-light [style*="background:#2e6fc2"][style*="color:#ffffff"]{ color:#ffffff !important; }
-html.theme-light [style*="background:#3a1616"][style*="color:#ee8888"]{ color:#861313 !important; }
-html.theme-light [style*="background:#3ecf8e"][style*="color:#000000"]{ color:#000000 !important; }
-html.theme-light [style*="background:#1a1a1a"][style*="color:#aaaaaa"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#1a1a1a"][style*="color:#f5a623"]{ color:#925e07 !important; }
-html.theme-light [style*="background:#00897b"][style*="color:#ffffff"]{ color:#ffffff !important; }
-html.theme-light [style*="background:#2c2c2c"][style*="color:#f5a623"]{ color:#925e07 !important; }
-html.theme-light [style*="background:#12324a"][style*="color:#9fd3ff"]{ color:#005399 !important; }
-html.theme-light [style*="background:#161616"][style*="color:#bbbbbb"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#2a2410"][style*="color:#e8d9a0"]{ color:#7b681e !important; }
-html.theme-light [style*="background:#141414"][style*="color:#9a9a9a"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#2a2416"][style*="color:#e8a020"]{ color:#8b5e0e !important; }
-html.theme-light [style*="background:#1a3a1a"][style*="color:#4caf50"]{ color:#2e6b30 !important; }
-html.theme-light [style*="background:#141414"][style*="color:#666666"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#3a2e12"][style*="color:#ffd479"]{ color:#996800 !important; }
-html.theme-light [style*="background:#161616"][style*="color:#888888"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#fafafa"][style*="color:#222222"]{ color:#222222 !important; }
-html.theme-light [style*="background:#2a1414"][style*="color:#ee8888"]{ color:#861313 !important; }
-html.theme-light [style*="background:#f2f7f2"][style*="color:#2e7d32"]{ color:#2e7d32 !important; }
-html.theme-light [style*="background:#3a1010"][style*="color:#ff8b7a"]{ color:#991400 !important; }
-html.theme-light [style*="background:#1f6b3f"][style*="color:#d6ffe6"]{ color:#d6ffe6 !important; }
-html.theme-light [style*="background:#ffe08a"][style*="color:#7a5c00"]{ color:#7a5c00 !important; }
-html.theme-light [style*="background:#1a1208"][style*="color:#dddddd"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#222222"][style*="color:#888888"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#8b1500"][style*="color:#ffffff"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#1565c0"][style*="color:#ffffff"]{ color:#ffffff !important; }
-html.theme-light [style*="background:#333333"][style*="color:#eeeeee"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#10304d"][style*="color:#9fd3ff"]{ color:#005399 !important; }
-html.theme-light [style*="background:#3a2e12"][style*="color:#ffd98a"]{ color:#996700 !important; }
-html.theme-light [style*="background:#163a2a"][style*="color:#7fffc4"]{ color:#009952 !important; }
-html.theme-light [style*="background:#2a2a2a"][style*="color:#bbbbbb"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#161616"][style*="color:#eeeeee"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#1a1a1a"][style*="color:#e8d6ff"]{ color:#430099 !important; }
-html.theme-light [style*="background:#ffffff"][style*="color:#222222"]{ color:#222222 !important; }
-html.theme-light [style*="background:#fff7ed"][style*="color:#111111"]{ color:#111111 !important; }
-html.theme-light [style*="background:#ffffff"][style*="color:#333333"]{ color:#333333 !important; }
-html.theme-light [style*="background:#f5a623"][style*="color:#1a1a1a"]{ color:#1a1a1a !important; }
-html.theme-light [style*="background:#1a1a1e"][style*="color:#f0f0f2"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#2a1a3a"][style*="color:#d8b4fe"]{ color:#4a0297 !important; }
-html.theme-light [style*="background:#1a1a1a"][style*="color:#666666"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#2a2410"][style*="color:#e8d98a"]{ color:#806f19 !important; }
-html.theme-light [style*="background:#1a2a3a"][style*="color:#93c5fd"]{ color:#034896 !important; }
-html.theme-light [style*="background:#3a1a1a"][style*="color:#ff9090"]{ color:#990000 !important; }
-html.theme-light [style*="background:#3ecf8e"][style*="color:#08130d"]{ color:#08130d !important; }
-html.theme-light [style*="background:#151515"][style*="color:#bbbbbb"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#12161c"][style*="color:#8fa4c0"]{ color:#2e486b !important; }
-html.theme-light [style*="background:#2a1e3a"][style*="color:#c9b3ff"]{ color:#2c0099 !important; }
-html.theme-light [style*="background:#141414"][style*="color:#777777"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#7a2020"][style*="color:#ffd6d6"]{ color:#990000 !important; }
-html.theme-light [style*="background:#0277bd"][style*="color:#ffffff"]{ color:#ffffff !important; }
-html.theme-light [style*="background:#0e0e0e"][style*="color:#dddddd"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#231a0a"][style*="color:#e8c890"]{ color:#7f5a1a !important; }
-html.theme-light [style*="background:#241414"][style*="color:#e8a020"]{ color:#8b5e0e !important; }
-html.theme-light [style*="background:#1a1400"][style*="color:#f5a623"]{ color:#925e07 !important; }
-html.theme-light [style*="background:#0f1e2e"][style*="color:#8fc3f5"]{ color:#0d4e8c !important; }
-html.theme-light [style*="background:#a8460f"][style*="color:#ffffff"]{ color:#ffffff !important; }
-html.theme-light [style*="background:#2a1a00"][style*="color:#888888"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#141414"][style*="color:#aaaaaa"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#b7bcc3"][style*="color:#2a2f36"]{ color:#2a2f36 !important; }
-html.theme-light [style*="background:#f2f2f2"][style*="color:#111111"]{ color:#111111 !important; }
-html.theme-light [style*="background:#fff4f0"][style*="color:#b03a1a"]{ color:#b03a1a !important; }
-html.theme-light [style*="background:#2a2010"][style*="color:#e8a020"]{ color:#8b5e0e !important; }
-html.theme-light [style*="background:#14243a"][style*="color:#bcd6f5"]{ color:#144885 !important; }
-html.theme-light [style*="background:#7a5a1a"][style*="color:#ffffff"]{ color:#ffffff !important; }
-html.theme-light [style*="background:#16321f"][style*="color:#8fe6a8"]{ color:#1c7d38 !important; }
-html.theme-light [style*="background:#5a4a1e"][style*="color:#ffe8a8"]{ color:#ffe8a8 !important; }
-html.theme-light [style*="background:#c01e00"][style*="color:#ffffff"]{ color:#ffffff !important; }
-html.theme-light [style*="background:#3a2a10"][style*="color:#e8c468"]{ color:#856514 !important; }
-html.theme-light [style*="background:#1f6e3f"][style*="color:#ffffff"]{ color:#ffffff !important; }
-html.theme-light [style*="background:#1d5c3a"][style*="color:#dfffe9"]{ color:#dfffe9 !important; }
-html.theme-light [style*="background:#141414"][style*="color:#cccccc"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#3a2e00"][style*="color:#f5a623"]{ color:#925e07 !important; }
-html.theme-light [style*="background:#3a1a1a"][style*="color:#cc7777"]{ color:#6f2a2a !important; }
-html.theme-light [style*="background:#241400"][style*="color:#f5a623"]{ color:#925e07 !important; }
-html.theme-light [style*="background:#333333"][style*="color:#ffffff"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#3a1616"][style*="color:#ff9090"]{ color:#990000 !important; }
-html.theme-light [style*="background:#2a0a0a"][style*="color:#cc5555"]{ color:#762323 !important; }
-html.theme-light [style*="background:#0e0e0e"][style*="color:#8fc3f5"]{ color:#0d4e8c !important; }
-html.theme-light [style*="background:#222222"][style*="color:#eeeeee"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#222222"][style*="color:#bbbbbb"]{ color:#2b2f36 !important; }
-html.theme-light [style*="background:#444444"][style*="color:#eeeeee"]{ color:#eeeeee !important; }
-html.theme-light [style*="background:#0f2417"][style*="color:#3ecf8e"]{ color:#1e7b51 !important; }
-html.theme-light [style*="background:#0e0e0e"][style*="color:#ccffee"]{ color:#009966 !important; }
-html.theme-light [style*="background:#173a2a"][style*="color:#7fffc4"]{ color:#009952 !important; }
-html.theme-light [style*="background:#1a1a1a"][style*="color:#ccffee"]{ color:#009966 !important; }
-html.theme-light [style*="background:#3a2a16"][style*="color:#f5c97a"]{ color:#8e5f0b !important; }
-html.theme-light [style*="background:#2a2416"][style*="color:#f5c97a"]{ color:#8e5f0b !important; }
-html.theme-light [style*="background:#fff7ed"][style*="color:#92400e"]{ color:#92400e !important; }
-html.theme-light [style*="background:#fff7ed"][style*="color:#e08600"]{ color:#e08600 !important; }
-html.theme-light [style*="background:#fafafa"][style*="color:#333333"]{ color:#333333 !important; }
-html.theme-light [style*="background:#eef2ff"][style*="color:#3046b5"]{ color:#3046b5 !important; }
-html.theme-light [style*="background:#16321f"][style*="color:#ddffff"]{ color:#009999 !important; }
-html.theme-light [style*="background:#3a2a16"][style*="color:#ffddee"]{ color:#99004d !important; }
-html.theme-light [style*="background:#3a1a1a"][style*="color:#ffcccc"]{ color:#990000 !important; }
-html.theme-light [style*="background:#e8a020"][style*="color:#000000"]{ color:#000000 !important; }
-html.theme-light [style*="background:#e74c3c"][style*="color:#ffffff"]{ color:#ffffff !important; }
+   fond éclairci → texte foncé ; fond conservé (rouge BK, vert) → le texte garde
+   sa couleur, donc le blanc reste blanc sur le rouge. */
+html.theme-light [style*="background:#0e0e0e" i][style*="color:#fff" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#111" i][style*="color:#eee" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#1a1a1a" i][style*="color:#eee" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#16321f" i][style*="color:#7fe0a0" i]{ color:#1e7b3e !important; }
+html.theme-light [style*="background:#141414" i][style*="color:#ddd" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#1a1a1a" i][style*="color:#fff" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#16321f" i][style*="color:#3ecf8e" i]{ color:#1e7b51 !important; }
+html.theme-light [style*="background:#0e0e0e" i][style*="color:#eee" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#d62300" i][style*="color:#fff" i]{ color:#ffffff !important; }
+html.theme-light [style*="background:#3a2a10" i][style*="color:#e8a020" i]{ color:#8b5e0e !important; }
+html.theme-light [style*="background:#111" i][style*="color:#fff" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#141414" i][style*="color:#888" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#fafafa" i][style*="color:#111" i]{ color:#111111 !important; }
+html.theme-light [style*="background:#f4f4f5" i][style*="color:#111" i]{ color:#111111 !important; }
+html.theme-light [style*="background:#1d7a3a" i][style*="color:#fff" i]{ color:#ffffff !important; }
+html.theme-light [style*="background:#0e0e0e" i][style*="color:#9a9a9a" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#1a1a1a" i][style*="color:#555" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#3a1a1a" i][style*="color:#cc5555" i]{ color:#762323 !important; }
+html.theme-light [style*="background:#333" i][style*="color:#ccc" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#141414" i][style*="color:#eee" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#2c2c2c" i][style*="color:#fff" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#12233a" i][style*="color:#8fc3f5" i]{ color:#0d4e8c !important; }
+html.theme-light [style*="background:#2a2a2a" i][style*="color:#ccc" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#1a1a1a" i][style*="color:#9fd3ff" i]{ color:#005399 !important; }
+html.theme-light [style*="background:#cc5555" i][style*="color:#fff" i]{ color:#ffffff !important; }
+html.theme-light [style*="background:#222" i][style*="color:#ccc" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#b8860b" i][style*="color:#000" i]{ color:#000000 !important; }
+html.theme-light [style*="background:#2a2a2a" i][style*="color:#ddd" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#2a3a4a" i][style*="color:#bcd" i]{ color:#2e4c6b !important; }
+html.theme-light [style*="background:#1a2a3a" i][style*="color:#9fd3ff" i]{ color:#005399 !important; }
+html.theme-light [style*="background:#2a2000" i][style*="color:#f5a623" i]{ color:#925e07 !important; }
+html.theme-light [style*="background:#3a1616" i][style*="color:#f0a0a0" i]{ color:#841515 !important; }
+html.theme-light [style*="background:#3a1616" i][style*="color:#e8623a" i]{ color:#892c10 !important; }
+html.theme-light [style*="background:#141414" i][style*="color:#bbb" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#1d1d1d" i][style*="color:#fff" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#1c1c1f" i][style*="color:#eee" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#666" i][style*="color:#fff" i]{ color:#ffffff !important; }
+html.theme-light [style*="background:#1e3a1e" i][style*="color:#7aca7a" i]{ color:#2c6d2c !important; }
+html.theme-light [style*="background:#2e6fc2" i][style*="color:#fff" i]{ color:#ffffff !important; }
+html.theme-light [style*="background:#3a1616" i][style*="color:#e88" i]{ color:#861313 !important; }
+html.theme-light [style*="background:#3ecf8e" i][style*="color:#000" i]{ color:#000000 !important; }
+html.theme-light [style*="background:#1a1a1a" i][style*="color:#aaa" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#1a1a1a" i][style*="color:#f5a623" i]{ color:#925e07 !important; }
+html.theme-light [style*="background:#00897b" i][style*="color:#fff" i]{ color:#ffffff !important; }
+html.theme-light [style*="background:#2c2c2c" i][style*="color:#f5a623" i]{ color:#925e07 !important; }
+html.theme-light [style*="background:#12324a" i][style*="color:#9fd3ff" i]{ color:#005399 !important; }
+html.theme-light [style*="background:#161616" i][style*="color:#bbb" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#2a2410" i][style*="color:#e8d9a0" i]{ color:#7b681e !important; }
+html.theme-light [style*="background:#141414" i][style*="color:#9a9a9a" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#2a2416" i][style*="color:#e8a020" i]{ color:#8b5e0e !important; }
+html.theme-light [style*="background:#1a3a1a" i][style*="color:#4caf50" i]{ color:#2e6b30 !important; }
+html.theme-light [style*="background:#141414" i][style*="color:#666" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#3a2e12" i][style*="color:#ffd479" i]{ color:#996800 !important; }
+html.theme-light [style*="background:#161616" i][style*="color:#888" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#fafafa" i][style*="color:#222" i]{ color:#222222 !important; }
+html.theme-light [style*="background:#2a1414" i][style*="color:#e88" i]{ color:#861313 !important; }
+html.theme-light [style*="background:#f2f7f2" i][style*="color:#2e7d32" i]{ color:#2e7d32 !important; }
+html.theme-light [style*="background:#3a1010" i][style*="color:#ff8b7a" i]{ color:#991400 !important; }
+html.theme-light [style*="background:#1f6b3f" i][style*="color:#d6ffe6" i]{ color:#d6ffe6 !important; }
+html.theme-light [style*="background:#ffe08a" i][style*="color:#7a5c00" i]{ color:#7a5c00 !important; }
+html.theme-light [style*="background:#1a1208" i][style*="color:#ddd" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#222" i][style*="color:#888" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#8b1500" i][style*="color:#fff" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#1565c0" i][style*="color:#fff" i]{ color:#ffffff !important; }
+html.theme-light [style*="background:#333" i][style*="color:#eee" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#10304d" i][style*="color:#9fd3ff" i]{ color:#005399 !important; }
+html.theme-light [style*="background:#3a2e12" i][style*="color:#ffd98a" i]{ color:#996700 !important; }
+html.theme-light [style*="background:#163a2a" i][style*="color:#7fffc4" i]{ color:#009952 !important; }
+html.theme-light [style*="background:#2a2a2a" i][style*="color:#bbb" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#161616" i][style*="color:#eee" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#1a1a1a" i][style*="color:#e8d6ff" i]{ color:#430099 !important; }
+html.theme-light [style*="background:#fff" i][style*="color:#222" i]{ color:#222222 !important; }
+html.theme-light [style*="background:#fff7ed" i][style*="color:#111" i]{ color:#111111 !important; }
+html.theme-light [style*="background:#fff" i][style*="color:#333" i]{ color:#333333 !important; }
+html.theme-light [style*="background:#f5a623" i][style*="color:#1a1a1a" i]{ color:#1a1a1a !important; }
+html.theme-light [style*="background:#1a1a1e" i][style*="color:#f0f0f2" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#2a1a3a" i][style*="color:#d8b4fe" i]{ color:#4a0297 !important; }
+html.theme-light [style*="background:#1a1a1a" i][style*="color:#666" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#2a2410" i][style*="color:#e8d98a" i]{ color:#806f19 !important; }
+html.theme-light [style*="background:#1a2a3a" i][style*="color:#93c5fd" i]{ color:#034896 !important; }
+html.theme-light [style*="background:#3a1a1a" i][style*="color:#ff9090" i]{ color:#990000 !important; }
+html.theme-light [style*="background:#3ecf8e" i][style*="color:#08130d" i]{ color:#08130d !important; }
+html.theme-light [style*="background:#151515" i][style*="color:#bbb" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#12161c" i][style*="color:#8fa4c0" i]{ color:#2e486b !important; }
+html.theme-light [style*="background:#2a1e3a" i][style*="color:#c9b3ff" i]{ color:#2c0099 !important; }
+html.theme-light [style*="background:#141414" i][style*="color:#777" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#7a2020" i][style*="color:#ffd6d6" i]{ color:#990000 !important; }
+html.theme-light [style*="background:#0277bd" i][style*="color:#fff" i]{ color:#ffffff !important; }
+html.theme-light [style*="background:#0e0e0e" i][style*="color:#ddd" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#231a0a" i][style*="color:#e8c890" i]{ color:#7f5a1a !important; }
+html.theme-light [style*="background:#241414" i][style*="color:#e8a020" i]{ color:#8b5e0e !important; }
+html.theme-light [style*="background:#1a1400" i][style*="color:#f5a623" i]{ color:#925e07 !important; }
+html.theme-light [style*="background:#0f1e2e" i][style*="color:#8fc3f5" i]{ color:#0d4e8c !important; }
+html.theme-light [style*="background:#a8460f" i][style*="color:#fff" i]{ color:#ffffff !important; }
+html.theme-light [style*="background:#2a1a00" i][style*="color:#888" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#141414" i][style*="color:#aaa" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#b7bcc3" i][style*="color:#2a2f36" i]{ color:#2a2f36 !important; }
+html.theme-light [style*="background:#f2f2f2" i][style*="color:#111" i]{ color:#111111 !important; }
+html.theme-light [style*="background:#fff4f0" i][style*="color:#b03a1a" i]{ color:#b03a1a !important; }
+html.theme-light [style*="background:#2a2010" i][style*="color:#e8a020" i]{ color:#8b5e0e !important; }
+html.theme-light [style*="background:#14243a" i][style*="color:#bcd6f5" i]{ color:#144885 !important; }
+html.theme-light [style*="background:#7a5a1a" i][style*="color:#fff" i]{ color:#ffffff !important; }
+html.theme-light [style*="background:#16321f" i][style*="color:#8fe6a8" i]{ color:#1c7d38 !important; }
+html.theme-light [style*="background:#5a4a1e" i][style*="color:#ffe8a8" i]{ color:#ffe8a8 !important; }
+html.theme-light [style*="background:#c01e00" i][style*="color:#fff" i]{ color:#ffffff !important; }
+html.theme-light [style*="background:#3a2a10" i][style*="color:#e8c468" i]{ color:#856514 !important; }
+html.theme-light [style*="background:#1f6e3f" i][style*="color:#fff" i]{ color:#ffffff !important; }
+html.theme-light [style*="background:#1d5c3a" i][style*="color:#dfffe9" i]{ color:#dfffe9 !important; }
+html.theme-light [style*="background:#141414" i][style*="color:#ccc" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#3a2e00" i][style*="color:#f5a623" i]{ color:#925e07 !important; }
+html.theme-light [style*="background:#3a1a1a" i][style*="color:#cc7777" i]{ color:#6f2a2a !important; }
+html.theme-light [style*="background:#241400" i][style*="color:#f5a623" i]{ color:#925e07 !important; }
+html.theme-light [style*="background:#333" i][style*="color:#fff" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#3a1616" i][style*="color:#ff9090" i]{ color:#990000 !important; }
+html.theme-light [style*="background:#2a0a0a" i][style*="color:#cc5555" i]{ color:#762323 !important; }
+html.theme-light [style*="background:#0e0e0e" i][style*="color:#8fc3f5" i]{ color:#0d4e8c !important; }
+html.theme-light [style*="background:#222" i][style*="color:#eee" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#222" i][style*="color:#bbb" i]{ color:#2b2f36 !important; }
+html.theme-light [style*="background:#444" i][style*="color:#eee" i]{ color:#eeeeee !important; }
+html.theme-light [style*="background:#0f2417" i][style*="color:#3ecf8e" i]{ color:#1e7b51 !important; }
+html.theme-light [style*="background:#0e0e0e" i][style*="color:#cfe" i]{ color:#009966 !important; }
+html.theme-light [style*="background:#173a2a" i][style*="color:#7fffc4" i]{ color:#009952 !important; }
+html.theme-light [style*="background:#1a1a1a" i][style*="color:#cfe" i]{ color:#009966 !important; }
+html.theme-light [style*="background:#3a2a16" i][style*="color:#f5c97a" i]{ color:#8e5f0b !important; }
+html.theme-light [style*="background:#2a2416" i][style*="color:#f5c97a" i]{ color:#8e5f0b !important; }
+html.theme-light [style*="background:#fff7ed" i][style*="color:#92400e" i]{ color:#92400e !important; }
+html.theme-light [style*="background:#fff7ed" i][style*="color:#e08600" i]{ color:#e08600 !important; }
+html.theme-light [style*="background:#fafafa" i][style*="color:#333" i]{ color:#333333 !important; }
+html.theme-light [style*="background:#eef2ff" i][style*="color:#3046b5" i]{ color:#3046b5 !important; }
+html.theme-light [style*="background:#16321f" i][style*="color:#dff" i]{ color:#009999 !important; }
+html.theme-light [style*="background:#3a2a16" i][style*="color:#fde" i]{ color:#99004d !important; }
+html.theme-light [style*="background:#3a1a1a" i][style*="color:#fcc" i]{ color:#990000 !important; }
+html.theme-light [style*="background:#e8a020" i][style*="color:#000" i]{ color:#000000 !important; }
+html.theme-light [style*="background:#e74c3c" i][style*="color:#fff" i]{ color:#ffffff !important; }
+/* ════ THÈME CLAIR — LES VARIABLES CSS (★ v616) ══════════════════════════
+   LA cause, enfin trouvée, et je l'avais manquée trois fois.
+   Le fond de la fenêtre de la fiche candidat ne vient ni d'un style écrit dans
+   la balise, ni même d'une couleur écrite dans une classe : il vient d'une
+   VARIABLE — .modal{ background:var(--gray) } avec --gray:#2C2C2C.
+   Mes règles cherchaient [style*="background:#…"] (styles en ligne) puis les
+   classes à couleur écrite en dur. Aucune ne pouvait voir une variable.
+   Résultat mesuré dans la VRAIE fenêtre : texte #23262c sur fond #2c2c2c,
+   contraste 1,09 — invisible, exactement ce que tu voyais.
+   Ici on redéfinit les variables elles-mêmes : tout ce qui s'en sert suit,
+   la fenêtre, la barre de navigation, les cartes, le panneau de l'écran télé. */
+html.theme-light{
+  --dark:#ffffff;      /* fond général      (était #1A1A1A) */
+  --gray:#f3f4f7;      /* fenêtres, cartes  (était #2C2C2C) */
+}
+/* La barre de navigation garde du contraste sans devenir blanche. */
+html.theme-light nav{ background:#e4e6ec !important; border-color:#d2d5dc !important; }
+/* Le rouge, l'orange et le jaune de la marque ne changent pas : ce sont des
+   couleurs vives, elles restent vives dans les deux thèmes. */
+
+/* ════ THÈME CLAIR — LES CONTENEURS DÉFINIS PAR CLASSE (★ v615) ══════════
+   LA vraie cause de la fiche candidat illisible, et je l'avais manquée deux
+   fois : le fond de la fenêtre ne vient PAS d'un style écrit dans la balise,
+   il vient d'une CLASSE CSS (.modal). Or toutes mes règles ciblaient
+   [style*="background:…"], qui ne regarde QUE les styles en ligne. Elles ne
+   pouvaient donc jamais atteindre ce fond.
+   Résultat : le texte était bien foncé, le fond restait noir. Contraste
+   mesuré dans la vraie fenêtre : 1,09 — invisible.
+   Ici on traite les 88 règles de classe à fond sombre du fichier. */
+html.theme-light #theme-toggle{ background:#f1f1f1 !important; color:#925e07 !important; }
+html.theme-light .ptg-ph-wrap{ background:#f1f1f1 !important; }
+html.theme-light .ptgc{ background:#f1f1f1 !important; border-color:#d7d8de !important; }
+html.theme-light .ptg-abc button{ background:#f1f1f1 !important; color:#2b2f36 !important; border-color:#d7d8de !important; }
+html.theme-light .ptg-tile{ background:#f1f1f1 !important; border-color:#d7d8de !important; }
+html.theme-light .ptg-pin-in{ background:#f1f1f1 !important; color:#2b2f36 !important; border-color:#d7d8de !important; }
+html.theme-light .ptg-bigbtn.pause{ background:#f1f1f1 !important; border-color:#d7d8de !important; }
+html.theme-light .pin-box{ background:#f1f1f1 !important; border-color:#d7d8de !important; }
+html.theme-light .pkey{ background:#f1f1f1 !important; color:#2b2f36 !important; border-color:#d7d8de !important; }
+html.theme-light .pkey:active{ background:#f1f1f1 !important; }
+html.theme-light .pkey-back{ background:#f5f2ed !important; border-color:#d7d8de !important; }
+html.theme-light .pkey-del{ background:#f5eded !important; color:#762323 !important; border-color:#d7d8de !important; }
+html.theme-light .sec-title::after{ background:#f1f1f1 !important; }
+html.theme-light input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{ background:#f1f1f1 !important; color:#2b2f36 !important; }
+html.theme-light .sev-btn{ background:#f1f1f1 !important; }
+html.theme-light .btn-danger:hover{ background:#f5eded !important; }
+html.theme-light .tag{ background:#f1f1f1 !important; color:#2b2f36 !important; border-color:#d7d8de !important; }
+html.theme-light .score-bar{ background:#f1f1f1 !important; }
+html.theme-light .av-e{ background:#edf0f5 !important; color:#094890 !important; }
+html.theme-light .av-m{ background:#f5eded !important; }
+html.theme-light .av-d{ background:#f5f0ed !important; }
+html.theme-light .av-f{ background:#f5f4ed !important; }
+html.theme-light .rp-e{ background:#edf0f5 !important; color:#094890 !important; }
+html.theme-light .rp-m{ background:#f5eded !important; }
+html.theme-light .rp-d{ background:#f5f0ed !important; }
+html.theme-light .rp-f{ background:#f5f4ed !important; }
+html.theme-light .rp-l{ background:#eeedf5 !important; color:#402673 !important; }
+html.theme-light .av-l{ background:#eeedf5 !important; color:#402673 !important; }
+html.theme-light .lb-pend{ background:#f5f3ed !important; }
+html.theme-light .lb-sent{ background:#edf5ed !important; color:#2e6b30 !important; }
+html.theme-light .lb-rej{ background:#f5eded !important; color:#762323 !important; }
+html.theme-light .mail-tag{ background:#eff3ef !important; color:#2c6d2c !important; border-color:#d7d8de !important; }
+html.theme-light #toast{ background:#f1f1f1 !important; color:#2b2f36 !important; }
+html.theme-light .pl-cat-row td{ background:#f5f1ed !important; }
+html.theme-light .champ-auto{ background:#edf0f5 !important; color:#003e99 !important; }
+html.theme-light .rpt-table thead th{ background:#f1f1f1 !important; }
+html.theme-light .rpt-table tbody tr:nth-child(even){ background:#f1f1f1 !important; }
+html.theme-light .actu-item img.ai-img{ background:#f1f1f1 !important; }
+html.theme-light .actu-item .ai-pdf{ background:#f1f1f1 !important; color:#0d4e8c !important; border-color:#d7d8de !important; }
+html.theme-light .tel-tv-actu .dash-actu-h{ background:#f1f1f1 !important; }
+html.theme-light .tel-tog{ background:#f1f1f1 !important; border-color:#d7d8de !important; }
+html.theme-light .tel-tog .tt-sw{ background:#f1f1f1 !important; }
+html.theme-light .tel-tog.on{ background:#eef4ee !important; border-color:#d7d8de !important; }
+html.theme-light .tel-locked{ background:#f3f0ef !important; color:#6b532e !important; border-color:#d7d8de !important; }
+html.theme-light .tel-phone{ background:#f0f0f2 !important; border-color:#d7d8de !important; }
+html.theme-light .tel-phone-notch{ background:#f0f0f2 !important; border-color:#d7d8de !important; }
+html.theme-light .tel-phone-screen{ background:#f1f1f1 !important; }
+html.theme-light .tel-as-sel{ background:#f1f1f1 !important; color:#925e07 !important; }
+html.theme-light .tel-tv{ background:#f0f0f2 !important; border-color:#d7d8de !important; }
+html.theme-light .tel-tv-screen{ background:#f1f1f1 !important; }
+html.theme-light .tel-tv-stand{ background:#f1f1f1 !important; border-color:#d7d8de !important; }
+html.theme-light .eq-back{ background:#f0f0f2 !important; }
+html.theme-light .eq-card{ background:#f0f0f2 !important; border-color:#d7d8de !important; }
+html.theme-light .eq-resto{ background:#f1f1f1 !important; color:#2b2f36 !important; border-color:#d7d8de !important; }
+html.theme-light .eq-resto:hover{ background:#f5f3ed !important; }
+html.theme-light .eq-emp{ background:#f1f1f1 !important; border-color:#d7d8de !important; }
+html.theme-light .eq-search{ background:#f1f1f1 !important; color:#2b2f36 !important; border-color:#d7d8de !important; }
+html.theme-light .eq-fld{ background:#f1f1f1 !important; color:#2b2f36 !important; border-color:#d7d8de !important; }
+html.theme-light .eq-pin{ background:#f1f1f1 !important; color:#2b2f36 !important; border-color:#d7d8de !important; }
 /* Garder le TEXTE BLANC sur les éléments colorés (boutons rouges, dégradés, badges) */
 html.theme-light .btn-red,html.theme-light .btn-red *,
 html.theme-light [style*="linear-gradient(135deg,#C01E00"],html.theme-light [style*="linear-gradient(135deg,#C01E00"] *,
@@ -676,6 +770,31 @@ html.theme-light .rpt-table,html.theme-light .tel-tv-actu,html.theme-light .tel-
 .ptg-recap{background:#161616;border:1px solid #2a2a2a;border-radius:14px;padding:14px 16px;margin-bottom:16px;font-size:.9rem;text-align:left;}
 .ptg-recap .rline{display:flex;justify-content:space-between;padding:3px 0;color:#ccc;}
 .ptg-recap .rline b{color:#fff;}
+/* ★ v619 — l'écran de pointage : le salarié doit voir d'un coup d'œil son
+   arrivée, son départ et ce qu'il a fait. */
+.ptg-etat{border-radius:14px;padding:11px 14px;margin-bottom:10px;font-weight:800;font-size:.95rem;text-align:center;letter-spacing:.2px;}
+.ptg-etat.att{background:#20222a;border:1px solid #33363f;color:#aab;}
+.ptg-etat.on {background:#16321f;border:1px solid #2e5e33;color:#7fe0a0;}
+.ptg-etat.off{background:#12233a;border:1px solid #2f6ea5;color:#9fd3ff;}
+.ptg-3{display:grid;grid-template-columns:1fr 1fr 1.15fr;gap:8px;margin-bottom:10px;}
+.ptg-3c{background:#161616;border:1px solid #2a2a2a;border-radius:13px;padding:11px 8px;text-align:center;}
+.ptg-3c span{display:block;font-size:.7rem;color:#8a9099;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;}
+.ptg-3c b{display:block;font-size:1.45rem;font-weight:900;color:#fff;line-height:1.1;font-variant-numeric:tabular-nums;}
+.ptg-3c.vide b{color:#4a4d55;}
+.ptg-3c.tot{background:linear-gradient(160deg,#16321f,#12251a);border-color:#2e5e33;}
+.ptg-3c.tot b{color:#7fe0a0;}
+.ptg-seq{background:#161616;border:1px solid #2a2a2a;border-radius:13px;padding:9px 13px;margin-bottom:10px;text-align:left;}
+.ptg-seq .sq{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:.85rem;color:#ccc;}
+.ptg-seq .sq+.sq{border-top:1px solid #232323;}
+.ptg-seq .sq b{color:#fff;font-variant-numeric:tabular-nums;}
+.ptg-seq .sq-tot{border-top:1px solid #3a3a3a;margin-top:3px;padding-top:6px;font-weight:800;color:#7fe0a0;}
+.ptg-merci{background:linear-gradient(160deg,#16321f,#11241a);border:1px solid #2e5e33;border-radius:16px;padding:20px 18px;margin-bottom:14px;text-align:center;}
+.ptg-merci .mt{font-size:1.35rem;font-weight:900;color:#7fe0a0;margin-bottom:2px;}
+.ptg-merci .ms{font-size:.86rem;color:#a9d8ba;margin-bottom:12px;}
+.ptg-merci .mh{font-size:2.6rem;font-weight:900;color:#fff;line-height:1;font-variant-numeric:tabular-nums;}
+.ptg-merci .ml{font-size:.74rem;color:#8fc3a0;text-transform:uppercase;letter-spacing:1px;margin-top:4px;}
+html.theme-light .ptg-3c b{color:#23262c;}
+html.theme-light .ptg-3c.vide b{color:#b9bcc3;}
 .ptg-done{color:#3ecf8e;font-size:1.05rem;font-weight:700;padding:18px 0;}
 .ptg-close{background:none;border:none;color:#888;font-size:.9rem;cursor:pointer;padding:8px 16px;}
 .ptg-close:hover{color:#fff;}
@@ -4285,6 +4404,8 @@ function renderSemaineDetail(lundi, dayIdx){
     +'<button onclick="_ctrlPdfPointe(\''+lundi+'\')" style="background:#16321f;border:1px solid #2e5e33;color:#7fe0a0;border-radius:8px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:.8rem;">📄 PDF pointé</button>'
     /* ★ v599 — la roulette qui manquait ici. */
     +'<button id="sem-refresh" onclick="semRafraichirPointages()" title="Aller rechercher les pointages ET les absences saisis sur les autres postes (badgeuse, iPad)" style="background:#12324a;border:1px solid #2f6ea5;color:#9fd3ff;border-radius:8px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:.8rem;">🔄 Actualiser pointages et absences</button>'
+    /* ★ v618 — le ménage des pointages restés ouverts. */
+    +'<button onclick="ptgOuvertsOuvrir()" title="Voir et arrêter tous les pointages qui n\'ont jamais été fermés" style="background:#3a2a10;border:1px solid #7a5a1a;color:#e8a020;border-radius:8px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:.8rem;">⏹️ Pointages restés ouverts</button>'
     +(_SEM_PTG_LE?('<span style="font-size:.74rem;color:#7f8c96;">pointages relus à '+_SEM_PTG_LE+'</span>'):'')
     +'</div>'
     +'<div class="sec-title">🕐 Contrôle des heures · Semaine du '+_semDateFr(d0)+'</div>';
@@ -4388,6 +4509,146 @@ async function semRafraichirPointages(){
 }
 window.semRafraichirPointages=semRafraichirPointages;
 window._semChargerPointages=_semChargerPointages;
+
+/* ═══ ★ v618 — LES POINTAGES RESTÉS OUVERTS ═══════════════════════════════
+   Un pointage « en cours » qui ne se ferme jamais, c'est soit un salarié qui a
+   oublié de dépointer, soit un fantôme d'avant la v598 — ces pointages-là ont
+   été écrits dans la base à l'époque où une suppression ne tenait pas, ils y
+   sont encore. La v598 empêche d'en créer de nouveaux ; elle ne pouvait pas
+   deviner qu'il fallait effacer les anciens.
+   Cet écran les liste et propose deux gestes clairs :
+     • CLÔTURER  — on pose l'heure de fin prévue : les heures comptent en paie.
+     • SUPPRIMER — on retire le pointage : c'est un fantôme, il n'a rien à faire là.
+   Les deux passent par ptgSaveAll, donc c'est daté et ça tient sur tous les postes. */
+function _ptgFinPrevue(emp, iso, key){
+  try{
+    if(key){ var p=(''+key).split('-'); var e=parseInt(p[1],10); if(!isNaN(e)) return e; }
+    var segs=_chPlanSegs(emp, iso, emp.restoId||_semResto())||[];
+    if(segs.length) return segs[segs.length-1].e;
+  }catch(_){}
+  return null;
+}
+/* portee : 'jour' = la journee affichee · 'passes' = tous les jours AVANT aujourd'hui */
+function ptgOuvertsListe(resto, portee, iso){
+  var out=[], all={};
+  try{ all=ptgGetAll()||{}; }catch(_){}
+  var auj=(typeof ptgTodayISO==='function')?ptgTodayISO():'';
+  var emps={}; try{ (_arcSalaries?_arcSalaries(resto):[]).forEach(function(e){ emps[e.id]=e; }); }catch(_){}
+  try{ (DB.employees||[]).forEach(function(e){ if(!emps[e.id] && (''+(e.restoId||'')).toLowerCase()===(''+resto).toLowerCase()) emps[e.id]=e; }); }catch(_){}
+  Object.keys(all).forEach(function(k){
+    var i=k.lastIndexOf('_'); if(i<0) return;
+    var id=k.slice(0,i), d=k.slice(i+1);
+    var e=emps[id]; if(!e) return;
+    if(portee==='jour'){ if(d!==iso) return; } else { if(!(d<auj)) return; }
+    var rec=all[k]||{};
+    var rc=rec.cren||{}, aOuvert=false;
+    Object.keys(rc).forEach(function(ck){
+      var c=rc[ck]; if(c && c.arrivee && !c.depart && !c.abs){
+        out.push({emp:e, iso:d, key:ck, arrivee:c.arrivee, fin:_ptgFinPrevue(e,d,ck)}); aOuvert=true; }
+    });
+    if(!aOuvert && rec.arrivee && !rec.depart){
+      out.push({emp:e, iso:d, key:null, arrivee:rec.arrivee, fin:_ptgFinPrevue(e,d,null)});
+    }
+  });
+  out.sort(function(a,b){ return (a.iso<b.iso?-1:a.iso>b.iso?1:0) || (''+a.emp.name).localeCompare(''+b.emp.name); });
+  return out;
+}
+window.ptgOuvertsListe=ptgOuvertsListe;
+var _PO_PORTEE='jour';
+function ptgOuvertsOuvrir(){
+  var ov=document.getElementById('po-ov'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='po-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:12300;display:flex;align-items:flex-start;justify-content:center;padding:28px 14px;overflow:auto;';
+  ov.innerHTML='<div class="card" style="max-width:720px;width:100%;padding:20px;"><div id="po-corps"></div></div>';
+  document.body.appendChild(ov);
+  ptgOuvertsRendre();
+}
+window.ptgOuvertsOuvrir=ptgOuvertsOuvrir;
+function ptgOuvertsPortee(p){ _PO_PORTEE=p; ptgOuvertsRendre(); }
+window.ptgOuvertsPortee=ptgOuvertsPortee;
+function ptgOuvertsRendre(){
+  var box=document.getElementById('po-corps'); if(!box) return;
+  var resto=(typeof _semResto==='function')?_semResto():'bk526';
+  var iso=''; try{ iso=(window._SEM_CUR&&window._SEM_CUR.lundi)?_semIso(new Date(new Date(window._SEM_CUR.lundi+'T12:00:00').getTime()+(window._SEM_CUR.day||0)*86400000)):ptgTodayISO(); }catch(_){ iso=ptgTodayISO(); }
+  var lst=ptgOuvertsListe(resto, _PO_PORTEE, iso);
+  var lab=(RESTOS[resto]&&RESTOS[resto].label)||resto;
+  var jf=''; try{ jf=new Date(iso+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long'}); }catch(_){ jf=iso; }
+  var h='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;">'
+    +'<div style="font-size:1.1rem;font-weight:900;">⏹️ Pointages restés ouverts</div>'
+    +'<span style="background:#D62300;color:#fff;border-radius:20px;padding:3px 12px;font-size:.8rem;font-weight:800;">'+_msgEsc(lab)+'</span>'
+    +'<button onclick="document.getElementById(\'po-ov\').remove()" class="btn btn-gray btn-sm" style="margin-left:auto;">Fermer</button></div>'
+    +'<div style="font-size:.83rem;color:#8a9099;line-height:1.5;margin-bottom:12px;">'
+      +'Un pointage ouvert, c\'est une arrivée sans départ. Soit le salarié a oublié de dépointer — on <b>clôture</b> à son heure de fin prévue et les heures comptent. '
+      +'Soit c\'est un pointage fantôme resté d\'avant la correction de synchronisation — on le <b>supprime</b>.</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">'
+      +'<button onclick="ptgOuvertsPortee(\'jour\')" class="btn '+(_PO_PORTEE==='jour'?'btn-red':'btn-gray')+' btn-sm">Ce jour ('+_msgEsc(jf)+')</button>'
+      +'<button onclick="ptgOuvertsPortee(\'passes\')" class="btn '+(_PO_PORTEE==='passes'?'btn-red':'btn-gray')+' btn-sm">Tous les jours passés</button>'
+    +'</div>';
+  if(!lst.length){
+    h+='<div style="background:#16321f;border:1px solid #2e5e33;color:#7fe0a0;border-radius:10px;padding:14px;font-weight:700;">✅ Aucun pointage resté ouvert. Tout est propre.</div>';
+    box.innerHTML=h; return;
+  }
+  h+='<div style="border:1px solid #2a2a2a;border-radius:10px;overflow:hidden;max-height:340px;overflow-y:auto;">';
+  lst.forEach(function(o,i){
+    var jj=''; try{ jj=new Date(o.iso+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}); }catch(_){ jj=o.iso; }
+    h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 13px;border-top:'+(i?'1px solid #232323':'none')+';flex-wrap:wrap;">'
+      +'<span style="min-width:52px;color:#8a9099;font-size:.8rem;">'+_msgEsc(jj)+'</span>'
+      +'<span style="flex:1;min-width:150px;font-weight:600;font-size:.87rem;">'+_msgEsc(o.emp.name||'')+'</span>'
+      +'<span style="font-size:.82rem;color:#e8a020;font-weight:700;">'+_msgEsc(o.arrivee)+' → en cours</span>'
+      +'<span style="font-size:.78rem;color:#8a9099;min-width:110px;">'+(o.fin!=null?('fin prévue '+_ptgMin2hm(o.fin)):'aucun horaire prévu')+'</span>'
+      +'</div>';
+  });
+  h+='</div>';
+  var nFin=lst.filter(function(o){ return o.fin!=null; }).length;
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">'
+    +'<button onclick="ptgOuvertsAgir(\'cloturer\')" class="btn btn-red btn-sm">⏹️ Clôturer à l\'heure prévue ('+nFin+')</button>'
+    +'<button onclick="ptgOuvertsAgir(\'supprimer\')" style="background:#3a1616;border:1px solid #6a2a2a;color:#ff8b7a;border-radius:9px;padding:7px 13px;cursor:pointer;font-weight:700;font-size:.82rem;">🗑️ Supprimer ces '+lst.length+' pointages</button>'
+    +'</div>'
+    +'<div style="font-size:.76rem;color:#8a9099;margin-top:8px;">'
+      +(nFin<lst.length?('⚠️ '+(lst.length-nFin)+' n\'ont aucun horaire prévu : la clôture ne peut pas deviner leur heure de fin, ils resteront ouverts. Utilise Supprimer pour ceux-là.'):'')
+      +'</div>'
+    +'<div id="po-msg" style="font-size:.85rem;margin-top:8px;min-height:18px;"></div>';
+  box.innerHTML=h;
+}
+window.ptgOuvertsRendre=ptgOuvertsRendre;
+function ptgOuvertsAgir(action){
+  var resto=(typeof _semResto==='function')?_semResto():'bk526';
+  var iso=''; try{ iso=(window._SEM_CUR&&window._SEM_CUR.lundi)?_semIso(new Date(new Date(window._SEM_CUR.lundi+'T12:00:00').getTime()+(window._SEM_CUR.day||0)*86400000)):ptgTodayISO(); }catch(_){ iso=ptgTodayISO(); }
+  var lst=ptgOuvertsListe(resto, _PO_PORTEE, iso);
+  if(!lst.length) return;
+  var quoi=(action==='supprimer')
+    ? ('SUPPRIMER '+lst.length+' pointage(s) resté(s) ouvert(s) ?\n\nIls disparaîtront de Contrôle des heures, de l\'iPad et de la paie, sur tous les postes.')
+    : ('CLÔTURER les pointages ouverts à leur heure de fin prévue ?\n\nLes heures seront comptées en paie. Ceux qui n\'ont aucun horaire prévu ne seront pas touchés.');
+  if(!confirm(quoi)) return;
+  var all=ptgGetAll(), n=0, sautes=0;
+  lst.forEach(function(o){
+    var k=o.emp.id+'_'+o.iso; var rec=all[k]; if(!rec) return;
+    if(action==='supprimer'){
+      if(o.key && rec.cren && rec.cren[o.key]) delete rec.cren[o.key];
+      else { rec.arrivee=''; rec.depart=''; rec.pauses=[]; }
+      if(rec.cren && !Object.keys(rec.cren).length && !rec.arrivee) rec.cren={};
+      // si plus rien n'est pointé ce jour-là, on remet la fiche à zéro
+      var vide=!rec.arrivee && !rec.depart && (!rec.cren || !Object.keys(rec.cren).length);
+      if(vide){ rec.arrivee=''; rec.depart=''; rec.pauses=[]; rec.cren={}; }
+      n++;
+    } else {
+      if(o.fin==null){ sautes++; return; }
+      var hm=_ptgMin2hm(o.fin);
+      if(o.key){ rec.cren=rec.cren||{}; rec.cren[o.key]=rec.cren[o.key]||{}; rec.cren[o.key].depart=hm; rec.cren[o.key].clotureAuto=true; }
+      else { rec.depart=hm; rec.clotureAuto=true; }
+      n++;
+    }
+  });
+  try{ ptgSaveAll(all); }catch(_){}
+  var m=document.getElementById('po-msg');
+  if(m) m.innerHTML='<span style="color:#7fe0a0;font-weight:700;">✅ '+n+' pointage'+(n>1?'s':'')+' '+(action==='supprimer'?'supprimé':'clôturé')+(n>1?'s':'')+'</span>'
+    +(sautes?('<span style="color:#e8a020;"> · '+sautes+' laissé'+(sautes>1?'s':'')+' (aucun horaire prévu)</span>'):'');
+  try{ ptgRenderSuivi(); }catch(_){}
+  try{ _semRefreshIfActive(); }catch(_){}
+  setTimeout(ptgOuvertsRendre, 400);
+}
+window.ptgOuvertsAgir=ptgOuvertsAgir;
+
 function _semRefreshIfActive(){ try{ var p=document.getElementById('page-semaines'); if(p&&p.classList.contains('active')&&window._SEM_CUR){ renderSemaineDetail(window._SEM_CUR.lundi, window._SEM_CUR.day); } }catch(_){} }
 window._semRefreshIfActive=_semRefreshIfActive;
 window.renderSemaines=renderSemaines; window.renderSemaineDetail=renderSemaineDetail;
@@ -5947,10 +6208,142 @@ function arcCheminPlanning(resto, lundiIso){
   var lab=_arcResto(resto);
   return ARC_PLAN+'/'+lab+'/'+(''+lundiIso).slice(0,4)+'/Planning '+lab+' semaine du '+_arcJJMMAAAA(lundiIso)+'.pdf';
 }
-function arcCheminPointages(resto, annee){
+function arcCheminPointages(resto, annee){          // récap de l'année, 12 onglets
   var lab=_arcResto(resto);
   return ARC_PTG+'/'+lab+'/Pointages '+lab+' '+annee+'.xlsx';
 }
+/* ★ v617 — un fichier PAR MOIS, celui qu'on télécharge pour faire la paie. */
+function arcCheminMois(resto, ym){
+  var lab=_arcResto(resto);
+  return ARC_PTG+'/'+lab+'/'+(''+ym).slice(0,4)+'/Pointages '+lab+' '+ym+'.xlsx';
+}
+window.arcCheminMois=arcCheminMois;
+async function arcEnvoyerMois(resto, ym){
+  if(typeof XLSX==='undefined') return {ok:false, raison:'générateur Excel indisponible'};
+  var an=parseInt((''+ym).slice(0,4),10), mo=parseInt((''+ym).slice(5,7),10);
+  if(!an||!mo) return {ok:false, raison:'mois illisible'};
+  var rows=_arcFeuilleMois(resto, an, mo);
+  if(rows.length<2) return {ok:false, raison:'aucun salarié dans ce restaurant'};
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), (('0'+mo).slice(-2)+' '+ARC_MOIS[mo-1]).slice(0,31));
+  var buf=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  var chemin=arcCheminMois(resto, ym);
+  await dbxUpload(chemin, blob);
+  return {ok:true, chemin:chemin};
+}
+window.arcEnvoyerMois=arcEnvoyerMois;
+/* ═══ ★ v617 — LA FEUILLE DE POINTAGE D'UN SALARIÉ, POUR UN MOIS ═══════════
+   En PDF, parce qu'un PDF ne se modifie pas : c'est la pièce qu'on imprime ou
+   qu'on envoie à un salarié qui conteste ses heures.
+       /Pointages/<Restaurant>/<Année>/<AAAA-MM>/<NOM Prénom>.pdf
+   Un salarié, un mois, un fichier. « Le pointage de Laurent, février 2026 »
+   se trouve en trois clics.                                                  */
+function arcCheminPtgSalarie(resto, emp, ym){
+  return ARC_PTG+'/'+_arcResto(resto)+'/'+(''+ym).slice(0,4)+'/'+ym+'/'+dbxClean(emp.name||emp.id)+'.pdf';
+}
+window.arcCheminPtgSalarie=arcCheminPtgSalarie;
+function _arcHM(m){ m=Math.round(m); var h=Math.floor(m/60), mm=m%60; return (h<10?'0':'')+h+':'+(mm<10?'0':'')+mm; }
+function arcPdfPointageSalarie(resto, emp, ym){
+  var JS=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF; if(!JS) return null;
+  var doc=new JS({unit:'mm',format:'a4',orientation:'portrait'});
+  var lab=(RESTOS[resto]&&RESTOS[resto].label)||resto;
+  var an=parseInt((''+ym).slice(0,4),10), mo=parseInt((''+ym).slice(5,7),10);
+  var nbj=new Date(an,mo,0).getDate();
+  var mm={}; try{ mm=(typeof _gdhMatriculeMap==='function')?_gdhMatriculeMap():{}; }catch(_){}
+  var info={}; try{ info=mm[_gdhNorm(emp.name)]||{}; }catch(_){}
+  var cw=0; try{ cw=(typeof hrContratHebdo==='function'?hrContratHebdo(emp):0)||0; }catch(_){}
+  // jsPDF gère les accents (vérifié) : on écrit du vrai français, c'est un
+  // document qui part à un salarié.
+  var S=function(x){ return String(x==null?'':x); };
+
+  doc.setFillColor(214,35,0); doc.rect(0,0,210,20,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text('FEUILLE DE POINTAGE', 12, 9);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text(S(lab)+'   -   '+S(ARC_MOIS[mo-1]+' '+an), 12, 15);
+
+  doc.setTextColor(20,20,20); doc.setFontSize(12); doc.setFont('helvetica','bold');
+  doc.text(S(emp.name||''), 12, 30);
+  doc.setFontSize(8.5); doc.setFont('helvetica','normal'); doc.setTextColor(90,90,90);
+  var ent=[]; if(info.mat) ent.push('Matricule '+S(info.mat));
+  if(cw) ent.push('Contrat '+cw+' h/semaine'); if(info.entree) ent.push('Entrée le '+S(info.entree));
+  doc.text(ent.join('     '), 12, 35.5);
+
+  var y=44, LH=5.4;
+  function entete(){
+    doc.setFillColor(238,239,243); doc.rect(12,y-4.4,186,6.6,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(40,40,40);
+    doc.text('Date',14,y); doc.text('Jour',30,y); doc.text('Prévu',52,y);
+    doc.text('Pointé',92,y); doc.text('Heures',134,y); doc.text('Absence',156,y);
+    y+=6.4; doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30);
+  }
+  entete();
+  var JN=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  var totMin=0, totJours=0, totAbs=0;
+  for(var d=1; d<=nbj; d++){
+    var iso=ym+'-'+('0'+d).slice(-2);
+    var dt=new Date(iso+'T12:00:00');
+    var prevu=''; try{ prevu=(_chPlanSegs(emp,iso,resto)||[]).map(function(sg){ return _arcHM(sg.s)+'-'+_arcHM(sg.e); }).join('  '); }catch(_){}
+    var pointe=''; try{
+      pointe=(_ptgCreneauxJour(emp.id,iso)||[]).filter(function(c){return c.arrivee||c.depart;})
+        .map(function(c){ return (c.arrivee||'?')+'-'+(c.depart||'?'); }).join('  ');
+    }catch(_){}
+    var min=0; try{ min=_ptgMinPointesJour(emp.id,iso)||0; }catch(_){}
+    var abs=''; try{ abs=_arcAbsJour(emp.id,iso)||''; }catch(_){}
+    if(min>0){ totMin+=min; totJours++; }
+    if(abs){ try{ var hh=0; (_chPlanSegs(emp,iso,resto)||[]).forEach(function(sg){ hh+=(sg.e-sg.s); }); totAbs+=hh; }catch(_){} }
+    if(y>272){ doc.addPage(); y=20; entete(); }
+    if(d%2===0){ doc.setFillColor(250,250,252); doc.rect(12,y-4,186,LH,'F'); }
+    var wk=dt.getDay();
+    if(wk===0||wk===6){ doc.setTextColor(150,150,150); } else { doc.setTextColor(30,30,30); }
+    doc.setFontSize(7.8);
+    doc.text(('0'+d).slice(-2)+'/'+('0'+mo).slice(-2), 14, y);
+    doc.text(JN[wk], 30, y);
+    doc.text(S(prevu).slice(0,26), 52, y);
+    doc.text(S(pointe).slice(0,26), 92, y);
+    doc.text(min>0?(Math.round(min/60*100)/100+'').replace('.',','):'', 134, y);
+    if(abs){ doc.setTextColor(200,60,40); doc.setFont('helvetica','bold'); doc.text(S(abs), 156, y);
+             doc.setFont('helvetica','normal'); }
+    y+=LH;
+  }
+  if(y>258){ doc.addPage(); y=22; }
+  y+=4; doc.setDrawColor(200,200,205); doc.line(12,y-3,198,y-3);
+  doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(20,20,20);
+  doc.text('TOTAL POINTÉ : '+(Math.round(totMin/60*100)/100+'').replace('.',',')+' h', 14, y+3);
+  doc.text('Jours travaillés : '+totJours, 78, y+3);
+  doc.text('Absences : '+(Math.round(totAbs/60*100)/100+'').replace('.',',')+' h', 134, y+3);
+  y+=12;
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.2); doc.setTextColor(120,120,120);
+  doc.text('CP congés payés  ·  CS congé sans solde  ·  AI absence injustifiée  ·  MA maladie  ·  ANP absence non payée  ·  AT accident du travail', 14, y);
+  y+=4;
+  var lej=''; try{ lej=new Date().toLocaleDateString('fr-FR'); }catch(_){}
+  doc.text('Document généré le '+S(lej)+' depuis BK RH  ·  feuille de pointage, document non modifiable.', 14, y);
+  y+=10;
+  doc.setDrawColor(180,180,185); doc.setTextColor(80,80,80); doc.setFontSize(8);
+  doc.text('Signature du salarié', 20, y); doc.line(18,y+16,88,y+16);
+  doc.text('Signature du responsable', 122, y); doc.line(120,y+16,190,y+16);
+  return doc;
+}
+window.arcPdfPointageSalarie=arcPdfPointageSalarie;
+async function arcEnvoyerPtgSalarie(resto, emp, ym){
+  var doc=arcPdfPointageSalarie(resto, emp, ym);
+  if(!doc) return {ok:false, raison:'generateur PDF indisponible'};
+  var chemin=arcCheminPtgSalarie(resto, emp, ym);
+  await dbxUpload(chemin, doc.output('blob'));
+  return {ok:true, chemin:chemin};
+}
+window.arcEnvoyerPtgSalarie=arcEnvoyerPtgSalarie;
+/* Tout le mois, salarié par salarié. */
+async function arcEnvoyerMoisSalaries(resto, ym, onEtape){
+  var lst=_arcSalaries(resto)||[]; var n=0, ko=0;
+  for(var i=0;i<lst.length;i++){
+    if(onEtape) try{ onEtape(lst[i].name, i+1, lst.length); }catch(_){}
+    try{ var r=await arcEnvoyerPtgSalarie(resto, lst[i], ym); if(r.ok) n++; }catch(_){ ko++; }
+  }
+  return {ok:n>0, n:n, ko:ko, total:lst.length};
+}
+window.arcEnvoyerMoisSalaries=arcEnvoyerMoisSalaries;
 window.arcCheminPlanning=arcCheminPlanning; window.arcCheminPointages=arcCheminPointages;
 
 /* ── 1) LE PLANNING DE LA SEMAINE, EN PDF ────────────────────────────────── */
@@ -6053,8 +6446,15 @@ function arcAutoPointages(resto, ym){
   try{
     if(typeof dbxEstPret==='function' && !dbxEstPret()) return;
     var an=parseInt((''+ym).slice(0,4),10); if(!an) return;
-    arcEnvoyerPointages(resto, an).then(function(r){
-      if(r && r.ok){ try{ toast('Pointages '+an+' archivés dans Dropbox 📁','success'); }catch(_){} }
+    // ★ v617 — le mois (celui qu'on télécharge pour la paie) PUIS le récap de l'année.
+    arcEnvoyerMois(resto, ym).then(function(r){
+      if(r && r.ok){ try{ toast('Pointages '+ym+' archivés dans Dropbox 📁','success'); }catch(_){} }
+      return arcEnvoyerPointages(resto, an);
+    }).then(function(){
+      // ★ v617 — la feuille PDF de chaque salarié, pour pouvoir la sortir en cas de contestation.
+      return arcEnvoyerMoisSalaries(resto, ym);
+    }).then(function(rs){
+      if(rs && rs.n){ try{ toast(rs.n+' feuilles de pointage archivées 📄','success'); }catch(_){} }
     }).catch(function(e){ console.warn('archive pointages', e); });
   }catch(e){ console.warn('archive pointages', e); }
 }
@@ -6064,7 +6464,8 @@ var RPT_TILES=[
   {id:'traits',    em:'📋', tt:'Traits de la semaine', ds:'Tous les créneaux à couvrir, jour par jour', color:'#8e24aa'},
   {id:'planhebdo', em:'🗓️', tt:'Planning de la semaine', ds:'Qui travaille quand (planning fait)', color:'#00897b'},
   {id:'planpartage', em:'📤', tt:'Plannings transférés', ds:'Semaines transférées aux employés (imprimables)', color:'#0277bd'},
-  {id:'archives', em:'📁', tt:'Archives Dropbox', ds:'Plannings par semaine et pointages par mois, rangés dans Dropbox', color:'#0061ff'},
+  {id:'arch_plannings', em:'🗓️', tt:'Plannings archivés', ds:'Le planning de chaque semaine, à voir et à télécharger', color:'#0061ff'},
+  {id:'arch_pointages', em:'⏱️', tt:'Pointages archivés', ds:'Les pointages de chaque mois, à voir et à télécharger', color:'#1d7a3a'},
   {id:'suivipointage', em:'⏱️', tt:'Contrôle pointage', ds:'Prévu vs pointé + heures réelles', color:'#6d4aad'},
   {id:'paye',      em:'💰', tt:'Paye', ds:'Heures du mois + bons repas → export paye', color:'#1d7a3a'},
   {id:'visitemed', em:'🩺', tt:'Visite médicale', ds:'Suivi des visites médicales', color:'#e67e22'},
@@ -6078,86 +6479,226 @@ var RPT_TILES=[
 ];
 var _rptCurrent=null;
 
-/* ── ★ v612 — Rapports › 📁 Archives Dropbox ─────────────────────────────── */
+/* ── ★ v617 — Rapports › 🗓️ Plannings archivés / ⏱️ Pointages archivés ─────
+   Deux tuiles distinctes, et le restaurant vient de l'ONGLET du haut : chaque
+   restaurant a son rapport, on ne les mélange pas. Une ligne par semaine (ou
+   par mois), avec ce qui est déjà rangé dans Dropbox et ce qui ne l'est pas. */
 function _arcLundiDe(iso){
   try{ var d=new Date(iso+'T12:00:00'); var j=d.getDay()||7; d.setDate(d.getDate()-(j-1));
        return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
   catch(_){ return iso; }
 }
-function arcRestosVisibles(){
+// Le restaurant du rapport = l'onglet choisi en haut de la page Rapports.
+function arcRestoCourant(){
   try{
-    var r=(curUser&&curUser.role)||'';
-    if(['admin','rh','franchise'].indexOf(r)>=0) return ['bk500','bk509','bk526'];
-    return [(curUser&&curUser.restoId)||'bk526'];
-  }catch(_){ return ['bk526']; }
+    var r=(typeof rptTab!=='undefined')?rptTab:null;
+    if(r && r!=='all') return r;
+    if(curUser && curUser.restoId) return curUser.restoId;
+  }catch(_){}
+  return 'bk526';
 }
-function arcOuvrir(){
+window.arcRestoCourant=arcRestoCourant;
+function _arcMoisFr(ym){
+  var mo=parseInt((''+ym).slice(5,7),10);
+  return (ARC_MOIS[mo-1]||ym)+' '+(''+ym).slice(0,4);
+}
+function _arcSemaineFr(lundi){
+  try{
+    var d=new Date(lundi+'T12:00:00'), f=new Date(d.getTime()+6*86400000);
+    var o={day:'2-digit',month:'short'};
+    return d.toLocaleDateString('fr-FR',o)+' → '+f.toLocaleDateString('fr-FR',o);
+  }catch(_){ return lundi; }
+}
+/* Toutes les semaines qui existent pour ce restaurant, les récentes d'abord. */
+function arcSemaines(resto){
+  var v={};
+  try{ (_semWeeks(resto)||[]).forEach(function(w){ if(w&&w.lundi) v[w.lundi]=1; }); }catch(_){}
+  try{ var d=_chDatesAvecTraits(resto)||{}; Object.keys(d).forEach(function(iso){ v[_arcLundiDe(iso)]=1; }); }catch(_){}
+  try{ var all=ptgGetAll()||{}; var ids={}; (_arcSalaries(resto)||[]).forEach(function(e){ ids[e.id]=1; });
+       Object.keys(all).forEach(function(k){ var p=k.split('_'); if(ids[p[0]] && p[1]) v[_arcLundiDe(p[1])]=1; }); }catch(_){}
+  return Object.keys(v).sort().reverse();
+}
+/* Tous les mois qui ont au moins un pointage ou un planning. */
+function arcMois(resto){
+  var v={};
+  try{ arcSemaines(resto).forEach(function(l){ v[(''+l).slice(0,7)]=1; }); }catch(_){}
+  return Object.keys(v).sort().reverse();
+}
+window.arcSemaines=arcSemaines; window.arcMois=arcMois;
+
+var _ARC_VUE='semaines';
+function arcVue(quoi){
+  _ARC_VUE=(quoi==='mois')?'mois':'semaines';
   var ov=document.getElementById('arc-ov'); if(ov) ov.remove();
-  var auj=new Date();
-  var isoAuj=auj.getFullYear()+'-'+('0'+(auj.getMonth()+1)).slice(-2)+'-'+('0'+auj.getDate()).slice(-2);
-  var restos=arcRestosVisibles();
-  var optR=restos.map(function(r){ return '<option value="'+r+'">'+((RESTOS[r]&&RESTOS[r].label)||r)+'</option>'; }).join('');
-  var an=auj.getFullYear(), optA='';
-  for(var y=an; y>=an-3; y--) optA+='<option value="'+y+'">'+y+'</option>';
   ov=document.createElement('div'); ov.id='arc-ov';
-  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:12200;display:flex;align-items:flex-start;justify-content:center;padding:34px 14px;overflow:auto;';
-  ov.innerHTML='<div style="background:#141416;border:1px solid #444;border-radius:16px;max-width:640px;width:100%;padding:22px;">'
-    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;"><div style="font-size:1.15rem;font-weight:900;color:#fff;">📁 Archives Dropbox</div>'
-      +'<button onclick="document.getElementById(\'arc-ov\').remove()" style="margin-left:auto;background:#2a2a2a;border:none;color:#ccc;border-radius:9px;padding:7px 13px;cursor:pointer;font-weight:700;">Fermer</button></div>'
-    +'<div style="color:#999;font-size:.83rem;line-height:1.5;margin-bottom:16px;">'
-      +'Les plannings et les pointages sont rangés <b>uniquement dans Dropbox</b> — rien n\'est gardé dans l\'application ni dans la base.'
-      +'<br>Tout part déjà tout seul : le <b>planning</b> au transfert de la semaine, les <b>pointages</b> à la validation du mois. Ici, tu peux <b>rattraper</b> ou <b>réécrire</b> ce que tu veux.</div>'
-    +'<div style="background:#0f1115;border:1px solid #2a3550;border-radius:11px;padding:14px;margin-bottom:12px;">'
-      +'<div style="font-weight:800;color:#8fc3f5;font-size:.92rem;margin-bottom:3px;">🗓️ Planning d\'une semaine → PDF</div>'
-      +'<div style="color:#7f8c96;font-size:.76rem;margin-bottom:10px;font-family:monospace;">/Plannings/&lt;Restaurant&gt;/&lt;Année&gt;/Planning … semaine du JJ-MM-AAAA.pdf</div>'
-      +'<div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center;">'
-        +'<select id="arc-r1" class="fi" style="max-width:190px;">'+optR+'</select>'
-        +'<input type="date" id="arc-sem" class="fi" style="max-width:175px;" value="'+isoAuj+'">'
-        +'<button onclick="arcLancerPlanning()" class="btn btn-red btn-sm">📤 Envoyer cette semaine</button>'
-      +'</div></div>'
-    +'<div style="background:#0f1510;border:1px solid #2e5e33;border-radius:11px;padding:14px;">'
-      +'<div style="font-weight:800;color:#8fe6a8;font-size:.92rem;margin-bottom:3px;">⏱️ Pointages d\'une année → Excel, un onglet par mois</div>'
-      +'<div style="color:#7f8c96;font-size:.76rem;margin-bottom:10px;font-family:monospace;">/Pointages/&lt;Restaurant&gt;/Pointages … &lt;Année&gt;.xlsx</div>'
-      +'<div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center;">'
-        +'<select id="arc-r2" class="fi" style="max-width:190px;">'+optR+'</select>'
-        +'<select id="arc-an" class="fi" style="max-width:120px;">'+optA+'</select>'
-        +'<button onclick="arcLancerPointages()" class="btn btn-red btn-sm">📤 Envoyer l\'année</button>'
-      +'</div></div>'
-    +'<div id="arc-msg" style="margin-top:14px;font-size:.86rem;color:#ccc;min-height:22px;"></div>'
-    +'</div>';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:12200;display:flex;align-items:flex-start;justify-content:center;padding:28px 14px;overflow:auto;';
+  ov.innerHTML='<div class="card" style="max-width:760px;width:100%;padding:20px;"><div id="arc-corps"></div></div>';
   document.body.appendChild(ov);
-  if(typeof dbxEstPret==='function' && !dbxEstPret()){
-    var m=document.getElementById('arc-msg');
-    if(m) m.innerHTML='<span style="color:#e8623a;font-weight:700;">⛔ Dropbox n\'est pas connecté — va dans Paramètres pour le brancher.</span>';
+  arcRendre();
+}
+window.arcVue=arcVue;
+function arcRendre(){
+  var box=document.getElementById('arc-corps'); if(!box) return;
+  var resto=arcRestoCourant();
+  var lab=(RESTOS[resto]&&RESTOS[resto].label)||resto;
+  var mois=(_ARC_VUE==='mois');
+  var titre=mois?'⏱️ Pointages archivés':'🗓️ Plannings archivés';
+  var sous=mois
+    ? 'Un fichier Excel par mois — c\'est celui-là qu\'on télécharge pour préparer la paie. Le récapitulatif de l\'année (12 onglets) est rangé à côté.'
+    : 'Le PDF du planning de chaque semaine. Il part tout seul dans Dropbox au moment où tu transfères la semaine aux salariés.';
+  var lignes=mois?arcMois(resto):arcSemaines(resto);
+  var h='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:3px;">'
+    +'<div style="font-size:1.12rem;font-weight:900;">'+titre+'</div>'
+    +'<span style="background:#D62300;color:#fff;border-radius:20px;padding:3px 12px;font-size:.8rem;font-weight:800;">'+_msgEsc(lab)+'</span>'
+    +'<button onclick="document.getElementById(\'arc-ov\').remove()" class="btn btn-gray btn-sm" style="margin-left:auto;">Fermer</button></div>'
+    +'<div style="font-size:.82rem;color:#8a9099;line-height:1.5;margin-bottom:6px;">'+sous+'</div>'
+    +'<div style="font-size:.76rem;color:#8a9099;font-family:monospace;margin-bottom:12px;">'
+      +(mois?'/Pointages/&lt;Restaurant&gt;/&lt;Année&gt;/':'/Plannings/&lt;Restaurant&gt;/&lt;Année&gt;/')+'</div>';
+  if(typeof dbxEstPret==='function' && !dbxEstPret())
+    h+='<div style="background:#3a1616;border:1px solid #6a2a2a;color:#ff8b7a;border-radius:9px;padding:10px 13px;margin-bottom:12px;font-weight:700;font-size:.85rem;">⛔ Dropbox n\'est pas connecté — va dans Paramètres pour le brancher.</div>';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">'
+    +'<button onclick="arcActualiser()" class="btn btn-gray btn-sm">🔄 Voir ce qui est déjà rangé</button>'
+    +'<button onclick="arcToutEnvoyer()" class="btn btn-red btn-sm">📤 Envoyer tout ce qui manque</button></div>'
+    +'<div id="arc-msg" style="font-size:.85rem;min-height:20px;margin-bottom:10px;"></div>';
+  if(!lignes.length){
+    h+='<div style="background:#141414;border-radius:10px;padding:16px;color:#8a9099;">Rien à archiver pour ce restaurant pour le moment.</div>';
+  } else {
+    h+='<div style="border:1px solid #2a2a2a;border-radius:10px;overflow:hidden;">';
+    var anCour=null;
+    lignes.forEach(function(k,idx){
+      var an=(''+k).slice(0,4);
+      if(an!==anCour){ anCour=an;
+        h+='<div style="background:#1A1A1A;padding:6px 13px;font-weight:800;color:#F5A623;font-size:.85rem;">'+an+'</div>'; }
+      var lbl=mois?_arcMoisFr(k):('Semaine du '+_arcJJMMAAAA(k)+'  ·  '+_arcSemaineFr(k));
+      h+='<div id="arc-l-'+idx+'" style="display:flex;align-items:center;gap:10px;padding:9px 13px;border-top:1px solid #232323;flex-wrap:wrap;">'
+        +'<div style="flex:1;min-width:210px;font-weight:600;font-size:.88rem;">'+_msgEsc(lbl)+'</div>'
+        +'<span id="arc-e-'+idx+'" style="font-size:.78rem;color:#8a9099;min-width:96px;">…</span>'
+        +'<span id="arc-b-'+idx+'"><button onclick="arcEnvoyerUn(\''+k+'\','+idx+')" class="btn btn-gray btn-sm">📤 Envoyer</button></span>'
+        +(mois?('<button onclick="arcSalaries(\''+k+'\','+idx+')" class="btn btn-gray btn-sm" title="La feuille de pointage de chaque salarié">👥 Par salarié</button>'):'')
+        +'<div id="arc-s-'+idx+'" style="flex-basis:100%;"></div>'
+        +'</div>';
+    });
+    h+='</div>';
   }
+  box.innerHTML=h;
+  setTimeout(arcActualiser, 60);
 }
-window.arcOuvrir=arcOuvrir;
+window.arcRendre=arcRendre;
 function _arcMsg(html){ var m=document.getElementById('arc-msg'); if(m) m.innerHTML=html; }
-async function arcLancerPlanning(){
-  var r=(document.getElementById('arc-r1')||{}).value;
-  var d=(document.getElementById('arc-sem')||{}).value;
-  if(!r||!d) return _arcMsg('<span style="color:#e8623a;">Choisis un restaurant et une date.</span>');
-  var lundi=_arcLundiDe(d);
-  _arcMsg('⏳ Envoi du planning de la semaine du '+_arcJJMMAAAA(lundi)+'…');
-  try{
-    var res=await arcEnvoyerPlanning(r, lundi);
-    if(res.ok) _arcMsg('<span style="color:#7fe0a0;font-weight:700;">✅ Rangé : </span><span style="font-family:monospace;font-size:.8rem;color:#bbb;">'+_msgEsc(res.chemin)+'</span>');
-    else _arcMsg('<span style="color:#e8a020;">⚠️ Rien envoyé — '+_msgEsc(res.raison||'')+'.</span>');
-  }catch(e){ _arcMsg('<span style="color:#e8623a;">⛔ Échec : '+_msgEsc(e.message||''+e)+'</span>'); }
+/* Va lire dans Dropbox ce qui existe vraiment, et met à jour chaque ligne. */
+async function arcActualiser(){
+  var resto=arcRestoCourant(), mois=(_ARC_VUE==='mois');
+  var lignes=mois?arcMois(resto):arcSemaines(resto);
+  if(!lignes.length) return;
+  if(typeof dbxEstPret==='function' && !dbxEstPret()){
+    lignes.forEach(function(k,i){ var e=document.getElementById('arc-e-'+i); if(e) e.textContent='—'; });
+    return;
+  }
+  _arcMsg('<span style="color:#8a9099;">⏳ Lecture de Dropbox…</span>');
+  var vus={};
+  var annees={}; lignes.forEach(function(k){ annees[(''+k).slice(0,4)]=1; });
+  for(var an in annees){
+    var dossier=(mois?ARC_PTG:ARC_PLAN)+'/'+_arcResto(resto)+'/'+an;
+    try{
+      var l=await dbxListSafe(dossier);
+      (l||[]).forEach(function(x){ if(x && x.name) vus[x.name]=x; });
+    }catch(_){}
+  }
+  var n=0;
+  lignes.forEach(function(k,i){
+    var chemin=mois?arcCheminMois(resto,k):arcCheminPlanning(resto,k);
+    var nom=chemin.split('/').pop();
+    var e=document.getElementById('arc-e-'+i), b=document.getElementById('arc-b-'+i);
+    if(vus[nom]){
+      n++;
+      if(e){ e.textContent='✅ rangé'; e.style.color='#3ecf8e'; }
+      if(b) b.innerHTML='<button onclick="arcOuvrirFichier(\''+chemin.replace(/'/g,"\\'")+'\')" class="btn btn-gray btn-sm">⬇️ Télécharger</button>'
+                      +' <button onclick="arcEnvoyerUn(\''+k+'\','+i+')" class="btn btn-gray btn-sm" title="Refaire le fichier">↻</button>';
+    } else {
+      if(e){ e.textContent='pas encore'; e.style.color='#8a9099'; }
+    }
+  });
+  _arcMsg('<span style="color:#8a9099;">'+n+' sur '+lignes.length+' déjà rangé'+(n>1?'s':'')+' dans Dropbox.</span>');
 }
-window.arcLancerPlanning=arcLancerPlanning;
-async function arcLancerPointages(){
-  var r=(document.getElementById('arc-r2')||{}).value;
-  var an=parseInt((document.getElementById('arc-an')||{}).value,10);
-  if(!r||!an) return _arcMsg('<span style="color:#e8623a;">Choisis un restaurant et une année.</span>');
-  _arcMsg('⏳ Construction du fichier '+an+'…');
+window.arcActualiser=arcActualiser;
+async function arcOuvrirFichier(chemin){
+  _arcMsg('<span style="color:#8a9099;">⏳ Ouverture…</span>');
   try{
-    var res=await arcEnvoyerPointages(r, an, function(mois){ _arcMsg('⏳ '+mois+' '+an+'…'); });
-    if(res.ok) _arcMsg('<span style="color:#7fe0a0;font-weight:700;">✅ Rangé (12 onglets) : </span><span style="font-family:monospace;font-size:.8rem;color:#bbb;">'+_msgEsc(res.chemin)+'</span>');
-    else _arcMsg('<span style="color:#e8a020;">⚠️ Rien envoyé — '+_msgEsc(res.raison||'')+'.</span>');
-  }catch(e){ _arcMsg('<span style="color:#e8623a;">⛔ Échec : '+_msgEsc(e.message||''+e)+'</span>'); }
+    var lien=await dbxLien(chemin);
+    if(lien){ window.open(lien.replace(/\?dl=0$/,'?dl=1'), '_blank'); _arcMsg(''); }
+    else _arcMsg('<span style="color:#e8623a;">Lien indisponible.</span>');
+  }catch(e){ _arcMsg('<span style="color:#e8623a;">⛔ '+_msgEsc(e.message||''+e)+'</span>'); }
 }
-window.arcLancerPointages=arcLancerPointages;
+window.arcOuvrirFichier=arcOuvrirFichier;
+async function arcEnvoyerUn(cle, idx){
+  var resto=arcRestoCourant(), mois=(_ARC_VUE==='mois');
+  var e=document.getElementById('arc-e-'+idx); if(e){ e.textContent='⏳ envoi…'; e.style.color='#e8a020'; }
+  try{
+    var r=mois?await arcEnvoyerMois(resto, cle):await arcEnvoyerPlanning(resto, cle);
+    if(r.ok){
+      if(mois){
+        try{ await arcEnvoyerPointages(resto, parseInt((''+cle).slice(0,4),10)); }catch(_){}
+        // ★ v617 — et la feuille PDF de CHAQUE salarié pour ce mois.
+        var rs=await arcEnvoyerMoisSalaries(resto, cle, function(nom,i,t){
+          _arcMsg('<span style="color:#8a9099;">⏳ feuille '+i+'/'+t+' — '+_msgEsc(nom)+'…</span>'); });
+        _arcMsg('<span style="color:#7fe0a0;font-weight:700;">✅ mois archivé + '+rs.n+' feuille'+(rs.n>1?'s':'')+' de pointage</span>');
+      } else _arcMsg('<span style="color:#7fe0a0;font-weight:700;">✅ '+_msgEsc(r.chemin)+'</span>');
+    }
+    else { if(e){ e.textContent='—'; } _arcMsg('<span style="color:#e8a020;">⚠️ '+_msgEsc(r.raison||'')+'</span>'); return; }
+  }catch(err){ if(e){ e.textContent='échec'; e.style.color='#e8623a'; } _arcMsg('<span style="color:#e8623a;">⛔ '+_msgEsc(err.message||''+err)+'</span>'); return; }
+  arcActualiser();
+}
+window.arcEnvoyerUn=arcEnvoyerUn;
+/* Déplie la liste des salariés d'un mois : une feuille PDF chacun. */
+async function arcSalaries(ym, idx){
+  var box=document.getElementById('arc-s-'+idx); if(!box) return;
+  if(box.innerHTML){ box.innerHTML=''; return; }
+  var resto=arcRestoCourant(), lst=_arcSalaries(resto)||[];
+  if(!lst.length){ box.innerHTML='<div style="color:#8a9099;font-size:.82rem;padding:6px 0;">Aucun salarié.</div>'; return; }
+  box.innerHTML='<div style="background:#141414;border-radius:8px;padding:8px 10px;margin-top:8px;">'
+    +lst.map(function(e,i){
+      return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-top:'+(i?'1px solid #232323':'none')+';">'
+        +'<span style="flex:1;font-size:.82rem;">'+_msgEsc(e.name)+'</span>'
+        +'<button onclick="arcVoirFeuille(\''+e.id+'\',\''+ym+'\')" class="btn btn-gray btn-sm">👁️ Voir</button>'
+        +'<button onclick="arcOuvrirFichier(\''+arcCheminPtgSalarie(resto,e,ym).replace(/'/g,"\\'")+'\')" class="btn btn-gray btn-sm">⬇️ Dropbox</button>'
+        +'</div>';
+    }).join('')+'</div>';
+}
+window.arcSalaries=arcSalaries;
+/* Ouvre la feuille tout de suite, sans passer par Dropbox. */
+function arcVoirFeuille(empId, ym){
+  var resto=arcRestoCourant();
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  try{
+    var doc=arcPdfPointageSalarie(resto, e, ym);
+    if(!doc){ _arcMsg('<span style="color:#e8623a;">Générateur PDF indisponible.</span>'); return; }
+    doc.save('Pointage_'+dbxClean(e.name)+'_'+ym+'.pdf');
+  }catch(err){ _arcMsg('<span style="color:#e8623a;">⛔ '+_msgEsc(err.message||''+err)+'</span>'); }
+}
+window.arcVoirFeuille=arcVoirFeuille;
+async function arcToutEnvoyer(){
+  var resto=arcRestoCourant(), mois=(_ARC_VUE==='mois');
+  var lignes=mois?arcMois(resto):arcSemaines(resto);
+  var n=0, ko=0;
+  for(var i=0;i<lignes.length;i++){
+    _arcMsg('<span style="color:#8a9099;">⏳ '+(i+1)+'/'+lignes.length+' — '+_msgEsc(mois?_arcMoisFr(lignes[i]):_arcJJMMAAAA(lignes[i]))+'…</span>');
+    try{
+      var r=mois?await arcEnvoyerMois(resto,lignes[i]):await arcEnvoyerPlanning(resto,lignes[i]);
+      if(r.ok) n++;
+    }catch(_){ ko++; }
+  }
+  if(mois){
+    var ans={}; lignes.forEach(function(k){ ans[(''+k).slice(0,4)]=1; });
+    for(var a in ans){ try{ await arcEnvoyerPointages(resto, parseInt(a,10)); }catch(_){} }
+    for(var m2=0;m2<lignes.length;m2++){
+      try{ await arcEnvoyerMoisSalaries(resto, lignes[m2], function(nom,i,t){
+        _arcMsg('<span style="color:#8a9099;">⏳ feuilles '+_msgEsc(_arcMoisFr(lignes[m2]))+' — '+i+'/'+t+'…</span>'); }); }catch(_){}
+    }
+  }
+  _arcMsg('<span style="color:#7fe0a0;font-weight:700;">✅ '+n+' fichier'+(n>1?'s':'')+' envoyé'+(n>1?'s':'')+(ko?(' · '+ko+' en échec'):'')+'</span>');
+  arcActualiser();
+}
+window.arcToutEnvoyer=arcToutEnvoyer;
 // ══ RÉORDONNANCEMENT DES TUILES PAR GLISSER-DÉPOSER (Rapports, Paramètres, Alertes) ══
 // L'ordre choisi par l'Admin est mémorisé (localStorage + Supabase) et partagé.
 var TILE_ORDER=null;
@@ -6228,7 +6769,8 @@ function rptOpen(type){
     try{ ptgSuiviInit(); }catch(e){ console.warn('ptgSuiviInit',e); }
     return;
   }
-  if(type==='archives'){ try{ arcOuvrir(); }catch(e){ console.warn('archives',e); } return; }
+  if(type==='arch_plannings'){ try{ arcVue('semaines'); }catch(e){ console.warn('archives',e); } return; }
+  if(type==='arch_pointages'){ try{ arcVue('mois'); }catch(e){ console.warn('archives',e); } return; }
   if(type==='visitemed'){
     // ouvrir le vrai écran « Visite médicale », filtré sur le resto du rapport
     var vresto=(curUser.role==='franchise')?(rptTab==='all'?'all':rptTab):curUser.restoId;
@@ -13012,17 +13554,36 @@ function ptgShowActions(){
   // Créneau prévu (planning) + écarts, pour le retour immédiat au salarié.
   var _prevu=ptgPrevuDe(e, dateISO);
   function _stBadge(ec,sens){ if(ec==null) return ''; var s=ptgStatut(ec,sens); return ' <span style="font-size:.72rem;font-weight:700;color:'+s.coul+';">'+(s.code==='ok'?'✓ à l\'heure':s.txt)+'</span>'; }
-  // récap perso (le salarié voit SA journée)
+  /* ★ v619 — CE QUE LE SALARIÉ VOIT DE SA JOURNÉE.
+     Avant : deux lignes grises « Arrivée / Départ » vides, et rien d'autre.
+     Maintenant : son état en clair, puis trois grands chiffres — arrivée,
+     départ, total —, et le détail de sa journée s'il a plusieurs services. */
+  var _tj=_ptgTotalJour(e, dateISO);
+  var _etat = rec.depart ? {c:'off', t:'✅ Journée terminée'}
+            : rec.arrivee ? {c:'on',  t:'🟢 En poste depuis '+rec.arrivee}
+            : {c:'att', t:'⏱️ Pas encore pointé'+(_prevu?(' · prévu '+_prevu.arr+' → '+_prevu.dep):'')};
+  h+='<div class="ptg-etat '+_etat.c+'">'+_etat.t+'</div>';
+  h+='<div class="ptg-3">'
+    +'<div class="ptg-3c'+(rec.arrivee?'':' vide')+'"><span>Départ</span><b>'+(rec.arrivee||'—')+'</b></div>'
+    +'<div class="ptg-3c'+(rec.depart?'':' vide')+'"><span>Fin</span><b>'+(rec.depart||'—')+'</b></div>'
+    +'<div class="ptg-3c tot'+(_tj.min>0?'':' vide')+'"><span>Total du jour</span><b>'+(_tj.min>0?_ptgDuree(_tj.min):'—')+'</b></div>'
+    +'</div>';
+  if(_tj.parts.length>1){
+    h+='<div class="ptg-seq">';
+    _tj.parts.forEach(function(pp){
+      h+='<div class="sq"><span>'+(pp.libelle||'Service')+'</span><b>'+pp.a+' → '+(pp.d||'en cours')+(pp.min!=null?('   ·   '+_ptgDuree(pp.min)):'')+'</b></div>';
+    });
+    h+='<div class="sq sq-tot"><span>Total de la journée</span><b>'+_ptgDuree(_tj.min)+'</b></div></div>';
+  }
   h+='<div class="ptg-recap">';
   if(_prevu) h+='<div class="rline" style="color:#9aa;"><span>Prévu</span><b>'+_prevu.arr+' → '+_prevu.dep+'</b></div>';
-  h+='<div class="rline"><span>Arrivée</span><b>'+(rec.arrivee||'—')+_stBadge(rec.ecartArr,'arr')+'</b></div>';
+  if(rec.arrivee) h+='<div class="rline"><span>Départ</span><b>'+rec.arrivee+_stBadge(rec.ecartArr,'arr')+'</b></div>';
   if(rec.pauses && rec.pauses.length){
     rec.pauses.forEach(function(p){ h+='<div class="rline"><span>Pause</span><b>'+(p.debut||'?')+' → '+(p.fin||'…')+'</b></div>'; });
   }
-  h+='<div class="rline"><span>Départ</span><b>'+(rec.depart||'—')+_stBadge(rec.ecartDep,'dep')+'</b></div>';
+  if(rec.depart) h+='<div class="rline"><span>Fin</span><b>'+rec.depart+_stBadge(rec.ecartDep,'dep')+'</b></div>';
   if(rec.departRaison) h+='<div class="rline" style="color:#e8a020;font-size:.76rem;align-items:flex-start;"><span>Motif</span><b style="text-align:right;max-width:64%;white-space:normal;">'+_ptgEsc(rec.departRaison)+'</b></div>';
-  var ht=ptgHeuresTravaillees(rec);
-  if(ht!=null) h+='<div class="rline" style="border-top:1px solid #2a2a2a;margin-top:4px;padding-top:6px;"><span>Total</span><b>'+(Math.round(ht*100)/100)+' h</b></div>';
+  /* le total est désormais affiché en gros au-dessus (★ v619) */
   h+='</div>';
   // boutons
   var _blk=(typeof ptgBlocageRaison==='function')?ptgBlocageRaison(e.id,dateISO):null;
@@ -13032,14 +13593,16 @@ function ptgShowActions(){
     if(_prod.bloquant){
       h+='<div class="ptg-done" style="background:#3a2e12;border:1px solid #5a4a1e;color:#ffd479;line-height:1.5;">📌 Avant de pointer votre arrivée, merci de lire et valider la fiche ci-dessus (« ✅ J\'ai lu et compris »).</div>';
     } else {
-      h+='<button class="ptg-bigbtn go" onclick="ptgAction(\'arrivee\')">🟢 Pointer mon ARRIVÉE — '+ptgNowHM()+'</button>';
+      /* ★ v619 — le vocabulaire de Vincent : DÉPART = le départ des heures,
+         FIN = la fin des heures. « Arrivée / Départ » prêtait à confusion. */
+      h+='<button class="ptg-bigbtn go" onclick="ptgAction(\'arrivee\')">🟢 Pointer mon DÉPART — '+ptgNowHM()+'</button>';
     }
   } else if(!rec.depart){
     if(estEncadrant){
       var po = rec.pauses && rec.pauses.length && !rec.pauses[rec.pauses.length-1].fin;
       h+='<button class="ptg-bigbtn pause" style="margin-bottom:10px;" onclick="ptgAction(\''+(po?'pause_fin':'pause_debut')+'\')">'+(po?'⏯️ Fin de ma pause':'⏸️ Début de ma pause')+'</button>';
     }
-    h+='<button class="ptg-bigbtn stop" onclick="ptgAction(\'depart\')">🔴 Pointer mon DÉPART — '+ptgNowHM()+'</button>';
+    h+='<button class="ptg-bigbtn stop" onclick="ptgAction(\'depart\')">🔴 Pointer ma FIN — '+ptgNowHM()+'</button>';
   } else {
     h+='<div class="ptg-done">✅ Vous avez bien pointé votre journée. Bonne soirée !</div>';
   }
@@ -13129,7 +13692,7 @@ function ptgAction(type){
 var _ptgRetourTm=null;
 function _ptgAutoRetour(){
   if(_ptgRetourTm) clearTimeout(_ptgRetourTm);
-  _ptgRetourTm=setTimeout(function(){ try{ closeModal('modal-ptg'); }catch(_){} _ptgSel=null; }, 3500);
+  _ptgRetourTm=setTimeout(function(){ try{ closeModal('modal-ptg'); }catch(_){} _ptgSel=null; }, 6000);   // ★ v619 — le temps de lire son total
 }
 window._ptgAutoRetour=_ptgAutoRetour;
 
@@ -13250,6 +13813,35 @@ function _ptgPoserArrivee(e, dateISO, heure, sg, just){
   try{ _ptgAutoRetour(); }catch(_){}
 }
 // Écrit le DEPART sur le creneau ouvert. Signale la coupure non pointee.
+/* ★ v619 — ce que le salarié voit quand il pointe sa FIN : son départ, sa fin,
+   ce qu'il vient de faire, et son total de la journée. */
+function _ptgMerciFin(e, dateISO){
+  try{
+    var body=document.getElementById('ptg-modal-body'); if(!body) return;
+    var rec=(ptgGetAll()[e.id+'_'+dateISO])||{};
+    var tj=_ptgTotalJour(e, dateISO);
+    var der=tj.parts.filter(function(p){ return p.min!=null; }).pop();
+    var hh=new Date().getHours();
+    var mot=(hh<12?'Bonne journée':(hh<18?'Bon après-midi':'Bonne soirée'));
+    var h='<div class="ptg-modal-name" style="font-size:1.2rem;">'+_ptgEsc(e.name)+'</div>'
+      +'<div class="ptg-merci">'
+        +'<div class="mt">'+mot+' 👋</div>'
+        +'<div class="ms">'+(der?('Départ '+der.a+'   ·   Fin '+(der.d||'')):'')+'</div>'
+        +'<div class="mh">'+_ptgDuree(tj.min)+'</div>'
+        +'<div class="ml">'+(tj.parts.length>1?'total de ta journée':'travaillées aujourd\'hui')+'</div>'
+      +'</div>';
+    if(tj.parts.length>1){
+      h+='<div class="ptg-seq">';
+      tj.parts.forEach(function(pp){
+        h+='<div class="sq"><span>'+(pp.libelle||'Service')+'</span><b>'+pp.a+' → '+(pp.d||'en cours')+(pp.min!=null?('   ·   '+_ptgDuree(pp.min)):'')+'</b></div>';
+      });
+      h+='</div>';
+    }
+    h+='<button class="ptg-close" onclick="closeModal(\'modal-ptg\')">Fermer</button>';
+    body.innerHTML=h;
+  }catch(_){}
+}
+window._ptgMerciFin=_ptgMerciFin;
 function _ptgPoserDepart(e, dateISO, heure, sg, raison){
   var ctx=ptgRec(e.id,dateISO), rec=ctx.rec;
   rec.cren=rec.cren||{};
@@ -13274,9 +13866,9 @@ function _ptgPoserDepart(e, dateISO, heure, sg, raison){
   rec.depart=heure; if(raison){ rec.departRaison=raison; rec._departRaisonOk=true; }
   try{ ptgMajEcarts(e, rec, dateISO); }catch(_){}
   try{ ptgSaveAll(ctx.all); }catch(_){}
-  try{ ptgShowActions(); }catch(_){}
+  try{ _ptgMerciFin(e, dateISO); }catch(_){ try{ ptgShowActions(); }catch(_2){} }   // ★ v619
   try{ ptgRenderList(); }catch(_){}
-  try{ toast('Départ enregistré ✔','success'); }catch(_){}
+  try{ toast('Fin enregistrée ✔','success'); }catch(_){}
   try{ _ptgAutoRetour(); }catch(_){}
 }
 // Un code manager du restaurant (meme principe que sur l iPad).
@@ -13420,6 +14012,43 @@ window._ptgHorsPlanningValider=_ptgHorsPlanningValider;
 window.ptgCreneauxJour=ptgCreneauxJour; window.ptgCrenPourArrivee=ptgCrenPourArrivee;
 window.ptgCrenPourDepart=ptgCrenPourDepart; window.ptgCleCren=ptgCleCren;
 
+/* ★ v619 — « 7 h 59 » se lit mieux que « 7.98 h ». */
+function _ptgDuree(min){
+  min=Math.max(0, Math.round(min||0));
+  var h=Math.floor(min/60), m=min%60;
+  if(!h) return m+' min';
+  return h+' h'+(m?(' '+(m<10?'0':'')+m):'');
+}
+window._ptgDuree=_ptgDuree;
+/* Tout ce que le salarié a fait aujourd'hui : chaque service, et le total.
+   On lit les créneaux pointés (rec.cren) et, à défaut, le pointage du jour. */
+function _ptgTotalJour(emp, iso){
+  var out={min:0, parts:[]};
+  try{
+    var rec=(ptgGetAll()[emp.id+'_'+iso])||{};
+    var rc=rec.cren||{}, cles=Object.keys(rc).sort(function(a,b){ return (parseInt(a,10)||0)-(parseInt(b,10)||0); });
+    cles.forEach(function(k){
+      var c=rc[k]; if(!c || c.abs || !c.arrivee) return;
+      var lib=''; try{ var p=(''+k).split('-'); lib=_ptgMin2hm(parseInt(p[0],10))+'–'+_ptgMin2hm(parseInt(p[1],10)); }catch(_){}
+      var mn=null;
+      if(c.depart){ var a=_ptgHm2min(c.arrivee), d=_ptgHm2min(c.depart); if(a!=null&&d!=null){ if(d<a) d+=1440; mn=d-a; out.min+=mn; } }
+      out.parts.push({libelle:lib, a:c.arrivee, d:c.depart||'', min:mn});
+    });
+    if(!out.parts.length && rec.arrivee){
+      var mn2=null;
+      if(rec.depart){ var a2=_ptgHm2min(rec.arrivee), d2=_ptgHm2min(rec.depart); if(a2!=null&&d2!=null){ if(d2<a2) d2+=1440; mn2=d2-a2; out.min+=mn2; } }
+      out.parts.push({libelle:'', a:rec.arrivee, d:rec.depart||'', min:mn2});
+    }
+    // les pauses saisies se retirent du total
+    (rec.pauses||[]).forEach(function(pz){
+      if(pz && pz.debut && pz.fin){ var x=_ptgHm2min(pz.debut), y=_ptgHm2min(pz.fin);
+        if(x!=null&&y!=null){ if(y<x) y+=1440; out.min-=(y-x); } }
+    });
+    if(out.min<0) out.min=0;
+  }catch(_){}
+  return out;
+}
+window._ptgTotalJour=_ptgTotalJour;
 function ptgHeuresTravaillees(rec){
   if(!rec.arrivee || !rec.depart) return null;
   function m(hm){ var p=hm.split(':'); return (+p[0])*60+(+p[1]); }
@@ -34861,9 +35490,18 @@ function _ipadSalariesDuJour(){
     // n'était pas prévu, il n'y a rien à déclarer pour lui. Le RH le voit dans
     // Contrôle des heures, c'est là que ça se suit. Un arrêt maladie ou une
     // absence, en revanche, reste affiché : c'est ce qui déclenche le dépannage.
-    if(abs && !segs.length && _ipadEstConge(abs) && !tous) return;
-    if(!segs.length && !abs && !tous) return;
-    out.push({e:e, segs:segs, abs:abs});
+    /* ★ v619 — QUELQU'UN QUI A POINTÉ DOIT ÊTRE VISIBLE, MÊME SANS TRAIT.
+       Avant, l'iPad ne montrait que les salariés PRÉVUS. Un remplaçant, un
+       renfort, ou un pointage resté ouvert n'y apparaissait pas — alors que
+       Contrôle des heures, lui, l'affichait. C'est l'écart que tu as vu entre
+       les deux écrans. */
+    var aPointe=false;
+    try{ var _r=(ptgGetAll()[e.id+'_'+iso])||{};
+         aPointe=!!(_r.arrivee || _r.depart || (_r.cren && Object.keys(_r.cren).some(function(k){
+           var c=_r.cren[k]; return c && (c.arrivee||c.depart); }))); }catch(_){}
+    if(abs && !segs.length && !aPointe && _ipadEstConge(abs) && !tous) return;
+    if(!segs.length && !abs && !aPointe && !tous) return;
+    out.push({e:e, segs:segs, abs:abs, horsPrevu:(!segs.length && aPointe)});
   });
   // tri : par heure d'arrivée, puis les absents, puis les sans trait
   out.sort(function(a,b){
