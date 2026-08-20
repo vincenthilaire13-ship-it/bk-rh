@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-25 09:10 · v643 (ecran TV sans code, tous les autres codes remis)';
+  var EMBEDDED_VERSION = '2026-08-25 12:20 · v645 (essai : legende preavis, plus de ligne rouge sous la jauge)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -611,6 +611,9 @@ html.theme-light .pe-dec-b:hover{border-color:#8a9099;color:#1c1e22;}
 .pe-jg-cur b{position:absolute;left:50%;transform:translateX(-50%);top:-16px;font-size:.62rem;
   font-weight:900;background:#1c1e22;color:#fff;border-radius:5px;padding:1px 5px;white-space:nowrap;}
 .pe-jg-lbl{display:flex;justify-content:space-between;gap:10px;font-size:.68rem;color:#8a9099;font-weight:700;}
+.pe-jg-leg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.66rem;color:#8a9099;font-weight:700;margin:2px 0 4px;}
+.pe-jg-leg span{display:inline-flex;align-items:center;gap:5px;}
+.pe-jg-leg i{width:9px;height:9px;border-radius:3px;display:inline-block;}
 .pe-jg-lbl .mid{color:#c0392b;}
 html:not(.theme-light) .pe-jg-futur{background:rgba(20,20,22,.74);}
 html:not(.theme-light) .pe-jg-lim,html:not(.theme-light) .pe-jg-cur{background:#fff;}
@@ -12593,15 +12596,22 @@ function renderAgendaDay(){
    le temps de présence du salarié le jour où on le prévient :
      • moins de 8 jours .................. 24 heures
      • de 8 jours à 1 mois ............... 48 heures
-     • après 1 mois ...................... 2 semaines
-     • après 3 mois ...................... 1 mois
+     • après 1 mois ...................... 15 jours
    Le dernier jour utile pour prévenir se calcule à l'envers depuis la fin de
    la période d'essai, avec le préavis qui s'appliquera à ce moment-là.      */
+var ESSAI_VERT='#3ecf8e', ESSAI_ORANGE='#F5A623', ESSAI_ROUGE='#c0392b';
+/* ★ v644 — LES TROIS PALIERS, DITS PAR VINCENT :
+     🟢 VERT   · la 1re semaine (J+0 à J+7) ......... 24 heures de préavis
+     🟠 ORANGE · de J+8 à J+29 (moins d'un mois) .... 48 heures de préavis
+     🔴 ROUGE  · le mois complet (J+30 et au-delà) ... 15 jours de préavis
+   Vincent : « si on veut l'arrêter dans la semaine, 24 h avant ; au bout de
+   quinze jours, 48 h avant ; au bout du mois, il faut prévenir quinze jours. »
+   Le préavis se lit donc sur LE JOUR OÙ ON L'ARRÊTE, pas sur le jour où on
+   prévient. Une couleur = un palier : la jauge se lit d'un coup d'œil.     */
 var ESSAI_PALIERS=[
-  {jours:0,  h:24,  lbl:'24 heures',  court:'24 h',      coul:'#3ecf8e', niv:0},
-  {jours:8,  h:48,  lbl:'48 heures',  court:'48 h',      coul:'#E0C040', niv:1},
-  {jours:31, h:336, lbl:'2 semaines', court:'2 semaines',coul:'#F5A623', niv:2},
-  {jours:92, h:720, lbl:'1 mois',     court:'1 mois',    coul:'#e8623a', niv:2}
+  {jours:0,  h:24,  lbl:'24 heures', court:'24 h',    coul:ESSAI_VERT,   niv:0},
+  {jours:8,  h:48,  lbl:'48 heures', court:'48 h',    coul:ESSAI_ORANGE, niv:1},
+  {jours:30, h:360, lbl:'15 jours',  court:'15 jours',coul:ESSAI_ROUGE,  niv:2}
 ];
 function essaiPalier(joursPresence){
   var p=ESSAI_PALIERS[0];
@@ -12653,15 +12663,18 @@ window.essaiJoursSuspendus=essaiJoursSuspendus;
 /* Le dernier jour où l'on peut encore prévenir pour que le préavis tienne
    entièrement dans la période d'essai. */
 function essaiDernierJour(debut, fin){
+  /* ★ v644 — LE PRÉAVIS SE LIT SUR LE JOUR DU DÉPART, PAS SUR CELUI DE L'ANNONCE.
+     Vincent : « si on veut l'arrêter au bout du mois, il faut prévenir quinze
+     jours. » Donc on regarde l'ancienneté qu'il aura AU DERNIER JOUR de la
+     période d'essai, on prend le préavis correspondant, et on recule d'autant.
+     Avant, on cherchait la date la plus tardive possible en profitant d'un
+     préavis plus court en cours de route : ça donnait un jour trop tard.    */
   try{
-    var d=new Date(fin);
-    for(var i=0;i<200;i++){
-      var pres=_essaiJours(debut, d);
-      var pal=essaiPalier(pres);
-      var sortie=new Date(d.getTime()+pal.h*3600*1000);
-      if(sortie<=fin) return {date:d, palier:pal};
-      d=new Date(d.getTime()-24*3600*1000);
-    }
+    var pres=_essaiJours(debut, fin);
+    var pal=essaiPalier(pres);
+    var d=new Date(fin.getTime()-pal.h*3600*1000);
+    if(d<debut) d=new Date(debut);
+    return {date:d, palier:pal};
   }catch(_){}
   return {date:new Date(fin), palier:ESSAI_PALIERS[0]};
 }
@@ -12670,7 +12683,8 @@ function essaiInfo(c){
   if(!c.dateDebut)return null;
   var debut=new Date(c.dateDebut+'T12:00:00');
   var now=new Date();
-  var jours=_essaiJours(debut, now);
+  /* ★ v644 — un salarié qui commence aujourd'hui est à J+0, jamais « J+-1 ». */
+  var jours=Math.max(0, _essaiJours(debut, now));
   var estApprenti=(c.poste==='Apprenti'||c.niveauApprentissage==='Apprentissage'||(c.contratType||'').indexOf('appr')===0);
   var fin=new Date(debut);
   if(estApprenti){fin.setDate(fin.getDate()+45);} else {fin.setMonth(fin.getMonth()+2);}
@@ -12711,12 +12725,12 @@ function essaiInfo(c){
       alert='🔒 Trop tard pour rompre : il fallait prévenir avant le '+limiteStr;alertCol='#8a9099';niveau=4;
     }else if(joursAvantLimite<=3){
       alert='🔴 DERNIER MOMENT — prévenir avant le '+limiteStr+' ('+dernier.palier.court+' de préavis)';alertCol='#e8623a';niveau=3;
-    }else if(jours>=31){
-      alert='🟠 Plus d\'un mois — 2 semaines de préavis · décider avant le '+limiteStr;alertCol='#F5A623';niveau=2;
+    }else if(jours>=30){
+      alert='🔴 Plus d\'un mois — 15 jours de préavis · décider avant le '+limiteStr;alertCol=ESSAI_ROUGE;niveau=2;
     }else if(jours>=8){
-      alert='🟡 Plus de 8 jours — 48 h de préavis · décider avant le '+limiteStr;alertCol='#E0C040';niveau=1;
+      alert='🟠 Plus de 8 jours — 48 h de préavis · décider avant le '+limiteStr;alertCol=ESSAI_ORANGE;niveau=1;
     }else{
-      alert='🟢 Moins de 8 jours — 24 h de préavis suffisent';alertCol='#3ecf8e';niveau=0;
+      alert='🟢 Moins de 8 jours — 24 h de préavis suffisent';alertCol=ESSAI_VERT;niveau=0;
     }
   }
   return {jours:jours, debut:debut, debutStr:debutStr, fin:fin, finStr:finStr, suspendus:suspendus,
@@ -12821,11 +12835,16 @@ function essaiJauge(c){
   var pLim=e.dernier?pct(e.dernier.date):null;
   /* les paliers, pour graduer la couleur au bon endroit */
   var p8 =pct(new Date(e.debut.getTime()+8*24*3600*1000));
-  var p31=pct(new Date(e.debut.getTime()+31*24*3600*1000));
-  var fond='linear-gradient(90deg,#3ecf8e 0%,#3ecf8e '+p8.toFixed(1)+'%,'
-    +'#E0C040 '+p8.toFixed(1)+'%,#E0C040 '+p31.toFixed(1)+'%,'
-    +'#F5A623 '+p31.toFixed(1)+'%,#F5A623 '+(pLim!=null?pLim.toFixed(1):'90')+'%,'
-    +'#c0392b '+(pLim!=null?pLim.toFixed(1):'90')+'%,#c0392b 100%)';
+  var p31=pct(new Date(e.debut.getTime()+30*24*3600*1000));   /* ★ v644 — un mois complet */
+  /* ★ v644 — TROIS BANDES QUI COLLENT AUX TROIS PALIERS.
+     Avant, l'orange s'étirait jusqu'au dernier jour pour prévenir : le trait
+     était beaucoup trop grand et ne voulait plus rien dire. Maintenant :
+     vert jusqu'à J+8, orange jusqu'à J+31, rouge ensuite. Le repère noir du
+     dernier jour pour prévenir reste posé par-dessus.                       */
+  var fond='linear-gradient(90deg,'
+    +ESSAI_VERT+' 0%,'+ESSAI_VERT+' '+p8.toFixed(1)+'%,'
+    +ESSAI_ORANGE+' '+p8.toFixed(1)+'%,'+ESSAI_ORANGE+' '+p31.toFixed(1)+'%,'
+    +ESSAI_ROUGE+' '+p31.toFixed(1)+'%,'+ESSAI_ROUGE+' 100%)';
   var jourPct=(100/total);
   var jauge='<div class="pe-jauge" title="'+total+' jours de période d\'essai — J+'+e.jours+' aujourd\'hui">'
     +'<div class="pe-jg-clip">'
@@ -12836,10 +12855,19 @@ function essaiJauge(c){
     +(pLim!=null?('<div class="pe-jg-lim" style="left:'+pLim.toFixed(1)+'%;" title="Dernier jour pour prévenir : '+e.limiteStr+'"></div>'):'')
     +'<div class="pe-jg-cur" style="left:'+pNow.toFixed(1)+'%;"><b>J+'+e.jours+'</b></div>'
   +'</div>'
+  +'<div class="pe-jg-leg">'
+    +'<span><i style="background:'+ESSAI_VERT+';"></i>8 jours — préavis de 24 heures</span>'
+    +'<span><i style="background:'+ESSAI_ORANGE+';"></i>15 jours — préavis de 48 heures</span>'
+    +'<span><i style="background:'+ESSAI_ROUGE+';"></i>1 mois — préavis de 15 jours</span>'
+  +'</div>'
+  /* ★ v645 — PLUS DE « prévenir avant le … » EN ROUGE SOUS LA JAUGE.
+     Vincent : « ce n'est pas terrible ça, je l'enlève partout. » L'information
+     est déjà écrite en haut de la fiche, dans le bandeau « Dernier jour pour
+     prévenir ». Sous la jauge il ne reste que les deux dates qui l'encadrent —
+     et le repère noir marque toujours ce dernier jour.                       */
   +'<div class="pe-jg-lbl">'
     +'<span>'+e.debutStr+'</span>'
-    +'<span class="mid">'+(e.apprenti?(e.joursRestants+' j de rupture libre')
-        :('⚑ prévenir avant le '+e.limiteStr+(e.joursAvantLimite>=0?(' · J−'+e.joursAvantLimite):' · passé')))+'</span>'
+    +(e.apprenti?('<span class="mid">'+e.joursRestants+' j de rupture libre</span>'):'')
     +'<span>'+e.finStr+'</span>'
   +'</div>';
   return jauge;
