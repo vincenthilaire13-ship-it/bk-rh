@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-23 23:50 · v629 (absence par creneau respectee partout ; incident ipad = observation verbale)';
+  var EMBEDDED_VERSION = '2026-08-24 08:20 · v630 (ipad : jours passes accessibles, absence simplifiee, reclic sur le creneau)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -36077,6 +36077,27 @@ window.hrChargerIpadCfg=hrChargerIpadCfg;
 function _ipadISO(d){ d=d||new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
 /* ★ v622 — « aujourd'hui » sur l'iPad, c'est la JOURNÉE DE TRAVAIL en cours.
    À 01:00, le poste doit encore afficher l'équipe du soir, pas une page vide. */
+/* ★ v630 — ON PEUT REVENIR SUR UN JOUR PASSÉ.
+   Un arrêt maladie se déclare souvent le lendemain, quand le papier arrive.
+   Les flèches déplacent la journée ; toutes les actions (absence, incident,
+   pointage) portent sur la journée affichée.                               */
+function ipadJourDecale(n){
+  try{
+    var d=new Date(_ipadDate+'T12:00:00'); d.setDate(d.getDate()+n);
+    var iso=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+    var auj=_ipadJourISO();
+    /* garde-fou : 60 jours en arrière, 14 en avant */
+    var ec=Math.round((new Date(iso+'T12:00:00')-new Date(auj+'T12:00:00'))/86400000);
+    if(ec<-60 || ec>14) return;
+    _ipadDate=iso; _ipadSel=null;
+    var m=document.getElementById('ip-modal'); if(m) m.remove();
+    ipadRender();
+  }catch(_){}
+}
+window.ipadJourDecale=ipadJourDecale;
+function ipadAujourdhui(){ _ipadDate=_ipadJourISO(); _ipadSel=null;
+  var m=document.getElementById('ip-modal'); if(m) m.remove(); ipadRender(); }
+window.ipadAujourdhui=ipadAujourdhui;
 function _ipadJourISO(){
   try{ var d=new Date(), deb=((typeof ptgDebutJournee==='function')?ptgDebutJournee():5)*60;
     if(d.getHours()*60+d.getMinutes() < deb){ var v=new Date(d.getTime()-86400000); return _ipadISO(v); }
@@ -36160,8 +36181,35 @@ function ipadChoisirTrait(empId, key){
   var sg=_ipadSegParKey(empId,key);
   _ipadSel = sg ? {empId:empId, key:key, s:sg.s, e:sg.e, l:sg.l} : null;
   ipadRender();
+  /* ★ v630 — le créneau est déjà barré ? On retouche l'absence tout de suite,
+     sans case en plus dans la fiche : on reclique dessus, c'est tout.      */
+  var deja=null; try{ deja=_ipadCrenAbsentOuJour(empId,key); }catch(_){}
+  if(deja){ ipadCreneauAbsent(empId, key); return; }
   ipadFiche(empId);
 }
+/* Le petit panneau d'un créneau déjà absent. Trois gestes, rien d'autre. */
+function ipadCreneauAbsent(empId, key){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  _ipadEmp=e;
+  var sg=_ipadSegParKey(empId,key);
+  var surCreneau=false; try{ surCreneau=!!_ipadCrenAbsent(empId,key); }catch(_){}
+  var motif=null; try{ motif=_ipadCrenAbsentOuJour(empId,key); }catch(_){}
+  var mi=(typeof _etatMotifInfo==='function')?_etatMotifInfo(motif||'absence'):{icon:'🟧',label:'Absent',col:'#d98324'};
+  var quoi=surCreneau
+    ? (sg?(_ipadHM(sg.s)+'–'+_ipadHM(sg.e)+(sg.l?(' · '+_ipadEsc(sg.l)):'')):'ce créneau')
+    : 'toute la journée';
+  var retirer=surCreneau ? ("ipadRetirerCreneau('"+empId+"')") : ("ipadRetirerAbsence('"+empId+"')");
+  var h='<div class="ip-scope" style="border-color:'+mi.col+';">'
+      +mi.icon+' <b>'+_ipadEsc(mi.label)+'</b> — '+quoi+'</div>'
+    +'<button class="ip-cren-act" style="border-color:#3ecf8e;" onclick="'+retirer+'">'
+      +'✅ Retirer l\'absence<b>'+_ipadEsc(e.name)+' sera finalement là</b></button>'
+    +'<button class="ip-cren-act" onclick="ipadAbsence(\''+empId+'\')">'
+      +'✏️ Changer le motif<b>Ce n\'était pas '+_ipadEsc(mi.label.toLowerCase())+'</b></button>'
+    +'<button class="ip-cren-act" onclick="ipadRetard(\''+empId+'\')">'
+      +'⏰ Finalement en retard<b>Elle est arrivée, mais en retard</b></button>';
+  _ipadPanneau('🛌 '+_ipadEsc(e.name), h, "ipadFiche('"+empId+"')");
+}
+window.ipadCreneauAbsent=ipadCreneauAbsent;
 window.ipadChoisirTrait=ipadChoisirTrait;
 // Courbe de CA ¼h du jour, pour LE restaurant de l'iPad.
 // hrCourbeJour() lit HR_DATA / HR_RESTO de la page Horaires : on bascule le temps
@@ -36535,7 +36583,15 @@ function ipadRender(contenuBrut){
   }
   ov.innerHTML=_ipadCss()
     +'<div class="ip-wrap"><div class="ip-top">'
-      +'<div><div class="ip-resto">📟 '+_ipadEsc(_ipadLabel())+'</div><div class="ip-jour">'+_ipadEsc(jour)+'</div></div>'
+      +'<div><div class="ip-resto">📟 '+_ipadEsc(_ipadLabel())+'</div>'
+        +'<div class="ip-jour-nav">'
+          +'<button class="ip-nav" onclick="ipadJourDecale(-1)" title="Jour précédent">‹</button>'
+          +'<span class="ip-jour">'+_ipadEsc(jour)+'</span>'
+          +'<button class="ip-nav" onclick="ipadJourDecale(1)" title="Jour suivant">›</button>'
+          +(_ipadDate!==_ipadJourISO()
+             ? '<button class="ip-nav ip-nav-auj" onclick="ipadAujourdhui()">Aujourd\'hui</button>'
+             : '')
+        +'</div></div>'
       +'<div class="ip-right"><div class="ip-heure" id="ip-heure">'+heure+'</div>'
       +'<button class="ip-refresh" id="ip-refresh" onclick="ipadRafraichir()" title="Rechercher les pointages maintenant">🔄</button>'
       +(contenuBrut?'':'<div class="ip-compte">'+nbPres+' présent'+(nbPres>1?'s':'')+(nbAbs?(' · <b>'+nbAbs+' absent'+(nbAbs>1?'s':'')+'</b>'):'')+'</div>')
@@ -36567,37 +36623,21 @@ function ipadFiche(empId){
         +(ab?('<span class="ip-fs-ab">'+((typeof _etatMotifInfo==='function')?_etatMotifInfo(ab).icon+' '+_etatMotifInfo(ab).court:'Absent')+'</span>'):'')
         +(on?'<span class="ip-fs-ok">✓ choisi</span>':'')+'</div>';
     }).join('') : '<div class="ip-fs ip-cren-off">Aucun trait aujourd\'hui</div>';
+  /* ★ v630 — un créneau barré ? On le retouche en recliquant dessus. */
+  var _yaAbs=false;
+  try{ segs.forEach(function(sg){ if(_ipadCrenAbsentOuJour(empId, sg.s+'-'+sg.e)) _yaAbs=true; }); }catch(_){}
   var cadre = _ipadSel
     ? '<div class="ip-scope">Les actions portent sur le créneau <b>'+_ipadEsc(_ipadSel.l||'')+' '+_ipadHM(_ipadSel.s)+'–'+_ipadHM(_ipadSel.e)+'</b>'
         +' <button class="ip-mini" onclick="_ipadSel=null;ipadRender();ipadFiche(\''+empId+'\')">Toute la journée</button></div>'
-    : (segs.length>1
-        ? '<div class="ip-scope ip-scope-hint">Touche un créneau ci-dessus pour n\'agir que sur celui-là.</div>'
-        : '');
-  // ── Absence DÉJÀ déclarée : on doit pouvoir la corriger ────────────────────
-  //    • changer le motif (ex. passer en arrêt maladie)
-  //    • la retirer complètement (il n'y a plus rien)
-  //    • ou basculer en retard (il est venu, en retard)
+    : (_yaAbs
+        ? '<div class="ip-scope ip-scope-hint">Touche un créneau <b>barré</b> pour retirer son absence ou changer le motif.</div>'
+        : (segs.length>1
+            ? '<div class="ip-scope ip-scope-hint">Touche un créneau ci-dessus pour n\'agir que sur celui-là.</div>'
+            : ''));
+  /* ★ v630 — PLUS DE CASE EN DESSOUS. Pour retoucher une absence, on reclique
+     sur le créneau barré : ipadChoisirTrait ouvre le petit panneau.        */
   var bandeau='';
   var absCrenMotif=_ipadSel?_ipadCrenAbsent(empId,_ipadSel.key):null;
-  if(absCrenMotif){
-    var mc=(typeof _etatMotifInfo==='function')?_etatMotifInfo(absCrenMotif):{icon:'🟧',label:'Absent',col:'#d98324'};
-    bandeau='<div class="ip-abs-band" style="border-color:'+mc.col+';">'
-      +'<span>'+mc.icon+' <b>'+_ipadEsc(mc.label)+'</b> sur le créneau '+_ipadHM(_ipadSel.s)+'–'+_ipadHM(_ipadSel.e)+'</span>'
-      +'<div class="ip-abs-btns">'
-        +'<button class="ip-mini" onclick="ipadAbsence(\''+e.id+'\')">Changer le motif</button>'
-        +'<button class="ip-mini" onclick="ipadRetirerCreneau(\''+e.id+'\')">Retirer — rien du tout</button>'
-        +'<button class="ip-mini" onclick="ipadRetard(\''+e.id+'\')">Finalement en retard</button>'
-      +'</div></div>';
-  } else if(abs){
-    var mi=(typeof _etatMotifInfo==='function')?_etatMotifInfo(abs.motif||'absence'):{icon:'🟧',label:'Absent',col:'#d98324'};
-    bandeau='<div class="ip-abs-band" style="border-color:'+mi.col+';">'
-      +'<span>'+mi.icon+' <b>'+_ipadEsc(mi.label)+'</b> sur la journée</span>'
-      +'<div class="ip-abs-btns">'
-        +'<button class="ip-mini" onclick="ipadAbsence(\''+e.id+'\')">Changer le motif</button>'
-        +'<button class="ip-mini" onclick="ipadRetirerAbsence(\''+e.id+'\')">Retirer — rien du tout</button>'
-        +'<button class="ip-mini" onclick="ipadRetard(\''+e.id+'\')">Finalement en retard</button>'
-      +'</div></div>';
-  }
   var btn=function(ico,titre,sous,fn,coul){
     return '<button class="ip-act" onclick="'+fn+'"><span class="ip-act-ic" style="background:'+coul+';">'+ico+'</span>'
       +'<span><span class="ip-act-t">'+titre+'</span><span class="ip-act-s">'+sous+'</span></span></button>';
@@ -36709,15 +36749,19 @@ function ipadAbsence(empId){
   _ipadEmp=e;
   var segs=_ipadSegs(empId)||[];
   if(!_ipadSel && segs.length>1){
-    var h='<div class="ip-code-sub">Absence de <b>'+_ipadEsc(e.name)+'</b>.<br><b>Elle porte sur quoi ?</b></div>'
-      +'<div class="ip-chips">'
-      +'<button class="ip-chip" style="--sc:#cc5555;" onclick="ipadAbsencePortee(\''+empId+'\',\'\')">'
-        +'☀️ Toute la journée — les '+segs.length+' créneaux</button>';
-    segs.forEach(function(sg){
-      h+='<button class="ip-chip" style="--sc:#d98324;" onclick="ipadAbsencePortee(\''+empId+'\',\''+(sg.s+'-'+sg.e)+'\')">'
-        +'🕒 '+_ipadHM(sg.s)+'–'+_ipadHM(sg.e)+' · '+_ipadEsc(sg.l||'')+'</button>';
+    var _tot=0; segs.forEach(function(sg){ _tot+=(sg.e-sg.s); });
+    var h='<div class="ip-code-sub"><b>'+_ipadEsc(e.name)+'</b> est absente…</div>'
+      +'<button class="ip-cren-act" style="border-color:#cc5555;background:#2a1414;font-size:1.1rem;"'
+        +' onclick="ipadAbsencePortee(\''+empId+'\',\'\')">'
+        +'☀️ Toute la journée<b>Les '+segs.length+' créneaux · '
+        +Math.floor(_tot/60)+' h'+((_tot%60)?(' '+('0'+(_tot%60)).slice(-2)):'')+' — elle ne vient pas</b></button>'
+      +'<div class="ip-ou">ou seulement</div>';
+    segs.forEach(function(sg,i){
+      h+='<button class="ip-cren-act" onclick="ipadAbsencePortee(\''+empId+'\',\''+(sg.s+'-'+sg.e)+'\')">'
+        +'🕒 '+_ipadHM(sg.s)+' – '+_ipadHM(sg.e)
+        +'<b>'+(segs.length>1?('Créneau '+(i+1)+' · '):'')+_ipadEsc(sg.l||'')
+        +' — le reste de sa journée n\'est pas touché</b></button>';
     });
-    h+='</div><div class="ip-scope ip-scope-hint">Un seul créneau : le reste de sa journée n\'est pas touché — ni le planning, ni le SOS, ni la paie.</div>';
     _ipadPanneau('🤒 Absence', h, "ipadFiche('"+empId+"')");
     return;
   }
@@ -37153,6 +37197,14 @@ function _ipadCss(){ return '<style>\
 #ipad-poste{position:fixed;inset:0;z-index:11500;background:#f4f5f7;color:#1c1e22;font-family:\'DM Sans\',system-ui,sans-serif;overflow:hidden;}\
 .ip-wrap{display:flex;flex-direction:column;height:100%;}\
 .ip-top{display:flex;align-items:center;gap:16px;padding:14px 20px;background:linear-gradient(90deg,#D62300,#F5A623);color:#fff;}\
+.ip-jour-nav{display:flex;align-items:center;gap:6px;margin-top:2px;}\
+.ip-nav{background:rgba(0,0,0,.22);border:0;color:#fff;border-radius:9px;padding:3px 12px;font-size:1.15rem;line-height:1.3;cursor:pointer;font-weight:800;}\
+.ip-nav:active{background:rgba(0,0,0,.4);}\
+.ip-nav-auj{font-size:.78rem;padding:5px 11px;letter-spacing:.4px;}\
+.ip-cren-act{display:block;width:100%;text-align:left;background:#1c1c1f;border:1px solid #3d3d42;color:#eee;border-radius:12px;padding:14px 16px;margin-bottom:9px;font-size:1rem;font-weight:700;cursor:pointer;}\
+.ip-cren-act b{display:block;font-size:.8rem;font-weight:600;color:#9aa0a6;margin-top:2px;}\
+.ip-ou{display:flex;align-items:center;gap:10px;color:#9aa0a6;font-size:.8rem;margin:14px 0 9px;text-transform:uppercase;letter-spacing:1px;}\
+.ip-ou:before,.ip-ou:after{content:" ";flex:1;height:1px;background:#3a3a3a;}\
 .ip-resto{font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.8rem;letter-spacing:1px;text-transform:uppercase;line-height:1;}\
 .ip-jour{font-size:.9rem;opacity:.95;text-transform:capitalize;margin-top:3px;}\
 .ip-right{margin-left:auto;text-align:right;}\
