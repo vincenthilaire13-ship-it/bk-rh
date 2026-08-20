@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-26 15:10 · v656 (rapports, parametres et alertes : reglage sur la tuile, comme lecran tele)';
+  var EMBEDDED_VERSION = '2026-08-26 18:00 · v658 (familles de competences reglables + cuisine-comptoir au recrutement)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -2539,6 +2539,10 @@ html,body{overflow-x:hidden;}
       <div class="sec-title">📋 Grille des contrats — dispo contrat / dispo réelles</div>
       <div id="pc-grille-contrats-body"></div>
     </div>
+    <div class="card param-card" id="pc-familles" style="display:none;">
+      <div class="sec-title">🎯 Familles de compétences — Cuisine intégrée / Comptoir</div>
+      <div id="pc-familles-body"></div>
+    </div>
     <div class="card param-card" id="pc-messagerie" style="display:none;">
       <div class="sec-title">💬 Messagerie — qui peut écrire à qui</div>
       <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Pour chaque rôle (à gauche), coche les rôles avec qui il a le droit de communiquer. La règle est <strong>réciproque</strong> : si les équipiers ne peuvent parler qu'aux directeurs, alors seuls les directeurs peuvent leur écrire. Un salarié ne peut démarrer une conversation qu'avec les personnes autorisées.</p>
@@ -3571,6 +3575,16 @@ async function loadAll(light) {
   try{ if(typeof hrChargerVisibiliteSupabase==='function'){ await hrChargerVisibiliteSupabase(); } }catch(e){}
   try{ if(typeof hrChargerIpadCfg==='function'){ await hrChargerIpadCfg(); } }catch(e){}
   try{ if(typeof hrChargerDisposContratSupabase==='function'){ await hrChargerDisposContratSupabase(); } }catch(e){}
+  try{ if(typeof hrChargerGrilleContrats==='function'){ await hrChargerGrilleContrats(); } }catch(e){}
+  try{ if(typeof hrChargerPostesFamilles==='function'){ await hrChargerPostesFamilles(); } }catch(e){}
+  /* ★ v658 — un retenu qui a déjà sa date de démarrage entre dans les horaires,
+     même s'il a été retenu avant que cette règle existe.                    */
+  try{
+    if(!light && typeof candIntegrerRetenusDates==='function'){
+      var _nInt=await candIntegrerRetenusDates();
+      if(_nInt) try{ toast(_nInt+' salarié'+(_nInt>1?'s':'')+' retenu'+(_nInt>1?'s':'')+' ajouté'+(_nInt>1?'s':'')+' aux horaires','success'); }catch(_){}
+    }
+  }catch(e){ console.warn('rattrapage retenus', e); }
   try{ if(typeof depCharger==='function'){ await depCharger(false); } }catch(e){}
   try{ if(typeof hrChargerPayeRepas==='function'){ await hrChargerPayeRepas(); } }catch(e){}
   try{ if(typeof hrChargerPayeCfg==='function'){ await hrChargerPayeCfg(); } }catch(e){}
@@ -4457,10 +4471,10 @@ function renderSemaines(){
   var weeks=_semWeeks(resto);
   var h='<div class="sec-title">🕐 Contrôle des heures · '+rlab+'</div>'
     +'<p style="font-size:.82rem;color:#888;margin-bottom:14px;">Rangé par <b>année</b> et par <b>mois</b>. Cliquez une semaine pour le détail jour par jour et le pointage. Validez un mois pour le <b>verrouiller</b> 🔒 (plus de modification).</p>';
-  if(up==='BK500'){ h+='<div style="margin:0 0 16px;padding:10px 12px;background:#1c1630;border:1px solid #4a3a6a;border-radius:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">'
-    +'<button onclick="simImporter500Juillet()" style="background:#2a1e3a;border:1px solid #7c4dff;color:#c9b3ff;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:800;font-size:.82rem;">🧪 Charger la simulation — Pointage Juillet 2026</button>'
-    +'<span style="color:#9a8fb5;font-size:.75rem;">Charge la feuille de pointage réelle de juillet (52 salariés) pour tester la paye : Tableau paye → Export/Comparaison Silae.</span></div>'; }
-  if(!weeks.length){ box.innerHTML=h+'<div style="background:#141414;border-radius:10px;padding:16px;color:#888;">Aucune semaine enregistrée pour ce restaurant pour le moment. Utilisez le bouton simulation ci-dessus pour charger juillet.</div>'; return; }
+  /* ★ v657 — le bandeau violet de test de la paye (juillet, 52 salariés) est
+     retiré : c'était un outil de mise au point, il n'a plus lieu d'être sur
+     l'écran de tous les jours.                                              */
+  if(!weeks.length){ box.innerHTML=h+'<div style="background:#141414;border-radius:10px;padding:16px;color:#888;">Aucune semaine enregistrée pour ce restaurant pour le moment.</div>'; return; }
   var MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   // Grouper les semaines par mois (clé = mois du lundi), années/mois récents d'abord.
   var groupes={}, ordre=[];
@@ -5633,6 +5647,7 @@ var PARAM_TILES=[
   {ico:'📟', titre:'Poste iPad',    sub:'Bureau manager : absences, incidents', type:'card', card:'pc-ipad', id:'pc-ipad', fn:'paramIpad()', accent:'#F5A623'},
   {ico:'⏱️', titre:'Badgeuse',      sub:'Écran de pointage des salariés', type:'card', card:'pc-badgeuse', id:'pc-badgeuse', fn:'paramBadgeuse()', accent:'#3ecf8e'},
   {ico:'📋', titre:'Grille des contrats', sub:'Dispo contrat / dispo réelles', type:'card', card:'pc-grille-contrats', id:'pc-grille-contrats', fn:'paramGrilleContrats()', accent:'#B57EDC'},
+  {ico:'🎯', titre:'Familles de compétences', sub:'Cuisine intégrée / Comptoir', type:'card', card:'pc-familles', id:'pc-familles', fn:'paramFamilles()', accent:'#1d7a3a'},
   {ico:'📋', titre:'Incidents',     sub:'Suivi disciplinaire',          type:'page', page:'incidents',      accent:'#D62300'},
   {ico:'📅', titre:'Disponibilité contrat',sub:'Base des contrats (import Excel)', type:'card', card:'pc-dispos',      accent:'#1565c0'},
   {ico:'💶', titre:'Salaires',      sub:'Grille des salaires',          type:'page', page:'salaires',       accent:'#2e7d32'},
@@ -11799,7 +11814,7 @@ function _empfQualifsLecture(e){
 function _empfQualifsEdition(e){
   var q=((e&&e.infos&&e.infos.qualifs)||[]).map(function(x){ return (''+x).toUpperCase(); });
   var h='<div style="display:flex;flex-direction:column;gap:12px;">';
-  POSTES_FAMILLES.forEach(function(f){
+  getPostesFamilles().forEach(function(f){
     h+='<div style="border:1px solid #333;border-radius:10px;padding:10px 12px;">'
       +'<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:8px;">'
       +'<span style="font-size:.82rem;font-weight:800;color:'+f.col+';text-transform:uppercase;letter-spacing:.5px;">'+f.icon+' '+f.titre+'</span>'
@@ -11938,17 +11953,78 @@ var POSTES_PRODUCTIFS=['CUISINE','FRITES','SNACK','BROILER','BOARD VOLANT','BORN
    Comptoir volant, Uber, SAT emporter Uber. »
    Ce sont exactement les 14 postes déjà en place : on ne change rien à ce qui
    est enregistré, on les range en deux familles.                           */
-var POSTES_FAMILLES=[
-  {cle:'cuisine',  titre:'Cuisine intégrée', icon:'🍔', col:'#e53935',
-   postes:['CUISINE','FRITES','SNACK','BROILER','BOARD VOLANT']},
-  {cle:'comptoir', titre:'Comptoir',         icon:'🧾', col:'#1565c0',
-   postes:['BORNE','DRIVE','SAT SALLE','PREMIERE CABINE','TABLETTE DRIVE','EMPORTER','COMPTOIR VOLANT','UBER','SAT EMPORTER UBER']}
-];
+/* ★ v658 — LES DEUX FAMILLES SE RÈGLENT DANS PARAMÈTRES.
+   Vincent : « si je rajoute un Drive 2, quand je mets Comptoir, il faut que ça
+   sélectionne Drive 2 aussi. » Les listes ne sont donc plus écrites en dur :
+   elles se modifient dans Paramètres › Familles de compétences, et tout ce qui
+   s'en sert (fiche salarié, État équipe, recrutement) suit automatiquement.  */
+function postesFamillesDefaut(){
+  return [
+    {cle:'cuisine',  titre:'Cuisine intégrée', icon:'🍔', col:'#e53935',
+     postes:['CUISINE','FRITES','SNACK','BROILER','BOARD VOLANT']},
+    {cle:'comptoir', titre:'Comptoir',         icon:'🧾', col:'#1565c0',
+     postes:['BORNE','DRIVE','SAT SALLE','PREMIERE CABINE','TABLETTE DRIVE','EMPORTER','COMPTOIR VOLANT','UBER','SAT EMPORTER UBER']}
+  ];
+}
+window.postesFamillesDefaut=postesFamillesDefaut;
+function _famNettoie(l){
+  var d=postesFamillesDefaut();
+  if(!l || !l.length) return d;
+  var out=[];
+  d.forEach(function(def){
+    var f=l.find(function(x){ return x && x.cle===def.cle; }) || def;
+    var postes=(f.postes||[]).map(function(p){ return String(p||'').trim().toUpperCase(); })
+                             .filter(function(p,i,a){ return p && a.indexOf(p)===i; });
+    out.push({cle:def.cle, titre:(f.titre||def.titre), icon:(f.icon||def.icon),
+              col:(f.col||def.col), postes:postes});
+  });
+  return out;
+}
+var POSTES_FAMILLES=postesFamillesDefaut();
 try{ window.POSTES_FAMILLES=POSTES_FAMILLES; }catch(_){}
+function _famPublie(){ try{ window.POSTES_FAMILLES=POSTES_FAMILLES; }catch(_){} }
+function getPostesFamilles(){
+  try{
+    var raw=localStorage.getItem('bkrh_postes_familles');
+    if(raw && !getPostesFamilles._lu){ POSTES_FAMILLES=_famNettoie(JSON.parse(raw)); getPostesFamilles._lu=1; _famPublie(); }
+  }catch(_){}
+  return POSTES_FAMILLES;
+}
+window.getPostesFamilles=getPostesFamilles;
+function savePostesFamilles(){
+  POSTES_FAMILLES=_famNettoie(POSTES_FAMILLES); _famPublie();
+  try{ localStorage.setItem('bkrh_postes_familles',JSON.stringify(POSTES_FAMILLES)); }catch(_){}
+  try{ if(typeof SB!=='undefined'&&SB) SB.from('app_config')
+        .upsert({cle:'bkrh_postes_familles',valeur:POSTES_FAMILLES},{onConflict:'cle'})
+        .then(function(){},function(){}); }catch(_){}
+}
+window.savePostesFamilles=savePostesFamilles;
+async function hrChargerPostesFamilles(){
+  try{
+    if(typeof SB==='undefined'||!SB) return;
+    var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_postes_familles').maybeSingle();
+    if(r&&r.data&&r.data.valeur){
+      POSTES_FAMILLES=_famNettoie(r.data.valeur); getPostesFamilles._lu=1; _famPublie();
+      try{ localStorage.setItem('bkrh_postes_familles',JSON.stringify(POSTES_FAMILLES)); }catch(_){}
+    }
+  }catch(_){}
+}
+window.hrChargerPostesFamilles=hrChargerPostesFamilles;
+/* Les postes d'une famille (ou de plusieurs), sans doublon. */
+function famPostes(cles){
+  var l=(cles&&cles.length)?cles:[];
+  var out=[];
+  getPostesFamilles().forEach(function(f){
+    if(l.indexOf(f.cle)<0) return;
+    f.postes.forEach(function(p){ if(out.indexOf(p)<0) out.push(p); });
+  });
+  return out;
+}
+window.famPostes=famPostes;
 function posteFamille(p){
-  var u=(''+(p||'')).toUpperCase();
-  for(var i=0;i<POSTES_FAMILLES.length;i++){
-    if(POSTES_FAMILLES[i].postes.indexOf(u)>=0) return POSTES_FAMILLES[i];
+  var u=(''+(p||'')).toUpperCase(), L=getPostesFamilles();
+  for(var i=0;i<L.length;i++){
+    if(L[i].postes.indexOf(u)>=0) return L[i];
   }
   return null;
 }
@@ -11958,7 +12034,7 @@ window._qSlug=_qSlug;
 /* Les compétences d'un salarié, rangées par famille. */
 function empQualifsParFamille(e){
   var q=((e&&e.infos&&e.infos.qualifs)||[]).map(function(x){ return (''+x).toUpperCase(); });
-  return POSTES_FAMILLES.map(function(f){
+  return getPostesFamilles().map(function(f){
     return {famille:f, prises:f.postes.filter(function(p){ return q.indexOf(p)>=0; })};
   });
 }
@@ -19012,6 +19088,12 @@ function candRetenuActionsHtml(c){
     +'<div id="docs-qr-box" style="display:none;background:#fff;padding:12px;border-radius:10px;width:max-content;margin:6px 0 10px;"></div>'
     +'<p style="font-size:.72rem;color:#666;margin-bottom:12px;">Renseignez l\'identifiant, le mot de passe et la date, puis envoyez le mail. Le candidat dépose ses pièces et confirme ses vidéos via le lien.</p>';
 
+  /* ★ v658 — CUISINE OU COMPTOIR, DÈS QU'IL EST RETENU.
+     Un clic coche d'un coup toutes les compétences de la famille — celles qui
+     sont réglées dans Paramètres › Familles de compétences. Si Vincent ajoute
+     un « Drive 2 » au Comptoir, il est coché lui aussi.                     */
+  h+=candFamillesHtml(c);
+
   // ── METTRE DANS LES HORAIRES (avant le contrat) ────────────────────────────
   // Dispo dès qu'une date de démarrage est saisie, même avant que le dossier soit
   // complet : crée la fiche salarié pour pouvoir préparer son planning à l'avance.
@@ -19288,6 +19370,88 @@ async function candContratSigne(){
   }
   _candUpdate({statut:'essai',contrat_signe:true},'Contrat signé — salarié ajouté à l\'équipe 🚀',function(){loadAll();});
 }
+
+/* Le salarié créé depuis ce candidat, s'il existe déjà. */
+function candSalarieDe(c){
+  if(!c) return null;
+  return (DB.employees||[]).find(function(e){ return e.fromCandId===c.id; })||null;
+}
+window.candSalarieDe=candSalarieDe;
+/* Le bloc « Poste » de la fiche candidat retenu. */
+function candFamillesHtml(c){
+  var L=(typeof getPostesFamilles==='function')?getPostesFamilles():[];
+  var e=candSalarieDe(c);
+  var q=((e&&e.infos&&e.infos.qualifs)||[]).map(function(x){ return (''+x).toUpperCase(); });
+  var h='<div style="background:#141414;border:1px solid #2a2a2a;border-radius:8px;padding:11px 12px;margin-bottom:12px;">'
+    +'<div style="font-weight:800;font-size:.9rem;margin-bottom:3px;">🎯 Poste — cuisine ou comptoir</div>'
+    +'<div style="color:#8a9099;font-size:.77rem;margin-bottom:9px;line-height:1.5;">'
+      +'Un clic coche toutes les compétences de la famille. Les listes se règlent dans '
+      +'<b>Paramètres › Familles de compétences</b>.</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+  L.forEach(function(f){
+    var pris=f.postes.filter(function(p){ return q.indexOf(p)>=0; }).length;
+    var tous=(f.postes.length>0 && pris===f.postes.length);
+    h+='<button type="button" onclick="candFamille(\''+f.cle+'\')" '
+      +'title="'+(tous?'Retirer':'Cocher')+' les '+f.postes.length+' compétences de '+_msgEsc(f.titre)+'" '
+      +'style="background:'+(tous?f.col:'transparent')+';border:1px solid '+f.col+';color:'+(tous?'#fff':f.col)+';'
+      +'border-radius:9px;padding:7px 13px;font-size:.83rem;font-weight:800;cursor:pointer;font-family:inherit;">'
+      +f.icon+' '+_msgEsc(f.titre)
+      +' <span style="opacity:.75;font-weight:700;">'+pris+'/'+f.postes.length+'</span></button>';
+  });
+  h+='</div>';
+  if(!e){
+    h+='<div style="color:#8a9099;font-size:.74rem;margin-top:8px;">'
+      +(c.dateDebut?'Le salarié sera créé au premier clic.':'Indique d\'abord la <b>date de démarrage</b> ci-dessus.')
+      +'</div>';
+  }
+  return h+'</div>';
+}
+window.candFamillesHtml=candFamillesHtml;
+/* Coche (ou retire) toute une famille de compétences sur le salarié. */
+async function candFamille(cle){
+  var c=curCand(); if(!c) return;
+  var f=(getPostesFamilles()||[]).find(function(x){ return x.cle===cle; }); if(!f) return;
+  var e=candSalarieDe(c);
+  if(!e){
+    if(!c.dateDebut){ try{ toast('Indique d\'abord la date de démarrage.','error'); }catch(_){} return; }
+    var ok=await candCreerSalarieEquipe(c);
+    if(!ok){ try{ toast('Impossible de créer la fiche salarié.','error'); }catch(_){} return; }
+    e=candSalarieDe(c);
+    if(!e){ return; }
+  }
+  e.infos=e.infos||{};
+  var q=(e.infos.qualifs||[]).map(function(x){ return (''+x).toUpperCase(); });
+  var tous=(f.postes.length>0 && f.postes.every(function(p){ return q.indexOf(p)>=0; }));
+  f.postes.forEach(function(p){
+    var i=q.indexOf(p);
+    if(tous){ if(i>=0) q.splice(i,1); }
+    else if(i<0) q.push(p);
+  });
+  e.infos.qualifs=q;
+  try{ await sb.patch('bks_employees','id=eq.'+e.id,{infos:e.infos}); }catch(_){}
+  try{ toast(tous?(f.titre+' retiré'):(f.titre+' — '+f.postes.length+' compétences cochées'),'success'); }catch(_){}
+  try{ renderCandActions(c); }catch(_){}
+}
+window.candFamille=candFamille;
+
+/* ★ v658 — RATTRAPAGE : les retenus qui ont DÉJÀ une date de démarrage.
+   La création automatique de la v655 ne se déclenchait qu'au moment où l'on
+   saisissait la date. Les candidats retenus avant cette version n'étaient donc
+   jamais entrés dans les horaires. On les rattrape au chargement.          */
+async function candIntegrerRetenusDates(){
+  var n=0;
+  try{
+    var lst=(DB.candidatures||[]).filter(function(c){
+      if((c.statut||'')!=='retenu' || !c.dateDebut) return false;
+      return !(DB.employees||[]).some(function(e){ return e.fromCandId===c.id; });
+    });
+    for(var i=0;i<lst.length;i++){
+      try{ if(await candCreerSalarieEquipe(lst[i])) n++; }catch(_){}
+    }
+  }catch(_){}
+  return n;
+}
+window.candIntegrerRetenusDates=candIntegrerRetenusDates;
 
 async function setDateDebut(v){
   var c=curCand();if(!c)return;c.dateDebut=v;
@@ -28643,7 +28807,7 @@ function hrEERenderCompetences(){
   h+='<div style="font-size:.82rem;color:#aaa;margin-bottom:6px;">Coche les postes que chaque salarié sait tenir. Pris en compte par le placement. (Les Rapports restent en lecture seule pour l\'impression.)</div>';
   /* ★ v653 — on rappelle les deux familles, et on peut cocher toute une famille. */
   h+='<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:.76rem;font-weight:700;margin-bottom:10px;">'
-    +(POSTES_FAMILLES||[]).map(function(f){
+    +getPostesFamilles().map(function(f){
         return '<span style="display:inline-flex;align-items:center;gap:6px;color:'+f.col+';">'
           +'<i style="width:10px;height:10px;border-radius:3px;background:'+f.col+';display:inline-block;"></i>'
           +f.icon+' '+f.titre+' <span style="color:#888;font-weight:600;">('+f.postes.length+' postes)</span></span>';
@@ -28669,7 +28833,7 @@ function hrEERenderCompetences(){
     });
     /* ★ v653 — cocher toute une famille d'un coup, salarié par salarié. */
     h+='<td style="padding:3px 6px;white-space:nowrap;">'
-      +(POSTES_FAMILLES||[]).map(function(f){
+      +getPostesFamilles().map(function(f){
           var tous=f.postes.every(function(p){ return q.indexOf(p)>=0; });
           return '<button type="button" onclick="hrEEFamille(\''+e.id+'\',\''+f.cle+'\')" title="'
             +(tous?'Retirer':'Ajouter')+' toute la famille '+f.titre+'" '
@@ -28685,7 +28849,7 @@ function hrEERenderCompetences(){
 /* Ajoute toute la famille, ou la retire si elle est déjà complète. */
 function hrEEFamille(id, cle){
   var e=_hrEEQualifBuf(id); if(!e) return;
-  var f=(POSTES_FAMILLES||[]).find(function(x){ return x.cle===cle; }); if(!f) return;
+  var f=getPostesFamilles().find(function(x){ return x.cle===cle; }); if(!f) return;
   var q=e.infos.qualifs;
   var tous=f.postes.every(function(p){ return q.indexOf(p)>=0; });
   f.postes.forEach(function(p){
@@ -38900,6 +39064,96 @@ function ptgSetDebutJour(v){
   try{ toast('La journée de travail commence à '+String(n).padStart(2,'0')+':00 et se termine à '+String(n).padStart(2,'0')+':00 le lendemain.','success'); }catch(_){}
 }
 window.ptgSetDebutJour=ptgSetDebutJour;
+
+/* ── ★ v658 — Paramètres › 🎯 Familles de compétences ──────────────────────────
+   Vincent règle ici ce que contient « Cuisine intégrée » et ce que contient
+   « Comptoir ». Tout ce qui s'appuie dessus suit : la fiche de renseignements,
+   État équipe, et le choix Cuisine/Comptoir au moment de retenir un candidat. */
+function paramFamilles(){
+  try{ paramOuvrir('card','pc-familles'); }catch(_){}
+  renderFamilles();
+}
+window.paramFamilles=paramFamilles;
+function _famPostesConnus(){
+  var v={};
+  try{ (POSTES_PRODUCTIFS||[]).forEach(function(p){ v[String(p).toUpperCase()]=1; }); }catch(_){}
+  try{ (window.POSTES||[]).forEach(function(p){ v[String(p).toUpperCase()]=1; }); }catch(_){}
+  return v;
+}
+function renderFamilles(){
+  var box=document.getElementById('pc-familles-body'); if(!box) return;
+  var L=getPostesFamilles(), connus=_famPostesConnus();
+  var h='<p style="font-size:.84rem;color:#aaa;margin-bottom:14px;">'
+    +'Ce que contient chaque famille. Quand on retient un candidat en <b>Cuisine</b> ou en <b>Comptoir</b>, '
+    +'ce sont ces postes-là qui sont cochés dans ses compétences. Ajoute un poste ici (un <i>Drive 2</i> par exemple) '
+    +'et il sera pris en compte partout, tout de suite.</p>';
+  L.forEach(function(f){
+    h+='<div style="border:1px solid #333;border-radius:12px;padding:12px 14px;margin-bottom:14px;">'
+      +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">'
+        +'<span style="font-size:1rem;font-weight:900;color:'+f.col+';">'+f.icon+' '+_msgEsc(f.titre)+'</span>'
+        +'<span style="font-size:.76rem;color:#8a9099;font-weight:700;">'+f.postes.length+' poste'+(f.postes.length>1?'s':'')+'</span>'
+      +'</div>';
+    h+= f.postes.length
+      ? ('<div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:11px;">'+f.postes.map(function(p){
+          var inconnu=!connus[p];
+          return '<span style="display:inline-flex;align-items:center;gap:7px;background:'+f.col+';color:#fff;'
+            +'border-radius:8px;padding:3px 6px 3px 11px;font-size:.79rem;font-weight:700;'
+            +(inconnu?'outline:2px dashed #F5A623;outline-offset:1px;':'')+'" '
+            +(inconnu?'title="Ce poste n\'existe pas encore dans la grille des postes du restaurant"':'')+'>'
+            +_msgEsc(p)
+            +'<button type="button" onclick="famRetirer(\''+f.cle+'\',\''+_msgEsc(p).replace(/'/g,"\\'")+'\')" '
+            +'title="Retirer de la famille" style="background:rgba(0,0,0,.25);border:none;color:#fff;border-radius:6px;'
+            +'width:19px;height:19px;line-height:1;cursor:pointer;font-weight:900;font-family:inherit;">×</button></span>';
+        }).join('')+'</div>')
+      : '<div style="color:#8a9099;font-size:.85rem;margin-bottom:11px;">Aucun poste dans cette famille.</div>';
+    h+='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'
+      +'<input id="fam-add-'+f.cle+'" class="fi" list="fam-liste-postes" placeholder="Ajouter un poste…" '
+      +'style="max-width:260px;" onkeydown="if(event.key===\'Enter\'){event.preventDefault();famAjouter(\''+f.cle+'\');}">'
+      +'<button type="button" class="btn btn-gray btn-sm" onclick="famAjouter(\''+f.cle+'\')">+ Ajouter</button>'
+      +'</div></div>';
+  });
+  var tous=Object.keys(connus).sort();
+  h+='<datalist id="fam-liste-postes">'+tous.map(function(p){ return '<option value="'+_msgEsc(p)+'">'; }).join('')+'</datalist>';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px;">'
+    +'<button type="button" class="btn btn-gray btn-sm" onclick="famReset()">↩️ Rétablir les listes d\'origine</button>'
+    +'<span id="fam-status" style="font-size:.82rem;color:#3ecf8e;font-weight:700;"></span></div>';
+  box.innerHTML=h;
+}
+window.renderFamilles=renderFamilles;
+function _famStatus(txt){
+  try{ var s=document.getElementById('fam-status'); if(s){ s.textContent=txt; setTimeout(function(){ if(s) s.textContent=''; },2500); } }catch(_){}
+}
+function famAjouter(cle){
+  var el=document.getElementById('fam-add-'+cle); if(!el) return;
+  var p=String(el.value||'').trim().toUpperCase();
+  if(!p){ return; }
+  var L=getPostesFamilles();
+  var f=L.find(function(x){ return x.cle===cle; }); if(!f) return;
+  if(f.postes.indexOf(p)>=0){ _famStatus('« '+p+' » y est déjà.'); el.value=''; return; }
+  /* un poste ne peut appartenir qu'à une seule famille */
+  L.forEach(function(x){ var i=x.postes.indexOf(p); if(i>=0) x.postes.splice(i,1); });
+  f.postes.push(p);
+  savePostesFamilles(); renderFamilles();
+  _famStatus('✅ « '+p+' » ajouté à '+f.titre);
+}
+window.famAjouter=famAjouter;
+function famRetirer(cle, poste){
+  var L=getPostesFamilles();
+  var f=L.find(function(x){ return x.cle===cle; }); if(!f) return;
+  var i=f.postes.indexOf(String(poste).toUpperCase());
+  if(i<0) return;
+  f.postes.splice(i,1);
+  savePostesFamilles(); renderFamilles();
+  _famStatus('« '+poste+' » retiré de '+f.titre);
+}
+window.famRetirer=famRetirer;
+function famReset(){
+  if(!confirm('Rétablir les deux familles d\'origine ?\n\nCuisine intégrée : Cuisine, Frites, Snack, Broiler, Board volant\nComptoir : Borne, Drive, SAT salle, Première cabine, Tablette drive, Emporter, Comptoir volant, Uber, SAT emporter Uber')) return;
+  POSTES_FAMILLES=postesFamillesDefaut();
+  savePostesFamilles(); renderFamilles();
+  _famStatus('✅ Listes d\'origine rétablies');
+}
+window.famReset=famReset;
 
 /* ── Paramètres › 📋 Grille des contrats ───────────────────────────────────── */
 var _grcSelC='15h', _grcSelP='veh';
