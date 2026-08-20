@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-26 20:40 · v660 (entrees-sorties : les visages et leffectif temps plein)';
+  var EMBEDDED_VERSION = '2026-08-27 15:40 · v665 (creneaux restants + placements conserves controles)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -2539,6 +2539,10 @@ html,body{overflow-x:hidden;}
       <div class="sec-title">📋 Grille des contrats — dispo contrat / dispo réelles</div>
       <div id="pc-grille-contrats-body"></div>
     </div>
+    <div class="card param-card" id="pc-fiches-recrut" style="display:none;">
+      <div class="sec-title">🧹 Fiches créées par le recrutement</div>
+      <div id="pc-fiches-recrut-body"></div>
+    </div>
     <div class="card param-card" id="pc-familles" style="display:none;">
       <div class="sec-title">🎯 Familles de compétences — Cuisine intégrée / Comptoir</div>
       <div id="pc-familles-body"></div>
@@ -3577,14 +3581,26 @@ async function loadAll(light) {
   try{ if(typeof hrChargerDisposContratSupabase==='function'){ await hrChargerDisposContratSupabase(); } }catch(e){}
   try{ if(typeof hrChargerGrilleContrats==='function'){ await hrChargerGrilleContrats(); } }catch(e){}
   try{ if(typeof hrChargerPostesFamilles==='function'){ await hrChargerPostesFamilles(); } }catch(e){}
-  /* ★ v658 — un retenu qui a déjà sa date de démarrage entre dans les horaires,
-     même s'il a été retenu avant que cette règle existe.                    */
-  try{
-    if(!light && typeof candIntegrerRetenusDates==='function'){
-      var _nInt=await candIntegrerRetenusDates();
-      if(_nInt) try{ toast(_nInt+' salarié'+(_nInt>1?'s':'')+' retenu'+(_nInt>1?'s':'')+' ajouté'+(_nInt>1?'s':'')+' aux horaires','success'); }catch(_){}
-    }
-  }catch(e){ console.warn('rattrapage retenus', e); }
+  /* ★ v664 — LE RATTRAPAGE AUTOMATIQUE EST COUPÉ.
+
+     En v658 j'avais branché ICI un rattrapage qui, À CHAQUE OUVERTURE de
+     l'application, créait dans la base une fiche salarié pour tout candidat retenu
+     ayant une date de démarrage. Ce n'était pas de la lecture : c'était un
+     sb.insert('bks_employees', …) — donc des équipiers en plus dans l'effectif, avec
+     contrat et disponibilités, à chaque fois. Le placement avait alors plus d'heures
+     de contrat à répartir et les traits changeaient de tête, sans que rien n'ait
+     bougé ni dans la grille CA ni dans le moteur. Et comme c'était écrit EN BASE,
+     revenir à une ancienne version du fichier n'y changeait rien.
+
+     Ce que Vincent avait demandé reste en place, à l'identique : quand LUI met
+     « retenu » et saisit la date de démarrage, la personne entre dans les horaires
+     (voir setDateDebut). C'est un geste volontaire, pas une création silencieuse.
+
+     La fonction candIntegrerRetenusDates existe toujours, mais elle n'est plus
+     appelée toute seule : elle ne part que depuis l'écran de nettoyage, à la
+     demande. Pour voir et corriger ce que le rattrapage a créé :
+     Paramètres › 🧹 Fiches créées par le recrutement.                          */
+  try{ window.HR_RATTRAPAGE_AUTO=false; }catch(_){}
   try{ if(typeof depCharger==='function'){ await depCharger(false); } }catch(e){}
   try{ if(typeof hrChargerPayeRepas==='function'){ await hrChargerPayeRepas(); } }catch(e){}
   try{ if(typeof hrChargerPayeCfg==='function'){ await hrChargerPayeCfg(); } }catch(e){}
@@ -5648,6 +5664,7 @@ var PARAM_TILES=[
   {ico:'⏱️', titre:'Badgeuse',      sub:'Écran de pointage des salariés', type:'card', card:'pc-badgeuse', id:'pc-badgeuse', fn:'paramBadgeuse()', accent:'#3ecf8e'},
   {ico:'📋', titre:'Grille des contrats', sub:'Dispo contrat / dispo réelles', type:'card', card:'pc-grille-contrats', id:'pc-grille-contrats', fn:'paramGrilleContrats()', accent:'#B57EDC'},
   {ico:'🎯', titre:'Familles de compétences', sub:'Cuisine intégrée / Comptoir', type:'card', card:'pc-familles', id:'pc-familles', fn:'paramFamilles()', accent:'#1d7a3a'},
+  {ico:'🧹', titre:'Fiches créées par le recrutement', sub:'Vérifier et retirer', type:'card', card:'pc-fiches-recrut', id:'pc-fiches-recrut', fn:'paramFichesRecrut()', accent:'#e8623a'},
   {ico:'📋', titre:'Incidents',     sub:'Suivi disciplinaire',          type:'page', page:'incidents',      accent:'#D62300'},
   {ico:'📅', titre:'Disponibilité contrat',sub:'Base des contrats (import Excel)', type:'card', card:'pc-dispos',      accent:'#1565c0'},
   {ico:'💶', titre:'Salaires',      sub:'Grille des salaires',          type:'page', page:'salaires',       accent:'#2e7d32'},
@@ -24808,6 +24825,8 @@ window.dashStartAutoRefresh=dashStartAutoRefresh;window.dashStopAutoRefresh=dash
 })();
 
 var SB = window.SB;
+/* ★ v664 — marqueur : la création automatique de fiches au chargement est coupée. */
+try{ window.HR_RATTRAPAGE_AUTO=false; }catch(e){}
 function hrDiag(msg,isErr){try{var el=document.getElementById('hrx-diag');if(el){el.textContent=msg;el.style.color=isErr?'#ff6b6b':'#3ecf8e';}}catch(e){}try{console.log('[HR diag]',msg);}catch(e){}}
 window.hrDiag=hrDiag;
 
@@ -30321,6 +30340,73 @@ function hrPlacerIntelligentSemaine(repartirZero){
   // et complète, sans tout remettre à zéro. Pour repartir de zéro : « Vider la
   // semaine » d'abord (ou repartirZero=true).
   var empById={}; eq.forEach(function(e){ empById[e.id]=e; });
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     ★ v665 — LES PLACEMENTS CONSERVÉS SONT CONTRÔLÉS, EUX AUSSI.
+
+     Vincent : « Gabriel, là, tu lui fais une énorme journée. Tu n'as même pas le
+     droit, il y a plus que douze heures dans la journée. »
+
+     Mesuré sur ses vraies données (BK526, semaine du 31/08, 55 équipiers) : quand
+     le moteur repart de zéro, il pose 358 traits et produit ZÉRO bloc de plus de
+     5 h, ZÉRO journée de plus de 10 h, ZÉRO amplitude de plus de 12 h. Le moteur
+     est propre.
+
+     Le trou était ailleurs : le placement est NON DESTRUCTIF. Il conserve ce qui
+     est déjà posé et le réinjecte dans son état interne — SANS JAMAIS LE
+     CONTRÔLER. Un bloc de 6 h collé posé à la main, ou hérité d'une version plus
+     ancienne, survivait donc à tous les replacements suivants : le moteur le
+     prenait pour acquis et construisait par-dessus.
+
+     Maintenant, chaque placement conservé repasse par le règlement, salarié par
+     salarié et jour par jour, dans l'ordre des heures. Celui qui tient est gardé.
+     Celui qui fait sauter une règle est LIBÉRÉ — il retourne dans les créneaux à
+     pourvoir, et le moteur cherche quelqu'un d'autre. Le compte est annoncé à la
+     fin, avec le détail.
+     ═══════════════════════════════════════════════════════════════════════════ */
+  var _libNb=0, _libMin=0, _libDetail=[];
+  var _JN665=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  function _hm665(min){ var mm=((min%1440)+1440)%1440; return String(Math.floor(mm/60)).padStart(2,'0')+'h'+String(mm%60).padStart(2,'0'); }
+  var _garder={};   // 'empId|jour|s|e|poste' -> true  (placement conservé validé)
+  if(!repartirZero){
+    /* 1 · on rassemble ce qui est déjà posé, par salarié et par jour */
+    var _parEmpJour={};
+    for(var _dC=0; _dC<7; _dC++){
+      (ROWS_BY_DAY[_dC]||[]).forEach(function(row){
+        (row.bars||[]).forEach(function(b){
+          if(!b || estTraitEncadrement(b.l)) return;
+          if(!b.empId || !empById[b.empId]) return;
+          var k=b.empId+'|'+_dC;
+          (_parEmpJour[k]=_parEmpJour[k]||[]).push({b:b, d:_dC, emp:empById[b.empId]});
+        });
+      });
+    }
+    /* 2 · on les repasse au règlement, dans l'ordre des heures. On garde tant que
+           la journée tient ; dès qu'un créneau fait sauter une règle, on le libère. */
+    Object.keys(_parEmpJour).forEach(function(k){
+      var lst=_parEmpJour[k].sort(function(x,y){ return (x.b.s-y.b.s) || (x.b.e-y.b.e); });
+      lst.forEach(function(o){
+        var emp=o.emp, b=o.b, d=o.d, dur=(b.e-b.s);
+        var ok=true;
+        try{ if(_hrResteMax(emp) < dur) ok=false; }catch(_1){}
+        try{ if(ok && !reglesOk(emp,d,b.s,b.e)) ok=false; }catch(_2){}
+        try{ if(ok && !reposQuotidienOk(emp,d,b.s,b.e)) ok=false; }catch(_3){}
+        if(ok){
+          /* validé → il entre dans l'état du moteur */
+          var seg={s:b.s,e:b.e,bar:b}; b._seg=seg;
+          busy[emp.id]=busy[emp.id]||{}; busy[emp.id][d]=busy[emp.id][d]||[]; busy[emp.id][d].push(seg);
+          minSem[emp.id]=(minSem[emp.id]||0)+dur; jt[emp.id]=jt[emp.id]||{}; jt[emp.id][d]=true;
+          _garder[emp.id+'|'+d+'|'+b.s+'|'+b.e+'|'+b.l]=true;
+        } else {
+          /* libéré → il repart dans les créneaux à pourvoir */
+          _libNb++; _libMin+=dur;
+          if(_libDetail.length<12) _libDetail.push(emp.name+' — '+_JN665[d]+' '+_hm665(b.s)+'–'+_hm665(b.e)+' '+b.l);
+          b.empId=null; b.emp=null; b._seg=null;
+        }
+      });
+    });
+  }
+
   var traitsJour=[]; // [d] = [bars productifs à pourvoir (vides)]
   for(var d=0; d<7; d++){
     traitsJour[d]=[];
@@ -30335,13 +30421,11 @@ function hrPlacerIntelligentSemaine(repartirZero){
         // ici, AVANT tout placement, pour que le taux affiché soit le vrai.
         if(b._dur0==null) b._dur0=(b.e-b.s);
         b._row=row;   // v561 : mémorise la ligne, pour pouvoir y insérer un morceau découpé
-        if(!repartirZero && b.empId && empById[b.empId]){
-          // CONSERVER ce placement existant : on le réinjecte dans l'état du moteur.
-          var emp=empById[b.empId];
-          var seg={s:b.s,e:b.e,bar:b}; b._seg=seg;
-          busy[emp.id]=busy[emp.id]||{}; busy[emp.id][d]=busy[emp.id][d]||[]; busy[emp.id][d].push(seg);
-          minSem[emp.id]=(minSem[emp.id]||0)+(b.e-b.s); jt[emp.id]=jt[emp.id]||{}; jt[emp.id][d]=true;
-          return; // pas dans traitsJour : intouchable
+        /* ★ v665 — le placement conservé a DÉJÀ été validé plus haut (ou libéré).
+           On ne le réinjecte donc plus ici : on le laisse simplement de côté.   */
+        if(!repartirZero && b.empId && empById[b.empId]
+           && _garder[b.empId+'|'+d+'|'+b.s+'|'+b.e+'|'+b.l]){
+          return; // conservé et conforme : intouchable
         }
         // trait vide (ou repartirZero) → à pourvoir
         b.empId=null; b.emp=null; b._seg=null; traitsJour[d].push(b);
@@ -30659,6 +30743,13 @@ function hrPlacerIntelligentSemaine(repartirZero){
   var ligneContrats='';
   if(_complNb>0) ligneContrats+='<br>⏱️ Heures au-delà du contrat (sous plafond légal) : <b>'+_dh(_complMin)+'</b> sur '+_complNb+' salarié(s)';
   if(_horsPlafond.length) ligneContrats+='<br><b style="color:#ff6b6b">🚨 AU-DESSUS DU PLAFOND LÉGAL : '+_horsPlafond.join(' · ')+'</b>';
+  /* ★ v665 — ce que le règlement a fait libérer. */
+  if(_libNb>0){
+    ligneContrats+='<br><b style="color:#e8a020">⚖️ '+_libNb+' placement(s) repris ('+_dh(_libMin)+') : ils ne respectaient pas le règlement</b>'
+      +' <span style="color:#aaa">(trop d\'heures d\'affilée, pas assez de pause, journée trop longue…). '
+      +'Ils ont été remis dans les créneaux à pourvoir.</span>'
+      +'<br><span style="color:#8a9099;font-size:11px;">'+_libDetail.join(' · ')+(_libNb>_libDetail.length?(' … et '+(_libNb-_libDetail.length)+' autres'):'')+'</span>';
+  }
   if(_nbDecoupes>0) ligneContrats+='<br>✂️ Créneaux coupés en deux (2 salariés successifs) : <b>'+_nbDecoupes+'</b>';
   if(_rognNb>0) ligneContrats+='<br>⚠️ Traits raccourcis sans découpage : '+_rognNb+' (<b>'+_dh(_rognTot)+'</b> — ne devrait plus arriver en v561)';
   if(_hcJours>0){
@@ -31727,6 +31818,60 @@ function _hrAnalyseImport(resto, lundiIso, dates){
 window._hrAnalyseImport=_hrAnalyseImport;
 
 // Construit le tableau (document blanc) d'UNE semaine pour un resto donné, à partir des placements sauvegardés
+/* ═════════════════════════════════════════════════════════════════════════════
+   ★ v663 — CE QUI RESTE À PRENDRE = LE BESOIN MOINS CE QUI EST POSÉ.
+
+   Le besoin (les traits sortis de la grille CA) et les placements (les noms posés
+   dessus) sont deux choses différentes. On compare les deux POSTE PAR POSTE et
+   PAR TRANCHE DE 5 MINUTES, puis on recolle les morceaux découverts.
+   Ça tient debout même quand :
+     · quatre CUISINE tournent en parallèle et que deux seulement sont pourvus ;
+     · un trait a été coupé en deux et donné à deux personnes qui se relaient ;
+     · un trait commence à 08h50 (d'où le pas de 5 minutes, pas 15).
+   ═════════════════════════════════════════════════════════════════════════════ */
+function _hrCreneauxManquants(besoin, poses){
+  var PAS=5;
+  function _clef(l){ return String(l==null?'':l).toUpperCase().trim(); }
+  var lbl={}, bes={}, pos={};
+  function _poser(map, b){
+    if(!b || b.s==null) return;
+    var e=(b.e!=null?b.e:b.s+60); if(!(e>b.s)) return;
+    var k=_clef(b.l); if(!k) return;
+    if(lbl[k]==null) lbl[k]=(b.l||k);
+    var m=(map[k]=map[k]||{});
+    for(var x=Math.floor(b.s/PAS)*PAS; x<e; x+=PAS){ m[x]=(m[x]||0)+1; }
+  }
+  (besoin||[]).forEach(function(b){ _poser(bes,b); });
+  (poses ||[]).forEach(function(b){ _poser(pos,b); });
+
+  var out=[];
+  Object.keys(bes).forEach(function(k){
+    var mB=bes[k], mP=pos[k]||{};
+    var slots=Object.keys(mB).map(Number).sort(function(a,b){ return a-b; });
+    var manque={}, maxN=0;
+    slots.forEach(function(x){
+      var d=(mB[x]||0)-(mP[x]||0);
+      if(d>0){ manque[x]=d; if(d>maxN) maxN=d; }
+    });
+    /* couche par couche : s'il manque 2 personnes sur la même tranche, ça fait
+       deux créneaux à pourvoir, pas un.                                        */
+    for(var n=1;n<=maxN;n++){
+      var deb=null, fin=null;
+      for(var i=0;i<slots.length;i++){
+        var x=slots[i], actif=((manque[x]||0)>=n);
+        if(actif && deb===null){ deb=x; fin=x+PAS; }
+        else if(actif && x===fin){ fin=x+PAS; }
+        else if(actif){ out.push({l:lbl[k],s:deb,e:fin}); deb=x; fin=x+PAS; }
+        else if(deb!==null){ out.push({l:lbl[k],s:deb,e:fin}); deb=null; fin=null; }
+      }
+      if(deb!==null) out.push({l:lbl[k],s:deb,e:fin});
+    }
+  });
+  out.sort(function(a,b){ return (a.s-b.s) || (a.e-b.e) || String(a.l).localeCompare(String(b.l)); });
+  return out;
+}
+try{ window._hrCreneauxManquants=_hrCreneauxManquants; }catch(e){}
+
 function hrTableauSemaine(resto, lundiIso, affOverride){
   var aff=affOverride||_hrAffectSauve(resto);
   var joursN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
@@ -31955,39 +32100,51 @@ function hrTableauSemaine(resto, lundiIso, affOverride){
   // dessine TOUJOURS la semaine affichée, donc ROWS_BY_DAY correspond à ce tableau.
   // On n'exige plus l'égalité stricte HR_WEEK_LUNDI===lundiIso (qui pouvait échouer
   // au changement de semaine et faire « disparaître » la ligne créneaux + totaux).
-  /* ★ v659 — LES CRÉNEAUX RESTANTS SE COMPTENT SUR LA SEMAINE AFFICHÉE.
-     Avant, cette ligne était construite à partir de ROWS_BY_DAY : la grille
-     CHARGÉE EN MÉMOIRE dans le navigateur. Deux personnes qui regardaient la
-     MÊME semaine pouvaient donc lire deux totaux différents — 67 chez Vincent,
-     74 chez sa RH — et le total pouvait même décrire une AUTRE semaine que
-     celle affichée à l'écran (le contrôle sur le lundi avait été retiré).
-     On lit maintenant les traits de la semaine affichée à leur source
-     partagée, la même que le reste du tableau : _chJoursSrc.               */
-  var _traitsSem=null;
+  /* ★ v663 — LA LIGNE « CRÉNEAUX RESTANT À PRENDRE ».
+
+     Ce qui n'allait pas en v659/v660 : la ligne lisait les traits dans la source
+     PARTAGÉE (_chJoursSrc). Or cette source ne contient que les traits qui PORTENT
+     UN NOM — un créneau vide n'y est jamais enregistré. La ligne ne voyait donc
+     jamais de vide et affichait « ✓ » sur les 7 jours, pendant que la journée
+     affichait « 4 créneaux · 9h10 à couvrir ». Deux réponses contradictoires pour
+     la même semaine.
+
+     Maintenant : le BESOIN vient des traits de la semaine affichée, et le POSÉ
+     vient de « aff » — exactement les placements que ce tableau montre ligne par
+     ligne. Les deux chiffres du tableau ne peuvent donc plus se contredire.
+
+     Le garde-fou de la v659 est CONSERVÉ, et même renforcé : on ne compte que si
+     les traits en mémoire décrivent bien la semaine affichée (contrôle jour par
+     jour sur DAY_DATES). Sinon on l'écrit noir sur blanc au lieu de répondre
+     « ✓ » — c'était ça, le vrai fond du 67 contre 74.                          */
+  var _memeSemaine=false;
   try{
-    var _tmp=[], _vide=true;
-    for(var _dS=0;_dS<7;_dS++){
-      var _aS=[];
-      try{ _aS=_chJoursSrc(resto, iso(dates[_dS]))||[]; }catch(_e1){ _aS=[]; }
-      if(_aS.length) _vide=false;
-      _tmp.push(_aS);
+    _memeSemaine = (typeof DAY_DATES!=='undefined' && DAY_DATES && DAY_DATES.length===7
+                 && typeof ROWS_BY_DAY!=='undefined' && ROWS_BY_DAY && ROWS_BY_DAY.length===7);
+    for(var _dv=0; _memeSemaine && _dv<7; _dv++){
+      if(DAY_DATES[_dv]!==iso(dates[_dv])) _memeSemaine=false;
     }
-    if(!_vide) _traitsSem=_tmp;
-  }catch(_e2){}
-  /* Repli : la semaine n'est pas (encore) enregistrée → on reprend ce que le
-     navigateur a sous la main, comme avant.                                */
-  if(!_traitsSem){
-    try{
-      if(typeof ROWS_BY_DAY!=='undefined' && ROWS_BY_DAY && ROWS_BY_DAY.length===7){
-        var _tmp2=[];
-        for(var _dR=0;_dR<7;_dR++){
-          var _l=[];
-          (ROWS_BY_DAY[_dR]||[]).forEach(function(r){ (r.bars||[]).forEach(function(b){ _l.push(b); }); });
-          _tmp2.push(_l);
-        }
-        _traitsSem=_tmp2;
-      }
-    }catch(_e3){}
+  }catch(_e0){ _memeSemaine=false; }
+
+  var _traitsSem=null;
+  if(_memeSemaine){
+    _traitsSem=[];
+    for(var _dB=0;_dB<7;_dB++){
+      var _lB=[];
+      (ROWS_BY_DAY[_dB]||[]).forEach(function(r){ (r.bars||[]).forEach(function(b){ if(b) _lB.push(b); }); });
+      _traitsSem.push(_lB);
+    }
+  }
+
+  if(!_memeSemaine && !_imp){
+    /* On ne sait pas de quoi cette semaine a besoin : on le dit, on n'invente pas. */
+    h+='<tr style="border-top:2px solid #333;background:#fff8f6;">';
+    h+='<td style="padding:8px 10px;font-weight:700;color:#D62300;white-space:nowrap;vertical-align:top;border:1px solid #e2e2e6;">⚠️ Créneaux restant à prendre</td>';
+    h+='<td colspan="7" style="padding:9px 12px;color:#8a6d3b;font-size:11.5px;border:1px solid #e2e2e6;">'
+      +'Les traits affichés à l\'écran ne sont pas ceux de cette semaine — impossible de dire ce qu\'il reste à prendre. '
+      +'Ouvre cette semaine dans <b>Horaires</b> (puis <b>🔄 Actualiser les traits</b>) et le compte s\'affichera.</td>';
+    h+='<td style="padding:7px 10px;text-align:center;font-weight:700;color:#8a6d3b;border:1px solid #e2e2e6;white-space:nowrap;">—<br><span style="font-size:9px;color:#888;font-weight:600;">à vérifier</span></td>';
+    h+='<td style="border:1px solid #e2e2e6;"></td></tr>';
   }
   if(_traitsSem && !_imp){
     var _eqResto=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&(e.restoId||'').toLowerCase()===(resto||'').toLowerCase();});
@@ -32000,13 +32157,22 @@ function hrTableauSemaine(resto, lundiIso, affOverride){
     }
     function _dispoOk(e,d,s,ee){ var jk=JOURS_KEYS[d]; var dd=(e.infos&&e.infos.dispos&&e.infos.dispos[jk])||null; if(!dd||!dd.on)return false; var f=_dispoMin(dd.from),t=_dispoMin(dd.to); if(f==null||t==null)return false; return s>=f&&ee<=t; }
     function _libre(id,d,s,ee){ var a=(_busyJ[id]||{})[d]||[]; for(var i=0;i<a.length;i++){ if(s<a[i].e&&ee>a[i].s)return false; } return true; }
-    // Pour chaque jour : liste des traits vides + diagnostic de cause
-    var resteJour=[]; var totalReste=0;
+    // Pour chaque jour : liste des créneaux DÉCOUVERTS + diagnostic de cause
+    var resteJour=[]; var totalReste=0, totalResteMin=0;
     var causeGlobale={comp:0, dispo:0, occupe:0, possible:0}; // compteur de causes (en créneaux)
     for(var jR=0;jR<7;jR++){
       var arrV=[];
-      (_traitsSem[jR]||[]).forEach(function(b){
-        if(!b || b.empId || estTraitEncadrement(b.l)) return;
+      /* le BESOIN du jour (hors encadrement) */
+      var _besJ=(_traitsSem[jR]||[]).filter(function(b){ return b && !estTraitEncadrement(b.l); });
+      /* le POSÉ du jour : ce que ce tableau affiche. Si « aff » est vide pour ce
+         jour, on retombe sur la source partagée (semaine transférée, par ex.).  */
+      var _posJ=(aff[iso(dates[jR])]||[]).filter(function(b){ return b && b.empId && !estTraitEncadrement(b.l); });
+      if(!_posJ.length){
+        try{
+          _posJ=(_chJoursSrc(resto, iso(dates[jR]))||[]).filter(function(b){ return b && b.empId && !estTraitEncadrement(b.l); });
+        }catch(_eP){ _posJ=[]; }
+      }
+      _hrCreneauxManquants(_besJ, _posJ).forEach(function(b){
         // diagnostic de cause pour CE trait vide
         var nbComp=0, nbDispo=0, nbOccupe=0, nbPossible=0;
         _eqResto.forEach(function(e){
@@ -32027,6 +32193,7 @@ function hrTableauSemaine(resto, lundiIso, affOverride){
       });
       arrV.sort(function(a,b){return a.s-b.s;});
       resteJour[jR]=arrV; totalReste+=arrV.length;
+      arrV.forEach(function(p){ totalResteMin+=(p.e-p.s); });
     }
     h+='<tr style="border-top:2px solid #333;background:#fff8f6;">';
     h+='<td style="padding:8px 10px;font-weight:700;color:#D62300;white-space:nowrap;vertical-align:top;border:1px solid #e2e2e6;">⚠️ Créneaux restant à prendre</td>';
@@ -32036,10 +32203,15 @@ function hrTableauSemaine(resto, lundiIso, affOverride){
       else { cellR=av.map(function(p){return '<div onclick="hrOuvrirChoixCreneau('+jR2+','+p.s+','+p.e+',\''+(p.l||'').replace(/'/g,"\\'")+'\',\''+lundiIso+'\')" style="white-space:nowrap;font-size:10px;color:#D62300;cursor:pointer;padding:1px 2px;border-radius:3px;" onmouseover="this.style.background=\'#ffe0d8\'" onmouseout="this.style.background=\'transparent\'" title="Cliquer pour placer un équipier sur ce créneau">'+hhmm(p.s)+'-'+hhmm(p.e)+' <span style="color:#777;">'+p.l+'</span> <span style="color:'+p.ccol+';">('+p.cause+')</span></div>';}).join(''); }
       h+='<td style="padding:6px 6px;text-align:center;vertical-align:top;border:1px solid #e2e2e6;">'+cellR+'</td>';
     }
-    h+='<td style="padding:7px 10px;text-align:center;font-weight:700;color:#D62300;border:1px solid #e2e2e6;white-space:nowrap;">'+(totalReste||'✓')+'<br><span style="font-size:9px;color:#888;font-weight:600;">créneaux à prendre</span></td>';
+    h+='<td style="padding:7px 10px;text-align:center;font-weight:700;color:'+(totalReste?'#D62300':'#1A9850')+';border:1px solid #e2e2e6;white-space:nowrap;">'
+      +(totalReste||'✓')
+      +'<br><span style="font-size:9px;color:#888;font-weight:600;">créneaux à prendre</span>'
+      +(totalReste?('<br><span style="font-size:9px;color:#D62300;font-weight:700;">'+fhh(totalResteMin)+' à couvrir</span>'):'')
+      +'</td>';
     h+='<td style="border:1px solid #e2e2e6;"></td></tr>';
     // Mémoriser la synthèse des causes pour le récap
     window._hrDiagCauses=causeGlobale;
+    try{ window._hrResteSemaine={creneaux:totalReste, minutes:totalResteMin, lundi:lundiIso}; }catch(_eR){}
   }
   h+='</tbody></table></div>';
 
@@ -32171,6 +32343,115 @@ function hrOuvrirChoixCreneau(jour, s, e, poste, lundiIso){
 }
 window.hrOuvrirChoixCreneau=hrOuvrirChoixCreneau;
 
+/* ═════════════════════════════════════════════════════════════════════════════
+   ★ v664 — LE RÈGLEMENT S'APPLIQUE AUSSI AU CLIC « ＋ METTRE UN NOM ».
+
+   Vincent : « il y a six heures d'affilée, l'improductif et le productif que tu as
+   mis, ça fait six heures d'affilée, donc s'arrêter à cinq. Cinq heures, c'est
+   vraiment le maximum. Le créneau avec une pause : cinq heures et deux heures, cinq
+   heures quatre heures, ce que tu veux. »
+
+   Le placement automatique respectait déjà ça (0 trait de plus de 5 h sur 239 posés).
+   Mais le clic « ＋ mettre un nom » ne vérifiait QUE deux choses : le chevauchement et
+   le plafond de la semaine. Ni la longueur d'affilée, ni la pause, ni le nombre de
+   créneaux dans la journée, ni le repos entre deux jours. Poser un créneau collé à un
+   autre passait sans un mot — et faisait un bloc de 6 h ou 7 h que le planning hebdo
+   affiche en une seule ligne.
+
+   Ici on recompose la journée de la personne, on y ajoute le créneau demandé, on
+   recolle les traits qui se touchent (l'improductif compte comme le productif) et on
+   contrôle. Si une règle saute, on le DIT, en nommant laquelle et en donnant le
+   chiffre. Vincent reste maître : il peut forcer en connaissance de cause.
+   ═════════════════════════════════════════════════════════════════════════════ */
+function _hrJourSegments(empId, iso){
+  var out=[];
+  try{
+    ((typeof HR_AFFECT!=='undefined'&&HR_AFFECT[iso])||[]).forEach(function(b){
+      if(String(b.empId)!==String(empId)) return;
+      if(typeof estTraitEncadrement==='function' && estTraitEncadrement(b.l)) return;
+      out.push({s:b.s, e:(b.e!=null?b.e:b.s+60), l:b.l});
+    });
+  }catch(_){}
+  return out;
+}
+function _hrColler(segs){
+  var a=segs.slice().sort(function(x,y){ return x.s-y.s; });
+  var out=[], cur=null;
+  a.forEach(function(p){
+    if(cur && p.s<=cur.e){ cur.e=Math.max(cur.e,p.e); cur.n++; }
+    else { cur={s:p.s,e:p.e,n:1}; out.push(cur); }
+  });
+  return out;
+}
+function _hrFmtDuree(min){ var h=Math.floor(min/60), m=Math.round(min%60); return h+'h'+(m?String(m).padStart(2,'0'):''); }
+function _hrFmtHeure(min){ var mm=((min%1440)+1440)%1440; return String(Math.floor(mm/60)).padStart(2,'0')+'h'+String(mm%60).padStart(2,'0'); }
+
+/* Renvoie null si tout va bien, sinon la phrase qui explique ce qui coince. */
+function hrControleCreneau(empId, jour, s, e){
+  try{
+    var R=(typeof getReglement==='function')?getReglement():{};
+    var traitMax=(R.traitMaxiHeures!=null?parseFloat(R.traitMaxiHeures):5)*60;
+    var pauseMin=(R.pauseMiniMin!=null?parseFloat(R.pauseMiniMin):30);
+    var maxTJ   =(R.maxTraitsJour!=null?parseInt(R.maxTraitsJour,10):2);
+    var maxHJ   =(R.maxHeuresJour!=null?parseFloat(R.maxHeuresJour):10)*60;
+    var reposQ  =(R.reposQuotidienH!=null?parseFloat(R.reposQuotidienH):12)*60;
+    var iso=(typeof DAY_DATES!=='undefined'&&DAY_DATES[jour])?DAY_DATES[jour]:null;
+    if(!iso) return null;
+    var fin=(e!=null?e:s+60);
+
+    var blocs=_hrColler(_hrJourSegments(empId, iso).concat([{s:s,e:fin,l:''}]));
+
+    /* 1 · pas plus de 5 h d'affilée — improductif compris */
+    for(var i=0;i<blocs.length;i++){
+      if(blocs[i].e-blocs[i].s > traitMax+0.001){
+        return 'ça ferait <b>'+_hrFmtDuree(blocs[i].e-blocs[i].s)+' d\'affilée</b> ('
+          +_hrFmtHeure(blocs[i].s)+' → '+_hrFmtHeure(blocs[i].e)+', improductif compris)'
+          +' alors que le maximum est de <b>'+_hrFmtDuree(traitMax)+'</b>.';
+      }
+    }
+    /* 2 · une vraie pause entre deux créneaux */
+    for(var j=1;j<blocs.length;j++){
+      var gap=blocs[j].s-blocs[j-1].e;
+      if(gap>0 && gap<pauseMin){
+        return 'il n\'y aurait que <b>'+Math.round(gap)+' min</b> de pause entre les deux créneaux ('
+          +_hrFmtHeure(blocs[j-1].e)+' → '+_hrFmtHeure(blocs[j].s)+') alors qu\'il en faut <b>'+pauseMin+'</b>.';
+      }
+    }
+    /* 3 · pas plus de 2 créneaux dans la journée */
+    if(blocs.length>maxTJ){
+      return 'ça ferait <b>'+blocs.length+' créneaux</b> dans la journée alors que le maximum est de <b>'+maxTJ+'</b>.';
+    }
+    /* 4 · le total de la journée */
+    var tot=0; blocs.forEach(function(b){ tot+=(b.e-b.s); });
+    if(tot>maxHJ+0.001){
+      return 'ça ferait <b>'+_hrFmtDuree(tot)+'</b> dans la journée alors que le maximum est de <b>'+_hrFmtDuree(maxHJ)+'</b>.';
+    }
+    /* 5 · le repos de 12 h avec la veille et le lendemain */
+    try{
+      var jourFin=Math.max.apply(null, blocs.map(function(b){return b.e;}));
+      var jourDeb=Math.min.apply(null, blocs.map(function(b){return b.s;}));
+      if(jour>0 && DAY_DATES[jour-1]){
+        var v=_hrColler(_hrJourSegments(empId, DAY_DATES[jour-1]));
+        if(v.length){
+          var finV=Math.max.apply(null, v.map(function(b){return b.e;}));
+          var ecart=(jourDeb+1440)-finV;
+          if(ecart<reposQ-0.001) return 'il n\'y aurait que <b>'+_hrFmtDuree(ecart)+'</b> de repos depuis la veille alors qu\'il en faut <b>'+_hrFmtDuree(reposQ)+'</b>.';
+        }
+      }
+      if(jour<6 && DAY_DATES[jour+1]){
+        var l=_hrColler(_hrJourSegments(empId, DAY_DATES[jour+1]));
+        if(l.length){
+          var debL=Math.min.apply(null, l.map(function(b){return b.s;}));
+          var ecart2=(debL+1440)-jourFin;
+          if(ecart2<reposQ-0.001) return 'il n\'y aurait que <b>'+_hrFmtDuree(ecart2)+'</b> de repos avant le lendemain alors qu\'il en faut <b>'+_hrFmtDuree(reposQ)+'</b>.';
+        }
+      }
+    }catch(_r){}
+  }catch(_){}
+  return null;
+}
+window.hrControleCreneau=hrControleCreneau;
+
 // Place l'équipier `id` sur le trait (jour, s, e, poste) trouvé dans ROWS_BY_DAY.
 function hrPlacerSurCreneau(id, jour, s, e, poste){
   try{
@@ -32200,6 +32481,19 @@ function hrPlacerSurCreneau(id, jour, s, e, poste){
         }
       }
     }
+    /* ★ v664 — LE RÈGLEMENT. On prévient AVANT de poser, en nommant la règle. */
+    try{
+      var _souci=hrControleCreneau(emp.id, jour, s, e);
+      if(_souci){
+        var _txt=String(_souci).replace(/<\/?b>/g,'');
+        if(!confirm('⚠️ '+emp.name+' — ce créneau ne respecte pas le règlement :\n\n'
+            +_txt+'\n\nLe placement automatique, lui, ne le proposerait pas.\n\nLe poser quand même ?')){
+          try{ toast(emp.name+' : créneau non ajouté — '+_txt.replace(/\s+/g,' ').slice(0,90),'error'); }catch(_){}
+          return;
+        }
+      }
+    }catch(_ctl){ console.warn('contrôle règlement', _ctl); }
+
     var pose=false;
     // 1) Si le jour cliqué est le jour AFFICHÉ, on pose dans ROWS_BY_DAY (vue en cours).
     if(typeof curDay!=='undefined' && curDay===jour && ROWS_BY_DAY[jour]){
@@ -35932,6 +36226,10 @@ window.hrFillWeekSelect=hrFillWeekSelect;
 var WEEK_LABEL = '';
 var DAY_SOURCES = ['','','','','','','']; // date source 2025 de chaque jour (ou réel)
 var DAY_DATES = ['','','','','','','']; // date 2026 de chaque jour
+/* ★ v664 — DAY_DATES visible de l'extérieur : les contrôles de règlement et les bancs
+   d'essai doivent pouvoir savoir quelle semaine est affichée. Le tableau n'est jamais
+   remplacé (seulement rempli case par case), la référence reste donc bonne. */
+try{ window.DAY_DATES = DAY_DATES; }catch(e){}
 var DAY_VAC = ['','','','','','','']; // période de vacances scolaires de chaque jour (ou '')
 function hrGenFromWeek(lundi, garderOnglet){
   const resto = hrCurrentResto();
@@ -39156,6 +39454,120 @@ function ptgSetDebutJour(v){
   try{ toast('La journée de travail commence à '+String(n).padStart(2,'0')+':00 et se termine à '+String(n).padStart(2,'0')+':00 le lendemain.','success'); }catch(_){}
 }
 window.ptgSetDebutJour=ptgSetDebutJour;
+
+/* ── ★ v664 — Paramètres › 🧹 FICHES CRÉÉES PAR LE RECRUTEMENT ────────────────
+   Toute fiche salarié née d'une candidature porte une marque : fromCandId. On les
+   liste ici — nom, restaurant, date d'entrée, contrat, si elle a des heures posées —
+   pour que Vincent vérifie une par une et retire celles qui n'ont rien à faire là.
+   On ARCHIVE (on ne supprime pas) : la fiche sort des horaires et des effectifs,
+   mais rien n'est perdu et un clic la réactive depuis l'équipe.               */
+function paramFichesRecrut(){
+  try{ paramOuvrir('card','pc-fiches-recrut'); }catch(_){}
+  renderFichesRecrut();
+}
+window.paramFichesRecrut=paramFichesRecrut;
+
+function _frListe(){
+  return (DB.employees||[]).filter(function(e){ return e && e.fromCandId; });
+}
+function _frHeuresPosees(id){
+  var min=0;
+  try{
+    var A=(typeof HR_AFFECT!=='undefined'&&HR_AFFECT)?HR_AFFECT:{};
+    Object.keys(A).forEach(function(iso){
+      (A[iso]||[]).forEach(function(b){ if(String(b.empId)===String(id)) min+=((b.e!=null?b.e:b.s+60)-b.s); });
+    });
+  }catch(_){}
+  return min;
+}
+function renderFichesRecrut(){
+  var box=document.getElementById('pc-fiches-recrut-body'); if(!box) return;
+  var L=_frListe();
+  var h='<p style="font-size:.84rem;color:#aaa;margin-bottom:14px;line-height:1.55;">'
+    +'Ces fiches salariés viennent d\'une <b>candidature</b>. Jusqu\'à la v663, l\'application en '
+    +'créait automatiquement à chaque ouverture pour tout candidat retenu ayant une date de démarrage — '
+    +'c\'est corrigé, <b>plus aucune fiche n\'est créée toute seule</b>. Il reste à faire le ménage dans '
+    +'celles qui l\'ont été. <b>Archiver</b> sort la personne des horaires et des effectifs, sans rien perdre : '
+    +'on peut la réactiver depuis l\'équipe.</p>';
+  if(!L.length){
+    box.innerHTML=h+'<div style="color:#3ecf8e;font-weight:700;font-size:.9rem;">✅ Aucune fiche issue du recrutement.</div>';
+    return;
+  }
+  var actives=L.filter(function(e){ return !e.archived; });
+  h+='<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:.85rem;">'
+    +'<span><b style="color:#e8623a;font-size:1.1rem;">'+actives.length+'</b> fiche(s) active(s)</span>'
+    +'<span style="color:#8a9099;">'+(L.length-actives.length)+' déjà archivée(s)</span></div>';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">'
+    +'<button type="button" class="btn btn-gray btn-sm" onclick="frCocher(true)">Tout cocher</button>'
+    +'<button type="button" class="btn btn-gray btn-sm" onclick="frCocher(false)">Tout décocher</button>'
+    +'<button type="button" class="btn btn-sm" style="background:#7a2318;color:#fff;" onclick="frArchiverCoches()">🗄️ Archiver les fiches cochées</button>'
+    +'<span id="fr-status" style="font-size:.82rem;color:#3ecf8e;font-weight:700;align-self:center;"></span></div>';
+  h+='<div style="overflow:auto;"><table style="width:100%;border-collapse:collapse;font-size:.83rem;">'
+    +'<thead><tr style="background:#1b1b1b;color:#bbb;text-align:left;">'
+    +'<th style="padding:7px 8px;"></th><th style="padding:7px 8px;">Nom</th><th style="padding:7px 8px;">Resto</th>'
+    +'<th style="padding:7px 8px;">Rôle</th><th style="padding:7px 8px;">Date d\'entrée</th>'
+    +'<th style="padding:7px 8px;">Contrat</th><th style="padding:7px 8px;">Heures posées</th>'
+    +'<th style="padding:7px 8px;">État</th></tr></thead><tbody>';
+  L.sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||'')); }).forEach(function(e){
+    var inf=e.infos||{};
+    var min=_frHeuresPosees(e.id);
+    var ch=null; try{ ch=hrContratHebdo(e); }catch(_){}
+    h+='<tr style="border-bottom:1px solid #262626;'+(e.archived?'opacity:.5;':'')+'">'
+      +'<td style="padding:6px 8px;">'+(e.archived?'':'<input type="checkbox" class="fr-ck" data-id="'+_msgEsc(e.id)+'">')+'</td>'
+      +'<td style="padding:6px 8px;font-weight:700;">'+_msgEsc(e.name||'—')+'</td>'
+      +'<td style="padding:6px 8px;color:#8a9099;">'+_msgEsc((e.restoId||'').toUpperCase())+'</td>'
+      +'<td style="padding:6px 8px;color:#8a9099;">'+_msgEsc(e.role||'')+'</td>'
+      +'<td style="padding:6px 8px;">'+_msgEsc(inf.date_entree||'—')+'</td>'
+      +'<td style="padding:6px 8px;">'+(ch!=null?(ch+' h'):'—')+'</td>'
+      +'<td style="padding:6px 8px;'+(min?'color:#e8a020;font-weight:700;':'color:#8a9099;')+'">'
+        +(min?((Math.round(min/6)/10+'').replace('.',',')+' h'):'aucune')+'</td>'
+      +'<td style="padding:6px 8px;">'+(e.archived?'<span style="color:#8a9099;">archivée</span>':'<span style="color:#3ecf8e;font-weight:700;">active</span>')+'</td>'
+      +'</tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='<div style="margin-top:14px;border-top:1px solid #2a2a2a;padding-top:12px;">'
+    +'<div style="font-size:.82rem;color:#8a9099;margin-bottom:7px;">Le rattrapage automatique ne part plus tout seul. '
+    +'Si tu veux le lancer une fois, en connaissance de cause :</div>'
+    +'<button type="button" class="btn btn-gray btn-sm" onclick="frLancerRattrapage()">▶️ Lancer le rattrapage une fois</button></div>';
+  box.innerHTML=h;
+}
+window.renderFichesRecrut=renderFichesRecrut;
+function _frStatus(t,col){
+  try{ var el=document.getElementById('fr-status'); if(el){ el.style.color=col||'#3ecf8e'; el.textContent=t; setTimeout(function(){ if(el) el.textContent=''; },4000); } }catch(_){}
+}
+function frCocher(v){
+  try{ Array.prototype.forEach.call(document.querySelectorAll('.fr-ck'),function(c){ c.checked=!!v; }); }catch(_){}
+}
+window.frCocher=frCocher;
+async function frArchiverCoches(){
+  var ids=[];
+  try{ Array.prototype.forEach.call(document.querySelectorAll('.fr-ck'),function(c){ if(c.checked) ids.push(c.getAttribute('data-id')); }); }catch(_){}
+  if(!ids.length){ _frStatus('Aucune fiche cochée.','#e8a020'); return; }
+  var noms=ids.map(function(id){ var e=(DB.employees||[]).find(function(x){return String(x.id)===String(id);}); return e?e.name:id; });
+  if(!confirm('Archiver '+ids.length+' fiche(s) ?\n\n'+noms.slice(0,12).join('\n')+(noms.length>12?('\n… et '+(noms.length-12)+' autres'):'')
+     +'\n\nElles sortent des horaires et des effectifs. Rien n\'est supprimé : on peut les réactiver depuis l\'équipe.')) return;
+  var ok=0;
+  for(var i=0;i<ids.length;i++){
+    var e=(DB.employees||[]).find(function(x){return String(x.id)===String(ids[i]);});
+    if(!e) continue;
+    try{
+      var r=await sb.patch('bks_employees','id=eq.'+e.id,{archived:true});
+      e.archived=true; ok++;
+    }catch(_){}
+  }
+  renderFichesRecrut();
+  _frStatus('✅ '+ok+' fiche(s) archivée(s)');
+  try{ toast(ok+' fiche(s) archivée(s)','success'); }catch(_){}
+}
+window.frArchiverCoches=frArchiverCoches;
+async function frLancerRattrapage(){
+  if(!confirm('Lancer le rattrapage une fois ?\n\nIl crée une fiche salarié pour chaque candidat RETENU qui a une date de démarrage et qui n\'en a pas encore.\n\nC\'est exactement ce qui se déclenchait tout seul avant — à ne faire que si tu le veux.')) return;
+  var n=0;
+  try{ n=await candIntegrerRetenusDates(); }catch(_){}
+  renderFichesRecrut();
+  _frStatus(n?('✅ '+n+' fiche(s) créée(s)'):'Aucune fiche à créer.', n?'#3ecf8e':'#8a9099');
+}
+window.frLancerRattrapage=frLancerRattrapage;
 
 /* ── ★ v658 — Paramètres › 🎯 Familles de compétences ──────────────────────────
    Vincent règle ici ce que contient « Cuisine intégrée » et ce que contient
