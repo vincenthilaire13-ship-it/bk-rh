@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-24 12:20 · v636 (codes PIN lisibles, roles en couleur, alerte code manquant)';
+  var EMBEDDED_VERSION = '2026-08-24 14:10 · v638 (periode dessai : preavis et dernier jour pour prevenir)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -580,6 +580,25 @@ html.theme-light{
 }
 /* La barre de navigation garde du contraste sans devenir blanche. */
 html.theme-light nav{ background:#e4e6ec !important; border-color:#d2d5dc !important; }
+/* ★ v638 — le bandeau de période d'essai : début, fin, préavis, date limite. */
+.pe-bar{display:flex;flex-wrap:wrap;gap:8px 22px;background:var(--gray);border:1px solid #2a2a2a;
+  border-left:5px solid #8a9099;border-radius:10px;padding:10px 14px;margin:6px 0;}
+.pe-b span{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.6px;color:#8a9099;}
+.pe-b b{font-size:.95rem;font-weight:800;}
+.pe-b b.gros{font-size:1.05rem;font-variant-numeric:tabular-nums;}
+.pe-j{font-size:.72rem;font-weight:700;opacity:.85;}
+html.theme-light .pe-bar{background:#fff;border-color:#dcdfe6;}
+html.theme-light .pe-b span{color:#5f6672;}
+html.theme-light .pe-b b{color:#1c1e22;}
+.pe-dec{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:7px;}
+.pe-dec-b{background:transparent;border:1px solid #6a707a;color:#8a9099;border-radius:20px;
+  padding:5px 12px;font-size:.76rem;font-weight:800;cursor:pointer;}
+.pe-dec-b:hover{border-color:#aaa;color:#ddd;}
+.pe-dec-b.on{box-shadow:0 0 0 2px rgba(0,0,0,.12) inset;}
+.pe-dec-q{font-size:.7rem;color:#8a9099;}
+html.theme-light .pe-dec-b{border-color:#c9ccd4;color:#5f6672;}
+html.theme-light .pe-dec-b:hover{border-color:#8a9099;color:#1c1e22;}
+html:not(.theme-light) .pe-b b{color:#eee;}
 /* ★ v636 — LES CARTES DES CODES PIN. Elles étaient écrites en dur en sombre :
    en thème clair, texte noir sur fond noir. On passe par des classes, avec
    une couleur par rôle pour repérer la direction d'un coup d'œil.         */
@@ -1113,7 +1132,9 @@ body.tv-mode #eye-viewas{display:none!important;}
 .ag-cnt b{color:#e8901a;}
 .ag-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
 .ag-dow{text-align:center;font-size:.66rem;color:#8a8a8a;font-weight:800;text-transform:uppercase;letter-spacing:1px;padding-bottom:2px;}
-.ag-cell{min-height:56px;background:#191919;border:1px solid #262626;border-radius:8px;padding:3px 4px 4px;display:flex;flex-direction:column;gap:2px;overflow:hidden;}
+.ag-cell{min-height:56px;background:#191919;border:1px solid #262626;border-radius:8px;padding:3px 4px 4px;display:flex;flex-direction:column;gap:2px;overflow:visible;}
+/* ★ v637 — au-delà de 8 entretiens le jour défile, en dessous la case grandit. */
+.ag-evs{display:flex;flex-direction:column;gap:2px;max-height:184px;overflow-y:auto;}
 .ag-cell.ag-vide{background:#151515;border-color:#202020;}
 .ag-cell.ag-hors{background:transparent;border-color:transparent;}
 .ag-cell.ag-week{background:#171412;}
@@ -1127,7 +1148,7 @@ body.tv-mode #eye-viewas{display:none!important;}
 .ag-ev .ag-ini{width:15px;height:15px;border-radius:50%;background:rgba(0,0,0,.28);color:#fff;font-size:.5rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
 .ag-ev .ag-h{font-size:.62rem;font-weight:800;flex:0 0 auto;}
 .ag-ev .ag-nm{font-size:.62rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.ag-plus{font-size:.58rem;color:#999;text-align:center;line-height:1;}
+.ag-ev:active{filter:brightness(.9);}
 .ag-empty{text-align:center;color:#888;font-size:.8rem;padding:10px 0 4px;}
 /* Thème clair (celui de la page Recrutement) — même schéma que les autres cartes */
 html.theme-light .ag-wrap{background:#ffffff !important;border-color:#d7d8de !important;}
@@ -1140,7 +1161,7 @@ html.theme-light .ag-num{color:#8b9099 !important;}
 html.theme-light .ag-dow{color:#8b9099 !important;}
 html.theme-light .ag-cnt{color:#6b7079 !important;}
 html.theme-light .ag-nav button{background:#eceef2 !important;color:#4a4f57 !important;border-color:#d7d8de !important;}
-html.theme-light .ag-plus{color:#8b9099 !important;}
+html.theme-light .ag-evs{scrollbar-width:thin;}
 html.theme-light .ag-empty{color:#8b9099 !important;}
 @media(max-width:900px){
   .ag-cell{min-height:46px;}
@@ -12541,41 +12562,229 @@ function renderAgendaDay(){
   box.innerHTML=h;
 }
 
-// ── PÉRIODE D'ESSAI (rappels à J+7 et J+15, échéance 2 mois) ───────────────────
+/* ── PÉRIODE D'ESSAI : LE DÉLAI DE PRÉVENANCE, EN CLAIR ─────────────────────
+   ★ v638 — Ce qu'on veut voir d'un coup d'œil : la date de DÉBUT, la date de
+   FIN, le préavis qu'il faut respecter AUJOURD'HUI, et surtout LE DERNIER
+   JOUR POUR PRÉVENIR si on veut rompre.
+
+   Paliers légaux (art. L1221-25, rupture à l'initiative de l'employeur), selon
+   le temps de présence du salarié le jour où on le prévient :
+     • moins de 8 jours .................. 24 heures
+     • de 8 jours à 1 mois ............... 48 heures
+     • après 1 mois ...................... 2 semaines
+     • après 3 mois ...................... 1 mois
+   Le dernier jour utile pour prévenir se calcule à l'envers depuis la fin de
+   la période d'essai, avec le préavis qui s'appliquera à ce moment-là.      */
+var ESSAI_PALIERS=[
+  {jours:0,  h:24,  lbl:'24 heures',  court:'24 h',      coul:'#3ecf8e', niv:0},
+  {jours:8,  h:48,  lbl:'48 heures',  court:'48 h',      coul:'#E0C040', niv:1},
+  {jours:31, h:336, lbl:'2 semaines', court:'2 semaines',coul:'#F5A623', niv:2},
+  {jours:92, h:720, lbl:'1 mois',     court:'1 mois',    coul:'#e8623a', niv:2}
+];
+function essaiPalier(joursPresence){
+  var p=ESSAI_PALIERS[0];
+  ESSAI_PALIERS.forEach(function(x){ if(joursPresence>=x.jours) p=x; });
+  return p;
+}
+window.essaiPalier=essaiPalier;
+function _essaiJours(a,b){ return Math.floor((b-a)/(24*3600*1000)); }
+/* ★ v638 — UN ARRÊT SUSPEND LA PÉRIODE D'ESSAI.
+   Vincent : « si une personne est en arrêt maladie ou en accident de travail,
+   ça décale la période d'essai. » Les jours d'arrêt ne comptent ni dans
+   l'ancienneté, ni dans la durée : la fin recule d'autant.                 */
+var ESSAI_MOTIFS_SUSPENSIFS={maladie:1, at:1, trajet:1};
+function essaiSalarieDe(c){
+  try{
+    if(!c) return null;
+    if(c.empId){ var e0=(DB.employees||[]).find(function(x){return String(x.id)===String(c.empId);}); if(e0) return e0; }
+    var e1=(DB.employees||[]).find(function(x){return x.fromCandId===c.id;}); if(e1) return e1;
+    var nom=((c.prenom||'')+' '+(c.nom||'')).trim().toUpperCase();
+    if(nom) return (DB.employees||[]).find(function(x){ return String(x.name||'').trim().toUpperCase()===nom; })||null;
+  }catch(_){}
+  return null;
+}
+window.essaiSalarieDe=essaiSalarieDe;
+/* Nombre de jours d'arrêt (maladie / AT / trajet) entre deux dates. */
+function essaiJoursSuspendus(c, du, au){
+  var n=0;
+  try{
+    var e=essaiSalarieDe(c); if(!e) return 0;
+    var tab=(typeof HR_ABSENCES!=='undefined'&&HR_ABSENCES)?HR_ABSENCES:((typeof window!=='undefined'&&window.HR_ABSENCES)||{});
+    var lst=tab[e.id]||[];
+    var vus={};
+    lst.forEach(function(a){
+      if(!a || !a.from) return;
+      if(!ESSAI_MOTIFS_SUSPENSIFS[a.motif]) return;
+      if(a.statut==='refuse') return;
+      var d0=new Date(a.from+'T12:00:00'), d1=new Date((a.to||a.from)+'T12:00:00');
+      if(isNaN(d0)||isNaN(d1)) return;
+      for(var d=new Date(d0); d<=d1; d.setDate(d.getDate()+1)){
+        if(d<du || d>au) continue;
+        var k=d.toISOString().slice(0,10);
+        if(!vus[k]){ vus[k]=1; n++; }
+      }
+    });
+  }catch(_){}
+  return n;
+}
+window.essaiJoursSuspendus=essaiJoursSuspendus;
+/* Le dernier jour où l'on peut encore prévenir pour que le préavis tienne
+   entièrement dans la période d'essai. */
+function essaiDernierJour(debut, fin){
+  try{
+    var d=new Date(fin);
+    for(var i=0;i<200;i++){
+      var pres=_essaiJours(debut, d);
+      var pal=essaiPalier(pres);
+      var sortie=new Date(d.getTime()+pal.h*3600*1000);
+      if(sortie<=fin) return {date:d, palier:pal};
+      d=new Date(d.getTime()-24*3600*1000);
+    }
+  }catch(_){}
+  return {date:new Date(fin), palier:ESSAI_PALIERS[0]};
+}
+window.essaiDernierJour=essaiDernierJour;
 function essaiInfo(c){
   if(!c.dateDebut)return null;
   var debut=new Date(c.dateDebut+'T12:00:00');
   var now=new Date();
-  var jours=Math.floor((now-debut)/(24*3600*1000));
+  var jours=_essaiJours(debut, now);
   var estApprenti=(c.poste==='Apprenti'||c.niveauApprentissage==='Apprentissage'||(c.contratType||'').indexOf('appr')===0);
   var fin=new Date(debut);
-  if(estApprenti){fin.setDate(fin.getDate()+45);} // apprentissage : 45 jours
-  else{fin.setMonth(fin.getMonth()+2);} // CDI : 2 mois
+  if(estApprenti){fin.setDate(fin.getDate()+45);} else {fin.setMonth(fin.getMonth()+2);}
+  /* ★ v638 — on repousse la fin d'autant de jours d'arrêt, en boucle : allonger
+     la fenêtre peut faire entrer de nouveaux jours d'arrêt. */
+  var finBase=new Date(fin), suspendus=0;
+  try{
+    for(var _i=0;_i<12;_i++){
+      var n=essaiJoursSuspendus(c, debut, fin);
+      if(n<=suspendus) break;
+      fin=new Date(finBase.getTime()+n*24*3600*1000);
+      suspendus=n;
+    }
+  }catch(_){}
+  if(suspendus>0) jours=Math.max(0, jours-essaiJoursSuspendus(c, debut, now));
   var joursRestants=Math.ceil((fin-now)/(24*3600*1000));
   var dureeLbl=estApprenti?'45 jours (apprentissage)':'2 mois (CDI)';
-  var label='J+'+jours+' · fin le '+fin.toLocaleDateString('fr-FR')+' ('+dureeLbl+')';
+  var debutStr=debut.toLocaleDateString('fr-FR'), finStr=fin.toLocaleDateString('fr-FR');
+  var label='J+'+jours+' · fin le '+finStr+' ('+dureeLbl+')';
   var alert='',alertCol='',niveau=0;
+  var palier=null, dernier=null, joursAvantLimite=null, preavisLbl='', limiteStr='';
+
   if(estApprenti){
-    // Apprentissage : rupture libre les 45 premiers jours, pas de préavis
-    if(joursRestants<=0){alert='🔴 Fin des 45 jours — rupture libre terminée';alertCol='#cc5555';niveau=3;}
-    else if(joursRestants<=10){alert='⚠️ Plus que '+joursRestants+'j de rupture libre (45j d\'apprentissage)';alertCol='#F5A623';niveau=2;}
+    /* Apprentissage : rupture libre pendant 45 jours, aucun préavis. */
+    preavisLbl='aucun préavis (45 premiers jours)';
+    if(joursRestants<=0){alert='🔒 45 jours écoulés — la rupture libre n\'est plus possible';alertCol='#8a9099';niveau=4;}
+    else if(joursRestants<=10){alert='🔴 Plus que '+joursRestants+' j de rupture libre';alertCol='#e8623a';niveau=3;}
+    else if(joursRestants<=20){alert='🟠 '+joursRestants+' j de rupture libre restants';alertCol='#F5A623';niveau=2;}
   }else{
-    // CDI : 3 alertes de préavis (délai de prévenance employeur)
-    // J+8 : 48h de préavis · avant 1 mois · ~3 semaines avant la fin (2 semaines de préavis = dernière limite)
-    var limiteFinale=new Date(fin);limiteFinale.setDate(limiteFinale.getDate()-21); // ~3 sem avant la fin
-    var joursAvantLimite=Math.ceil((limiteFinale-now)/(24*3600*1000));
+    palier=essaiPalier(jours);
+    preavisLbl=palier.lbl;
+    dernier=essaiDernierJour(debut, fin);
+    limiteStr=dernier.date.toLocaleDateString('fr-FR');
+    joursAvantLimite=Math.ceil((dernier.date-now)/(24*3600*1000));
     if(now>=fin){
-      alert='🔒 Période d\'essai terminée — le salarié ne peut plus être rompu en essai';alertCol='#888';niveau=4;
-    }else if(now>=limiteFinale){
-      alert='🔴 DERNIÈRE LIMITE pour rompre (2 semaines de préavis requises avant le '+fin.toLocaleDateString('fr-FR')+')';alertCol='#cc5555';niveau=3;
-    }else if(jours>=30){
-      alert='🟠 1 mois passé — pour rompre, comptez 2 semaines de préavis (limite ~'+limiteFinale.toLocaleDateString('fr-FR')+')';alertCol='#F5A623';niveau=2;
+      alert='🔒 Période d\'essai terminée le '+finStr+' — rupture en essai impossible';alertCol='#8a9099';niveau=4;
+    }else if(joursAvantLimite<0){
+      alert='🔒 Trop tard pour rompre : il fallait prévenir avant le '+limiteStr;alertCol='#8a9099';niveau=4;
+    }else if(joursAvantLimite<=3){
+      alert='🔴 DERNIER MOMENT — prévenir avant le '+limiteStr+' ('+dernier.palier.court+' de préavis)';alertCol='#e8623a';niveau=3;
+    }else if(jours>=31){
+      alert='🟠 Plus d\'un mois — 2 semaines de préavis · décider avant le '+limiteStr;alertCol='#F5A623';niveau=2;
     }else if(jours>=8){
-      alert='🟡 8 jours passés — 48h de préavis désormais nécessaires pour une rupture';alertCol='#E0C040';niveau=1;
+      alert='🟡 Plus de 8 jours — 48 h de préavis · décider avant le '+limiteStr;alertCol='#E0C040';niveau=1;
+    }else{
+      alert='🟢 Moins de 8 jours — 24 h de préavis suffisent';alertCol='#3ecf8e';niveau=0;
     }
   }
-  return {jours:jours,fin:fin,joursRestants:joursRestants,label:label,alert:alert,alertCol:alertCol,apprenti:estApprenti,niveau:niveau};
+  return {jours:jours, debut:debut, debutStr:debutStr, fin:fin, finStr:finStr, suspendus:suspendus,
+          joursRestants:joursRestants, label:label, alert:alert, alertCol:alertCol,
+          apprenti:estApprenti, niveau:niveau, palier:palier, preavisLbl:preavisLbl,
+          dernier:dernier, limiteStr:limiteStr, joursAvantLimite:joursAvantLimite, dureeLbl:dureeLbl};
 }
+/* Le bandeau lisible : début, fin, préavis du jour, dernier jour pour prévenir. */
+function essaiBandeau(c){
+  var e=essaiInfo(c); if(!e) return '';
+  function bloc(lbl,val,coul,fort){
+    return '<div class="pe-b"><span>'+lbl+'</span><b'+(coul?(' style="color:'+coul+';"'):'')+(fort?' class="gros"':'')+'>'+val+'</b></div>';
+  }
+  return '<div class="pe-bar" style="border-left-color:'+e.alertCol+';">'
+    + bloc('Début', e.debutStr, '', true)
+    + bloc('Fin de période d\'essai', e.finStr, '', true)
+    + bloc('Préavis aujourd\'hui', e.preavisLbl, e.alertCol, true)
+    + (e.suspendus?bloc('Arrêts déduits', e.suspendus+' j', '#e8623a', false):'')
+    + (e.apprenti?'':bloc('Dernier jour pour prévenir', e.limiteStr
+        +(e.joursAvantLimite!=null?(' <span class="pe-j">'+(e.joursAvantLimite>=0?('J−'+e.joursAvantLimite):'passé')+'</span>'):''),
+        e.alertCol, true))
+    + '</div>';
+}
+window.essaiBandeau=essaiBandeau; window.essaiInfo=essaiInfo;
+
+/* ★ v638 — LA DÉCISION EN DEUX BOUTONS.
+   Le directeur n'a pas à ouvrir toute la fiche : il dit « je garde » ou
+   « je ne garde pas », et la RH le voit tout de suite dans Alertes.       */
+var ESSAI_DECISIONS={
+  garde:  {lbl:'Je le garde',        court:'Gardé',        icon:'✅', coul:'#1d7a3a'},
+  mitige: {lbl:'Mitigé — à revoir',  court:'Mitigé',       icon:'🟡', coul:'#E0C040'},
+  non:    {lbl:'Je ne le garde pas', court:'NE PAS GARDER',icon:'⛔', coul:'#c0392b'}
+};
+window.ESSAI_DECISIONS=ESSAI_DECISIONS;
+function essaiDecisionInfo(c){
+  var d=c&&c.essaiDecision; return d?(ESSAI_DECISIONS[d]||null):null;
+}
+window.essaiDecisionInfo=essaiDecisionInfo;
+async function essaiDecider(candId, choix, ev){
+  try{ if(ev&&ev.stopPropagation) ev.stopPropagation(); }catch(_){}
+  var c=(DB.candidatures||[]).find(function(x){return String(x.id)===String(candId);}); if(!c) return;
+  var d=ESSAI_DECISIONS[choix]; if(!d) return;
+  if(choix==='non' && !confirm('Ne PAS garder '+(c.prenom||'')+' '+(c.nom||'')+' à l\'issue de la période d\'essai ?\n\nLa RH sera prévenue dans Alertes, et le salarié ne pourra plus pointer.')) return;
+  var qui=''; try{ qui=(curUser&&(curUser.name||curUser.role))||''; }catch(_){}
+  c.essaiDecision=choix;
+  c.essaiDecisionDate=new Date().toISOString();
+  c.essaiDecisionPar=qui;
+  try{
+    await sb.patch('bks_candidatures','id=eq.'+c.id,
+      {essai_decision:choix, essai_decision_date:c.essaiDecisionDate, essai_decision_par:qui});
+  }catch(err){ console.warn('essaiDecider',err); }
+  /* ★ On coupe le pointage tout de suite si on ne le garde pas. */
+  if(choix==='non'){ try{ await essaiBloquerPointage(c); }catch(_){} }
+  else { try{ await essaiDebloquerPointage(c); }catch(_){} }
+  try{ toast(d.icon+' '+(c.prenom||'')+' — '+d.lbl,'success'); }catch(_){}
+  try{ renderCandList(); }catch(_){}
+  try{ updateAlBadge(); }catch(_){}
+  try{ if(document.getElementById('page-alertes')) renderAlertes(); }catch(_){}
+}
+window.essaiDecider=essaiDecider;
+/* Le salarié ne pourra plus pointer : on marque sa fiche. */
+async function essaiBloquerPointage(c){
+  var e=essaiSalarieDe(c); if(!e) return false;
+  if(!e.infos) e.infos={};
+  e.infos.essaiRompue=new Date().toISOString().slice(0,10);
+  e.infos.essaiRompuePar=(c.essaiDecisionPar||'');
+  try{ await sb.patch('bks_employees','id=eq.'+e.id,{infos:e.infos}); }catch(err){ console.warn('essaiBloquer',err); }
+  return true;
+}
+async function essaiDebloquerPointage(c){
+  var e=essaiSalarieDe(c); if(!e || !e.infos || !e.infos.essaiRompue) return false;
+  delete e.infos.essaiRompue; delete e.infos.essaiRompuePar;
+  try{ await sb.patch('bks_employees','id=eq.'+e.id,{infos:e.infos}); }catch(err){ console.warn('essaiDebloquer',err); }
+  return true;
+}
+window.essaiBloquerPointage=essaiBloquerPointage; window.essaiDebloquerPointage=essaiDebloquerPointage;
+/* Les deux boutons, à poser directement sur la ligne du candidat. */
+function essaiBoutons(c){
+  var dec=c&&c.essaiDecision;
+  return '<div class="pe-dec" onclick="event.stopPropagation();">'
+    +Object.keys(ESSAI_DECISIONS).map(function(k){
+      var d=ESSAI_DECISIONS[k], on=(dec===k);
+      return '<button class="pe-dec-b'+(on?' on':'')+'" style="'+(on?('background:'+d.coul+';border-color:'+d.coul+';color:#fff;'):'')+'"'
+        +' onclick="essaiDecider(\''+c.id+'\',\''+k+'\',event)">'+d.icon+' '+d.lbl+'</button>';
+    }).join('')
+    +(dec?('<span class="pe-dec-q">'+(c.essaiDecisionPar?('par '+_msgEsc(c.essaiDecisionPar)):'')
+        +(c.essaiDecisionDate?(' le '+new Date(c.essaiDecisionDate).toLocaleDateString('fr-FR')):'')+'</span>'):'')
+  +'</div>';
+}
+window.essaiBoutons=essaiBoutons;
 
 // ── Réglages VISITE MÉDICALE (configurables dans Paramètres › Visite médicale) ──
 // Délais paramétrables ; valeurs par défaut = comportement historique.
@@ -12943,11 +13152,29 @@ function collectAlertes(restoFiltre){
 
   // ── 3) PÉRIODE D'ESSAI (candidats en essai) : échéances de rupture ──
   cands.filter(function(c){return (c.statut||'')==='essai';}).forEach(function(c){
-    var e=essaiInfo(c); if(!e||!e.alert||e.niveau<2) return; // seulement alertes réelles
     var resto=rlabel(c.restoId);
+    /* ★ v638 — LE DIRECTEUR NE VEUT PAS LE GARDER : la RH doit le voir tout
+       en haut, c'est une décision à traiter (courrier + sortie).          */
+    if(c.essaiDecision==='non'){
+      var eN=essaiInfo(c);
+      alerts.push({prio:0,cat:'Période d\'essai',icon:'⛔',col:'#c0392b',
+        titre:(c.prenom+' '+c.nom)+' — NE PAS GARDER (décision direction)',
+        sub:'Décidé'+(c.essaiDecisionPar?(' par '+c.essaiDecisionPar):'')
+            +(c.essaiDecisionDate?(' le '+new Date(c.essaiDecisionDate).toLocaleDateString('fr-FR')):'')
+            +(eN?(' · préavis '+eN.preavisLbl+' · prévenir avant le '+eN.limiteStr):'')
+            +' · '+resto+' · pointage bloqué',
+        candId:c.id});
+      return;
+    }
+    if(c.essaiDecision==='garde') return;              // c'est réglé, on n'alerte plus
+    var e=essaiInfo(c); if(!e||!e.alert||e.niveau<1) return;
     alerts.push({prio:e.niveau>=3?1:2,cat:'Période d\'essai',icon:'⏱️',col:e.alertCol,
-      titre:(c.prenom+' '+c.nom)+' — '+(e.apprenti?'fin de rupture libre':'délai de rupture'),
-      sub:e.label+' · '+resto,candId:c.id});
+      titre:(c.prenom+' '+c.nom)+' — '+(e.apprenti?'fin de rupture libre':'à décider : garder ou non'),
+      sub:'Début '+e.debutStr+' · fin le '+e.finStr
+          +(e.apprenti?'':(' · préavis '+e.preavisLbl+' · prévenir avant le '+e.limiteStr))
+          +(e.suspendus?(' · '+e.suspendus+' j d\'arrêt déduits'):'')
+          +' · '+resto,
+      candId:c.id});
   });
 
   // ── 4) DOSSIERS D'EMBAUCHE INCOMPLETS (candidats retenus) ──
@@ -16835,7 +17062,12 @@ function renderCandidatures(){
     if(c.statut==='nouveau'){meta=(c.poste||'—')+' · '+resto+' · reçu le '+_candDT(c.createdAt)+_candDesTxt(c,' · ');}
     else if(c.statut==='entretien'){meta='Entretien : '+(c.entretienDate?new Date(c.entretienDate).toLocaleString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'à programmer')+' · '+resto;}
     else if(c.statut==='retenu'){var dok=docsComplets(c)&&c.docsSoumis;var vok=!!c.videosFaites;var st=(dok&&vok)?'✅ dossier validé':((dok?'📎 docs ok':'📎 docs en attente')+' · '+(vok?'🎓 vidéos ok':'🎓 vidéos en attente'));meta='Retenu · '+resto+' · '+st+(c.dateDebut?' · début '+new Date(c.dateDebut).toLocaleDateString('fr-FR'):'');}
-    else if(c.statut==='essai'){var ess=essaiInfo(c);meta='Début '+(c.dateDebut?new Date(c.dateDebut).toLocaleDateString('fr-FR'):'?')+' · '+(ess?ess.label:'')+' · '+resto;}
+    else if(c.statut==='essai'){var ess=essaiInfo(c);
+      meta='<b style="color:var(--orange);font-size:.86rem;">Début '+(ess?ess.debutStr:'?')+'</b> · J+'+(ess?ess.jours:'?')
+        +' · fin le <b>'+(ess?ess.finStr:'?')+'</b> · '+(ess?ess.dureeLbl:'')+' · '+resto
+        +(ess&&!ess.apprenti?('<br>⏳ Préavis aujourd\'hui : <b style="color:'+ess.alertCol+';">'+ess.preavisLbl
+            +'</b> · dernier jour pour prévenir : <b style="color:'+ess.alertCol+';">'+ess.limiteStr+'</b>'
+            +(ess.joursAvantLimite>=0?(' (J−'+ess.joursAvantLimite+')'):' (passé)')):'');}
     else if(c.statut==='refuse'){
       var _parc=(c.refusMotif==='Intégration annulée')?'Intégration annulée'
         :(c.refusMotif==='Ne s\'est pas présenté à l\'entretien')?'Ne s\'est pas présenté'
@@ -16843,12 +17075,20 @@ function renderCandidatures(){
       var _post=_candDT(c.createdAt), _refu=_candDT(c.refusDate);
       meta='Postulé le '+(_post||'?')+' · '+_parc+(_refu?(' · Refusé le '+_refu):'')+' · '+resto;
     }
-    if(c.statut==='essai'){var e=essaiInfo(c);if(e&&e.alert)alert='<span style="background:'+e.alertCol+';color:#fff;border-radius:10px;padding:2px 8px;font-size:.68rem;font-weight:700;margin-left:6px;">'+e.alert+'</span>';}
+    var _peDec='';
+    if(c.statut==='essai'){
+      var e=essaiInfo(c);
+      if(e&&e.alert) alert='<span style="background:'+e.alertCol+';color:#fff;border-radius:10px;padding:2px 8px;font-size:.68rem;font-weight:700;margin-left:6px;">'+e.alert+'</span>';
+      var _di=essaiDecisionInfo(c);
+      if(_di) alert+='<span style="background:'+_di.coul+';color:#fff;border-radius:10px;padding:2px 8px;font-size:.68rem;font-weight:900;margin-left:6px;">'+_di.icon+' '+_di.court+'</span>';
+      /* ★ v638 — décider sans ouvrir la fiche */
+      try{ _peDec=essaiBoutons(c); }catch(_){}
+    }
     return '<div class="emp-card" style="border-left:4px solid '+col+';cursor:pointer;" onclick="openCand(\''+c.id+'\')">'
       +'<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
       +(c.photo?'<img src="'+c.photo+'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;">':'<div class="emp-av av-e">'+((c.prenom[0]||'')+(c.nom[0]||'')).toUpperCase()+'</div>')
       +'<div style="min-width:0;"><div style="font-weight:600;font-size:.92rem;">'+c.prenom+' '+c.nom+alert+'</div>'
-      +'<div style="font-size:.73rem;color:#888;">'+meta+'</div></div></div>'
+      +'<div style="font-size:.73rem;color:#888;">'+meta+'</div>'+_peDec+'</div></div>'
       +'<span style="color:'+col+';font-size:1.3rem;">›</span>'
       +'</div>';
   }).join('');
@@ -18855,16 +19095,19 @@ function renderAgendaEntretiens(){
            +((moisCourant && auj.getDate()===jour)?' ag-auj':'');
     h+='<div class="'+cls+'"><div class="ag-num"><span>'+jour+'</span>'
       +(lst.length>1?('<span class="ag-pastille">'+lst.length+'</span>'):'')+'</div>';
-    lst.slice(0,2).forEach(function(x){
+    /* ★ v637 — TOUS les entretiens du jour, chacun cliquable. Avant on n'en
+       montrait que deux et le reste se cachait derrière un « +1 ».        */
+    h+='<div class="ag-evs">';
+    lst.forEach(function(x){
       var c=x.c, hm=x.d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
       var ini=(((c.prenom||' ')[0]||'')+((c.nom||' ')[0]||'')).toUpperCase();
       var nomC=((c.prenom||'')+' '+(c.nom||'')).trim().replace(/"/g,'');
-      h+='<div class="ag-ev" onclick="openCand(\''+c.id+'\')" title="'+nomC+' — '+hm+'">'
+      h+='<div class="ag-ev" onclick="openCand(\''+c.id+'\')" title="'+nomC+' — '+hm+' · ouvrir la fiche">'
         +(c.photo?('<img src="'+c.photo+'" alt="">'):('<span class="ag-ini">'+ini+'</span>'))
         +'<span class="ag-h">'+hm+'</span>'
-        +'<span class="ag-nm">'+(c.prenom||'')+'</span></div>';
+        +'<span class="ag-nm">'+((c.prenom||'')+' '+((c.nom||'')[0]?((c.nom||'')[0]+'.'):'')).trim()+'</span></div>';
     });
-    if(lst.length>2) h+='<div class="ag-plus">+'+(lst.length-2)+'</div>';
+    h+='</div>';
     h+='</div>';
   }
   h+='</div>';
@@ -26261,6 +26504,14 @@ window.incEtatJour=incEtatJour;
 // indispo (absences RH) + arrêt maladie / mise à pied / absence injustifiée (incidents).
 function ptgBlocageRaison(empId, isoDate){
   if(!empId||!isoDate) return null;
+  /* ★ v638 — PÉRIODE D'ESSAI ARRÊTÉE : le salarié ne pointe plus. */
+  try{
+    var _e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
+    if(_e && _e.infos && _e.infos.essaiRompue){
+      return {label:'en fin de période d\'essai — le pointage est arrêté', motif:'essai',
+              src:'essai', depuis:_e.infos.essaiRompue};
+    }
+  }catch(_){}
   // 1) Absences déclarées côté RH (État équipe) — congés/vacances inclus
   try{
     var a=(typeof hrAbsenceDuJour==='function')?hrAbsenceDuJour(empId,isoDate):null;
