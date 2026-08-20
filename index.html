@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-25 20:40 · v651 (archives : plus de mois fantomes, les semaines transferees remontent)';
+  var EMBEDDED_VERSION = '2026-08-25 21:30 · v652 (planning archive : les vraies heures des semaines transferees)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -6793,8 +6793,23 @@ function _arcTexteBrut(html){
 }
 function _arcHC(min){ var h=Math.floor(min/60), m=min%60; return ('0'+h).slice(-2)+':'+('0'+m).slice(-2); }
 /* Les données de la semaine, telles que la page Horaires les calcule. */
+/* ★ v652 — ON LIT L'INSTANTANÉ DE LA SEMAINE, PAS LA SEMAINE OUVERTE À L'ÉCRAN.
+   Le PDF sortait des semaines vides (« Repos » partout, 00:00) alors que le
+   Contrôle des heures affichait 312 créneaux : je lisais _hrAffectSauve, qui ne
+   contient que la semaine chargée en mémoire. Les semaines transférées sont
+   rangées ailleurs — c'est _chJoursSrc qui va les chercher, jour par jour, et
+   _pdfAffSemaineSnap qui les assemble (hors traits d'encadrement).          */
+function _arcAffSemaine(resto, lundiIso){
+  var aff={};
+  try{ aff=_pdfAffSemaineSnap(resto, lundiIso)||{}; }catch(_){ aff={}; }
+  var vide=true;
+  try{ Object.keys(aff).forEach(function(k){ if((aff[k]||[]).length) vide=false; }); }catch(_){}
+  if(vide){ try{ aff=_hrAffectSauve(resto)||{}; }catch(_){ aff={}; } }
+  return aff;
+}
+window._arcAffSemaine=_arcAffSemaine;
 function arcDonneesSemaine(resto, lundiIso){
-  var aff={}; try{ aff=_hrAffectSauve(resto)||{}; }catch(_){ aff={}; }
+  var aff=_arcAffSemaine(resto, lundiIso);
   var lundi=hrParse(lundiIso);
   var dates=[]; for(var i=0;i<7;i++){ var d=new Date(lundi); d.setDate(lundi.getDate()+i); dates.push(d); }
   function iso(d){ return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
@@ -6824,17 +6839,22 @@ function arcDonneesSemaine(resto, lundiIso){
   var lundisMois=[lundiIso];
   try{ if(typeof hrLundisDuMois==='function') lundisMois=hrLundisDuMois(lundiIso)||[lundiIso]; }catch(_){}
   var pos=lundisMois.indexOf(lundiIso); if(pos<0) pos=lundisMois.length-1;
+  /* ★ v652 — le cumul du mois se lit dans les MÊMES instantanés, semaine par
+     semaine : sinon il restait à 00:00 dès qu'on sortait de la semaine ouverte. */
+  var _affMois={};
+  for(var wi0=0; wi0<=pos && wi0<lundisMois.length; wi0++){
+    try{ _affMois[lundisMois[wi0]]=_arcAffSemaine(resto, lundisMois[wi0]); }catch(_){}
+  }
   function cumulMois(empId){
     var tot=0;
     for(var wi=0; wi<=pos && wi<lundisMois.length; wi++){
       try{
+        var A=_affMois[lundisMois[wi]]||{};
         var L=hrParse(lundisMois[wi]);
         for(var dj=0; dj<7; dj++){
           var dt=new Date(L); dt.setDate(L.getDate()+dj);
           var ij=dt.getFullYear()+'-'+('0'+(dt.getMonth()+1)).slice(-2)+'-'+('0'+dt.getDate()).slice(-2);
-          ((typeof HR_AFFECT!=='undefined'&&HR_AFFECT[ij])||[]).forEach(function(b){
-            if(b && b.empId===empId) tot+=(b.e-b.s);
-          });
+          (A[ij]||[]).forEach(function(b){ if(b && b.empId===empId) tot+=(b.e-b.s); });
         }
       }catch(_){}
     }
