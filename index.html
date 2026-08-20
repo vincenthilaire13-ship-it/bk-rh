@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-24 10:40 · v632 (journee entiere en premiere ligne ; 5 motifs dabsence sur lipad)';
+  var EMBEDDED_VERSION = '2026-08-24 12:20 · v636 (codes PIN lisibles, roles en couleur, alerte code manquant)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -580,6 +580,31 @@ html.theme-light{
 }
 /* La barre de navigation garde du contraste sans devenir blanche. */
 html.theme-light nav{ background:#e4e6ec !important; border-color:#d2d5dc !important; }
+/* ★ v636 — LES CARTES DES CODES PIN. Elles étaient écrites en dur en sombre :
+   en thème clair, texte noir sur fond noir. On passe par des classes, avec
+   une couleur par rôle pour repérer la direction d'un coup d'œil.         */
+.pin-card{display:flex;align-items:center;gap:9px;background:var(--gray);border:1px solid #2a2a2a;
+  border-left:5px solid #6a707a;border-radius:10px;padding:10px 12px;}
+.pin-card.off{border-color:#cc5555;}
+.pin-nom{font-weight:800;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pin-role{font-size:.7rem;color:#8a9099;margin-top:2px;}
+.pin-tag{display:inline-block;border-radius:20px;padding:1px 8px;font-size:.66rem;font-weight:900;
+  letter-spacing:.5px;text-transform:uppercase;color:#fff;margin-right:5px;}
+.pin-in{width:66px;text-align:center;font-size:1.05rem;letter-spacing:4px;font-weight:800;
+  background:#fff;border:1px solid #c9ccd4;color:#1c1e22;border-radius:7px;padding:6px;}
+.pin-bt{flex-shrink:0;border-radius:7px;cursor:pointer;padding:6px 9px;font-size:.74rem;font-weight:800;white-space:nowrap;}
+.pin-bt.on{background:#e4f5ea;border:1px solid #3ecf8e;color:#0f5c30;}
+.pin-bt.no{background:#fbe6e2;border:1px solid #cc5555;color:#a4291a;}
+.pin-manque{display:block;font-size:.7rem;color:#c0392b;font-weight:800;margin-top:3px;}
+.pin-filtres{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+html.theme-light .pin-card{background:#fff;border-color:#dcdfe6;}
+html.theme-light .pin-nom{color:#1c1e22;}
+html.theme-light .pin-role{color:#5f6672;}
+html.theme-light .pin-card.off{background:#fdf3f2;border-color:#e8a79c;}
+html:not(.theme-light) .pin-in{background:#111;border-color:#333;color:#fff;}
+html:not(.theme-light) .pin-nom{color:#eee;}
+html:not(.theme-light) .pin-bt.on{background:#16321f;color:#3ecf8e;}
+html:not(.theme-light) .pin-bt.no{background:#3a1616;color:#ff9090;}
 /* ★ v628 — LES VOLETS DE LA FICHE SALARIÉ (Identité, Coordonnées, …).
    Une fiche complète, c'est huit blocs et trois écrans de défilement. On les
    replie : on ouvre celui qu'on cherche, on referme, on passe au suivant.  */
@@ -3954,8 +3979,11 @@ function applyRolePermissions(r){
     var canSeeAll = isGlobal || isDir;
     var rptTabsEl=document.getElementById('rpt-tabs'); if(rptTabsEl) rptTabsEl.style.display = (isGlobal && !( typeof _restoVerrouille==='function' && _restoVerrouille()))?'flex':'none';
 
-    // Indicateur global de lecture seule (directeur = lecture seule partout sauf incidents)
-    window.__readOnly = isDir;
+    /* ★ v635 — LE DIRECTEUR RH VOIT ET FAIT TOUT, SAUF LES PARAMÈTRES.
+       Avant : il était en lecture seule partout et n'avait que trois onglets.
+       Maintenant il a la même application que l'Admin, moins l'onglet
+       Paramètres — les réglages de fond restent entre les mains de l'Admin. */
+    window.__readOnly = false;
 
     var navBtns = document.querySelectorAll('#main-nav button');
     navBtns.forEach(function(b){
@@ -3967,7 +3995,9 @@ function applyRolePermissions(r){
         show = (txt.indexOf('Incidents')<0
              && txt.indexOf('Téléphone équipe')<0);
       } else if (isDir) {
-        show = (txt.indexOf('Planning encadrement')>=0 || txt.indexOf('Incidents')>=0 || txt.indexOf('Rapports')>=0); // Directeur : Planning encadrement + Incidents + Rapports
+        /* ★ v635 — tout, sauf Paramètres. Incidents lui reste en onglet
+           puisqu'il n'a pas Paramètres pour y accéder.                    */
+        show = (txt.indexOf('Paramètres')<0 && txt.indexOf('Téléphone équipe')<0);
       } else if (isMgr) {
         show = (txt.indexOf('Incidents')>=0);          // Manager : Incidents uniquement
       } else {
@@ -4922,6 +4952,13 @@ window._semRefreshIfActive=_semRefreshIfActive;
 window.renderSemaines=renderSemaines; window.renderSemaineDetail=renderSemaineDetail;
 
 function goPage(id, btn) {
+  /* ★ v635 — les Paramètres sont réservés à l'Admin/RH. */
+  try{
+    if(id==='parametres' && curUser && curUser.role!=='franchise'){
+      try{ toast('Les paramètres sont réservés à l\'Admin/RH.','error'); }catch(_){}
+      return;
+    }
+  }catch(_){}
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.querySelectorAll('nav button').forEach(function(b){b.classList.remove('active');});
   document.getElementById('page-'+id).classList.add('active');
@@ -20141,24 +20178,68 @@ function renderPinSettings(){
   h+='</div>';
   c.innerHTML=h;
 }
+/* ★ v636 — LES RÔLES QUI COMPTENT, REPÉRABLES. Vincent : « j'ai besoin de
+   voir les directeurs, superviseurs, RH — pas les équipiers, pas tout ça. » */
+var PIN_ROLE_COUL={franchise:'#8e44ad', directeur:'#8e44ad', rh:'#1d7a3a',
+  superviseur:'#1565c0', manager:'#e08600', leader:'#c9a227', equipier:'#6a707a'};
+var PIN_ROLE_DIRECTION=['franchise','directeur','rh','superviseur'];
+function _pinEstDirection(e){ return PIN_ROLE_DIRECTION.indexOf(String((e&&e.role)||'').toLowerCase())>=0; }
+var _pinFiltre='tous';
+function pinFiltrer(f){ _pinFiltre=f; renderPinSettings(); }
+window.pinFiltrer=pinFiltrer;
 function _pinRenderResto(resto){
   var team=_pinTeam(resto);
+  /* la direction d'abord, puis le reste, chacun par ordre alphabétique */
+  team=team.slice().sort(function(a,b){
+    var da=_pinEstDirection(a)?0:1, db=_pinEstDirection(b)?0:1;
+    return da-db || (a.name||'').localeCompare(b.name||'','fr');
+  });
+  var nbDir=team.filter(_pinEstDirection).length;
+  var vus=(_pinFiltre==='direction')?team.filter(_pinEstDirection):team;
+  /* qui est censé taper un code… sans en avoir un ? */
+  var sansCode=team.filter(function(e){
+    var actif=!(e.infos&&e.infos.pinInactif);
+    return actif && !((typeof empPin==='function')?empPin(e):null);
+  });
   var h='<div style="margin-bottom:12px;"><button class="btn btn-gray btn-sm" onclick="pinRetour()">← Restaurants</button></div>'
-    +'<div style="font-weight:800;color:#F5A623;font-size:1.05rem;margin-bottom:10px;">🔑 '+((RESTOS[resto]&&RESTOS[resto].label)||resto)+' — codes PIN</div>'
+    +'<div style="font-weight:800;color:#F5A623;font-size:1.05rem;margin-bottom:10px;">🔑 '+((RESTOS[resto]&&RESTOS[resto].label)||resto)+' — codes PIN</div>';
+  if(sansCode.length){
+    h+='<div style="background:#fdf3f2;border:1px solid #cc5555;border-left:5px solid #c0392b;border-radius:10px;padding:12px 14px;margin-bottom:12px;color:#a4291a;font-size:.85rem;line-height:1.5;">'
+      +'<b>⚠️ '+sansCode.length+' salarié'+(sansCode.length>1?'s':'')+' sans code, alors que le code leur est demandé.</b><br>'
+      +'Le code par défaut est la <b>date de naissance</b> (JJMM). Sans date de naissance dans la fiche, il n\'y a pas de code : '
+      +'<b>'+sansCode.map(function(e){return _msgEsc(e.name||'');}).join(', ')+'</b> ne pourr'+(sansCode.length>1?'ont':'a')+' pas pointer. '
+      +'Renseigne la date de naissance, tape un code à la main, ou désactive le code.</div>';
+  }
+  h+='<div class="pin-filtres">'
+      +'<button onclick="pinFiltrer(\'tous\')" class="btn '+(_pinFiltre==='tous'?'btn-red':'btn-gray')+' btn-sm">Tout le monde ('+team.length+')</button>'
+      +'<button onclick="pinFiltrer(\'direction\')" class="btn '+(_pinFiltre==='direction'?'btn-red':'btn-gray')+' btn-sm">👔 Direction &amp; RH ('+nbDir+')</button>'
+    +'</div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">'
-      +'<button onclick="pinToutActiver(\''+resto+'\')" style="background:#16321f;border:1px solid #3ecf8e;color:#3ecf8e;border-radius:8px;cursor:pointer;padding:8px 14px;font-weight:700;font-size:.82rem;">✓ Tout activer</button>'
-      +'<button onclick="pinToutDesactiver(\''+resto+'\')" style="background:#3a1616;border:1px solid #cc5555;color:#ff9090;border-radius:8px;cursor:pointer;padding:8px 14px;font-weight:700;font-size:.82rem;">✖ Tout désactiver</button>'
+      +'<button onclick="pinToutActiver(\''+resto+'\')" class="btn btn-gray btn-sm">✓ Tout activer</button>'
+      +'<button onclick="pinToutDesactiver(\''+resto+'\')" class="btn btn-gray btn-sm">✖ Tout désactiver</button>'
     +'</div>';
-  if(!team.length) return h+'<div style="color:#777;font-size:.85rem;">Aucun salarié pour ce restaurant.</div>';
-  h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;">';
-  team.forEach(function(e){
-    var eff=(typeof empPin==='function')?String(empPin(e)||''):'';   // code effectif : perso OU date de naissance
+  if(!vus.length) return h+'<div style="color:#777;font-size:.85rem;">Personne à afficher avec ce filtre.</div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;">';
+  vus.forEach(function(e){
+    var eff=(typeof empPin==='function')?String(empPin(e)||''):'';
     var inactif=!!(e.infos&&e.infos.pinInactif);
     var estDef=(typeof empPinEstDefaut==='function')?empPinEstDefaut(e):true;
-    h+='<div style="background:'+(inactif?'#241416':'#1A1A1A')+';border:1px solid '+(inactif?'#cc5555':'#2a2a2a')+';border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:9px;">'
-      +'<div style="flex:1;min-width:0;"><div style="font-weight:700;color:#eee;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+((e.name||'').replace(/</g,'&lt;'))+'</div><div style="font-size:.66rem;color:#888;">'+((typeof cap==='function'?cap(e.role||''):(e.role||'')))+(estDef?' · date de naissance':' · code perso')+'</div></div>'
-      +'<input type="text" maxlength="4" value="'+eff+'" placeholder="––––" onchange="pinSetEmpPin(\''+e.id+'\',this.value)"'+(inactif?' disabled':'')+' style="width:62px;text-align:center;font-size:1.05rem;letter-spacing:4px;font-weight:700;background:#111;border:1px solid #333;color:'+(inactif?'#666':'#fff')+';border-radius:6px;padding:5px;" inputmode="numeric">'
-      +'<button onclick="pinToggleActif(\''+e.id+'\')" title="'+(inactif?'Réactiver':'Désactiver')+'" style="flex-shrink:0;background:'+(inactif?'#3a1616':'#16321f')+';border:1px solid '+(inactif?'#cc5555':'#3ecf8e')+';color:'+(inactif?'#ff9090':'#3ecf8e')+';border-radius:6px;cursor:pointer;padding:6px 9px;font-size:.74rem;font-weight:700;white-space:nowrap;">'+(inactif?'✖ Inactif':'✓ Actif')+'</button>'
+    var rl=String(e.role||'').toLowerCase();
+    var coul=PIN_ROLE_COUL[rl]||'#6a707a';
+    var dir=_pinEstDirection(e);
+    var manque=(!inactif && !eff);
+    h+='<div class="pin-card'+(inactif?' off':'')+'" style="border-left-color:'+coul+';">'
+      +'<div style="flex:1;min-width:0;">'
+        +'<div class="pin-nom">'+(dir?('<span class="pin-tag" style="background:'+coul+';">'+_msgEsc((typeof cap==='function'?cap(e.role||''):e.role||''))+'</span>'):'')
+          +_msgEsc(e.name||'')+'</div>'
+        +'<div class="pin-role">'+(dir?'':(_msgEsc(typeof cap==='function'?cap(e.role||''):(e.role||''))+' · '))
+          +(estDef?'date de naissance':'code perso')+'</div>'
+        +(manque?'<span class="pin-manque">⚠️ Aucun code — il ne peut pas pointer</span>':'')
+      +'</div>'
+      +'<input type="text" maxlength="4" value="'+eff+'" placeholder="– – – –" onchange="pinSetEmpPin(\''+e.id+'\',this.value)"'
+        +(inactif?' disabled':'')+' class="pin-in"'+(manque?' style="border-color:#c0392b;"':'')+' inputmode="numeric">'
+      +'<button onclick="pinToggleActif(\''+e.id+'\')" title="'+(inactif?'Réactiver le code':'Ne plus demander de code')+'" class="pin-bt '+(inactif?'no':'on')+'">'
+        +(inactif?'✖ Sans code':'✓ Code demandé')+'</button>'
     +'</div>';
   });
   h+='</div>';
