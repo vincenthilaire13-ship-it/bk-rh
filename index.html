@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-25 12:20 · v645 (essai : legende preavis, plus de ligne rouge sous la jauge)';
+  var EMBEDDED_VERSION = '2026-08-25 20:40 · v651 (archives : plus de mois fantomes, les semaines transferees remontent)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -611,6 +611,31 @@ html.theme-light .pe-dec-b:hover{border-color:#8a9099;color:#1c1e22;}
 .pe-jg-cur b{position:absolute;left:50%;transform:translateX(-50%);top:-16px;font-size:.62rem;
   font-weight:900;background:#1c1e22;color:#fff;border-radius:5px;padding:1px 5px;white-space:nowrap;}
 .pe-jg-lbl{display:flex;justify-content:space-between;gap:10px;font-size:.68rem;color:#8a9099;font-weight:700;}
+/* ★ v648 — LES ARCHIVES, LISIBLES ET CLIQUABLES */
+.arc-tabs{display:flex;gap:8px;margin-bottom:13px;flex-wrap:wrap;}
+.arc-tab{border:1px solid #2f2f2f;background:transparent;color:#aeb4bd;border-radius:20px;padding:7px 17px;
+  font-weight:800;font-size:.84rem;cursor:pointer;font-family:inherit;}
+.arc-tab.on{background:#D62300;border-color:#D62300;color:#fff;}
+html.theme-light .arc-tab{border-color:#d7dae1;color:#5a6270;}
+html.theme-light .arc-tab.on{color:#fff;}
+.arc-box{border:1px solid #2a2a2a;border-radius:12px;overflow:hidden;}
+html.theme-light .arc-box{border-color:#dcdfe6;}
+.arc-an{background:#1A1A1A;padding:7px 14px;font-weight:800;color:#F5A623;font-size:.84rem;letter-spacing:.04em;}
+html.theme-light .arc-an{background:#f4f6f9;color:#b06a00;}
+.arc-row{display:flex;align-items:center;gap:9px;padding:10px 14px;border-top:1px solid #232323;flex-wrap:wrap;}
+html.theme-light .arc-row{border-top-color:#e8eaee;}
+.arc-nom{flex:1;min-width:180px;font-weight:700;font-size:.89rem;}
+.arc-nom small{display:block;font-weight:600;font-size:.73rem;color:#8a9099;margin-top:1px;}
+.arc-pdf{background:#D62300;border:none;color:#fff;font-weight:800;border-radius:9px;padding:7px 13px;
+  font-size:.79rem;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.arc-pdf:hover{filter:brightness(1.08);}
+.arc-min{background:transparent;border:1px solid #3a3a3a;color:#aeb4bd;border-radius:9px;padding:6px 11px;
+  font-size:.77rem;cursor:pointer;font-weight:700;font-family:inherit;white-space:nowrap;}
+html.theme-light .arc-min{border-color:#d7dae1;color:#5a6270;}
+.arc-mm{display:flex;flex-wrap:wrap;gap:6px;padding:2px 14px 12px;flex-basis:100%;}
+.arc-mm button{background:#1c1c1f;border:1px solid #333;color:#ddd;border-radius:8px;padding:5px 10px;
+  font-size:.76rem;cursor:pointer;font-weight:700;font-family:inherit;}
+html.theme-light .arc-mm button{background:#fff;border-color:#dcdfe6;color:#333;}
 .pe-jg-leg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.66rem;color:#8a9099;font-weight:700;margin:2px 0 4px;}
 .pe-jg-leg span{display:inline-flex;align-items:center;gap:5px;}
 .pe-jg-leg i{width:9px;height:9px;border-radius:3px;display:inline-block;}
@@ -6595,9 +6620,16 @@ function arcCheminPtgSalarie(resto, emp, ym){
 }
 window.arcCheminPtgSalarie=arcCheminPtgSalarie;
 function _arcHM(m){ m=Math.round(m); var h=Math.floor(m/60), mm=m%60; return (h<10?'0':'')+h+':'+(mm<10?'0':'')+mm; }
-function arcPdfPointageSalarie(resto, emp, ym){
-  var JS=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF; if(!JS) return null;
-  var doc=new JS({unit:'mm',format:'a4',orientation:'portrait'});
+/* ★ v648 — la même feuille, mais on peut l'EMPILER dans un PDF déjà commencé :
+   c'est ce qui permet « toute l'année d'un salarié » et « tout le mois, tous
+   les salariés » en un seul fichier, une page par feuille.                 */
+function arcPdfPointageSalarie(resto, emp, ym, docIn){
+  var doc=docIn;
+  if(doc){ doc.addPage(); }
+  else {
+    var JS=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF; if(!JS) return null;
+    doc=new JS({unit:'mm',format:'a4',orientation:'portrait'});
+  }
   var lab=(RESTOS[resto]&&RESTOS[resto].label)||resto;
   var an=parseInt((''+ym).slice(0,4),10), mo=parseInt((''+ym).slice(5,7),10);
   var nbj=new Date(an,mo,0).getDate();
@@ -6621,7 +6653,7 @@ function arcPdfPointageSalarie(resto, emp, ym){
   if(cw) ent.push('Contrat '+cw+' h/semaine'); if(info.entree) ent.push('Entrée le '+S(info.entree));
   doc.text(ent.join('     '), 12, 35.5);
 
-  var y=44, LH=5.4;
+  var y=42, LH=5.0;   /* ★ v647 — resserré : le mois + les totaux tiennent sur une page */
   function entete(){
     doc.setFillColor(238,239,243); doc.rect(12,y-4.4,186,6.6,'F');
     doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(40,40,40);
@@ -6631,11 +6663,33 @@ function arcPdfPointageSalarie(resto, emp, ym){
   }
   entete();
   var JN=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
-  var totMin=0, totJours=0, totAbs=0;
+  var totMin=0, totJours=0, totAbs=0, totPrevu=0;
+  /* ★ v647 — LE TOTAL DE CHAQUE SEMAINE.
+     Vincent : « j'aimerais bien avoir le total de chaque semaine, pour pouvoir
+     suivre. » Une ligne bleutée après chaque dimanche (et à la fin du mois) :
+     prévu, pointé, absences. Les semaines coupées par le début ou la fin du
+     mois ne comptent que les jours du mois — c'est une feuille mensuelle.   */
+  function _h(m){ return (Math.round(m/60*100)/100+'').replace('.',','); }
+  var semPrevu=0, semPoint=0, semAbs=0, semDeb=null;
+  function ligneSemaine(jDeb, jFin){
+    if(y>270){ doc.addPage(); y=20; entete(); }
+    doc.setFillColor(228,236,247); doc.rect(12,y-4,186,LH+0.8,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.6); doc.setTextColor(25,55,100);
+    doc.text('Semaine du '+('0'+jDeb).slice(-2)+'/'+('0'+mo).slice(-2)
+             +' au '+('0'+jFin).slice(-2)+'/'+('0'+mo).slice(-2), 14, y);
+    doc.text('Prévu '+_h(semPrevu)+' h', 52, y);
+    doc.text('Pointé '+_h(semPoint)+' h', 92, y);
+    doc.text('Absence '+_h(semAbs)+' h', 145, y);
+    doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30);
+    y+=LH+1.6;
+    semPrevu=0; semPoint=0; semAbs=0; semDeb=null;
+  }
   for(var d=1; d<=nbj; d++){
     var iso=ym+'-'+('0'+d).slice(-2);
     var dt=new Date(iso+'T12:00:00');
-    var prevu=''; try{ prevu=(_chPlanSegs(emp,iso,resto)||[]).map(function(sg){ return _arcHM(sg.s)+'-'+_arcHM(sg.e); }).join('  '); }catch(_){}
+    var segs=[]; try{ segs=_chPlanSegs(emp,iso,resto)||[]; }catch(_){ segs=[]; }
+    var prevu=segs.map(function(sg){ return _arcHM(sg.s)+'-'+_arcHM(sg.e); }).join('  ');
+    var prevuMin=0; segs.forEach(function(sg){ prevuMin+=(sg.e-sg.s); });
     var pointe=''; try{
       pointe=(_ptgCreneauxJour(emp.id,iso)||[]).filter(function(c){return c.arrivee||c.depart;})
         .map(function(c){ return (c.arrivee||'?')+'-'+(c.depart||'?'); }).join('  ');
@@ -6643,7 +6697,10 @@ function arcPdfPointageSalarie(resto, emp, ym){
     var min=0; try{ min=_ptgMinPointesJour(emp.id,iso)||0; }catch(_){}
     var abs=''; try{ abs=_arcAbsJour(emp.id,iso)||''; }catch(_){}
     if(min>0){ totMin+=min; totJours++; }
-    if(abs){ try{ var hh=0; (_chPlanSegs(emp,iso,resto)||[]).forEach(function(sg){ hh+=(sg.e-sg.s); }); totAbs+=hh; }catch(_){} }
+    var absMin=abs?prevuMin:0;
+    totAbs+=absMin; totPrevu+=prevuMin;
+    if(semDeb===null) semDeb=d;
+    semPrevu+=prevuMin; semPoint+=min; semAbs+=absMin;
     if(y>272){ doc.addPage(); y=20; entete(); }
     if(d%2===0){ doc.setFillColor(250,250,252); doc.rect(12,y-4,186,LH,'F'); }
     var wk=dt.getDay();
@@ -6652,31 +6709,281 @@ function arcPdfPointageSalarie(resto, emp, ym){
     doc.text(('0'+d).slice(-2)+'/'+('0'+mo).slice(-2), 14, y);
     doc.text(JN[wk], 30, y);
     doc.text(S(prevu).slice(0,26), 52, y);
-    doc.text(S(pointe).slice(0,26), 92, y);
+    /* ★ v647 — prévu mais absent : on écrit le motif à la place du pointage. */
+    if(abs && !pointe){
+      doc.setTextColor(200,60,40); doc.setFont('helvetica','bold');
+      doc.text(S(_arcAbsTexte(abs)).slice(0,26), 92, y);
+      doc.setFont('helvetica','normal');
+      if(wk===0||wk===6){ doc.setTextColor(150,150,150); } else { doc.setTextColor(30,30,30); }
+    } else {
+      doc.text(S(pointe).slice(0,26), 92, y);
+    }
     doc.text(min>0?(Math.round(min/60*100)/100+'').replace('.',','):'', 134, y);
     if(abs){ doc.setTextColor(200,60,40); doc.setFont('helvetica','bold'); doc.text(S(abs), 156, y);
              doc.setFont('helvetica','normal'); }
     y+=LH;
+    if(wk===0 || d===nbj) ligneSemaine(semDeb, d);
   }
   if(y>258){ doc.addPage(); y=22; }
   y+=4; doc.setDrawColor(200,200,205); doc.line(12,y-3,198,y-3);
   doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(20,20,20);
-  doc.text('TOTAL POINTÉ : '+(Math.round(totMin/60*100)/100+'').replace('.',',')+' h', 14, y+3);
-  doc.text('Jours travaillés : '+totJours, 78, y+3);
-  doc.text('Absences : '+(Math.round(totAbs/60*100)/100+'').replace('.',',')+' h', 134, y+3);
+  /* ★ v647 — le mois entier : prévu, pointé, jours travaillés, absences. */
+  doc.text('TOTAL PRÉVU : '+_h(totPrevu)+' h', 14, y+3);
+  doc.text('TOTAL POINTÉ : '+_h(totMin)+' h', 62, y+3);
+  doc.text('Jours travaillés : '+totJours, 118, y+3);
+  doc.text('Absences : '+_h(totAbs)+' h', 163, y+3);
   y+=12;
   doc.setFont('helvetica','normal'); doc.setFontSize(7.2); doc.setTextColor(120,120,120);
   doc.text('CP congés payés  ·  CS congé sans solde  ·  AI absence injustifiée  ·  MA maladie  ·  ANP absence non payée  ·  AT accident du travail', 14, y);
   y+=4;
   var lej=''; try{ lej=new Date().toLocaleDateString('fr-FR'); }catch(_){}
   doc.text('Document généré le '+S(lej)+' depuis BK RH  ·  feuille de pointage, document non modifiable.', 14, y);
-  y+=10;
-  doc.setDrawColor(180,180,185); doc.setTextColor(80,80,80); doc.setFontSize(8);
-  doc.text('Signature du salarié', 20, y); doc.line(18,y+16,88,y+16);
-  doc.text('Signature du responsable', 122, y); doc.line(120,y+16,190,y+16);
+  /* ★ v649 — plus de cases de signature : Vincent n'en a pas besoin. */
   return doc;
 }
 window.arcPdfPointageSalarie=arcPdfPointageSalarie;
+/* ★ v648 — LES DEUX RANGEMENTS QUE VINCENT DEMANDE.
+   « Je dois avoir toute l'année sur la même personne en un clic (…) et sinon je
+   veux avoir le mois entier avec tous les salariés. »
+   Tout est fabriqué ici, dans le navigateur : ça se télécharge sans passer par
+   Dropbox — le rangement, lui, reste exactement le même.                    */
+function arcMoisDeLAnnee(resto, annee){
+  return (arcMois(resto)||[]).filter(function(k){ return (''+k).slice(0,4)===String(annee); }).sort();
+}
+window.arcMoisDeLAnnee=arcMoisDeLAnnee;
+function arcPdfSalarieAnnee(resto, emp, annee){
+  var ms=arcMoisDeLAnnee(resto, annee);
+  if(!ms.length) return null;
+  var doc=null;
+  ms.forEach(function(ym){ doc=arcPdfPointageSalarie(resto, emp, ym, doc); });
+  return doc;
+}
+window.arcPdfSalarieAnnee=arcPdfSalarieAnnee;
+function arcPdfMoisTousSalaries(resto, ym){
+  var lst=_arcSalaries(resto)||[];
+  if(!lst.length) return null;
+  var doc=null;
+  lst.forEach(function(e){ doc=arcPdfPointageSalarie(resto, e, ym, doc); });
+  return doc;
+}
+window.arcPdfMoisTousSalaries=arcPdfMoisTousSalaries;
+/* Le planning d'une semaine, en PDF, sans passer par Dropbox. */
+function arcPdfPlanningSemaine(resto, lundiIso){
+  var bars={}; try{ bars=_pdfAffSemaineSnap(resto, lundiIso)||{}; }catch(_){ bars={}; }
+  var vide=true; try{ Object.keys(bars).forEach(function(k){ if((bars[k]||[]).length) vide=false; }); }catch(_){}
+  if(vide) return null;
+  var JS=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF; if(!JS) return null;
+  var doc=_pdfDoc('landscape');
+  _pdfPartageDessineSemaine(doc, (''+resto).toUpperCase(), lundiIso, true, bars);
+  return doc;
+}
+window.arcPdfPlanningSemaine=arcPdfPlanningSemaine;
+/* ★ v650 — LA GRANDE GRILLE DE LA SEMAINE, EN PDF.
+   Vincent : « quand je vais dans la tuile Plannings archivés, je souhaite avoir
+   ÇA » — le tableau NOM / Lun→Dim / PLAN-CONTRAT / SUIVI MOIS, celui de la page
+   Horaires. On le redessine en paysage, une semaine par page.
+   « par semaine ET par mois » : soit une semaine, soit les 4-5 semaines du mois
+   dans un seul fichier.                                                      */
+function _arcTexteBrut(html){
+  return String(html==null?'':html)
+    .replace(/<div[^>]*>/gi,'\n').replace(/<br\s*\/?>/gi,'\n')
+    .replace(/<[^>]+>/g,'')
+    .replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+    .split('\n').map(function(x){ return x.trim(); }).filter(Boolean);
+}
+function _arcHC(min){ var h=Math.floor(min/60), m=min%60; return ('0'+h).slice(-2)+':'+('0'+m).slice(-2); }
+/* Les données de la semaine, telles que la page Horaires les calcule. */
+function arcDonneesSemaine(resto, lundiIso){
+  var aff={}; try{ aff=_hrAffectSauve(resto)||{}; }catch(_){ aff={}; }
+  var lundi=hrParse(lundiIso);
+  var dates=[]; for(var i=0;i<7;i++){ var d=new Date(lundi); d.setDate(lundi.getDate()+i); dates.push(d); }
+  function iso(d){ return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+  var parEmp={};
+  for(var dd=0; dd<7; dd++){
+    (aff[iso(dates[dd])]||[]).forEach(function(b){
+      if(!b || !b.empId) return;
+      if(!parEmp[b.empId]) parEmp[b.empId]={name:b.emp, jours:[[],[],[],[],[],[],[]], totalMin:0};
+      parEmp[b.empId].jours[dd].push({s:b.s,e:b.e});
+      parEmp[b.empId].totalMin+=(b.e-b.s);
+    });
+  }
+  /* ceux qui n'ont aucun trait mais sont en congé / absence validée */
+  try{
+    var rl=(resto||'').toLowerCase();
+    (DB.employees||[]).forEach(function(e){
+      if(e.role!=='equipier'||e.archived) return;
+      if((e.restoId||'').toLowerCase()!==rl) return;
+      if(parEmp[e.id]) return;
+      for(var d=0; d<7; d++){
+        if(typeof hrEstAbsent==='function' && hrEstAbsent(e.id, iso(dates[d]))){
+          parEmp[e.id]={name:e.name, jours:[[],[],[],[],[],[],[]], totalMin:0}; break;
+        }
+      }
+    });
+  }catch(_){}
+  var lundisMois=[lundiIso];
+  try{ if(typeof hrLundisDuMois==='function') lundisMois=hrLundisDuMois(lundiIso)||[lundiIso]; }catch(_){}
+  var pos=lundisMois.indexOf(lundiIso); if(pos<0) pos=lundisMois.length-1;
+  function cumulMois(empId){
+    var tot=0;
+    for(var wi=0; wi<=pos && wi<lundisMois.length; wi++){
+      try{
+        var L=hrParse(lundisMois[wi]);
+        for(var dj=0; dj<7; dj++){
+          var dt=new Date(L); dt.setDate(L.getDate()+dj);
+          var ij=dt.getFullYear()+'-'+('0'+(dt.getMonth()+1)).slice(-2)+'-'+('0'+dt.getDate()).slice(-2);
+          ((typeof HR_AFFECT!=='undefined'&&HR_AFFECT[ij])||[]).forEach(function(b){
+            if(b && b.empId===empId) tot+=(b.e-b.s);
+          });
+        }
+      }catch(_){}
+    }
+    return tot;
+  }
+  var lignes=Object.keys(parEmp).map(function(id){
+    var pe=parEmp[id];
+    var contrat=null;
+    try{ contrat=hrContratHebdo((DB.employees||[]).find(function(x){return x.id===id;})); }catch(_){}
+    var minEtat=0, cells=[];
+    for(var j=0;j<7;j++){
+      var cr=pe.jours[j].slice().sort(function(a,b){ return a.s-b.s; });
+      if(!cr.length){
+        var c={html:'Repos',minCompte:0};
+        try{ c=_hrCelluleEtatOuRepos(id, iso(dates[j])); }catch(_){}
+        minEtat+=(c.minCompte||0);
+        cells.push(_arcTexteBrut(c.html));
+      } else {
+        var plages=[], cur=null;
+        cr.forEach(function(b){ if(cur && b.s<=cur.e){ cur.e=Math.max(cur.e,b.e); } else { cur={s:b.s,e:b.e}; plages.push(cur); } });
+        cells.push(plages.map(function(p){
+          function hm(min){ var h=Math.floor(min/60)%24, m=min%60; return ('0'+h).slice(-2)+':'+('0'+m).slice(-2); }
+          return hm(p.s)+' - '+hm(p.e);
+        }));
+      }
+    }
+    var totMin=pe.totalMin+minEtat;
+    var cm=cumulMois(id);
+    return {id:id, name:pe.name||'', cells:cells, totMin:totMin, contrat:contrat, cumulMois:cm,
+            plan:_arcHC(totMin)+' / '+(contrat!=null?_arcHC(Math.round(contrat*60)):'-'),
+            mois:(contrat!=null?(_arcHC(cm)+' / '+_arcHC(Math.round(contrat*60*52/12))):'-')};
+  }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+  var totJour=[0,0,0,0,0,0,0], prisSem=0, contSem=0, prisMois=0, contMois=0;
+  lignes.forEach(function(L){
+    var pe=parEmp[L.id];
+    for(var d=0; d<7; d++) (pe.jours[d]||[]).forEach(function(b){ totJour[d]+=(b.e-b.s); });
+    prisSem+=L.totMin; prisMois+=L.cumulMois;
+    if(L.contrat!=null){ contSem+=Math.round(L.contrat*60); contMois+=Math.round(L.contrat*60*52/12); }
+  });
+  return {dates:dates, lignes:lignes, totJour:totJour,
+          prisSem:prisSem, contSem:contSem, prisMois:prisMois, contMois:contMois};
+}
+window.arcDonneesSemaine=arcDonneesSemaine;
+function arcPdfGrilleSemaine(resto, lundiIso, docIn){
+  var D=arcDonneesSemaine(resto, lundiIso);
+  if(!D.lignes.length) return docIn||null;
+  var doc=docIn;
+  if(doc){ doc.addPage('a4','landscape'); }
+  else {
+    var JS=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF; if(!JS) return null;
+    doc=new JS({unit:'mm', format:'a4', orientation:'landscape'});
+  }
+  var lab=(RESTOS[resto]&&RESTOS[resto].label)||resto;
+  var JN=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  var X0=9, WN=42, WJ=27, WP=24, WM=24;
+  var cols=[X0]; cols.push(X0+WN);
+  for(var i=0;i<7;i++) cols.push(cols[cols.length-1]+WJ);
+  cols.push(cols[cols.length-1]+WP);
+  var XFIN=cols[cols.length-1]+WM;
+  function jjmm(d){ return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2); }
+  var y=0;
+  function bandeau(){
+    doc.setFillColor(214,35,0); doc.rect(0,0,297,17,'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(12);
+    doc.text('PLANNING DE LA SEMAINE', X0, 8);
+    doc.setFontSize(8.5); doc.setFont('helvetica','normal');
+    doc.text(String(lab)+'   -   du '+jjmm(D.dates[0])+' au '+jjmm(D.dates[6])+' '+D.dates[6].getFullYear(), X0, 13.5);
+    y=24; entete();
+  }
+  function entete(){
+    doc.setFillColor(238,239,243); doc.rect(X0, y-4.6, XFIN-X0, 6.8, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.4); doc.setTextColor(40,40,40);
+    doc.text('NOM Prénom', cols[0]+2, y);
+    for(var j=0;j<7;j++) doc.text(JN[j]+' '+jjmm(D.dates[j]), cols[1+j]+WJ/2, y, {align:'center'});
+    doc.text('PLAN / CONTRAT', cols[8]+WP/2, y, {align:'center'});
+    doc.text('SUIVI MOIS', cols[9]+WM/2, y, {align:'center'});
+    y+=5.4;
+    doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30);
+  }
+  bandeau();
+  doc.setDrawColor(215,217,222);
+  D.lignes.forEach(function(L, idx){
+    var nb=1; L.cells.forEach(function(c){ if(c.length>nb) nb=c.length; });
+    var HL=Math.max(6.2, 2.9*nb+3.2);
+    if(y+HL>196){ doc.addPage('a4','landscape'); bandeau(); }
+    if(idx%2===1){ doc.setFillColor(250,250,252); doc.rect(X0, y-4, XFIN-X0, HL, 'F'); }
+    doc.setFontSize(7.2); doc.setTextColor(26,79,255); doc.setFont('helvetica','bold');
+    doc.text(String(L.name).slice(0,26), cols[0]+2, y);
+    doc.setFont('helvetica','normal'); doc.setTextColor(34,34,34); doc.setFontSize(6.9);
+    for(var j=0;j<7;j++){
+      (L.cells[j]||[]).forEach(function(t, k){
+        var gris=/Repos/i.test(t);
+        if(gris) doc.setTextColor(160,160,165);
+        doc.text(String(t).slice(0,17), cols[1+j]+WJ/2, y+k*2.9, {align:'center'});
+        if(gris) doc.setTextColor(34,34,34);
+      });
+    }
+    doc.setFont('helvetica','bold'); doc.setFontSize(7);
+    var cP=[26,150,80];
+    if(L.contrat!=null && L.totMin/60 < L.contrat-0.01) cP=[224,134,0];
+    else if(L.contrat!=null && L.totMin/60 > L.contrat+0.01) cP=[214,35,0];
+    doc.setTextColor(cP[0],cP[1],cP[2]);
+    doc.text(L.plan, cols[8]+WP/2, y, {align:'center'});
+    doc.setTextColor(34,34,34);
+    doc.text(L.mois, cols[9]+WM/2, y, {align:'center'});
+    doc.setFont('helvetica','normal');
+    doc.line(X0, y+HL-4, XFIN, y+HL-4);
+    y+=HL;
+  });
+  /* les deux lignes de bas de tableau */
+  if(y+16>196){ doc.addPage('a4','landscape'); bandeau(); }
+  doc.setFillColor(238,242,255); doc.rect(X0, y-4, XFIN-X0, 6.6, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(7.2); doc.setTextColor(17,17,17);
+  doc.text('TOTAUX', cols[0]+2, y);
+  doc.setTextColor(85,85,85); doc.setFontSize(6.6);
+  doc.text('Heures prises / contrats', cols[8]-2, y, {align:'right'});
+  doc.setTextColor(26,79,255); doc.setFontSize(7.2);
+  doc.text(_arcHC(D.prisSem)+' / '+_arcHC(D.contSem), cols[8]+WP/2, y, {align:'center'});
+  doc.text(_arcHC(D.prisMois)+' / '+_arcHC(D.contMois), cols[9]+WM/2, y, {align:'center'});
+  y+=7.4;
+  doc.setFillColor(243,251,245); doc.rect(X0, y-4, XFIN-X0, 6.6, 'F');
+  doc.setTextColor(17,17,17); doc.text('Total / jour', cols[0]+2, y);
+  doc.setTextColor(15,122,52);
+  var tj=0;
+  for(var j2=0;j2<7;j2++){
+    tj+=D.totJour[j2];
+    doc.text(D.totJour[j2]?_arcHC(D.totJour[j2]):'—', cols[1+j2]+WJ/2, y, {align:'center'});
+  }
+  doc.text(_arcHC(tj), cols[8]+WP/2, y, {align:'center'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(6.4); doc.setTextColor(120,120,120);
+  var lej=''; try{ lej=new Date().toLocaleDateString('fr-FR'); }catch(_){}
+  doc.text('Document généré le '+lej+' depuis BK RH.', X0, y+7);
+  return doc;
+}
+window.arcPdfGrilleSemaine=arcPdfGrilleSemaine;
+/* Toutes les semaines d'un mois, dans un seul PDF. */
+function arcPdfGrilleMois(resto, ym){
+  var lundis=(arcSemaines(resto)||[]).filter(function(l){
+    /* une semaine appartient au mois si son lundi OU son dimanche y tombe */
+    var f=''; try{ var d=hrParse(l); d.setDate(d.getDate()+6);
+      f=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2); }catch(_){}
+    return (''+l).slice(0,7)===ym || f===ym;
+  }).sort();
+  if(!lundis.length) return null;
+  var doc=null;
+  lundis.forEach(function(l){ doc=arcPdfGrilleSemaine(resto, l, doc); });
+  return doc;
+}
+window.arcPdfGrilleMois=arcPdfGrilleMois;
 async function arcEnvoyerPtgSalarie(resto, emp, ym){
   var doc=arcPdfPointageSalarie(resto, emp, ym);
   if(!doc) return {ok:false, raison:'generateur PDF indisponible'};
@@ -6718,6 +7025,15 @@ var ARC_MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août'
 /* Le code court de l'absence, comme dans la feuille « Absences » de ton GDH. */
 var ARC_ABS_CODE={cp:'CP', css:'CS', injustifiee:'AI', maladie:'MA', absence:'ANP',
                   at:'AT', trajet:'ATR', misepied:'MP', formation:'FO', indispo:''};
+/* ★ v647 — CE QU'ON ÉCRIT EN TOUTES LETTRES DANS LA COLONNE « POINTÉ ».
+   Vincent : « s'il y a des heures prévues et qu'il est en arrêt maladie, je mets
+   pointé : en arrêt maladie. » Le code court reste dans la colonne Absence ;
+   la colonne Pointé dit ce qui s'est passé, en français.                    */
+var ARC_ABS_TEXTE={CP:'congés payés', CS:'congé sans solde', AI:'absence injustifiée',
+  MA:'en arrêt maladie', ANP:'absence non payée', AT:'accident du travail',
+  ATR:'accident de trajet', MP:'mise à pied', FO:'formation', ABS:'absent'};
+function _arcAbsTexte(code){ return ARC_ABS_TEXTE[code]||(code?('absent ('+code+')'):''); }
+window._arcAbsTexte=_arcAbsTexte;
 function _arcAbsJour(empId, iso){
   try{
     var rec=(ptgGetAll()[empId+'_'+iso])||{};
@@ -6834,10 +7150,53 @@ var _rptCurrent=null;
    Deux tuiles distinctes, et le restaurant vient de l'ONGLET du haut : chaque
    restaurant a son rapport, on ne les mélange pas. Une ligne par semaine (ou
    par mois), avec ce qui est déjà rangé dans Dropbox et ce qui ne l'est pas. */
+function _arcDateOk(iso){ return /^\d{4}-\d{2}-\d{2}$/.test(''+iso); }
+window._arcDateOk=_arcDateOk;
+/* ★ v651 — UNE VRAIE DATE, OU RIEN.
+   En v650 j'acceptais tout ce que le navigateur savait lire : « 2032 » devenait
+   janvier 2032, « 12 » devenait décembre 2001… et l'écran se remplissait de mois
+   qui n'existent pas (Janvier 2034, Décembre 2001…). On reconnaît maintenant
+   uniquement deux écritures, et on refuse toute année qui n'a rien à faire dans
+   un planning de restaurant.                                                 */
+var ARC_AN_MIN=null, ARC_AN_MAX=null;
+function _arcFenetreAnnees(){
+  if(ARC_AN_MIN===null){
+    var a=2026; try{ a=new Date().getFullYear(); }catch(_){}
+    ARC_AN_MIN=a-3; ARC_AN_MAX=a+2;
+  }
+  return {min:ARC_AN_MIN, max:ARC_AN_MAX};
+}
+function _arcISO(x){
+  var t=''+(x==null?'':x); if(!t) return '';
+  var an, mo, j;
+  var m=t.match(/(\d{4})-(\d{1,2})-(\d{1,2})(?!\d)/);          /* AAAA-MM-JJ */
+  if(m){ an=+m[1]; mo=+m[2]; j=+m[3]; }
+  else{
+    var m2=t.match(/(?:^|[^\d])(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})(?!\d)/); /* JJ/MM/AAAA */
+    if(!m2) return '';
+    an=+m2[3]; mo=+m2[2]; j=+m2[1];
+  }
+  if(!(mo>=1 && mo<=12) || !(j>=1 && j<=31)) return '';
+  var f=_arcFenetreAnnees();
+  if(an<f.min || an>f.max) return '';        /* 2001, 2031, 2034… ce n'est pas un planning */
+  var d=new Date(an, mo-1, j, 12, 0, 0);
+  if(d.getFullYear()!==an || d.getMonth()!==mo-1 || d.getDate()!==j) return '';  /* 31 février */
+  return an+'-'+('0'+mo).slice(-2)+'-'+('0'+j).slice(-2);
+}
+window._arcISO=_arcISO;
+/* ★ v650 — TOLÉRANT SUR LA FORME, STRICT SUR LE RÉSULTAT.
+   En v648 j'avais exigé une date au format AAAA-MM-JJ : les semaines écrites
+   autrement (planning importé, traits) disparaissaient de la liste — Vincent
+   n'en voyait plus qu'une. On accepte maintenant toute date que le navigateur
+   sait lire, et on ne rejette que ce qui ne donne VRAIMENT rien.            */
 function _arcLundiDe(iso){
-  try{ var d=new Date(iso+'T12:00:00'); var j=d.getDay()||7; d.setDate(d.getDate()-(j-1));
-       return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
-  catch(_){ return iso; }
+  try{
+    var t=_arcISO(iso); if(!t) return '';
+    var d=new Date(t+'T12:00:00');
+    if(isNaN(d.getTime())) return '';
+    var j=d.getDay()||7; d.setDate(d.getDate()-(j-1));
+    return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  }catch(_){ return ''; }
 }
 // Le restaurant du rapport = l'onglet choisi en haut de la page Rapports.
 function arcRestoCourant(){
@@ -6863,31 +7222,154 @@ function _arcSemaineFr(lundi){
 /* Toutes les semaines qui existent pour ce restaurant, les récentes d'abord. */
 function arcSemaines(resto){
   var v={};
-  try{ (_semWeeks(resto)||[]).forEach(function(w){ if(w&&w.lundi) v[w.lundi]=1; }); }catch(_){}
-  try{ var d=_chDatesAvecTraits(resto)||{}; Object.keys(d).forEach(function(iso){ v[_arcLundiDe(iso)]=1; }); }catch(_){}
+  /* ★ v651 — LES SEMAINES TRANSFÉRÉES D'ABORD.
+     Vincent : « à partir du moment où, dans les Horaires, on transfère la
+     semaine, automatiquement elle doit arriver dans l'archivage. » C'est
+     exactement ce que contient HR_PLANNING_BY_RESTO, lu par _semWeeks.     */
+  try{ (_semWeeks(resto)||[]).forEach(function(w){
+         var l=_arcLundiDe(w&&w.lundi); if(l) v[l]=1; }); }catch(_){}
+  try{ var d=_chDatesAvecTraits(resto)||{};
+       Object.keys(d).forEach(function(iso){ var l=_arcLundiDe(iso); if(l) v[l]=1; }); }catch(_){}
+  /* ★ v648 — la clé est « <id>_<date> », or certains identifiants contiennent
+     eux-mêmes un « _ » : découper au premier donnait une date bidon, d'où le
+     « NaN- » et le « Semaine du aN-aN-NaN · Invalid Date » à l'écran.
+     On lit donc la date par la FIN, et on ne garde que ce qui est une vraie date. */
   try{ var all=ptgGetAll()||{}; var ids={}; (_arcSalaries(resto)||[]).forEach(function(e){ ids[e.id]=1; });
-       Object.keys(all).forEach(function(k){ var p=k.split('_'); if(ids[p[0]] && p[1]) v[_arcLundiDe(p[1])]=1; }); }catch(_){}
-  return Object.keys(v).sort().reverse();
+       Object.keys(all).forEach(function(k){
+         var t=''+k, m=t.match(/(\d{4}-\d{2}-\d{2})/);
+         if(!m) return;                                  /* aucune date → on ignore */
+         var id=t.slice(0, m.index-1);
+         if(!(ids[id] || ids[t.split('_')[0]])) return;
+         var l=_arcLundiDe(m[1]); if(l) v[l]=1;
+       }); }catch(_){}
+  return Object.keys(v).filter(_arcDateOk).sort().reverse();
 }
 /* Tous les mois qui ont au moins un pointage ou un planning. */
 function arcMois(resto){
   var v={};
   try{ arcSemaines(resto).forEach(function(l){ v[(''+l).slice(0,7)]=1; }); }catch(_){}
-  return Object.keys(v).sort().reverse();
+  /* ★ v648 — plus de mois « NaN- » dans la liste. */
+  return Object.keys(v).filter(function(ym){ return /^\d{4}-\d{2}$/.test(ym); }).sort().reverse();
 }
 window.arcSemaines=arcSemaines; window.arcMois=arcMois;
 
 var _ARC_VUE='semaines';
+/* ★ v648 — DEUX RANGEMENTS, ET TOUT SE TÉLÉCHARGE D'ICI.
+   Vincent : « je voudrais juste les PDF, rangés comme dans Dropbox, qu'on
+   puisse les voir ou les télécharger sans aller dans Dropbox. »
+     • Par mois    → un PDF avec tous les salariés du mois
+     • Par salarié → un PDF avec toute son année, mois par mois
+   Le rangement Dropbox n'a pas changé ; il est juste passé au second plan.  */
+var _ARC_ONGLET='mois';      // 'mois' | 'salarie'
+var _ARC_PLAN='semaine';     // ★ v650 — plannings : 'semaine' | 'mois'
+var _ARC_ANNEE=null;
+var _ARC_DBX=false;          // le pavé Dropbox est replié par défaut
+function arcAnnees(resto){
+  var v={}; (arcMois(resto)||[]).forEach(function(k){ v[(''+k).slice(0,4)]=1; });
+  var a=Object.keys(v).sort().reverse();
+  return a.length?a:[String(new Date().getFullYear())];
+}
+window.arcAnnees=arcAnnees;
+function arcAnneeCourante(resto){
+  var a=arcAnnees(resto);
+  return (_ARC_ANNEE && a.indexOf(_ARC_ANNEE)>=0) ? _ARC_ANNEE : a[0];
+}
+function arcOnglet(q){ _ARC_ONGLET=(q==='salarie')?'salarie':'mois'; arcRendre(); }
+window.arcOnglet=arcOnglet;
+function arcOngletPlan(q){ _ARC_PLAN=(q==='mois')?'mois':'semaine'; arcRendre(); }
+window.arcOngletPlan=arcOngletPlan;
+function arcChoisirAnnee(an){ _ARC_ANNEE=String(an); arcRendre(); }
+window.arcChoisirAnnee=arcChoisirAnnee;
+function arcBasculerDbx(){ _ARC_DBX=!_ARC_DBX; arcRendre(); }
+window.arcBasculerDbx=arcBasculerDbx;
+function _arcNomResto(r){ return ((RESTOS[r]&&RESTOS[r].label)||r||'').replace(/\s+/g,''); }
+function _arcSave(doc, nom, siVide){
+  if(!doc){ _arcMsg('<span style="color:#e8a020;font-weight:700;">'+_msgEsc(siVide||'Rien à mettre dans ce PDF.')+'</span>'); return false; }
+  try{ doc.save(nom); _arcMsg('<span style="color:#7fe0a0;font-weight:700;">✅ '+_msgEsc(nom)+'</span>'); return true; }
+  catch(e){ _arcMsg('<span style="color:#e8623a;">⛔ '+_msgEsc(e.message||''+e)+'</span>'); return false; }
+}
+/* Un mois entier, tous les salariés, une page chacun. */
+function arcTelechargerMois(ym){
+  var r=arcRestoCourant();
+  _arcSave(arcPdfMoisTousSalaries(r, ym), 'Pointages '+_arcNomResto(r)+' '+ym+' - tous les salaries.pdf',
+           'Aucun salarié dans ce restaurant.');
+}
+window.arcTelechargerMois=arcTelechargerMois;
+/* Toute l'année d'un salarié, une page par mois. */
+function arcTelechargerAnnee(empId, an){
+  var r=arcRestoCourant();
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  _arcSave(arcPdfSalarieAnnee(r, e, an), 'Pointages '+dbxClean(e.name)+' '+an+'.pdf',
+           'Aucun mois enregistré en '+an+'.');
+}
+window.arcTelechargerAnnee=arcTelechargerAnnee;
+/* Un salarié, un mois. */
+function arcTelechargerFeuille(empId, ym){
+  var r=arcRestoCourant();
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  _arcSave(arcPdfPointageSalarie(r, e, ym), 'Pointage '+dbxClean(e.name)+' '+ym+'.pdf');
+}
+window.arcTelechargerFeuille=arcTelechargerFeuille;
+/* Le planning d'une semaine. */
+function arcTelechargerPlanning(lundi){
+  var r=arcRestoCourant();
+  /* ★ v650 — c'est la GRANDE GRILLE qu'on sort, celle de la page Horaires. */
+  _arcSave(arcPdfGrilleSemaine(r, lundi), 'Planning '+_arcNomResto(r)+' semaine du '+_arcJJMMAAAA(lundi)+'.pdf',
+           'Aucun horaire enregistré cette semaine — il n\'y a pas de planning à sortir.');
+}
+window.arcTelechargerPlanning=arcTelechargerPlanning;
+function arcTelechargerPlanningMois(ym){
+  var r=arcRestoCourant();
+  _arcSave(arcPdfGrilleMois(r, ym), 'Planning '+_arcNomResto(r)+' '+ym+' - toutes les semaines.pdf',
+           'Aucun horaire enregistré ce mois-ci.');
+}
+window.arcTelechargerPlanningMois=arcTelechargerPlanningMois;
+/* Les mois qui contiennent au moins une semaine de planning. */
+function arcMoisPlanning(resto){
+  var v={};
+  (arcSemaines(resto)||[]).forEach(function(l){
+    v[(''+l).slice(0,7)]=1;
+    try{ var d=hrParse(l); d.setDate(d.getDate()+6);
+      v[d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)]=1; }catch(_){}
+  });
+  return Object.keys(v).filter(function(x){ return /^\d{4}-\d{2}$/.test(x); }).sort().reverse();
+}
+window.arcMoisPlanning=arcMoisPlanning;
+/* Déplie les mois d'un salarié (vue « par salarié »). */
+function arcDeplierMois(empId, idx){
+  var box=document.getElementById('arc-s-'+idx); if(!box) return;
+  if(box.innerHTML){ box.innerHTML=''; return; }
+  var r=arcRestoCourant(), ms=arcMoisDeLAnnee(r, arcAnneeCourante(r)).slice().reverse();
+  if(!ms.length){ box.innerHTML='<div class="arc-mm" style="color:#8a9099;font-size:.8rem;">Aucun mois enregistré.</div>'; return; }
+  box.innerHTML='<div class="arc-mm">'+ms.map(function(ym){
+    return '<button onclick="arcTelechargerFeuille(\''+empId+'\',\''+ym+'\')">📄 '+_msgEsc(_arcMoisFr(ym))+'</button>';
+  }).join('')+'</div>';
+}
+window.arcDeplierMois=arcDeplierMois;
+/* Déplie les salariés d'un mois (vue « par mois »). */
+function arcDeplierSalaries(ym, idx){
+  var box=document.getElementById('arc-s-'+idx); if(!box) return;
+  if(box.innerHTML){ box.innerHTML=''; return; }
+  var lst=_arcSalaries(arcRestoCourant())||[];
+  if(!lst.length){ box.innerHTML='<div class="arc-mm" style="color:#8a9099;font-size:.8rem;">Aucun salarié.</div>'; return; }
+  box.innerHTML='<div class="arc-mm">'+lst.map(function(e){
+    return '<button onclick="arcTelechargerFeuille(\''+e.id+'\',\''+ym+'\')">📄 '+_msgEsc(e.name)+'</button>';
+  }).join('')+'</div>';
+}
+window.arcDeplierSalaries=arcDeplierSalaries;
+
 function arcVue(quoi){
   _ARC_VUE=(quoi==='mois')?'mois':'semaines';
+  _ARC_ONGLET='mois'; _ARC_PLAN='semaine'; _ARC_DBX=false;
   var ov=document.getElementById('arc-ov'); if(ov) ov.remove();
   ov=document.createElement('div'); ov.id='arc-ov';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:12200;display:flex;align-items:flex-start;justify-content:center;padding:28px 14px;overflow:auto;';
-  ov.innerHTML='<div class="card" style="max-width:760px;width:100%;padding:20px;"><div id="arc-corps"></div></div>';
+  ov.innerHTML='<div class="card" style="max-width:780px;width:100%;padding:20px;"><div id="arc-corps"></div></div>';
   document.body.appendChild(ov);
   arcRendre();
 }
 window.arcVue=arcVue;
+
 function arcRendre(){
   var box=document.getElementById('arc-corps'); if(!box) return;
   var resto=arcRestoCourant();
@@ -6895,46 +7377,136 @@ function arcRendre(){
   var mois=(_ARC_VUE==='mois');
   var titre=mois?'⏱️ Pointages archivés':'🗓️ Plannings archivés';
   var sous=mois
-    ? 'Un fichier Excel par mois — c\'est celui-là qu\'on télécharge pour préparer la paie. Le récapitulatif de l\'année (12 onglets) est rangé à côté.'
-    : 'Le PDF du planning de chaque semaine. Il part tout seul dans Dropbox au moment où tu transfères la semaine aux salariés.';
-  var lignes=mois?arcMois(resto):arcSemaines(resto);
+    ? 'Les feuilles de pointage, en PDF. Tout se télécharge d\'ici — le rangement est le même que dans Dropbox.'
+    : 'La grille complète de la semaine — NOM, les 7 jours, PLAN/CONTRAT et SUIVI MOIS. En PDF, par semaine ou par mois.';
+
   var h='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:3px;">'
     +'<div style="font-size:1.12rem;font-weight:900;">'+titre+'</div>'
     +'<span style="background:#D62300;color:#fff;border-radius:20px;padding:3px 12px;font-size:.8rem;font-weight:800;">'+_msgEsc(lab)+'</span>'
     +'<button onclick="document.getElementById(\'arc-ov\').remove()" class="btn btn-gray btn-sm" style="margin-left:auto;">Fermer</button></div>'
-    +'<div style="font-size:.82rem;color:#8a9099;line-height:1.5;margin-bottom:6px;">'+sous+'</div>'
-    +'<div style="font-size:.76rem;color:#8a9099;font-family:monospace;margin-bottom:12px;">'
-      +(mois?'/Pointages/&lt;Restaurant&gt;/&lt;Année&gt;/':'/Plannings/&lt;Restaurant&gt;/&lt;Année&gt;/')+'</div>';
-  if(typeof dbxEstPret==='function' && !dbxEstPret())
-    h+='<div style="background:#3a1616;border:1px solid #6a2a2a;color:#ff8b7a;border-radius:9px;padding:10px 13px;margin-bottom:12px;font-weight:700;font-size:.85rem;">⛔ Dropbox n\'est pas connecté — va dans Paramètres pour le brancher.</div>';
-  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">'
-    +'<button onclick="arcActualiser()" class="btn btn-gray btn-sm">🔄 Voir ce qui est déjà rangé</button>'
-    +'<button onclick="arcToutEnvoyer()" class="btn btn-red btn-sm">📤 Envoyer tout ce qui manque</button></div>'
-    +'<div id="arc-msg" style="font-size:.85rem;min-height:20px;margin-bottom:10px;"></div>';
-  if(!lignes.length){
-    h+='<div style="background:#141414;border-radius:10px;padding:16px;color:#8a9099;">Rien à archiver pour ce restaurant pour le moment.</div>';
+    +'<div style="font-size:.83rem;color:#8a9099;line-height:1.5;margin-bottom:13px;">'+sous+'</div>';
+
+  if(mois){
+    h+='<div class="arc-tabs">'
+      +'<button class="arc-tab'+(_ARC_ONGLET==='mois'?' on':'')+'" onclick="arcOnglet(\'mois\')">📅 Par mois</button>'
+      +'<button class="arc-tab'+(_ARC_ONGLET==='salarie'?' on':'')+'" onclick="arcOnglet(\'salarie\')">👤 Par salarié</button>'
+      +'</div>';
   } else {
-    h+='<div style="border:1px solid #2a2a2a;border-radius:10px;overflow:hidden;">';
-    var anCour=null;
-    lignes.forEach(function(k,idx){
-      var an=(''+k).slice(0,4);
-      if(an!==anCour){ anCour=an;
-        h+='<div style="background:#1A1A1A;padding:6px 13px;font-weight:800;color:#F5A623;font-size:.85rem;">'+an+'</div>'; }
-      var lbl=mois?_arcMoisFr(k):('Semaine du '+_arcJJMMAAAA(k)+'  ·  '+_arcSemaineFr(k));
-      h+='<div id="arc-l-'+idx+'" style="display:flex;align-items:center;gap:10px;padding:9px 13px;border-top:1px solid #232323;flex-wrap:wrap;">'
-        +'<div style="flex:1;min-width:210px;font-weight:600;font-size:.88rem;">'+_msgEsc(lbl)+'</div>'
-        +'<span id="arc-e-'+idx+'" style="font-size:.78rem;color:#8a9099;min-width:96px;">…</span>'
-        +'<span id="arc-b-'+idx+'"><button onclick="arcEnvoyerUn(\''+k+'\','+idx+')" class="btn btn-gray btn-sm">📤 Envoyer</button></span>'
-        +(mois?('<button onclick="arcSalaries(\''+k+'\','+idx+')" class="btn btn-gray btn-sm" title="La feuille de pointage de chaque salarié">👥 Par salarié</button>'):'')
-        +'<div id="arc-s-'+idx+'" style="flex-basis:100%;"></div>'
+    /* ★ v650 — « par semaine ET par mois », comme demandé. */
+    h+='<div class="arc-tabs">'
+      +'<button class="arc-tab'+(_ARC_PLAN==='semaine'?' on':'')+'" onclick="arcOngletPlan(\'semaine\')">📅 Par semaine</button>'
+      +'<button class="arc-tab'+(_ARC_PLAN==='mois'?' on':'')+'" onclick="arcOngletPlan(\'mois\')">📆 Par mois</button>'
+      +'</div>';
+  }
+  h+='<div id="arc-msg" style="font-size:.85rem;min-height:20px;margin-bottom:10px;"></div>';
+
+  /* ── VUE « PAR SALARIÉ » : toute l'année d'une personne, en un clic ── */
+  if(mois && _ARC_ONGLET==='salarie'){
+    var ans=arcAnnees(resto), anC=arcAnneeCourante(resto);
+    var lst=_arcSalaries(resto)||[];
+    if(ans.length>1){
+      h+='<div class="arc-tabs">'+ans.map(function(a){
+        return '<button class="arc-tab'+(a===anC?' on':'')+'" onclick="arcChoisirAnnee(\''+a+'\')">'+a+'</button>';
+      }).join('')+'</div>';
+    }
+    var nbm=arcMoisDeLAnnee(resto, anC).length;
+    if(!lst.length){
+      h+='<div class="arc-box" style="padding:16px;color:#8a9099;">Aucun salarié dans ce restaurant.</div>';
+    } else {
+      h+='<div class="arc-box"><div class="arc-an">'+anC+'  ·  '+nbm+' mois enregistré'+(nbm>1?'s':'')+'</div>';
+      lst.forEach(function(e,i){
+        h+='<div class="arc-row">'
+          +'<div class="arc-nom">'+_msgEsc(e.name)+'<small>toutes ses feuilles de '+anC+'</small></div>'
+          +'<button class="arc-pdf" onclick="arcTelechargerAnnee(\''+e.id+'\',\''+anC+'\')">📄 Toute l\'année '+anC+'</button>'
+          +'<button class="arc-min" onclick="arcDeplierMois(\''+e.id+'\','+i+')">Mois par mois ▾</button>'
+          +'<div id="arc-s-'+i+'" style="flex-basis:100%;"></div>'
+          +'</div>';
+      });
+      h+='</div>';
+    }
+    box.innerHTML=h+_arcPaveDbx(mois);
+    if(_ARC_DBX) setTimeout(arcActualiser, 60);
+    return;
+  }
+
+  /* ── PLANNINGS GROUPÉS PAR MOIS ── */
+  if(!mois && _ARC_PLAN==='mois'){
+    var lm=arcMoisPlanning(resto);
+    if(!lm.length){
+      h+='<div class="arc-box" style="padding:16px;color:#8a9099;">Aucun planning enregistré pour ce restaurant.</div>';
+      box.innerHTML=h+_arcPaveDbx(mois); return;
+    }
+    h+='<div class="arc-box">';
+    var anP=null;
+    lm.forEach(function(ym){
+      var an=(''+ym).slice(0,4);
+      if(an!==anP){ anP=an; h+='<div class="arc-an">'+an+'</div>'; }
+      var nbs=(arcSemaines(resto)||[]).filter(function(l){
+        var f=''; try{ var d=hrParse(l); d.setDate(d.getDate()+6); f=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2); }catch(_){}
+        return (''+l).slice(0,7)===ym || f===ym;
+      }).length;
+      h+='<div class="arc-row">'
+        +'<div class="arc-nom">'+_msgEsc(_arcMoisFr(ym))+'<small>'+nbs+' semaine'+(nbs>1?'s':'')+'</small></div>'
+        +'<button class="arc-pdf" onclick="arcTelechargerPlanningMois(\''+ym+'\')">📄 Tout le mois</button>'
         +'</div>';
     });
     h+='</div>';
+    box.innerHTML=h+_arcPaveDbx(mois); return;
   }
-  box.innerHTML=h;
-  setTimeout(arcActualiser, 60);
+
+  /* ── VUE « PAR MOIS » (pointages) ou « PAR SEMAINE » (plannings) ── */
+  var lignes=mois?arcMois(resto):arcSemaines(resto);
+  if(!lignes.length){
+    h+='<div class="arc-box" style="padding:16px;color:#8a9099;">Rien à archiver pour ce restaurant pour le moment.</div>';
+    box.innerHTML=h+_arcPaveDbx(mois); return;
+  }
+  var nbSal=(_arcSalaries(resto)||[]).length;
+  h+='<div class="arc-box">';
+  var anCour=null;
+  lignes.forEach(function(k,idx){
+    var an=(''+k).slice(0,4);
+    if(an!==anCour){ anCour=an; h+='<div class="arc-an">'+an+'</div>'; }
+    if(mois){
+      h+='<div class="arc-row">'
+        +'<div class="arc-nom">'+_msgEsc(_arcMoisFr(k))+'<small>'+nbSal+' salarié'+(nbSal>1?'s':'')+'</small></div>'
+        +'<button class="arc-pdf" onclick="arcTelechargerMois(\''+k+'\')">📄 Tout le mois</button>'
+        +'<button class="arc-min" onclick="arcDeplierSalaries(\''+k+'\','+idx+')">Un salarié ▾</button>'
+        +'<span id="arc-e-'+idx+'" style="font-size:.75rem;color:#8a9099;min-width:70px;text-align:right;"></span>'
+        +'<span id="arc-b-'+idx+'"></span>'
+        +'<div id="arc-s-'+idx+'" style="flex-basis:100%;"></div>'
+        +'</div>';
+    } else {
+      h+='<div class="arc-row">'
+        +'<div class="arc-nom">Semaine du '+_msgEsc(_arcJJMMAAAA(k))+'<small>'+_msgEsc(_arcSemaineFr(k))+'</small></div>'
+        +'<button class="arc-pdf" onclick="arcTelechargerPlanning(\''+k+'\')">📄 Le planning</button>'
+        +'<span id="arc-e-'+idx+'" style="font-size:.75rem;color:#8a9099;min-width:70px;text-align:right;"></span>'
+        +'<span id="arc-b-'+idx+'"></span>'
+        +'<div id="arc-s-'+idx+'" style="flex-basis:100%;"></div>'
+        +'</div>';
+    }
+  });
+  h+='</div>';
+  box.innerHTML=h+_arcPaveDbx(mois);
+  if(_ARC_DBX) setTimeout(arcActualiser, 60);
 }
 window.arcRendre=arcRendre;
+/* Le rangement Dropbox : toujours là, mais replié — on ne s'en sert plus tous
+   les jours puisque les PDF se téléchargent directement. */
+function _arcPaveDbx(mois){
+  var chemin=(mois?'/Pointages/&lt;Restaurant&gt;/&lt;Année&gt;/':'/Plannings/&lt;Restaurant&gt;/&lt;Année&gt;/');
+  var h='<div style="margin-top:14px;">'
+    +'<button class="arc-min" onclick="arcBasculerDbx()">☁️ Rangement Dropbox '+(_ARC_DBX?'▴':'▾')+'</button>';
+  if(_ARC_DBX){
+    h+='<div style="border:1px solid #2a2a2a;border-radius:10px;padding:12px 14px;margin-top:9px;">'
+      +'<div style="font-size:.78rem;color:#8a9099;font-family:monospace;margin-bottom:9px;">'+chemin+'</div>';
+    if(typeof dbxEstPret==='function' && !dbxEstPret())
+      h+='<div style="color:#e8a020;font-size:.82rem;font-weight:700;margin-bottom:9px;">Dropbox n\'est pas connecté — va dans Paramètres pour le brancher.</div>';
+    h+='<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+      +'<button onclick="arcActualiser()" class="arc-min">🔄 Voir ce qui est rangé</button>'
+      +'<button onclick="arcToutEnvoyer()" class="arc-min">📤 Ranger ce qui manque</button></div></div>';
+  }
+  return h+'</div>';
+}
 function _arcMsg(html){ var m=document.getElementById('arc-msg'); if(m) m.innerHTML=html; }
 /* Va lire dans Dropbox ce qui existe vraiment, et met à jour chaque ligne. */
 async function arcActualiser(){
@@ -12619,7 +13191,17 @@ function essaiPalier(joursPresence){
   return p;
 }
 window.essaiPalier=essaiPalier;
-function _essaiJours(a,b){ return Math.floor((b-a)/(24*3600*1000)); }
+/* ★ v646 — ON COMPTE DES JOURS DE CALENDRIER, PAS DES HEURES.
+   Avant, le compte se faisait sur le temps écoulé depuis midi : un salarié
+   passait de J+6 à J+7 en plein milieu de l'après-midi, et celui qui démarrait
+   le matin même s'affichait « J+-1 ». Maintenant on compare deux dates, point. */
+function _essaiJours(a,b){
+  try{
+    var A=Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+    var B=Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+    return Math.round((B-A)/(24*3600*1000));
+  }catch(_){ return Math.floor((b-a)/(24*3600*1000)); }
+}
 /* ★ v638 — UN ARRÊT SUSPEND LA PÉRIODE D'ESSAI.
    Vincent : « si une personne est en arrêt maladie ou en accident de travail,
    ça décale la période d'essai. » Les jours d'arrêt ne comptent ni dans
@@ -12683,7 +13265,7 @@ function essaiInfo(c){
   if(!c.dateDebut)return null;
   var debut=new Date(c.dateDebut+'T12:00:00');
   var now=new Date();
-  /* ★ v644 — un salarié qui commence aujourd'hui est à J+0, jamais « J+-1 ». */
+  /* un salarié qui commence aujourd'hui est à J+0, jamais « J+-1 ». */
   var jours=Math.max(0, _essaiJours(debut, now));
   var estApprenti=(c.poste==='Apprenti'||c.niveauApprentissage==='Apprentissage'||(c.contratType||'').indexOf('appr')===0);
   var fin=new Date(debut);
@@ -12718,7 +13300,7 @@ function essaiInfo(c){
     preavisLbl=palier.lbl;
     dernier=essaiDernierJour(debut, fin);
     limiteStr=dernier.date.toLocaleDateString('fr-FR');
-    joursAvantLimite=Math.ceil((dernier.date-now)/(24*3600*1000));
+    joursAvantLimite=_essaiJours(now, dernier.date);   /* ★ v646 — en jours de calendrier */
     if(now>=fin){
       alert='🔒 Période d\'essai terminée le '+finStr+' — rupture en essai impossible';alertCol='#8a9099';niveau=4;
     }else if(joursAvantLimite<0){
@@ -12755,6 +13337,59 @@ function essaiBandeau(c){
     + '</div>';
 }
 window.essaiBandeau=essaiBandeau; window.essaiInfo=essaiInfo;
+
+/* ★ v646 — DANS ALERTES, UNIQUEMENT LES RAPPELS DE PRÉAVIS.
+   Vincent : « Je veux savoir uniquement prévenir (…) deux ou trois jours avant
+   les quinze jours, tu me préviens, pour qu'on puisse faire partir le mail
+   comme quoi on ne le garde pas. »
+   Alertes remontait TOUS les salariés en essai dès qu'ils dépassaient 8 jours.
+   Maintenant il n'y a plus que TROIS moments — et rien d'autre :
+     ① 3 jours avant d'entrer dans les 48 h de préavis  (avant J+8)
+     ② 3 jours avant d'entrer dans les 15 jours         (avant J+30)
+     ③ quand le dernier jour pour prévenir arrive       (J−3 et moins)
+   Un salarié qui n'est dans aucune de ces trois fenêtres ne s'affiche pas.  */
+var ESSAI_ALERTE_AVANCE=3;
+function _essaiDateJour(debut, n){
+  try{ return new Date(debut.getTime()+n*24*3600*1000).toLocaleDateString('fr-FR'); }catch(_){ return ''; }
+}
+function essaiRappel(c){
+  var e=(typeof essaiInfo==='function')?essaiInfo(c):null;
+  if(!e) return null;
+
+  /* Apprenti : pas de préavis, mais la rupture libre se ferme. */
+  if(e.apprenti){
+    if(e.joursRestants<0 || e.joursRestants>ESSAI_ALERTE_AVANCE) return null;
+    return {prio:1, col:ESSAI_ROUGE, icon:'⏰', niveau:3,
+      quoi:'fin de la rupture libre dans '+e.joursRestants+' j',
+      quand:'Après le '+e.finStr+' la rupture libre ne sera plus possible'};
+  }
+
+  /* ③ le dernier jour pour prévenir est là : le courrier doit partir. */
+  if(e.joursAvantLimite!=null && e.joursAvantLimite>=0 && e.joursAvantLimite<=ESSAI_ALERTE_AVANCE){
+    return {prio:1, col:ESSAI_ROUGE, icon:'⏰', niveau:3,
+      quoi:(e.joursAvantLimite===0?'DERNIER JOUR pour prévenir':'plus que '+e.joursAvantLimite+' j pour prévenir'),
+      quand:'Envoyer le courrier avant le '+e.limiteStr+' · préavis '+e.preavisLbl};
+  }
+
+  /* ② il va passer à 15 jours de préavis : dernière fenêtre à 48 h. */
+  var av30=30-e.jours;
+  if(av30>=0 && av30<=ESSAI_ALERTE_AVANCE){
+    return {prio:1, col:ESSAI_ROUGE, icon:'🔴', niveau:2,
+      quoi:(av30===0?'passe AUJOURD\'HUI à 15 jours de préavis':'passe à 15 jours de préavis dans '+av30+' j'),
+      quand:'Dernière fenêtre à 48 h de préavis — après le '+_essaiDateJour(e.debut,30)+' il faudra 15 jours'};
+  }
+
+  /* ① il va passer à 48 h de préavis. */
+  var av8=8-e.jours;
+  if(av8>=0 && av8<=ESSAI_ALERTE_AVANCE){
+    return {prio:2, col:ESSAI_ORANGE, icon:'🟠', niveau:1,
+      quoi:(av8===0?'passe AUJOURD\'HUI à 48 h de préavis':'passe à 48 h de préavis dans '+av8+' j'),
+      quand:'Aujourd\'hui 24 h suffisent — à partir du '+_essaiDateJour(e.debut,8)+' il faudra 48 h'};
+  }
+
+  return null;
+}
+window.essaiRappel=essaiRappel; window.ESSAI_ALERTE_AVANCE=ESSAI_ALERTE_AVANCE;
 
 /* ★ v638 — LA DÉCISION EN DEUX BOUTONS.
    Le directeur n'a pas à ouvrir toute la fiche : il dit « je garde » ou
@@ -13255,13 +13890,15 @@ function collectAlertes(restoFiltre){
       return;
     }
     if(c.essaiDecision==='garde') return;              // c'est réglé, on n'alerte plus
-    var e=essaiInfo(c); if(!e||!e.alert||e.niveau<1) return;
-    alerts.push({prio:e.niveau>=3?1:2,cat:'Période d\'essai',icon:'⏱️',col:e.alertCol,
-      titre:(c.prenom+' '+c.nom)+' — '+(e.apprenti?'fin de rupture libre':'à décider : garder ou non'),
-      sub:'Début '+e.debutStr+' · fin le '+e.finStr
-          +(e.apprenti?'':(' · préavis '+e.preavisLbl+' · prévenir avant le '+e.limiteStr))
+    /* ★ v646 — on n'affiche QUE les trois moments où il faut agir. */
+    var r=(typeof essaiRappel==='function')?essaiRappel(c):null;
+    if(!r) return;
+    var e=essaiInfo(c); if(!e) return;
+    alerts.push({prio:r.prio,cat:'Période d\'essai',icon:r.icon,col:r.col,
+      titre:(c.prenom+' '+c.nom)+' — '+r.quoi,
+      sub:r.quand
           +(e.suspendus?(' · '+e.suspendus+' j d\'arrêt déduits'):'')
-          +' · '+resto,
+          +' · fin d\'essai le '+e.finStr+' · '+resto,
       candId:c.id});
   });
 
@@ -13400,7 +14037,7 @@ var ALERT_CATS=[
   // ── 2) Contrats & période d'essai ──────────────────────
   {cat:'Contrats à signer',icon:'📄',desc:'Contrats en attente de signature'},
   {cat:'Embauches à finaliser',icon:'🚀',desc:'Candidats retenus/en essai pas encore ajoutés à l\'équipe (contrat signé à démarrer, ou anomalie à recréer)'},
-  {cat:'Période d\'essai',icon:'⏳',desc:'Fins de période d\'essai à valider'},
+  {cat:'Période d\'essai',icon:'⏳',desc:'Préavis à envoyer : 3 jours avant les 48 h, 3 jours avant les 15 jours, et au dernier moment'},
   {cat:'Contrats',icon:'🎓',desc:'Échéances de contrat (apprentissage, DPAE…)'},
   // ── 3) Suivi santé & administratif ─────────────────────
   {cat:'Visite médicale',icon:'🩺',desc:'Visites médicales périodiques à planifier'},
@@ -26590,8 +27227,37 @@ window.incEtatJour=incEtatJour;
 // Raison pour laquelle un salarié NE PEUT PAS pointer un jour donné (ou null s'il le peut).
 // Couvre : congés/vacances (CP), congé sans solde, arrêt maladie, absence autorisée,
 // indispo (absences RH) + arrêt maladie / mise à pied / absence injustifiée (incidents).
+/* ★ v646 — LA DATE DE FIN D'UN SALARIÉ.
+   Vincent : « à chaque fois qu'on donne une date de fin, ça doit couper
+   automatiquement la carte de pointage. » On regarde la date de sortie ET la
+   fin de CDD, et on retient la plus proche. Le dernier jour est travaillé :
+   c'est le LENDEMAIN que la carte ne passe plus.                           */
+function ptgDateFinDe(emp){
+  if(!emp) return null;
+  var inf=emp.infos||{};
+  var cand=[emp.sortieDate, emp.exitDate, inf.date_sortie, inf.date_fin_cdd];
+  var best=null;
+  cand.forEach(function(v){
+    if(!v) return;
+    var iso=String(v).slice(0,10);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;
+    if(!best || iso<best) best=iso;
+  });
+  return best;
+}
+window.ptgDateFinDe=ptgDateFinDe;
 function ptgBlocageRaison(empId, isoDate){
   if(!empId||!isoDate) return null;
+  /* ★ v646 — UNE DATE DE FIN ARRÊTE LA CARTE DE POINTAGE. */
+  try{
+    var _es=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
+    var _fin=ptgDateFinDe(_es);
+    if(_fin && String(isoDate).slice(0,10) > _fin){
+      var _finFr=_fin; try{ _finFr=new Date(_fin+'T12:00:00').toLocaleDateString('fr-FR'); }catch(_){}
+      return {label:'sorti(e) des effectifs le '+_finFr+' — le pointage est arrêté',
+              motif:'sortie', src:'sortie', depuis:_fin};
+    }
+  }catch(_){}
   /* ★ v638 — PÉRIODE D'ESSAI ARRÊTÉE : le salarié ne pointe plus. */
   try{
     var _e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
