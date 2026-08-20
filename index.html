@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-24 08:20 · v630 (ipad : jours passes accessibles, absence simplifiee, reclic sur le creneau)';
+  var EMBEDDED_VERSION = '2026-08-24 09:10 · v631 (les creneaux ecrits sur le bouton toute la journee)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -36749,18 +36749,23 @@ function ipadAbsence(empId){
   _ipadEmp=e;
   var segs=_ipadSegs(empId)||[];
   if(!_ipadSel && segs.length>1){
+    /* ★ v631 — sur le bouton « toute la journée », on ÉCRIT les créneaux
+       concernés, l'un à côté de l'autre : on voit ce qu'on coche.          */
     var _tot=0; segs.forEach(function(sg){ _tot+=(sg.e-sg.s); });
+    var _liste=segs.map(function(sg){ return _ipadHM(sg.s)+'–'+_ipadHM(sg.e); }).join('  +  ');
+    var _dur=Math.floor(_tot/60)+' h'+((_tot%60)?(' '+('0'+(_tot%60)).slice(-2)):'');
     var h='<div class="ip-code-sub"><b>'+_ipadEsc(e.name)+'</b> est absente…</div>'
-      +'<button class="ip-cren-act" style="border-color:#cc5555;background:#2a1414;font-size:1.1rem;"'
+      +'<button class="ip-cren-act" style="border-color:#cc5555;background:#2a1414;"'
         +' onclick="ipadAbsencePortee(\''+empId+'\',\'\')">'
-        +'☀️ Toute la journée<b>Les '+segs.length+' créneaux · '
-        +Math.floor(_tot/60)+' h'+((_tot%60)?(' '+('0'+(_tot%60)).slice(-2)):'')+' — elle ne vient pas</b></button>'
-      +'<div class="ip-ou">ou seulement</div>';
+        +'<span style="font-size:1.05rem;">☀️ Toute la journée</span>'
+        +'<span class="ip-cren-jrs">'+_liste+'</span>'
+        +'<b>Les '+segs.length+' créneaux · '+_dur+' — elle ne vient pas du tout</b></button>'
+      +'<div class="ip-ou">ou un seul créneau</div>';
     segs.forEach(function(sg,i){
       h+='<button class="ip-cren-act" onclick="ipadAbsencePortee(\''+empId+'\',\''+(sg.s+'-'+sg.e)+'\')">'
-        +'🕒 '+_ipadHM(sg.s)+' – '+_ipadHM(sg.e)
-        +'<b>'+(segs.length>1?('Créneau '+(i+1)+' · '):'')+_ipadEsc(sg.l||'')
-        +' — le reste de sa journée n\'est pas touché</b></button>';
+        +'<span style="font-size:1.05rem;">🕒 '+(segs.length>1?((i===0?'1er':(i+1)+'e')+' créneau — '):'')
+        +_ipadHM(sg.s)+' – '+_ipadHM(sg.e)+'</span>'
+        +'<b>'+_ipadEsc(sg.l||'')+' — le reste de sa journée n\'est pas touché</b></button>';
     });
     _ipadPanneau('🤒 Absence', h, "ipadFiche('"+empId+"')");
     return;
@@ -37203,6 +37208,7 @@ function _ipadCss(){ return '<style>\
 .ip-nav-auj{font-size:.78rem;padding:5px 11px;letter-spacing:.4px;}\
 .ip-cren-act{display:block;width:100%;text-align:left;background:#1c1c1f;border:1px solid #3d3d42;color:#eee;border-radius:12px;padding:14px 16px;margin-bottom:9px;font-size:1rem;font-weight:700;cursor:pointer;}\
 .ip-cren-act b{display:block;font-size:.8rem;font-weight:600;color:#9aa0a6;margin-top:2px;}\
+.ip-cren-jrs{display:block;font-size:1.15rem;font-weight:900;color:#ffb3a6;font-variant-numeric:tabular-nums;margin-top:4px;letter-spacing:.5px;}\
 .ip-ou{display:flex;align-items:center;gap:10px;color:#9aa0a6;font-size:.8rem;margin:14px 0 9px;text-transform:uppercase;letter-spacing:1px;}\
 .ip-ou:before,.ip-ou:after{content:" ";flex:1;height:1px;background:#3a3a3a;}\
 .ip-resto{font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.8rem;letter-spacing:1px;text-transform:uppercase;line-height:1;}\
