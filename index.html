@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-26 19:30 · v659 (creneaux restants : meme compte pour tout le monde)';
+  var EMBEDDED_VERSION = '2026-08-26 20:40 · v660 (entrees-sorties : les visages et leffectif temps plein)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -7973,7 +7973,7 @@ function genTurnoverReport(){
   var restoFiltre = isGlobal ? ((typeof rptTab!=='undefined'&&rptTab!=='all')?rptTab:null) : curUser.restoId;
   var emps=(DB.employees||[]).filter(function(e){ return restoFiltre? (e.restoId===restoFiltre) : true; });
   var recs=emps.map(function(e){
-    return { name:e.name, resto:e.restoId,
+    return { name:e.name, resto:e.restoId, emp:e,       /* ★ v660 — pour la photo et le contrat */
              entree:_tvParse(e.infos&&e.infos.date_anciennete),
              sortie:_tvParse(e.exitDate||e.sortieDate) };
   });
@@ -7988,8 +7988,8 @@ function genTurnoverReport(){
   var moisIn=[], moisOut=[];
   for(var m=0;m<12;m++){ moisIn[m]=[]; moisOut[m]=[]; }
   recs.forEach(function(r){
-    if(r.entree && r.entree.getFullYear()===Y) moisIn[r.entree.getMonth()].push(r.name);
-    if(r.sortie && r.sortie.getFullYear()===Y) moisOut[r.sortie.getMonth()].push(r.name);
+    if(r.entree && r.entree.getFullYear()===Y) moisIn[r.entree.getMonth()].push(r);
+    if(r.sortie && r.sortie.getFullYear()===Y) moisOut[r.sortie.getMonth()].push(r);
   });
   function effectifFin(y,m){
     var fin=new Date(y,m+1,0,23,59,59);
@@ -8001,6 +8001,28 @@ function genTurnoverReport(){
     });
     return n;
   }
+  /* ★ v660 — L'EFFECTIF EN TEMPS PLEIN (ETP).
+     Vincent : « tu prends les 24 h et tout ça, tu fais un nombre d'heures, tu
+     divises par 151,67, tu as le nombre d'heures contrat temps plein. »
+     On additionne les heures de contrat mensualisées des salariés présents à la
+     fin du mois (hebdo × 52/12), et on divise par 151,67 — un temps plein.   */
+  var ETP_MOIS=151.67;
+  function heuresMoisDe(r){
+    var hb=null;
+    try{ hb=(typeof hrContratHebdo==='function')?hrContratHebdo(r.emp):null; }catch(_){}
+    if(hb==null||!(hb>0)) return 0;
+    return hb*52/12;
+  }
+  function etpFin(y,m){
+    var fin=new Date(y,m+1,0,23,59,59), tot=0;
+    recs.forEach(function(r){
+      if(!(r.entree && r.entree<=fin)) return;
+      if(r.sortie && r.sortie<=fin) return;
+      tot+=heuresMoisDe(r);
+    });
+    return tot/ETP_MOIS;
+  }
+  function _etpTxt(v){ return (Math.round(v*10)/10+'').replace('.',','); }
   var totIn=0, totOut=0;
   for(var m=0;m<12;m++){ totIn+=moisIn[m].length; totOut+=moisOut[m].length; }
   var somme=0; for(var m=0;m<12;m++){ somme+=effectifFin(Y,m); }
@@ -8026,33 +8048,71 @@ function genTurnoverReport(){
     +'<thead><tr style="text-align:left;color:#aaa;border-bottom:1px solid #333;">'
     +'<th style="padding:8px 6px;">Mois</th><th style="padding:8px 6px;text-align:center;">Entrées</th>'
     +'<th style="padding:8px 6px;text-align:center;">Sorties</th><th style="padding:8px 6px;text-align:center;">Solde</th>'
-    +'<th style="padding:8px 6px;text-align:center;">Effectif fin de mois</th></tr></thead><tbody>';
+    +'<th style="padding:8px 6px;text-align:center;">Effectif fin de mois</th>'
+    +'<th style="padding:8px 6px;text-align:center;" title="Heures de contrat des présents ÷ 151,67 (un temps plein)">Effectif temps plein (ETP)</th></tr></thead><tbody>';
   for(var m=0;m<12;m++){
     var ei=moisIn[m].length, so=moisOut[m].length, sd=ei-so, eff=effectifFin(Y,m);
     var barIn='<span style="display:inline-block;height:8px;background:#2e7d32;border-radius:4px;width:'+Math.round(ei/maxV*54)+'px;vertical-align:middle;margin-left:5px;"></span>';
     var barOut='<span style="display:inline-block;height:8px;background:#c62828;border-radius:4px;width:'+Math.round(so/maxV*54)+'px;vertical-align:middle;margin-left:5px;"></span>';
     h+='<tr style="border-bottom:1px solid #222;">'
       +'<td style="padding:7px 6px;color:#ddd;">'+MOIS[m]+'</td>'
-      +'<td style="padding:7px 6px;text-align:center;color:#4CAF50;font-weight:700;" title="'+moisIn[m].join(', ')+'">'+(ei?ei+barIn:'—')+'</td>'
-      +'<td style="padding:7px 6px;text-align:center;color:#e57373;font-weight:700;" title="'+moisOut[m].join(', ')+'">'+(so?so+barOut:'—')+'</td>'
+      +'<td style="padding:7px 6px;text-align:center;color:#4CAF50;font-weight:700;" title="'+moisIn[m].map(function(r){return r.name;}).join(', ')+'">'+(ei?ei+barIn:'—')+'</td>'
+      +'<td style="padding:7px 6px;text-align:center;color:#e57373;font-weight:700;" title="'+moisOut[m].map(function(r){return r.name;}).join(', ')+'">'+(so?so+barOut:'—')+'</td>'
       +'<td style="padding:7px 6px;text-align:center;color:'+(sd>0?'#4CAF50':(sd<0?'#e57373':'#888'))+';">'+(sd>0?'+':'')+(sd||0)+'</td>'
-      +'<td style="padding:7px 6px;text-align:center;color:#ccc;">'+eff+'</td></tr>';
+      +'<td style="padding:7px 6px;text-align:center;color:#ccc;">'+eff+'</td>'
+      +'<td style="padding:7px 6px;text-align:center;color:#7fb3ff;font-weight:700;">'+_etpTxt(etpFin(Y,m))+'</td></tr>';
   }
   h+='<tr style="border-top:2px solid #444;font-weight:700;color:#eee;">'
     +'<td style="padding:8px 6px;">TOTAL '+Y+'</td>'
     +'<td style="padding:8px 6px;text-align:center;color:#4CAF50;">'+totIn+'</td>'
     +'<td style="padding:8px 6px;text-align:center;color:#e57373;">'+totOut+'</td>'
     +'<td style="padding:8px 6px;text-align:center;">'+(totIn-totOut>0?'+':'')+(totIn-totOut)+'</td>'
-    +'<td style="padding:8px 6px;text-align:center;">'+effectifFin(Y,11)+'</td></tr>';
+    +'<td style="padding:8px 6px;text-align:center;">'+effectifFin(Y,11)+'</td>'
+    +'<td style="padding:8px 6px;text-align:center;color:#7fb3ff;">'+_etpTxt(etpFin(Y,11))+'</td></tr>';
   h+='</tbody></table></div>';
+  /* ★ v660 — LE DÉTAIL PAR MOIS AVEC LES VISAGES.
+     Vincent : « mets la photo de leur portrait, tu la barres pour ceux qui
+     sortent, et un ✓ avec la photo pour ceux qui rentrent. »               */
+  function _tvVisage(r, entree){
+    var nom=(r&&r.name)||'';
+    var url=''; try{ url=(typeof empPhotoUrl==='function')?(empPhotoUrl(r.emp)||''):((r.emp&&r.emp.infos&&r.emp.infos.photo)||''); }catch(_){}
+    var col=entree?'#2e7d32':'#c62828';
+    var ini=''; try{ ini=(typeof ptgInitials==='function')?ptgInitials(nom):(nom.charAt(0)||'?'); }catch(_){ ini=nom.charAt(0)||'?'; }
+    var av = url
+      ? ('<img src="'+url+'" alt="" style="width:52px;height:52px;border-radius:11px;object-fit:cover;display:block;'
+         +(entree?'':'filter:grayscale(1) contrast(.9);opacity:.72;')+'">')
+      : ('<div style="width:52px;height:52px;border-radius:11px;background:#33343a;color:#d3d8df;display:flex;'
+         +'align-items:center;justify-content:center;font-weight:800;font-size:1rem;">'+_msgEsc(ini)+'</div>');
+    /* la barre en travers, pour les sorties */
+    var barre = entree ? '' :
+      '<span style="position:absolute;left:-3px;right:-3px;top:50%;height:3px;background:'+col+';'
+      +'transform:rotate(-24deg);border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.35);"></span>';
+    var pastille='<span style="position:absolute;right:-5px;bottom:-5px;width:21px;height:21px;border-radius:50%;'
+      +'background:'+col+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:.72rem;'
+      +'font-weight:900;border:2px solid var(--dark,#141414);">'+(entree?'✓':'✕')+'</span>';
+    return '<div style="width:64px;text-align:center;">'
+      +'<div style="position:relative;width:52px;height:52px;margin:0 auto 4px;">'+av+barre+pastille+'</div>'
+      +'<div style="font-size:.62rem;line-height:1.15;color:'+(entree?'#8fd39f':'#e9a3a3')+';font-weight:700;'
+      +'word-break:break-word;">'+_msgEsc(nom)+'</div></div>';
+  }
+  function _tvRangee(titre, list, entree){
+    if(!list.length) return '';
+    var col=entree?'#4CAF50':'#e57373';
+    return '<div style="margin-top:8px;">'
+      +'<div style="font-size:.76rem;color:'+col+';font-weight:800;margin-bottom:6px;">'
+        +(entree?'⬆️':'⬇️')+' '+titre+' <span style="color:#8a9099;font-weight:700;">('+list.length+')</span></div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:10px;">'
+      +list.map(function(r){ return _tvVisage(r, entree); }).join('')
+      +'</div></div>';
+  }
   var detail='';
   for(var m=0;m<12;m++){
     if(!moisIn[m].length && !moisOut[m].length) continue;
-    detail+='<div style="padding:8px 0;border-bottom:1px solid #1f1f1f;">'
-      +'<div style="font-weight:700;color:#ddd;font-size:.82rem;margin-bottom:3px;">'+MOIS[m]+' '+Y+'</div>';
-    if(moisIn[m].length) detail+='<div style="font-size:.8rem;color:#4CAF50;">⬆️ Entrées : '+moisIn[m].join(', ')+'</div>';
-    if(moisOut[m].length) detail+='<div style="font-size:.8rem;color:#e57373;">⬇️ Sorties : '+moisOut[m].join(', ')+'</div>';
-    detail+='</div>';
+    detail+='<div style="padding:12px 0;border-bottom:1px solid #1f1f1f;">'
+      +'<div style="font-weight:800;color:#ddd;font-size:.86rem;">'+MOIS[m]+' '+Y+'</div>'
+      +_tvRangee('Entrées', moisIn[m], true)
+      +_tvRangee('Sorties', moisOut[m], false)
+      +'</div>';
   }
   if(detail) h+='<div style="margin-top:18px;"><div class="sec-title" style="font-size:.9rem;">📋 Détail par mois</div>'+detail+'</div>';
   var sansAnc=recs.filter(function(r){return !r.entree;}).length;
