@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-24 17:10 · v641 (retirer une absence sur lipad : le creneau est bien libere)';
+  var EMBEDDED_VERSION = '2026-08-24 17:45 · v642 (ecran tele : plus aucun code PIN)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -22999,8 +22999,8 @@ function dashOpenHoraires(){
   if(!resto){ if(typeof toast==='function') toast('Choisis d\'abord un restaurant','error'); return; }
   var lbl=(dashRestoList().find(function(x){return x.id===resto;})||{}).label||'';
   var body=dashOpenPanel('Mes horaires — '+lbl);
-  // Chaque salarié clique sur sa tuile puis saisit son code (jour+mois de naissance)
-  // pour voir SON calendrier personnel (façon Google), uniquement ses horaires.
+  // Chaque salarié touche sa photo et voit SON calendrier personnel (façon
+  // Google), uniquement ses horaires. ★ v642 — sans code.
   dashCartesEmployes(body, resto, 'dashHorairesOpen', 'horaire');
 }
 // ══ PLANNING DU JOUR — frise linéaire de TOUTE l'équipe (traits par poste) ══════
@@ -23081,7 +23081,12 @@ var _dashHorEmp=null;
 function dashHorairesOpen(empId, direct){
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
   if(!e) return;
-  _dashHorEmp = direct ? e : null;   // direct = salarié déjà connecté → pas de code
+  /* ★ v642 — PLUS DE CODE SUR L'ÉCRAN TÉLÉ, sur les trois restaurants.
+     L'écran est dans le restaurant, devant l'équipe : demander un code pour
+     regarder ses propres horaires ne protégeait rien et bloquait tout le
+     monde. On touche sa photo, on voit son planning.                      */
+  if(direct===undefined) direct=true;
+  _dashHorEmp = direct ? e : null;
   var ov=document.getElementById('dash-hor-ov'); if(ov) ov.remove();
   ov=document.createElement('div'); ov.id='dash-hor-ov';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.66);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:50px 16px;overflow:auto;';
@@ -23387,7 +23392,8 @@ function _dashPtgCarte(e,iso){
   }
   var pu=(typeof empPhotoUrl==='function')?empPhotoUrl(e):'';
   var fini=(_dashPtgMode==='pointage' && rec.arrivee && rec.depart)?' fait':'';
-  return '<div class="ptgc'+fini+'" onclick="'+_dashPtgAction+'(\''+e.id+'\')">'
+  /* ★ v642 — horaires / congés / indispos : on ouvre directement, sans code. */
+  return '<div class="ptgc'+fini+'" onclick="'+_dashPtgAction+'(\''+e.id+'\''+(_dashPtgMode==='horaire'?',true':'')+')">'
     +(pu?('<div class="ptgc-bg" style="background-image:url(\''+pu+'\');"></div>')
         :('<div class="ptgc-ini" style="background:'+ptgAvColor(e.name)+'">'+ptgInitials(e.name)+'</div>'))
     +(hDeb?('<div class="ptgc-h">'+hDeb+'</div>'):'')
@@ -23449,6 +23455,7 @@ function dashOpenIndispo(){
 }
 // Clic sur une tuile → modale code PIN
 function dashDemOpen(empId, direct){
+  if(direct===undefined) direct=true;   /* ★ v642 — plus de code sur l'écran télé */
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
   if(!e) return;
   _dashDemEmp = direct ? e : null;   // direct = salarié déjà connecté → pas de code
