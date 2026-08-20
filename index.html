@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-24 09:10 · v631 (les creneaux ecrits sur le bouton toute la journee)';
+  var EMBEDDED_VERSION = '2026-08-24 10:40 · v632 (journee entiere en premiere ligne ; 5 motifs dabsence sur lipad)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -36049,6 +36049,38 @@ window.hrParsePDF=hrParsePDF;
 ────────────────────────────────────────────────────────────────────────── -->
 <script>
 var _ipadResto=null, _ipadDate=null, _ipadEmp=null, _ipadTick=null;
+/* ★ v633 — RIEN N'EST COCHÉ D'AVANCE. Tant que le manager n'a pas touché une
+   ligne, aucune n'est marquée « choisi ». Il choisit, on affiche.          */
+var _ipadPorteeChoisie=false;
+/* ★ v634 — ON COCHE LES CRÉNEAUX. Un seul, ou les deux : les deux, c'est
+   toute la journée. Plus de ligne « toute la journée » à part, qui n'était
+   ni jolie ni claire.                                                      */
+var _ipadSelKeys=[];
+function _ipadSelVide(){ _ipadSelKeys=[]; _ipadSel=null; _ipadPorteeChoisie=false; }
+window._ipadSelVide=_ipadSelVide;
+/* Ce que visent les actions : null = toute la journée, sinon la liste des clés. */
+function _ipadPorteeKeys(empId){
+  var segs=_ipadSegs(empId)||[];
+  var k=_ipadSelKeys.filter(function(x){ return segs.some(function(sg){ return (sg.s+'-'+sg.e)===x; }); });
+  if(!k.length || k.length===segs.length) return null;      // rien coché, ou tout coché → la journée
+  return k;
+}
+window._ipadPorteeKeys=_ipadPorteeKeys;
+function ipadToggleTrait(empId, key){
+  /* un créneau déjà barré : on le retouche, on ne le coche pas */
+  var deja=null; try{ deja=_ipadCrenAbsentOuJour(empId,key); }catch(_){}
+  if(deja){ ipadCreneauAbsent(empId, key); return; }
+  var i=_ipadSelKeys.indexOf(key);
+  if(i>=0) _ipadSelKeys.splice(i,1); else _ipadSelKeys.push(key);
+  _ipadPorteeChoisie=_ipadSelKeys.length>0;
+  var kk=_ipadPorteeKeys(empId);
+  if(kk && kk.length===1){ var sg=_ipadSegParKey(empId,kk[0]);
+    _ipadSel = sg ? {empId:empId, key:kk[0], s:sg.s, e:sg.e, l:sg.l} : null; }
+  else _ipadSel=null;
+  ipadRender();
+  ipadFiche(empId);
+}
+window.ipadToggleTrait=ipadToggleTrait;
 // Trait sélectionné : {empId, key, s, e, l}. null = la journée entière.
 var _ipadSel=null;
 
@@ -36180,6 +36212,7 @@ function _ipadSegParKey(empId,key){
 function ipadChoisirTrait(empId, key){
   var sg=_ipadSegParKey(empId,key);
   _ipadSel = sg ? {empId:empId, key:key, s:sg.s, e:sg.e, l:sg.l} : null;
+  _ipadPorteeChoisie=true;                                   /* ★ v633 */
   ipadRender();
   /* ★ v630 — le créneau est déjà barré ? On retouche l'absence tout de suite,
      sans case en plus dans la fiche : on reclique dessus, c'est tout.      */
@@ -36210,6 +36243,17 @@ function ipadCreneauAbsent(empId, key){
   _ipadPanneau('🛌 '+_ipadEsc(e.name), h, "ipadFiche('"+empId+"')");
 }
 window.ipadCreneauAbsent=ipadCreneauAbsent;
+/* ★ v632 — revenir sur « toute la journée » : une ligne, un geste. */
+function ipadChoisirJournee(empId){
+  _ipadSel=null; _ipadPorteeChoisie=true;
+  ipadRender();
+  var jm=null; try{ jm=(typeof hrAbsenceDuJour==='function')?hrAbsenceDuJour(empId,_ipadDate):null; }catch(_){}
+  ipadFiche(empId);
+}
+window.ipadChoisirJournee=ipadChoisirJournee;
+/* ★ v632 — les deux numéros utiles, cliquables. Voir ipadInfos plus bas. */
+function _ipadTel(num){ return String(num||'').replace(/[^0-9+]/g,''); }
+function _ipadDateFr(iso){ try{ return new Date(iso+'T12:00:00').toLocaleDateString('fr-FR'); }catch(_){ return iso; } }
 window.ipadChoisirTrait=ipadChoisirTrait;
 // Courbe de CA ¼h du jour, pour LE restaurant de l'iPad.
 // hrCourbeJour() lit HR_DATA / HR_RESTO de la page Horaires : on bascule le temps
@@ -36549,7 +36593,7 @@ function ipadRender(contenuBrut){
           // ★ Un clic sélectionne CE trait seulement (pas toute la ligne).
           return '<div class="ip-bar'+(choisi?' ip-bar-on':'')+(absCren?' ip-bar-abs':'')+'"'
             +' style="left:'+l+'px;width:'+w+'px;background:'+c.bg+';color:'+(c.tx||'#fff')+';"'
-            +' onclick="event.stopPropagation();ipadChoisirTrait(\''+e.id+'\',\''+key+'\')">'
+            +' onclick="event.stopPropagation();ipadToggleTrait(\''+e.id+'\',\''+key+'\')">'
             +(absCren?'<span class="ip-bar-x">✕ </span>':'')
             +_ipadEsc(sg.l||'')+' '+_ipadHM(sg.s)+'–'+_ipadHM(sg.e)+'</div>';
         }).join('');
@@ -36568,7 +36612,7 @@ function ipadRender(contenuBrut){
           var mi=(typeof _etatMotifInfo==='function')?_etatMotifInfo(o.abs.motif||'absence'):{icon:'🟧',court:'Absent',col:'#d98324'};
           sous='<span class="ip-badge" style="background:'+mi.col+';">'+mi.icon+' '+_ipadEsc(mi.court)+'</span>';
         }
-        return '<div class="ip-tl-row'+(o.abs?' ip-tl-abs':'')+(alerte?' ip-tl-al':'')+'" onclick="_ipadSel=null;ipadFiche(\''+e.id+'\')">'
+        return '<div class="ip-tl-row'+(o.abs?' ip-tl-abs':'')+(alerte?' ip-tl-al':'')+'" onclick="_ipadSelVide();ipadFiche(\''+e.id+'\')">'
           +'<div class="ip-tl-nm"><span class="ip-tl-n1">'+_ipadEsc(e.name||'')+'</span><span class="ip-tl-n2">'+sous+'</span></div>'
           +'<div class="ip-tl-band" style="width:'+totalPx+'px;">'+barres+'</div></div>';
       }).join('');
@@ -36612,28 +36656,46 @@ function ipadFiche(empId){
   var cfg=getIpadCfg();
   var segs=_ipadSegs(empId);
   var abs=null; try{ abs=(typeof hrAbsenceDuJour==='function')?hrAbsenceDuJour(e.id,_ipadDate):null; }catch(_){}
+  /* ★ v632 — LA JOURNÉE ENTIÈRE EST LA PREMIÈRE LIGNE.
+     Avant, la portée se réglait dans un petit encadré jaune sous la liste :
+     on ne voyait pas « toute la journée ». Maintenant c'est une ligne comme
+     les autres, tout en haut, cochée par défaut.                          */
+  var _totJ=0; segs.forEach(function(sg){ _totJ+=(sg.e-sg.s); });
+  var _lstJ=segs.map(function(sg){ return _ipadHM(sg.s)+'–'+_ipadHM(sg.e); }).join('  +  ');
+  var _durJ=Math.floor(_totJ/60)+' h'+((_totJ%60)?(' '+('0'+(_totJ%60)).slice(-2)):'');
+  var ligneJour='';   /* ★ v634 — plus de ligne à part : on coche les créneaux */
   // Les créneaux, celui qui est sélectionné bien visible.
-  var lignes=segs.length? segs.map(function(sg){
-      var key=sg.s+'-'+sg.e, on=(_ipadSel&&_ipadSel.key===key);
-      var ab=_ipadCrenAbsentOuJour(empId,key);         /* ★ v629 */
+  var lignes=segs.length? segs.map(function(sg,iS){
+      var key=sg.s+'-'+sg.e;
+      var on=(_ipadSelKeys.indexOf(key)>=0);            /* ★ v634 — case à cocher */
+      var ab=_ipadCrenAbsentOuJour(empId,key);
       var c=_ipadCoul(sg.l);
-      return '<div class="ip-fs'+(on?' ip-fs-on':'')+'" onclick="ipadChoisirTrait(\''+empId+'\',\''+key+'\')">'
+      return '<div class="ip-fs'+(on?' ip-fs-on':'')+(ab?' ip-fs-barre':'')+'" onclick="ipadToggleTrait(\''+empId+'\',\''+key+'\')">'
+        +'<span class="ip-cb'+(on?' ip-cb-on':'')+'">'+(on?'✓':'')+'</span>'
         +'<span class="ip-fs-pt" style="background:'+c.bg+';"></span>'
         +'<b>'+_ipadHM(sg.s)+' – '+_ipadHM(sg.e)+'</b> · '+_ipadEsc(sg.l||'')
         +(ab?('<span class="ip-fs-ab">'+((typeof _etatMotifInfo==='function')?_etatMotifInfo(ab).icon+' '+_etatMotifInfo(ab).court:'Absent')+'</span>'):'')
-        +(on?'<span class="ip-fs-ok">✓ choisi</span>':'')+'</div>';
+        +'</div>';
     }).join('') : '<div class="ip-fs ip-cren-off">Aucun trait aujourd\'hui</div>';
+  lignes=ligneJour+lignes;
   /* ★ v630 — un créneau barré ? On le retouche en recliquant dessus. */
   var _yaAbs=false;
   try{ segs.forEach(function(sg){ if(_ipadCrenAbsentOuJour(empId, sg.s+'-'+sg.e)) _yaAbs=true; }); }catch(_){}
-  var cadre = _ipadSel
-    ? '<div class="ip-scope">Les actions portent sur le créneau <b>'+_ipadEsc(_ipadSel.l||'')+' '+_ipadHM(_ipadSel.s)+'–'+_ipadHM(_ipadSel.e)+'</b>'
-        +' <button class="ip-mini" onclick="_ipadSel=null;ipadRender();ipadFiche(\''+empId+'\')">Toute la journée</button></div>'
-    : (_yaAbs
-        ? '<div class="ip-scope ip-scope-hint">Touche un créneau <b>barré</b> pour retirer son absence ou changer le motif.</div>'
-        : (segs.length>1
-            ? '<div class="ip-scope ip-scope-hint">Touche un créneau ci-dessus pour n\'agir que sur celui-là.</div>'
-            : ''));
+  /* ★ v632 — la portée se lit sur la ligne cochée : plus d'encadré jaune. */
+  /* ★ v634 — on dit ce qui est visé, en clair, sous la liste. */
+  var _kk=_ipadPorteeKeys(empId);
+  var cadre='';
+  if(segs.length){
+    var _vise = _kk
+      ? (_kk.length===1
+          ? ('le créneau <b>'+_ipadHM(_ipadSel?_ipadSel.s:0)+'–'+_ipadHM(_ipadSel?_ipadSel.e:0)+'</b>')
+          : ('<b>'+_kk.length+' créneaux</b>'))
+      : ('<b>toute la journée</b>'+(segs.length>1?(' — les '+segs.length+' créneaux, '+_durJ):''));
+    cadre='<div class="ip-scope">Les actions portent sur '+_vise
+      +(segs.length>1?'<span class="ip-scope-hint2">Coche un créneau, ou les deux pour toute la journée.</span>':'')
+      +'</div>';
+  }
+  if(_yaAbs) cadre+='<div class="ip-scope ip-scope-hint">Touche un créneau <b>barré</b> pour retirer son absence ou changer le motif.</div>';
   /* ★ v630 — PLUS DE CASE EN DESSOUS. Pour retoucher une absence, on reclique
      sur le créneau barré : ipadChoisirTrait ouvre le petit panneau.        */
   var bandeau='';
@@ -36649,6 +36711,8 @@ function ipadFiche(empId){
       (dejaAbs?'Changer le motif sur ':'Sur ')+quoi+(dejaAbs?'':' → remplacement automatique'),"ipadAbsence('"+e.id+"')",'#cc5555');
   if(cfg.retard!==false)   actions+=btn('⏰','Déclarer un retard','Il est arrivé en retard — heure réelle d\'arrivée',"ipadRetard('"+e.id+"')",'#e08600');
   if(cfg.incident!==false) actions+=btn('⚠️','Déclarer un incident','Même formulaire que la page Incidents',"ipadIncident('"+e.id+"')",'#d98324');
+  /* ★ v632 — les numéros à portée de main, en bas de la fiche. */
+  actions+=btn('ℹ️','Informations du salarié','Téléphone, personne à prévenir, contrat',"ipadInfos('"+e.id+"')",'#2f7fc4');
   if(cfg.pointage!==false) actions+=btn('🕐','Saisir le pointage','Heures réelles, comme dans Contrôle des heures',"ipadPointage('"+e.id+"')",'#2e6fc2');
   /* ★ v610 — LE GESTE QUI MANQUAIT. Depuis la v601, un salarié qui n'est pas
      planifié ne peut pointer qu'en se justifiant, et ça remonte en alerte. Le
@@ -36747,29 +36811,8 @@ function _ipadQuiEstCe(code){
 function ipadAbsence(empId){
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
   _ipadEmp=e;
-  var segs=_ipadSegs(empId)||[];
-  if(!_ipadSel && segs.length>1){
-    /* ★ v631 — sur le bouton « toute la journée », on ÉCRIT les créneaux
-       concernés, l'un à côté de l'autre : on voit ce qu'on coche.          */
-    var _tot=0; segs.forEach(function(sg){ _tot+=(sg.e-sg.s); });
-    var _liste=segs.map(function(sg){ return _ipadHM(sg.s)+'–'+_ipadHM(sg.e); }).join('  +  ');
-    var _dur=Math.floor(_tot/60)+' h'+((_tot%60)?(' '+('0'+(_tot%60)).slice(-2)):'');
-    var h='<div class="ip-code-sub"><b>'+_ipadEsc(e.name)+'</b> est absente…</div>'
-      +'<button class="ip-cren-act" style="border-color:#cc5555;background:#2a1414;"'
-        +' onclick="ipadAbsencePortee(\''+empId+'\',\'\')">'
-        +'<span style="font-size:1.05rem;">☀️ Toute la journée</span>'
-        +'<span class="ip-cren-jrs">'+_liste+'</span>'
-        +'<b>Les '+segs.length+' créneaux · '+_dur+' — elle ne vient pas du tout</b></button>'
-      +'<div class="ip-ou">ou un seul créneau</div>';
-    segs.forEach(function(sg,i){
-      h+='<button class="ip-cren-act" onclick="ipadAbsencePortee(\''+empId+'\',\''+(sg.s+'-'+sg.e)+'\')">'
-        +'<span style="font-size:1.05rem;">🕒 '+(segs.length>1?((i===0?'1er':(i+1)+'e')+' créneau — '):'')
-        +_ipadHM(sg.s)+' – '+_ipadHM(sg.e)+'</span>'
-        +'<b>'+_ipadEsc(sg.l||'')+' — le reste de sa journée n\'est pas touché</b></button>';
-    });
-    _ipadPanneau('🤒 Absence', h, "ipadFiche('"+empId+"')");
-    return;
-  }
+  /* ★ v632 — la portée est déjà choisie dans la fiche (ligne « toute la
+     journée » ou ligne d'un créneau) : on ne repose plus la question. */
   _ipadAbsenceMotifs(empId);
 }
 window.ipadAbsence=ipadAbsence;
@@ -36779,11 +36822,20 @@ function ipadAbsencePortee(empId, key){
   _ipadAbsenceMotifs(empId);
 }
 window.ipadAbsencePortee=ipadAbsencePortee;
+/* Les motifs proposés sur l'iPad, dans cet ordre. ★ v632 */
+var IPAD_ABS_MOTIFS=['maladie','at','trajet','injustifiee','absence'];
+window.IPAD_ABS_MOTIFS=IPAD_ABS_MOTIFS;
 function _ipadAbsenceMotifs(empId){
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
   var M=(typeof HR_ETAT_MOTIFS!=='undefined')?HR_ETAT_MOTIFS
         :((typeof window!=='undefined'&&window.HR_ETAT_MOTIFS)?window.HR_ETAT_MOTIFS
         :{absence:{label:'Absence',icon:'🟧',col:'#d98324'}});
+  /* ★ v632 — SEULEMENT CE QUI SE CONSTATE DANS LE RESTAURANT.
+     Vincent : « je veux arrêt maladie, accident du travail, accident de
+     trajet, absence injustifiée, et absence autorisée. » Les congés payés,
+     le congé sans solde, la mise à pied et l'indispo ne se déclarent pas au
+     comptoir : ils passent par les demandes et par le bureau.            */
+  var _ordre=IPAD_ABS_MOTIFS.filter(function(k){ return !!M[k]; });
   var _sg2=_ipadSegs(empId)||[];
   var quoi=_ipadSel
     ? ('le créneau <b>'+_ipadHM(_ipadSel.s)+'–'+_ipadHM(_ipadSel.e)+'</b>'+(_ipadSel.l?(' · '+_ipadEsc(_ipadSel.l)):''))
@@ -36792,7 +36844,7 @@ function _ipadAbsenceMotifs(empId){
   var enCours=dejaM?('<div class="ip-scope">Actuellement : <b>'+_ipadEsc(((typeof _etatMotifInfo==='function')?_etatMotifInfo(dejaM).label:dejaM))+'</b>. Choisis un nouveau motif pour le remplacer.</div>'):'';
   var html=enCours+'<div class="ip-code-sub">Motif de l\'absence de <b>'+_ipadEsc(e.name)+'</b> sur '+quoi+'.</div>'
     +'<div class="ip-lbl">Motif</div><div class="ip-chips">';
-  Object.keys(M).forEach(function(k){
+  _ordre.forEach(function(k){
     var m=M[k];
     html+='<button class="ip-chip" style="--sc:'+m.col+';" onclick="ipadAbsenceMotif(\''+empId+'\',\''+k+'\')">'
       +m.icon+' '+_ipadEsc(m.label)+'</button>';
@@ -36808,12 +36860,25 @@ window.ipadAbsenceRetour=ipadAbsenceRetour;
 function ipadAbsenceMotif(empId, motif){
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
   var mi=(typeof _etatMotifInfo==='function')?_etatMotifInfo(motif):{label:motif};
+  /* ★ v634 — un, plusieurs, ou tous : on traite ce qui est coché. */
+  var keys=_ipadPorteeKeys(empId);
   var sel=_ipadSel;
-  var quoi=sel?(_ipadHM(sel.s)+'–'+_ipadHM(sel.e)):'toute la journée';
+  if(keys && keys.length>1) sel=null;                      // plusieurs créneaux : boucle plus bas
+  var quoi = keys
+    ? (keys.length===1 ? (_ipadHM(sel?sel.s:0)+'–'+_ipadHM(sel?sel.e:0)) : (keys.length+' créneaux'))
+    : 'toute la journée';
   ipadDemanderCode('Ton code manager',
     'Déclarer <b>'+_ipadEsc(mi.label)+'</b> pour <b>'+_ipadEsc(e.name)+'</b> sur <b>'+quoi+'</b>.<br>Ton code sert à savoir qui l\'a signalé.',
     function(who){
-      if(sel){
+      if(keys && keys.length>1){
+        /* ★ v634 — plusieurs créneaux cochés : chacun est traité à part. */
+        keys.forEach(function(k){
+          try{ ptgEditCrenAbs(empId, _ipadDate, k, motif); }catch(err){ console.warn('ipad abs créneaux',err); }
+          try{ _absAiguillage(empId, _ipadDate, motif, k); }catch(_){}
+        });
+        try{ _ipadTracePtg(empId, who, 'absence '+motif+' '+quoi); }catch(_){}
+      }
+      else if(sel){
         // ★ ABSENCE SUR UN SEUL CRÉNEAU : la fonction de l'app qui ne touche pas
         //   aux autres créneaux du jour.
         try{ ptgEditCrenAbs(empId, _ipadDate, sel.key, motif); }catch(err){ console.warn('ipad abs créneau',err); }
@@ -36829,7 +36894,7 @@ function ipadAbsenceMotif(empId, motif){
           hrSauverAbsences();
         }catch(_){}
       }
-      _ipadSel=null;
+      _ipadSelVide();
       // ★ v604 — on force la relecture partout : l'écran RH doit voir l'arrêt
       // maladie tout de suite, c'est la règle « tout part de l'iPad ».
       try{ HR_ABS_DERNIER_FETCH=0; }catch(_){}
@@ -37177,13 +37242,29 @@ window.ipadPointage=ipadPointage;
 /* ── Action 4 : sa fiche (lecture seule, sans code) ──────────────────────── */
 function ipadInfos(empId){
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  var inf=e.infos||{};
   var ch=null; try{ ch=(typeof hrContratHebdo==='function')?hrContratHebdo(e):null; }catch(_){}
   var sem=null; try{ sem=(typeof hrMinSemaineEmpRows==='function')?hrMinSemaineEmpRows(e.id):null; }catch(_){}
   var qual=[]; try{ qual=(e.infos&&e.infos.qualifs)||[]; }catch(_){}
+  /* ★ v632 — LES NUMÉROS D'ABORD, ET ON PEUT APPELER D'UN DOIGT.
+     Un salarié ne vient pas : on l'appelle. Il se blesse : on appelle la
+     personne à prévenir. Ces deux numéros passent devant tout le reste.  */
+  var appel=function(ic, lbl, sous, val){
+    if(!val) return '<div class="ip-inf ip-inf-vide"><span class="ip-inf-ic">'+ic+'</span>'
+      +'<div><div class="ip-inf-l">'+lbl+'</div><div class="ip-inf-v">non renseigné</div></div></div>';
+    return '<a class="ip-inf" href="tel:'+_ipadTel(val)+'"><span class="ip-inf-ic">'+ic+'</span>'
+      +'<div><div class="ip-inf-l">'+lbl+(sous?(' · '+_ipadEsc(sous)):'')+'</div>'
+      +'<div class="ip-inf-v">'+_ipadEsc(val)+'</div></div>'
+      +'<span class="ip-inf-go">📞 Appeler</span></a>';
+  };
   var ligne=function(l,v){ return v?('<div class="ip-info"><span>'+l+'</span><b>'+_ipadEsc(v)+'</b></div>'):''; };
-  var html=ligne('Contrat', ch?(ch+' h / semaine'):'—')
+  var html=appel('📱','Téléphone du salarié','', e.phone||inf.telephone||'')
+    +appel('🚑','Personne à prévenir', inf.urgence_nom||'', inf.urgence_tel||'')
+    +ligne('Contrat', ch?(ch+' h / semaine'):'—')
     +ligne('Placé cette semaine', (sem!=null)?((sem/60).toFixed(1).replace('.',',')+' h'):'—')
-    +ligne('Téléphone', e.phone||'—')
+    +ligne('Poste', inf.poste||inf.emploi_libelle||'—')
+    +ligne('Depuis le', inf.date_entree?_ipadDateFr(inf.date_entree):'—')
+    +ligne('E-mail', e.email||'—')
     +ligne('Restaurant', _ipadLabel())
     +(qual.length?('<div class="ip-info ip-info-col"><span>Postes maîtrisés</span><div class="ip-quals">'+qual.map(function(q){return '<span>'+_ipadEsc(q)+'</span>';}).join('')+'</div></div>'):'');
   _ipadPanneau('👤 '+_ipadEsc(e.name||''), html+'<div class="ip-note-bas">Lecture seule. Les modifications se font au bureau.</div>', "ipadFiche('"+empId+"')");
@@ -37209,6 +37290,21 @@ function _ipadCss(){ return '<style>\
 .ip-cren-act{display:block;width:100%;text-align:left;background:#1c1c1f;border:1px solid #3d3d42;color:#eee;border-radius:12px;padding:14px 16px;margin-bottom:9px;font-size:1rem;font-weight:700;cursor:pointer;}\
 .ip-cren-act b{display:block;font-size:.8rem;font-weight:600;color:#9aa0a6;margin-top:2px;}\
 .ip-cren-jrs{display:block;font-size:1.15rem;font-weight:900;color:#ffb3a6;font-variant-numeric:tabular-nums;margin-top:4px;letter-spacing:.5px;}\
+.ip-cb{flex:none;width:24px;height:24px;border-radius:7px;border:2px solid #b9bec7;background:#fff;\
+  display:inline-flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:.95rem;}\
+.ip-cb-on{background:#1d7a3a;border-color:#1d7a3a;}\
+.ip-fs-barre b{text-decoration:line-through;opacity:.75;}\
+.ip-scope-hint2{display:block;margin-top:4px;font-size:.8rem;color:#6a707a;font-weight:600;}\
+.ip-inf{display:flex;align-items:center;gap:14px;background:#1c1c1f;border:1px solid #3d3d42;border-radius:14px;padding:15px 16px;margin-bottom:10px;text-decoration:none;color:#eee;}\
+.ip-inf-ic{font-size:1.7rem;line-height:1;flex:none;}\
+.ip-inf-l{font-size:.76rem;color:#9aa0a6;text-transform:uppercase;letter-spacing:.6px;}\
+.ip-inf-v{font-size:1.35rem;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;letter-spacing:.5px;}\
+.ip-inf-go{margin-left:auto;background:#1d7a3a;color:#fff;border-radius:10px;padding:9px 14px;font-weight:800;font-size:.9rem;white-space:nowrap;}\
+.ip-inf-vide .ip-inf-v{color:#6a6a6a;font-size:.95rem;font-weight:600;}\
+.ip-inf-bloc{background:#161616;border:1px solid #2a2a2a;border-radius:12px;padding:4px 14px;margin-top:4px;}\
+.ip-inf-x{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #232323;font-size:.9rem;color:#9aa0a6;}\
+.ip-inf-x:last-child{border-bottom:0;}\
+.ip-inf-x b{color:#fff;text-align:right;}\
 .ip-ou{display:flex;align-items:center;gap:10px;color:#9aa0a6;font-size:.8rem;margin:14px 0 9px;text-transform:uppercase;letter-spacing:1px;}\
 .ip-ou:before,.ip-ou:after{content:" ";flex:1;height:1px;background:#3a3a3a;}\
 .ip-resto{font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.8rem;letter-spacing:1px;text-transform:uppercase;line-height:1;}\
