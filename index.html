@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-24 17:45 · v642 (ecran tele : plus aucun code PIN)';
+  var EMBEDDED_VERSION = '2026-08-25 09:10 · v643 (ecran TV sans code, tous les autres codes remis)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -3888,7 +3888,7 @@ function startRealtime(){
       document.getElementById('loading-screen').style.display = 'none';
       document.getElementById('login-screen').style.display = 'block';
       if (typeof RESTOS !== 'undefined' && RESTOS[_er]) {
-        try { pickTV(_er); pinVal = '0000'; checkPin(); } catch(e){ console.warn('lien écran', e); }
+        try { pickTV(_er); } catch(e){ console.warn('lien écran', e); }   /* ★ v643 — pickTV entre déjà */
       }
       return;
     }
@@ -3916,11 +3916,16 @@ function pickGlobal(key) {
 }
 
 function pickTV(restoId) {
-  // Écran TV d'un restaurant : code 0000, ouvre directement le dashboard du resto
+  /* ★ v643 — ÉCRAN TV : PLUS AUCUN CODE, sur les trois restaurants.
+     Vincent : « Plus aucun code sur les comptes TV, c'est là, ce n'est pas
+     ailleurs. » On touche la tuile ÉCRAN TV et le tableau du restaurant
+     s'ouvre tout de suite. Tous les autres codes PIN restent en place
+     (Directeur, Manager, iPad, Espace équipier, Admin, Superviseure).     */
   curResto = restoId;
   var label = (RESTOS[restoId]&&RESTOS[restoId].label)||restoId;
-  pinProf = {key:'tv_'+restoId,icon:'📺',title:'Écran TV — '+label,sub:'Code 0000',role:'tv',pin:'0000',restoId:restoId,tvResto:restoId};
-  openPin();
+  pinProf = {key:'tv_'+restoId,icon:'📺',title:'Écran TV — '+label,sub:'',role:'tv',pin:null,restoId:restoId,tvResto:restoId};
+  pinVal = null;          // même valeur que pinProf.pin → l'entrée est acceptée
+  checkPin();             // on entre directement, sans passer par le pavé
 }
 
 function pickResto(restoId) {
@@ -15995,7 +16000,7 @@ function dashOpenDepannage(){
   var body=dashOpenPanel('🆘 Dépannage — '+lbl);
   var open=depGetAll().filter(function(d){ return d.status==='ouvert' && (''+d.resto).toLowerCase()===(''+resto).toLowerCase(); });
   open.sort(function(a,b){ return (a.jour<b.jour?-1:a.jour>b.jour?1:0) || (a.s-b.s); });
-  var h='<div style="font-size:.85rem;color:#555;margin-bottom:12px;">Créneaux à couvrir suite à une absence. Un équipier compétent choisit un créneau, dit qui il est, et l\'obtient immédiatement.</div>';
+  var h='<div style="font-size:.85rem;color:#555;margin-bottom:12px;">Créneaux à couvrir suite à une absence. Un équipier compétent choisit un créneau, saisit son code, et l\'obtient immédiatement.</div>';
   if(!open.length){ h+='<div style="background:#f2f7f2;border:1px solid #cfe6cf;border-radius:12px;padding:18px;color:#2e7d32;font-size:.94rem;text-align:center;">👍 Aucun créneau à dépanner pour le moment.</div>'; }
   else {
     h+=open.map(function(d){
@@ -16012,10 +16017,7 @@ function dashOpenDepannage(){
   try{ depCharger(true); }catch(_){}
 }
 window.dashOpenDepannage=dashOpenDepannage;
-/* Écran télé : « Je prends » → on choisit son nom, et c'est tout.
-   ★ v640 — PLUS DE CODE. Vincent : « pour prendre un créneau, il n'y a pas
-   besoin de code. » L'écran est dans le restaurant, entre collègues : le code
-   ne protégeait rien et freinait celui qui rendait service.               */
+// Écran télé : « Je prends » → choisir le salarié compétent puis saisir son code.
 function depPrendreEcran(slotId){
   var all=depGetAll(); var slot=all.find(function(d){return d.id===slotId;});
   if(!slot || slot.status!=='ouvert'){ try{ toast('Ce créneau n\'est plus disponible.','error'); }catch(_){} dashOpenDepannage(); return; }
@@ -16032,21 +16034,23 @@ function depPrendreEcran(slotId){
     +'<div style="color:#444;font-size:.9rem;margin-bottom:14px;text-transform:capitalize;">'+_depDateFr(slot.jour)+' · <span style="background:'+col+';color:#fff;border-radius:5px;padding:1px 8px;font-size:.8rem;font-weight:700;">'+_ptgEsc(_depPoste(slot.l))+'</span> '+_depMin2hm(slot.s)+'–'+_depMin2hm(slot.e)+'</div>'
     +(elig.length
       ? '<div style="text-align:left;color:#555;font-size:.82rem;margin-bottom:6px;">Qui prend le créneau ?</div>'
-        +'<select id="dep-pick-emp" class="fi" style="width:100%;margin-bottom:12px;font-size:1.05rem;padding:12px;">'+opts+'</select>'
+        +'<select id="dep-pick-emp" class="fi" style="width:100%;margin-bottom:12px;">'+opts+'</select>'
+        +'<div style="text-align:left;color:#555;font-size:.82rem;margin-bottom:6px;">Ton code (jour + mois de naissance, ex. 0309)</div>'
+        +'<input id="dep-pick-pin" type="tel" inputmode="numeric" maxlength="4" placeholder="••••" style="width:140px;background:#f2f2f2;border:1px solid #ccc;color:#111;border-radius:10px;padding:11px;font-size:1.3rem;letter-spacing:.35em;text-align:center;margin-bottom:6px;" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');">'
         +'<div id="dep-pick-msg" style="font-size:.82rem;min-height:18px;margin:6px 0;"></div>'
-        +'<button onclick="depPrendreEcranValider(\''+slotId+'\')" style="width:100%;background:#D62300;border:none;color:#fff;font-weight:800;border-radius:10px;padding:14px;font-size:1.05rem;cursor:pointer;">✋ Je prends ce créneau</button>'
+        +'<button onclick="depPrendreEcranValider(\''+slotId+'\')" style="width:100%;background:#D62300;border:none;color:#fff;font-weight:800;border-radius:10px;padding:12px;font-size:1rem;cursor:pointer;">Valider</button>'
       : '<div style="background:#fff4f0;border:1px solid #f2c4b4;border-radius:10px;padding:14px;color:#b03a1a;font-size:.9rem;">Aucun équipier compétent disponible dans ce restaurant pour ce poste.</div>')
   +'</div>';
   document.body.appendChild(ov);
 }
 window.depPrendreEcran=depPrendreEcran;
 function depPrendreEcranValider(slotId){
-  var sel=document.getElementById('dep-pick-emp');
+  var sel=document.getElementById('dep-pick-emp'); var pin=((document.getElementById('dep-pick-pin')||{}).value||'').trim();
   var msg=document.getElementById('dep-pick-msg');
   function ko(t){ if(msg){ msg.style.color='#c0392b'; msg.textContent=t; } }
   var empId=sel&&sel.value; if(!empId){ ko('Choisis ton nom.'); return; }
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e){ ko('Salarié introuvable.'); return; }
-  /* ★ v640 — aucun code demandé : le nom suffit. */
+  if(!empCodeMatch(e, pin)){ ko('Code incorrect.'); return; }
   if(depPrendre(slotId, e)){ var ov=document.getElementById('dep-pick-ov'); if(ov) ov.remove(); dashOpenDepannage(); }
   else { ko('Impossible de prendre ce créneau.'); }
 }
@@ -22999,8 +23003,8 @@ function dashOpenHoraires(){
   if(!resto){ if(typeof toast==='function') toast('Choisis d\'abord un restaurant','error'); return; }
   var lbl=(dashRestoList().find(function(x){return x.id===resto;})||{}).label||'';
   var body=dashOpenPanel('Mes horaires — '+lbl);
-  // Chaque salarié touche sa photo et voit SON calendrier personnel (façon
-  // Google), uniquement ses horaires. ★ v642 — sans code.
+  // Chaque salarié clique sur sa tuile puis saisit son code (jour+mois de naissance)
+  // pour voir SON calendrier personnel (façon Google), uniquement ses horaires.
   dashCartesEmployes(body, resto, 'dashHorairesOpen', 'horaire');
 }
 // ══ PLANNING DU JOUR — frise linéaire de TOUTE l'équipe (traits par poste) ══════
@@ -23081,12 +23085,7 @@ var _dashHorEmp=null;
 function dashHorairesOpen(empId, direct){
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
   if(!e) return;
-  /* ★ v642 — PLUS DE CODE SUR L'ÉCRAN TÉLÉ, sur les trois restaurants.
-     L'écran est dans le restaurant, devant l'équipe : demander un code pour
-     regarder ses propres horaires ne protégeait rien et bloquait tout le
-     monde. On touche sa photo, on voit son planning.                      */
-  if(direct===undefined) direct=true;
-  _dashHorEmp = direct ? e : null;
+  _dashHorEmp = direct ? e : null;   // direct = salarié déjà connecté → pas de code
   var ov=document.getElementById('dash-hor-ov'); if(ov) ov.remove();
   ov=document.createElement('div'); ov.id='dash-hor-ov';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.66);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:50px 16px;overflow:auto;';
@@ -23392,8 +23391,7 @@ function _dashPtgCarte(e,iso){
   }
   var pu=(typeof empPhotoUrl==='function')?empPhotoUrl(e):'';
   var fini=(_dashPtgMode==='pointage' && rec.arrivee && rec.depart)?' fait':'';
-  /* ★ v642 — horaires / congés / indispos : on ouvre directement, sans code. */
-  return '<div class="ptgc'+fini+'" onclick="'+_dashPtgAction+'(\''+e.id+'\''+(_dashPtgMode==='horaire'?',true':'')+')">'
+  return '<div class="ptgc'+fini+'" onclick="'+_dashPtgAction+'(\''+e.id+'\')">'
     +(pu?('<div class="ptgc-bg" style="background-image:url(\''+pu+'\');"></div>')
         :('<div class="ptgc-ini" style="background:'+ptgAvColor(e.name)+'">'+ptgInitials(e.name)+'</div>'))
     +(hDeb?('<div class="ptgc-h">'+hDeb+'</div>'):'')
@@ -23455,7 +23453,6 @@ function dashOpenIndispo(){
 }
 // Clic sur une tuile → modale code PIN
 function dashDemOpen(empId, direct){
-  if(direct===undefined) direct=true;   /* ★ v642 — plus de code sur l'écran télé */
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);});
   if(!e) return;
   _dashDemEmp = direct ? e : null;   // direct = salarié déjà connecté → pas de code
