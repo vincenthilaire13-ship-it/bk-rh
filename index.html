@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-27 18:50 · v668 (les visites medicales dans une seule tuile)';
+  var EMBEDDED_VERSION = '2026-08-27 21:30 · v670 (contrats : dispos contractuelles et documents)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -28030,6 +28030,7 @@ function hrRenderEtatEquipe(){
   if(HR_EE_VUE==='etat'){ _hrEtatRenderAbsences(); return; }
   if(HR_EE_VUE==='dispos'){ hrEERenderDispos(); return; }
   if(HR_EE_VUE==='competences'){ hrEERenderCompetences(); return; }
+  if(HR_EE_VUE==='contrats'){ hrEERenderContrats(); return; }
   if(HR_EE_VUE==='fixes'){ hrEERenderFixes(); return; }
   if(HR_EE_VUE==='complement'){ hrEERenderComplement(); return; }
   if(HR_EE_VUE==='integration'){ hrEERenderIntegration(); return; }
@@ -28057,6 +28058,7 @@ function hrEERenderTuiles(){
     {vue:'dispos',      ico:'📅', titre:'Disponibilités',  sub:'Créneaux par jour de semaine',          col:'#1565c0', badge:0},
     {vue:'competences', ico:'🎯', titre:'Compétences',     sub:'Qui sait faire quoi',                   col:'#2e7d32', badge:0},
     {vue:'fixes',       ico:'📌', titre:'Salariés fixés',   sub:'Horaires fixes + poste (le moteur les respecte)', col:'#8e44ad', badge:0},
+    {vue:'contrats',    ico:'📄', titre:'Contrats',        sub:'Tous les contrats + historique (lecture)', col:'#c0392b', badge:0},
     {vue:'complement',  ico:'🧩', titre:'Complément horaire', sub:'Compléter les contrats (renforts, 2e passe)', col:'#1d7a3a', badge:0},
     {vue:'integration', ico:'🎓', titre:'Semaine intégration', sub:'Nouvelles recrues en doublon (modèles)', col:'#8e44ad', badge:0}
   ];
@@ -28815,6 +28817,445 @@ function _hrEEQualifBuf(id){
   if(!e.infos.qualifs) e.infos.qualifs=[];
   return e;
 }
+/* ═══════════════════════════════════════════════════════════════════════════════
+   ★ v669 — LA LIGNE DE VIE DU CONTRAT (première étape : LECTURE SEULE).
+
+   Vincent : « comment tu ferais pour lui garder les anciens contrats, avoir un
+   suivi, et que quand on fait les horaires ce soit à jour — les bons contrats avec
+   les bons nombres d'heures et les bonnes disponibilités ? »
+
+   Aujourd'hui le contrat d'un salarié est UNE CASE (infos.contrat_hebdo) entourée
+   de dix autres champs éparpillés. Quand il change, on écrase : l'ancien disparaît.
+   Et les DISPONIBILITÉS ne suivent pas — elles ne sont posées qu'UNE fois, à
+   l'embauche, par la grille des contrats. Quelqu'un qui passe de 24 h à 15 h garde
+   donc les disponibilités de son 24 h, et le moteur continue de le placer sur des
+   créneaux qu'il n'a plus.
+
+   On remplace la case par une SUITE DE PÉRIODES. Chaque période porte les heures ET
+   les disponibilités — ensemble, dans le même objet, pour qu'elles ne puissent plus
+   se désynchroniser.
+
+   ⚠️ CETTE VERSION NE FAIT QUE LIRE. Rien n'est écrit en base, rien n'est modifié.
+   On reconstitue la ligne de vie à partir des champs qui existent déjà, on
+   l'affiche, et Vincent vérifie que la photo est juste. Les avenants et les
+   suspensions viendront après, une fois la photo validée.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Une date propre, ou null. Accepte 2026-08-24 et 24/08/2026. */
+function _ctrDate(v){
+  var t=String(v==null?'':v).trim(); if(!t) return null;
+  var m=t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return m[1]+'-'+m[2]+'-'+m[3];
+  var m2=t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if(m2) return m2[3]+'-'+('0'+m2[2]).slice(-2)+'-'+('0'+m2[1]).slice(-2);
+  return null;
+}
+function _ctrFr(iso){ if(!iso) return ''; var p=iso.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+function _ctrAuj(){ var d=new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+function _ctrVeille(iso){
+  if(!iso) return null;
+  try{ var d=new Date(iso+'T12:00:00'); d.setDate(d.getDate()-1);
+    return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }catch(_){ return null; }
+}
+function _ctrNum(v){ var n=parseFloat(String(v==null?'':v).replace(',','.')); return (isFinite(n)&&n>0)?n:null; }
+
+/* Le type de contrat, en clair. */
+function _ctrType(e){
+  var i=e.infos||{};
+  var t=String(i.contrat_type||'').toLowerCase();
+  if(t.indexOf('appren')>=0) return 'apprentissage';
+  if(t.indexOf('saison')>=0) return 'saisonnier';
+  if(t.indexOf('cdd')>=0) return 'cdd';
+  if(t.indexOf('cdi')>=0) return 'cdi';
+  var c=String(i.cdi_cdd||'').toLowerCase();
+  if(c.indexOf('cdd')>=0) return 'cdd';
+  if(c.indexOf('cdi')>=0) return 'cdi';
+  return '';
+}
+var CTR_TYPE_LBL={cdi:'CDI', cdd:'CDD', apprentissage:'Apprentissage', saisonnier:'Saisonnier', '':'Type non renseigné'};
+var CTR_TYPE_COL={cdi:'#2e7d32', cdd:'#1565c0', apprentissage:'#8e44ad', saisonnier:'#d98324', '':'#777'};
+
+/* Les heures que représentent des disponibilités (somme des créneaux ouverts). */
+function _ctrHeuresDispos(dispos){
+  var tot=0;
+  try{
+    (JOURS_KEYS||[]).forEach(function(jk){
+      var d=(dispos||{})[jk]; if(!d||!d.on) return;
+      var cr=(d.creneaux&&d.creneaux.length)?d.creneaux:[{from:d.from,to:d.to}];
+      cr.forEach(function(c){
+        var a=_dispoMin(c.from), b=_dispoMin(c.to);
+        if(a!=null&&b!=null&&b>a) tot+=(b-a);
+      });
+    });
+  }catch(_){}
+  return tot/60;
+}
+
+/* ★ LA RECONSTITUTION — on lit les champs existants et on en fait des périodes.
+   Aucune écriture : ce que renvoie cette fonction n'est stocké nulle part.     */
+function ctrPeriodes(e){
+  var i=(e&&e.infos)||{};
+  var out=[];
+  var debut=_ctrDate(i.date_entree)||_ctrDate(i.date_anciennete);
+  var sortie=_ctrDate(i.date_sortie)||_ctrDate(e.exitDate)||_ctrDate(e.sortieDate);
+  var heures=_ctrNum(i.contrat_hebdo);
+  var type=_ctrType(e);
+  var finCdd=_ctrDate(i.date_fin_cdd);
+  var aDeb=_ctrDate(i.apprentissage_debut), aFin=_ctrDate(i.apprentissage_fin);
+  var apres=_ctrNum(i.contrat_apres);
+  var futH=_ctrNum(i.contrat_futur_hebdo), futD=_ctrDate(i.contrat_futur_date);
+
+  /* la période principale — celle qui est dans la fiche aujourd'hui */
+  var principale={
+    du:debut, au:(sortie||finCdd||null),
+    heures:heures, type:type,
+    dispos:i.dispos||null, disposSource:i.disposSource||null,
+    origine:'fiche', libelle:'Contrat en cours'
+  };
+  out.push(principale);
+
+  /* Deux situations très différentes, à ne pas confondre :
+
+       · le contrat EST un apprentissage (contrat_type = apprentissage) → il n'y a
+         qu'UN contrat. On nomme la période principale « Apprentissage » et on lui
+         pose ses dates ; on n'en fabrique pas une deuxième par-dessus, sinon la
+         personne apparaît deux fois pour le même contrat.
+
+       · le contrat n'est PAS un apprentissage mais des dates d'apprentissage sont
+         posées → là il y a bien deux contrats, et le premier est SUSPENDU pendant
+         que le second court. C'est le cas que Vincent décrit : « on va suspendre
+         temporairement son contrat ».                                          */
+  var estApprenti=(type==='apprentissage');
+  if(estApprenti && (aDeb||aFin)){
+    principale.libelle='Apprentissage';
+    if(aDeb) principale.du=aDeb;
+    if(aFin) principale.au=aFin;
+    if(apres){
+      out.push({du:(aFin?_ctrDateApres(aFin):null), au:null, heures:apres, type:'',
+        dispos:null, disposSource:null, origine:'fiche',
+        libelle:'Reprise après apprentissage', futur:true});
+    }
+  } else if(aDeb || aFin){
+    out.push({du:aDeb, au:aFin, heures:null,
+      type:'apprentissage', dispos:null, disposSource:null,
+      origine:'fiche', libelle:'Apprentissage', suspend:true});
+    if(apres){
+      out.push({du:(aFin?_ctrDateApres(aFin):null), au:null, heures:apres, type:'',
+        dispos:null, disposSource:null, origine:'fiche',
+        libelle:'Reprise après apprentissage', futur:true});
+    }
+  }
+  /* le « nouveau contrat » anticipé dans la fiche */
+  if(futH && futD){
+    out.push({du:futD, au:null, heures:futH, type:'', dispos:null, disposSource:null,
+      origine:'fiche', libelle:'Nouveau contrat annoncé', futur:true});
+  }
+  /* On borne la période principale quand un contrat SUIVANT est annoncé (elle se
+     termine vraiment). Mais JAMAIS pour un apprentissage : lui ne remplace pas le
+     contrat, il le SUSPEND — c'est le mot de Vincent, et c'est le fond du sujet.
+     Le contrat garde donc sa fin d'origine et sera marqué « suspendue ».      */
+  var suivant=out.slice(1).filter(function(p){
+        return p.du && !p.suspend && (!principale.du || p.du>principale.du); })
+                 .sort(function(a,b){ return a.du<b.du?-1:1; })[0];
+  if(suivant && !principale.au) principale.au=_ctrVeille(suivant.du);
+
+  out.sort(function(a,b){ return String(a.du||'')<String(b.du||'')?-1:1; });
+  var auj=_ctrAuj();
+  out.forEach(function(p){
+    if(p.du && p.du>auj) p.etat='a_venir';
+    else if(p.au && p.au<auj) p.etat='terminee';
+    else if(!p.du && !p.au) p.etat='inconnue';
+    else p.etat='en_cours';
+  });
+  /* une période principale recouverte par un apprentissage est SUSPENDUE */
+  var app=out.find(function(p){ return p.suspend && p.etat==='en_cours'; });
+  if(app){ out.forEach(function(p){ if(p!==app && p.etat==='en_cours' && !p.futur) p.etat='suspendue'; }); }
+  return out;
+}
+window.ctrPeriodes=ctrPeriodes;
+function _ctrDateApres(iso){
+  try{ var d=new Date(iso+'T12:00:00'); d.setDate(d.getDate()+1);
+    return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }catch(_){ return null; }
+}
+
+/* La période qui compte à une date donnée — c'est ELLE que les horaires liront,
+   quand on passera à l'étape 2. Pour l'instant, personne ne l'appelle. */
+function ctrPeriodeActive(e, iso){
+  var d=_ctrDate(iso)||_ctrAuj();
+  var L=ctrPeriodes(e);
+  var app=L.find(function(p){ return p.suspend && p.du && p.du<=d && (!p.au||p.au>=d); });
+  if(app) return app;
+  return L.find(function(p){ return (!p.du||p.du<=d) && (!p.au||p.au>=d) && !p.futur; })
+      || L.find(function(p){ return (!p.du||p.du<=d) && (!p.au||p.au>=d); }) || null;
+}
+window.ctrPeriodeActive=ctrPeriodeActive;
+
+/* ★ CE QUI CLOCHE — les anomalies qu'on peut voir sans rien écrire. */
+function ctrAnomalies(e){
+  var i=(e&&e.infos)||{}, out=[];
+  var auj=_ctrAuj();
+  var heures=_ctrNum(i.contrat_hebdo);
+  var type=_ctrType(e);
+  if(heures==null) out.push({g:2, t:'Pas d\'heures de contrat — le placement l\'ignore'});
+  if(!_ctrDate(i.date_entree) && !_ctrDate(i.date_anciennete)) out.push({g:1, t:'Pas de date d\'entrée'});
+  if(!type) out.push({g:1, t:'Type de contrat non renseigné (CDI / CDD / apprentissage)'});
+  var finCdd=_ctrDate(i.date_fin_cdd);
+  if(type==='cdd' && !finCdd) out.push({g:2, t:'CDD sans date de fin'});
+  if(finCdd && finCdd<auj) out.push({g:2, t:'CDD terminé le '+_ctrFr(finCdd)+' et toujours actif'});
+  var aDeb=_ctrDate(i.apprentissage_debut), aFin=_ctrDate(i.apprentissage_fin);
+  if(type==='apprentissage' && !aDeb && !aFin) out.push({g:1, t:'Apprentissage sans dates de début ni de fin'});
+  if(aFin && aFin<auj && type==='apprentissage') out.push({g:2, t:'Apprentissage terminé le '+_ctrFr(aFin)+' — la suite n\'est pas posée'});
+
+  /* ★ LE POINT QUE VINCENT A SOULEVÉ : les dispos d'un contrat qu'on n'a plus. */
+  var src=i.disposSource||null;
+  if(src && src.grille && heures!=null){
+    var g=parseFloat(String(src.grille).replace(/[^\d.]/g,''));
+    if(isFinite(g) && g>0 && Math.abs(g-heures)>0.51){
+      out.push({g:2, t:'Disponibilités posées pour un contrat de '+g+' h, alors que le contrat est à '+heures+' h'});
+    }
+  }
+  if(heures!=null){
+    var hd=_ctrHeuresDispos(i.dispos);
+    if(hd>0 && hd<heures-0.01){
+      out.push({g:2, t:'Disponibilités trop courtes : '+(Math.round(hd*10)/10+'').replace('.',',')+' h ouvertes pour un contrat de '+heures+' h'});
+    }
+  }
+  return out;
+}
+window.ctrAnomalies=ctrAnomalies;
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   ★ v670 — LE DÉTAIL PAR SALARIÉ : DISPOS CONTRACTUELLES ET DOCUMENTS.
+
+   Vincent : « j'aimerais bien voir les disponibilités contractuelles par salarié,
+   et voir s'il y a des nouveaux contrats, que je puisse lire le contrat en PDF et
+   qu'il soit rangé dans Dropbox. »
+
+   Deux disponibilités cohabitent dans l'application, et c'est important de ne pas
+   les confondre :
+     · les CONTRACTUELLES (infos.disposContrat) — ce que le salarié a signé, posé à
+       l'embauche par la grille des contrats ;
+     · les RÉELLES (infos.dispos) — ce sur quoi le placement travaille vraiment.
+   Quand elles divergent, on place quelqu'un en dehors de ce qu'il a signé, ou on
+   se prive de créneaux qu'il a pourtant acceptés. On les montre donc CÔTE À CÔTE.
+
+   Toujours en LECTURE SEULE : on affiche, on n'écrit rien.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+var CTR_JOURS=[['lun','Lundi'],['mar','Mardi'],['mer','Mercredi'],['jeu','Jeudi'],
+               ['ven','Vendredi'],['sam','Samedi'],['dim','Dimanche']];
+
+/* Les créneaux d'un jour, en clair. null si le jour est fermé. */
+function ctrCreneauxJour(d){
+  if(!d || !d.on) return null;
+  var cr=(d.creneaux && d.creneaux.length)?d.creneaux:[{from:d.from,to:d.to}];
+  var out=[];
+  cr.forEach(function(c){ if(c && c.from && c.to) out.push(String(c.from)+' – '+String(c.to)); });
+  return out.length?out:null;
+}
+window.ctrCreneauxJour=ctrCreneauxJour;
+
+/* Les disponibilités CONTRACTUELLES d'un salarié (celles qu'il a signées). */
+function ctrDisposContrat(e){
+  try{
+    if(e && e.infos && e.infos.disposContrat) return e.infos.disposContrat;
+    if(typeof disposContratPour==='function'){
+      var h=(e&&e.infos&&e.infos.contrat_hebdo)||null;
+      if(h!=null) return disposContratPour(h, e)||null;
+    }
+  }catch(_){}
+  return null;
+}
+window.ctrDisposContrat=ctrDisposContrat;
+
+/* Les contrats et avenants déjà rangés dans le dossier du salarié. */
+function ctrDocuments(empId){
+  var out=[];
+  try{
+    out=(DB.empDocs||[]).filter(function(d){
+      return d && d.empId===empId && (d.categorie==='contrat' || d.categorie==='avenant');
+    }).sort(function(a,b){ return new Date(b.createdAt||0)-new Date(a.createdAt||0); });
+  }catch(_){}
+  return out;
+}
+window.ctrDocuments=ctrDocuments;
+
+/* Le panneau qui s'ouvre sous une ligne : dispos côte à côte + documents. */
+function ctrDetailHtml(e){
+  var dc=ctrDisposContrat(e);
+  var dr=(e.infos&&e.infos.dispos)||null;
+  var hC=dc?_ctrHeuresDispos(dc):0, hR=dr?_ctrHeuresDispos(dr):0;
+  var contrat=_ctrNum((e.infos||{}).contrat_hebdo);
+
+  var h='<div style="background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:13px 15px;margin:2px 0 10px;">';
+
+  /* ── les disponibilités, côte à côte ── */
+  h+='<div style="font-size:.8rem;font-weight:800;color:#ddd;margin-bottom:9px;">📅 Disponibilités</div>';
+  h+='<table style="width:100%;border-collapse:collapse;font-size:.8rem;">'
+    +'<thead><tr style="color:#8a9099;text-align:left;">'
+    +'<th style="padding:4px 8px;width:110px;"></th>'
+    +'<th style="padding:4px 8px;">Contractuelles <span style="font-weight:400;">(signées)</span></th>'
+    +'<th style="padding:4px 8px;">Réelles <span style="font-weight:400;">(utilisées par le placement)</span></th>'
+    +'</tr></thead><tbody>';
+  CTR_JOURS.forEach(function(j){
+    var a=dc?ctrCreneauxJour(dc[j[0]]):null;
+    var b=dr?ctrCreneauxJour(dr[j[0]]):null;
+    var diff=(String(a||'')!==String(b||''));
+    h+='<tr style="border-top:1px solid #222;">'
+      +'<td style="padding:4px 8px;color:#aaa;font-weight:700;">'+j[1]+'</td>'
+      +'<td style="padding:4px 8px;color:'+(a?'#cfd6de':'#5a5a5a')+';">'+(a?a.join('<br>'):'repos')+'</td>'
+      +'<td style="padding:4px 8px;color:'+(b?(diff?'#e8a020':'#cfd6de'):'#5a5a5a')+';">'
+        +(b?b.join('<br>'):'repos')+(diff?' <span style="font-size:.7rem;">≠</span>':'')+'</td>'
+      +'</tr>';
+  });
+  h+='<tr style="border-top:1px solid #333;">'
+    +'<td style="padding:5px 8px;color:#8a9099;font-weight:700;">Total</td>'
+    +'<td style="padding:5px 8px;font-weight:800;color:#cfd6de;">'+(hC?((Math.round(hC*10)/10+'').replace('.',',')+' h'):'—')+'</td>'
+    +'<td style="padding:5px 8px;font-weight:800;color:'+((contrat!=null&&hR>0&&hR<contrat)?'#e8623a':'#cfd6de')+';">'
+      +(hR?((Math.round(hR*10)/10+'').replace('.',',')+' h'):'—')+'</td></tr>';
+  h+='</tbody></table>';
+  if(!dc) h+='<div style="color:#e8a020;font-size:.76rem;margin-top:7px;">⚠️ Aucune disponibilité contractuelle enregistrée — on ne sait pas ce qui a été signé.</div>';
+
+  /* ── les documents ── */
+  var docs=ctrDocuments(e.id);
+  h+='<div style="font-size:.8rem;font-weight:800;color:#ddd;margin:14px 0 8px;">📄 Contrats et avenants rangés dans son dossier</div>';
+  if(!docs.length){
+    h+='<div style="color:#e8623a;font-size:.79rem;">⚠️ Aucun contrat rangé dans le dossier de cette personne.</div>';
+  } else {
+    h+='<div style="display:flex;flex-direction:column;gap:6px;">';
+    docs.forEach(function(d){
+      var col=(d.categorie==='avenant')?'#F5A623':'#3ecf8e';
+      var lbl=(d.categorie==='avenant')?'Avenant':'Contrat';
+      var dt=''; try{ dt=d.createdAt?new Date(d.createdAt).toLocaleDateString('fr-FR'):''; }catch(_){}
+      h+='<div style="display:flex;align-items:center;gap:10px;background:#181818;border:1px solid #2a2a2a;border-radius:8px;padding:7px 11px;">'
+        +'<span style="background:'+col+';color:#111;border-radius:6px;padding:2px 9px;font-size:.72rem;font-weight:800;">'+lbl+'</span>'
+        +'<span style="flex:1;min-width:0;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+_msgEsc(d.label||d.name||'document')+'</span>'
+        +(dt?'<span style="color:#8a9099;font-size:.75rem;white-space:nowrap;">'+dt+'</span>':'')
+        +(d.link?('<button class="btn btn-gray btn-sm" onclick="event.stopPropagation();window.open(\''+String(d.link).replace(/'/g,"")+'\',\'_blank\')">👁️ Lire</button>'):'<span style="color:#8a9099;font-size:.74rem;">pas de lien</span>')
+        +'</div>';
+    });
+    h+='</div>';
+  }
+  h+='<div style="color:#8a9099;font-size:.75rem;margin-top:10px;line-height:1.55;">'
+    +'Le contrat de départ est créé au recrutement et rangé dans le dossier Dropbox du salarié. '
+    +'C\'est d\'ici que partiront les avenants — prochaine étape.</div>';
+  return h+'</div>';
+}
+window.ctrDetailHtml=ctrDetailHtml;
+
+/* Ouvrir / refermer le détail d'une personne. */
+var CTR_OUVERT=null;
+function ctrToggle(id){
+  CTR_OUVERT=(CTR_OUVERT===id)?null:id;
+  try{ hrEERenderContrats(); }catch(_){}
+}
+window.ctrToggle=ctrToggle;
+
+// ══ VUE « CONTRATS » (État équipe) — v669, lecture seule ══════════════════════
+function hrEERenderContrats(){
+  var box=document.getElementById('etat-equipe-list'); if(!box) return;
+  var eq=_etatEquipiers();
+  var h=_hrEEHeader('Contrats','tous les contrats du restaurant — et leur historique');
+
+  h+='<div style="background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:12px 14px;margin-bottom:14px;color:#a9b0b8;font-size:.82rem;line-height:1.6;">'
+    +'<b style="color:#ddd;">Première étape : on regarde, on ne touche à rien.</b> '
+    +'Cette page reconstitue la ligne de vie du contrat de chacun à partir de sa fiche — '
+    +'rien n\'est enregistré, rien n\'est modifié. Vérifie que la photo est juste : '
+    +'les avenants et les mises en apprentissage viendront ensuite.</div>';
+
+  /* le compte des anomalies */
+  var nbAno=0, nbDispo=0;
+  eq.forEach(function(e){
+    var a=ctrAnomalies(e); nbAno+=a.length;
+    if(a.some(function(x){ return /isponibilités/.test(x.t); })) nbDispo++;
+  });
+  var parType={};
+  eq.forEach(function(e){ var t=_ctrType(e); parType[t]=(parType[t]||0)+1; });
+  h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">';
+  ['cdi','cdd','apprentissage','saisonnier',''].forEach(function(t){
+    if(!parType[t]) return;
+    h+='<span style="background:'+CTR_TYPE_COL[t]+';color:#fff;border-radius:8px;padding:5px 12px;font-size:.82rem;font-weight:700;">'
+      +CTR_TYPE_LBL[t]+' — '+parType[t]+'</span>';
+  });
+  if(nbDispo) h+='<span style="background:#7a2318;color:#fff;border-radius:8px;padding:5px 12px;font-size:.82rem;font-weight:700;">'
+    +'⚠️ '+nbDispo+' avec des disponibilités qui ne collent plus au contrat</span>';
+  /* ★ v670 — combien n'ont aucun contrat rangé dans leur dossier ? */
+  var nbSansDoc=eq.filter(function(e){ return !ctrDocuments(e.id).length; }).length;
+  if(nbSansDoc) h+='<span style="background:#5a2a12;color:#fff;border-radius:8px;padding:5px 12px;font-size:.82rem;font-weight:700;">'
+    +'📄 '+nbSansDoc+' sans contrat rangé dans le dossier</span>';
+  h+='</div>';
+
+  h+='<div style="overflow:auto;"><table style="width:100%;border-collapse:collapse;font-size:.84rem;">'
+    +'<thead><tr style="background:#1b1b1b;color:#bbb;text-align:left;">'
+    +'<th style="padding:8px 9px;">Nom</th><th style="padding:8px 9px;">Contrat en cours</th>'
+    +'<th style="padding:8px 9px;">Type</th><th style="padding:8px 9px;">Depuis</th>'
+    +'<th style="padding:8px 9px;">Jusqu\'à</th><th style="padding:8px 9px;">Dispos</th>'
+    +'<th style="padding:8px 9px;">Contrat rangé</th>'
+    +'<th style="padding:8px 9px;">À vérifier</th><th style="padding:8px 9px;"></th></tr></thead><tbody>';
+
+  eq.slice().sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||'')); }).forEach(function(e){
+    var P=ctrPeriodes(e);
+    var act=ctrPeriodeActive(e);
+    var ano=ctrAnomalies(e);
+    var i=e.infos||{};
+    var t=(act&&act.type)||_ctrType(e);
+    var hh=(act&&act.heures!=null)?act.heures:_ctrNum(i.contrat_hebdo);
+    var hd=_ctrHeuresDispos(i.dispos);
+    var suspendu=P.some(function(p){ return p.etat==='suspendue'; });
+    h+='<tr style="border-bottom:1px solid #262626;vertical-align:top;">'
+      +'<td style="padding:7px 9px;font-weight:700;color:#eee;">'+_msgEsc(e.name||'—')
+        +(suspendu?'<br><span style="font-size:.72rem;color:#8e44ad;font-weight:700;">contrat suspendu</span>':'')+'</td>'
+      +'<td style="padding:7px 9px;font-weight:800;color:'+(hh==null?'#e8623a':'#fff')+';">'
+        +(hh==null?'—':(hh+' h'))+'</td>'
+      +'<td style="padding:7px 9px;"><span style="background:'+CTR_TYPE_COL[t]+';color:#fff;border-radius:6px;padding:2px 8px;font-size:.75rem;font-weight:700;">'
+        +CTR_TYPE_LBL[t]+'</span></td>'
+      +'<td style="padding:7px 9px;color:#aaa;">'+(act&&act.du?_ctrFr(act.du):'—')+'</td>'
+      +'<td style="padding:7px 9px;color:#aaa;">'+(act&&act.au?_ctrFr(act.au):'—')+'</td>'
+      +'<td style="padding:7px 9px;color:'+((hh!=null&&hd>0&&hd<hh)?'#e8623a':'#aaa')+';">'
+        +(hd>0?((Math.round(hd*10)/10+'').replace('.',',')+' h'):'—')+'</td>'
+      +'<td style="padding:7px 9px;">'+(function(){
+          var nd=ctrDocuments(e.id);
+          if(!nd.length) return '<span style="color:#e8623a;font-size:.78rem;">aucun</span>';
+          var nc=nd.filter(function(d){return d.categorie==='contrat';}).length;
+          var na=nd.filter(function(d){return d.categorie==='avenant';}).length;
+          return '<span style="color:#3ecf8e;font-size:.78rem;">'+nc+' contrat'+(nc>1?'s':'')
+               +(na?(' · <span style="color:#F5A623;">'+na+' avenant'+(na>1?'s':'')+'</span>'):'')+'</span>';
+        })()+'</td>'
+      +'<td style="padding:7px 9px;">'
+        +(ano.length
+          ? ano.map(function(a){ return '<div style="color:'+(a.g>1?'#e8623a':'#e8a020')+';font-size:.76rem;line-height:1.4;">'+(a.g>1?'⚠️ ':'· ')+_msgEsc(a.t)+'</div>'; }).join('')
+          : '<span style="color:#3ecf8e;">✓</span>')
+      +'</td>'
+      +'<td style="padding:7px 9px;text-align:right;white-space:nowrap;">'
+        +'<button class="btn btn-gray btn-sm" onclick="ctrToggle(\''+String(e.id).replace(/'/g,"")+'\')">'
+        +(CTR_OUVERT===e.id?'▲ Fermer':'▼ Détail')+'</button></td></tr>';
+    /* ★ v670 — le détail : dispos contractuelles vs réelles, et les documents */
+    if(CTR_OUVERT===e.id){
+      h+='<tr><td colspan="9" style="padding:0 9px;">'+ctrDetailHtml(e)+'</td></tr>';
+    }
+    /* la ligne de vie, si elle a plus d'une période */
+    if(P.length>1){
+      h+='<tr style="border-bottom:1px solid #262626;"><td colspan="9" style="padding:0 9px 9px 22px;">'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+      P.forEach(function(p){
+        var col=(p.etat==='en_cours')?'#3ecf8e':(p.etat==='a_venir')?'#5b9bd5':(p.etat==='suspendue')?'#8e44ad':'#666';
+        var lblEtat={en_cours:'en cours',terminee:'terminée',a_venir:'à venir',suspendue:'suspendue',inconnue:'?'}[p.etat]||'';
+        h+='<span style="border:1px solid '+col+';color:'+col+';border-radius:7px;padding:3px 9px;font-size:.74rem;font-weight:700;">'
+          +_msgEsc(p.libelle)+' · '+(p.heures!=null?(p.heures+' h'):'—')
+          +(p.du?(' · du '+_ctrFr(p.du)):'')+(p.au?(' au '+_ctrFr(p.au)):'')
+          +' · '+lblEtat+'</span>';
+      });
+      h+='</div></td></tr>';
+    }
+  });
+  h+='</tbody></table></div>';
+  h+='<div style="margin-top:14px;color:#8a9099;font-size:.78rem;line-height:1.6;">'
+    +'La colonne <b>Dispos</b> donne le total des créneaux ouverts dans la semaine. '
+    +'Quand il est plus court que le contrat, le placement ne peut pas donner ses heures à la personne — '
+    +'c\'est souvent le signe de disponibilités restées sur un ancien contrat.</div>';
+  box.innerHTML=h;
+}
+window.hrEERenderContrats=hrEERenderContrats;
+
 // ══ VUE « SALARIÉS FIXÉS » (État équipe) ═══════════════════════════════════════
 // Permet de poser, pour un salarié, des horaires FIXES jour par jour (repos, ou
 // créneau avec poste). Le placement intelligent respectera ces créneaux : il les
