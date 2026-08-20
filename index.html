@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-25 21:30 · v652 (planning archive : les vraies heures des semaines transferees)';
+  var EMBEDDED_VERSION = '2026-08-26 11:40 · v655 (une date dentree suffit pour entrer dans les horaires)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -5379,6 +5379,72 @@ function grilleContratsDefaut(){
   };
   return G;
 }
+/* ★ v654 — DÈS QU'ON SAISIT 15 h, 20 h OU 24 h, ON MONTRE LES DISPOS QUI VONT AVEC.
+   Demande de la RH. La grille existe déjà (Paramètres › Grille des contrats) :
+   on ne réinvente rien, on la donne à lire au moment où on saisit le contrat,
+   avec les deux colonnes qu'elle contient — ce qu'on fait SIGNER (contrat) et ce
+   qu'on demande VRAIMENT (réelles) — et les deux cas véhiculé / non véhiculé.  */
+var GRC_JOURS_FR={lun:'Lundi',mar:'Mardi',mer:'Mercredi',jeu:'Jeudi',ven:'Vendredi',sam:'Samedi',dim:'Dimanche'};
+function grcCle(h){
+  var n=parseInt((''+(h==null?'':h)).replace(/[^0-9]/g,''),10);
+  if(!n) return '';
+  if(n<=15) return '15h';
+  if(n<=20) return '20h';
+  if(n<=24) return '24h';
+  return '';                       /* au-delà, la grille ne dit rien */
+}
+window.grcCle=grcCle;
+function _grcMin(hm){ var p=(''+hm).split(':'); var h=parseInt(p[0],10)||0, m=parseInt(p[1],10)||0;
+  var v=h*60+m; if(v<300) v+=1440; return v; }            /* après minuit */
+function grcHeuresSemaine(jours){
+  var t=0;
+  try{ GRC_JK.forEach(function(j){ (jours[j]||[]).forEach(function(c){ t+=Math.max(0,_grcMin(c.to)-_grcMin(c.from)); }); }); }catch(_){}
+  return t;
+}
+window.grcHeuresSemaine=grcHeuresSemaine;
+function _grcHfr(min){ var h=Math.floor(min/60), m=min%60; return h+' h'+(m?(' '+('0'+m).slice(-2)):''); }
+/* Le tableau lisible d'un contrat : une ligne par jour, contrat et réelles. */
+function grcPanneau(heures){
+  var cle=grcCle(heures);
+  if(!cle) return '<div style="color:#8a9099;font-size:.84rem;">Saisis 15, 20 ou 24 pour voir les disponibilités correspondantes.</div>';
+  var G={}; try{ G=getGrilleContrats()||{}; }catch(_){}
+  var g=G[cle]; if(!g) return '<div style="color:#e8a020;font-size:.84rem;">La grille du contrat '+cle+' n\'est pas renseignée (Paramètres › Grille des contrats).</div>';
+  function tableau(v, titreV){
+    var c=(g[v]&&g[v].contrat)||{}, r=(g[v]&&g[v].reelles)||{};
+    var hc=grcHeuresSemaine(c), hr=grcHeuresSemaine(r);
+    var h='<div style="flex:1;min-width:260px;">'
+      +'<div style="font-size:.74rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#F5A623;margin-bottom:5px;">'+titreV+'</div>'
+      +'<table style="width:100%;border-collapse:collapse;font-size:.76rem;">'
+      +'<tr><th style="text-align:left;padding:3px 6px;color:#8a9099;font-weight:700;">Jour</th>'
+      +'<th style="text-align:left;padding:3px 6px;color:#8a9099;font-weight:700;">Au contrat</th>'
+      +'<th style="text-align:left;padding:3px 6px;color:#8a9099;font-weight:700;">Réelles</th></tr>';
+    GRC_JK.forEach(function(j){
+      var cj=(c[j]||[]), rj=(r[j]||[]);
+      if(!cj.length && !rj.length) return;
+      function fmt(l){ return l.length?l.map(function(x){ return x.from+'–'+x.to; }).join('  ·  '):'<span style="color:#666;">—</span>'; }
+      h+='<tr><td style="padding:3px 6px;font-weight:700;">'+GRC_JOURS_FR[j]+'</td>'
+        +'<td style="padding:3px 6px;">'+fmt(cj)+'</td>'
+        +'<td style="padding:3px 6px;color:#8a9099;">'+fmt(rj)+'</td></tr>';
+    });
+    h+='<tr><td style="padding:5px 6px;font-weight:800;border-top:1px solid #333;">Total</td>'
+      +'<td style="padding:5px 6px;font-weight:800;border-top:1px solid #333;">'+_grcHfr(hc)+'</td>'
+      +'<td style="padding:5px 6px;font-weight:800;border-top:1px solid #333;color:#8a9099;">'+_grcHfr(hr)+'</td></tr>';
+    return h+'</table></div>';
+  }
+  return '<div style="display:flex;gap:22px;flex-wrap:wrap;">'
+    +tableau('veh','🚗 Véhiculé')+tableau('nonveh','🚶 Non véhiculé')+'</div>';
+}
+window.grcPanneau=grcPanneau;
+/* Rafraîchit le panneau quand on tape le contrat dans la fiche. */
+function empfDisposContrat(){
+  var el=document.getElementById('ef_contrat_hebdo');
+  var box=document.getElementById('ef-grc'); if(!box) return;
+  var cle=grcCle(el?el.value:'');
+  var t=document.getElementById('ef-grc-titre');
+  if(t) t.textContent = cle ? ('📋 Disponibilités du contrat '+cle) : '📋 Disponibilités du contrat';
+  box.innerHTML=grcPanneau(el?el.value:'');
+}
+window.empfDisposContrat=empfDisposContrat;
 var GRILLE_CONTRATS=null;
 function getGrilleContrats(){
   if(GRILLE_CONTRATS) return GRILLE_CONTRATS;
@@ -11694,10 +11760,68 @@ var EMPF_SECTIONS=[
     ['contrat_futur_hebdo','Nouveau contrat — heures (ex. saisonnier)'],
     ['contrat_futur_date','Nouveau contrat — à partir du','date'],
   ]},
+  /* ★ v653 — la fiche de renseignements demande les compétences. */
+  {title:'Compétences',icon:'🎯',custom:'qualifs',fields:[]},
   {title:'Suivi administratif / paie',icon:'🗂️',fields:[
     ['silae','Inscrit dans SILAE (paie) (oui / non)'],
   ]},
 ];
+/* Le bloc de compétences de la fiche — en lecture, puis en modification. */
+function _empfQualifsLecture(e){
+  var par=empQualifsParFamille(e), rien=true;
+  var h='<div style="display:flex;flex-direction:column;gap:11px;">';
+  par.forEach(function(x){
+    if(x.prises.length) rien=false;
+    h+='<div><div style="font-size:.72rem;font-weight:800;color:'+x.famille.col+';text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">'
+      +x.famille.icon+' '+x.famille.titre+' <span style="color:#888;font-weight:600;">('+x.prises.length+' / '+x.famille.postes.length+')</span></div>';
+    h+= x.prises.length
+      ? ('<div style="display:flex;flex-wrap:wrap;gap:5px;">'+x.prises.map(function(p){
+          return '<span style="background:'+x.famille.col+';color:#fff;border-radius:6px;padding:2px 9px;font-size:.76rem;font-weight:700;">'+_msgEsc(p)+'</span>';
+        }).join('')+'</div>')
+      : '<div style="color:#555;font-size:.85rem;">—</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  return {html:h, vide:rien};
+}
+function _empfQualifsEdition(e){
+  var q=((e&&e.infos&&e.infos.qualifs)||[]).map(function(x){ return (''+x).toUpperCase(); });
+  var h='<div style="display:flex;flex-direction:column;gap:12px;">';
+  POSTES_FAMILLES.forEach(function(f){
+    h+='<div style="border:1px solid #333;border-radius:10px;padding:10px 12px;">'
+      +'<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:8px;">'
+      +'<span style="font-size:.82rem;font-weight:800;color:'+f.col+';text-transform:uppercase;letter-spacing:.5px;">'+f.icon+' '+f.titre+'</span>'
+      +'<button type="button" class="btn btn-gray btn-sm" onclick="empfQualifFamille(\''+f.cle+'\',true)">Tout cocher</button>'
+      +'<button type="button" class="btn btn-gray btn-sm" onclick="empfQualifFamille(\''+f.cle+'\',false)">Tout décocher</button>'
+      +'</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:6px 14px;">';
+    f.postes.forEach(function(p){
+      h+='<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.86rem;color:#ddd;text-transform:none;letter-spacing:0;">'
+        +'<input type="checkbox" class="ef-q ef-q-'+f.cle+'" id="ef_q_'+_qSlug(p)+'" data-poste="'+_msgEsc(p)+'" '
+        +(q.indexOf(p)>=0?'checked':'')+' style="width:16px;height:16px;cursor:pointer;accent-color:'+f.col+';">'
+        +'<span>'+_msgEsc(p)+'</span></label>';
+    });
+    h+='</div></div>';
+  });
+  h+='</div>';
+  return h;
+}
+function empfQualifFamille(cle, on){
+  try{
+    var l=document.querySelectorAll('.ef-q-'+cle);
+    for(var i=0;i<l.length;i++) l[i].checked=!!on;
+  }catch(_){}
+}
+window.empfQualifFamille=empfQualifFamille;
+/* Ce qui est coché au moment d'enregistrer. */
+function _empfQualifsLues(){
+  var out=[];
+  try{
+    var l=document.querySelectorAll('.ef-q');
+    for(var i=0;i<l.length;i++) if(l[i].checked) out.push(l[i].getAttribute('data-poste'));
+  }catch(_){ return null; }
+  return out;
+}
+window._empfQualifsLues=_empfQualifsLues;
 
 /* ★ v628 — OUVRIR / FERMER LES BLOCS DE LA FICHE.
    L'état est retenu d'un salarié à l'autre : si tu ne regardes jamais les
@@ -11795,6 +11919,38 @@ function empfTab(t){
 }
 // ══ COMPÉTENCES (qualifications postes) & DISPONIBILITÉS ═══════════════════════
 var POSTES_PRODUCTIFS=['CUISINE','FRITES','SNACK','BROILER','BOARD VOLANT','BORNE','DRIVE','SAT SALLE','PREMIERE CABINE','TABLETTE DRIVE','EMPORTER','COMPTOIR VOLANT','UBER','SAT EMPORTER UBER'];
+/* ★ v653 — LES COMPÉTENCES SE CHOISISSENT PAR FAMILLE.
+   Demande de la RH : « quand on sélectionne Cuisine intégrée, proposer Cuisine,
+   Frites, Snack, Broiler, Board volant ; quand on sélectionne Comptoir,
+   proposer Borne, Drive, SAT salle, Première cabine, Tablette drive, Emporter,
+   Comptoir volant, Uber, SAT emporter Uber. »
+   Ce sont exactement les 14 postes déjà en place : on ne change rien à ce qui
+   est enregistré, on les range en deux familles.                           */
+var POSTES_FAMILLES=[
+  {cle:'cuisine',  titre:'Cuisine intégrée', icon:'🍔', col:'#e53935',
+   postes:['CUISINE','FRITES','SNACK','BROILER','BOARD VOLANT']},
+  {cle:'comptoir', titre:'Comptoir',         icon:'🧾', col:'#1565c0',
+   postes:['BORNE','DRIVE','SAT SALLE','PREMIERE CABINE','TABLETTE DRIVE','EMPORTER','COMPTOIR VOLANT','UBER','SAT EMPORTER UBER']}
+];
+try{ window.POSTES_FAMILLES=POSTES_FAMILLES; }catch(_){}
+function posteFamille(p){
+  var u=(''+(p||'')).toUpperCase();
+  for(var i=0;i<POSTES_FAMILLES.length;i++){
+    if(POSTES_FAMILLES[i].postes.indexOf(u)>=0) return POSTES_FAMILLES[i];
+  }
+  return null;
+}
+window.posteFamille=posteFamille;
+function _qSlug(p){ return (''+(p||'')).toUpperCase().replace(/[^A-Z0-9]+/g,'_'); }
+window._qSlug=_qSlug;
+/* Les compétences d'un salarié, rangées par famille. */
+function empQualifsParFamille(e){
+  var q=((e&&e.infos&&e.infos.qualifs)||[]).map(function(x){ return (''+x).toUpperCase(); });
+  return POSTES_FAMILLES.map(function(f){
+    return {famille:f, prises:f.postes.filter(function(p){ return q.indexOf(p)>=0; })};
+  });
+}
+window.empQualifsParFamille=empQualifsParFamille;
 function postesNonProductifs(){
   // récupère les non-productifs définis (dans BASE_MIN), sinon liste vide
   var arr=[];
@@ -12333,6 +12489,13 @@ function renderEmpFicheInfos(id){
     +'<button class="btn btn-gray btn-sm" onclick="empfVoletsTous(\'fiche\',false)">▸ Tout fermer</button>'
     +'</div>';
   EMPF_SECTIONS.forEach(function(sec, iSec){
+    if(sec.custom==='qualifs'){
+      var qq=_empfQualifsLecture(e);
+      var nb=0; empQualifsParFamille(e).forEach(function(x){ nb+=x.prises.length; });
+      h+=_empfVoletHtml('fiche', sec, qq.html, nb+' poste'+(nb>1?'s':'')+' tenu'+(nb>1?'s':''),
+                        _empfOuvert('fiche', sec.title, false));
+      return;
+    }
     var corps='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 18px;">';
     var remplis=0;
     sec.fields.forEach(function(f){
@@ -12456,7 +12619,17 @@ function empfEdit(){
     var val;
     if(key==='_email')val=e.email;else if(key==='_phone')val=e.phone;else val=inf[key]||'';
     var inputType=(typ==='date')?'date':'text';
-    return '<div style="margin-bottom:9px;"><label class="flabel">'+lbl+'</label><input type="'+inputType+'" class="fi" id="ef_'+key+'" value="'+(val?String(val).replace(/"/g,'&quot;'):'')+'"></div>';
+    /* ★ v654 — le contrat hebdo rafraîchit le tableau des disponibilités. */
+    var extra=(key==='contrat_hebdo')?' oninput="empfDisposContrat()" placeholder="15, 20 ou 24"':'';
+    var apres='';
+    if(key==='contrat_hebdo'){
+      apres='<div style="border:1px solid #333;border-radius:10px;padding:10px 12px;margin:2px 0 12px;">'
+        +'<div id="ef-grc-titre" style="font-size:.8rem;font-weight:800;color:#F5A623;margin-bottom:7px;">📋 Disponibilités du contrat</div>'
+        +'<div id="ef-grc">'+grcPanneau(val)+'</div>'
+        +'<div style="font-size:.72rem;color:#8a9099;margin-top:7px;">Ces horaires viennent de Paramètres › Grille des contrats.</div>'
+        +'</div>';
+    }
+    return '<div style="margin-bottom:9px;"><label class="flabel">'+lbl+'</label><input type="'+inputType+'" class="fi" id="ef_'+key+'" value="'+(val?String(val).replace(/"/g,'&quot;'):'')+'"'+extra+'></div>'+apres;
   }
   // Nom / Prénom séparés (comme la fiche recrutement). Nom complet reconstruit = « NOM Prénom ».
   var _nmParts=String(e.name||'').trim().split(/\s+/);
@@ -12478,6 +12651,12 @@ function empfEdit(){
     +'<button type="button" class="btn btn-gray btn-sm" onclick="empfVoletsTous(\'edit\',false)">▸ Tout fermer</button>'
     +'</div>';
   EMPF_SECTIONS.forEach(function(sec, iSec){
+    if(sec.custom==='qualifs'){
+      var nbq=0; empQualifsParFamille(e).forEach(function(x){ nbq+=x.prises.length; });
+      h+=_empfVoletHtml('edit', sec, _empfQualifsEdition(e), nbq+' poste'+(nbq>1?'s':'')+' coché'+(nbq>1?'s':''),
+                        _empfOuvert('edit', sec.title, false));
+      return;
+    }
     var corps='', remplis=0, total=0;
     sec.fields.forEach(function(f){
       if(sec.title==='Emploi & contrat' && f[0]==='_role') return;
@@ -12513,6 +12692,8 @@ async function empfSave(){
   if(_no||_pr){ var _nov=_no?_no.value.trim():''; var _prv=_pr?_pr.value.trim():''; inf.nom=_nov; inf.prenom=_prv; var _full=(_nov+' '+_prv).trim(); if(_full) patch.name=_full; }
   var rl=document.getElementById('ef__role');if(rl)patch.role=rl.value;
   var rqEl=document.getElementById('ef__rqth'); if(rqEl) inf.rqth=rqEl.checked?'oui':'non';
+  /* ★ v653 — les compétences cochées dans la fiche de renseignements. */
+  var _q=_empfQualifsLues(); if(_q) inf.qualifs=_q;
   // dates de visite médicale reportées sur les colonnes dédiées
   if(inf.vm_derniere!==undefined)patch.visite_date=inf.vm_derniere||'';
   if(inf.vm_expiration!==undefined)patch.visite_prochaine=inf.vm_expiration||'';
@@ -13871,6 +14052,19 @@ function collectAlertes(restoFiltre){
           titre:(c.prenom+' '+c.nom)+' — contrat signé, embauche à démarrer',
           sub:'Cliquer « Démarrer la période d\'essai » pour l\'ajouter à l\'équipe · '+_resto,candId:c.id});
       }
+    });
+    /* ★ v655 — il est DÉJÀ dans les horaires (date d'entrée saisie) mais son
+       dossier n'est pas fini : on continue de le rappeler, sans le bloquer. */
+    (DB.employees||[]).forEach(function(e){
+      if(!e || e.archived || !e.fromCandId) return;
+      if(!(e.infos&&e.infos.dossierAFinaliser==='oui')) return;
+      if(restoFiltre && restoFiltre!=='all' && (e.restoId||'')!==restoFiltre) return;
+      var _c=(DB.candidatures||[]).find(function(x){ return x.id===e.fromCandId; });
+      if(_c && (_c.statut||'')==='essai') return;      /* l'embauche est allée au bout */
+      var _de=(e.infos&&e.infos.date_entree)||'';
+      alerts.push({prio:2,cat:'Embauches à finaliser',icon:'🚀',col:'#F5A623',
+        titre:e.name+' — déjà dans les horaires, dossier à finaliser',
+        sub:(_de?('Entré le '+_frDate(_de)+' · '):'')+'contrat à signer et documents à réunir · '+rlabel(e.restoId),empId:e.id});
     });
   }catch(e){}
 
@@ -18964,6 +19158,77 @@ function handleContratSigne(input){
   reader.readAsDataURL(file);
 }
 
+/* ★ v655 — AJOUTER LE SALARIÉ À L'ÉQUIPE, TOUT SEUL, DÈS QU'ON A UNE DATE D'ENTRÉE.
+   Vincent : « même si on n'a pas fait les documents, s'il n'a pas fini de signer
+   le contrat, à partir du moment où on a indiqué qu'il entre à telle date, il
+   doit rentrer dans les horaires. »
+   Le code de création était enfermé dans « Contrat signé » : on l'en sort, sans
+   rien y changer, pour pouvoir l'appeler aussi depuis la date d'entrée.
+   Renvoie true si la fiche salarié existe bien à la fin.                     */
+async function candCreerSalarieEquipe(c){
+  if(!c) return false;
+  var nom=((c.nom||'')+' '+(c.prenom||'')).trim();   // fiche salarié = « NOM Prénom » (cohérent avec la fiche salarié)
+  var _salarieOk=false;   // on ne passera en "essai" QUE si la fiche salarié existe VRAIMENT
+  try{
+    var deja=DB.employees.find(function(e){return e.fromCandId===c.id;});
+    if(!deja){
+      // Anti-doublon par nom (ordre indifférent) : ne pas recréer une fiche existante
+      var _k=_nomKey(nom);
+      var _match=(DB.employees||[]).filter(function(e){return _nomKey(e.name)===_k;});
+      var _actif=_match.find(function(e){return !e.archived;});
+      var _arch=_match.find(function(e){return !!e.archived;});
+      if(_actif){ deja=_actif; try{ await sb.patch('bks_employees','id=eq.'+_actif.id,{from_cand_id:c.id}); }catch(_){} }
+      else if(_arch){ deja=_arch; try{ await reactivateEmp(_arch.id, true); await sb.patch('bks_employees','id=eq.'+_arch.id,{from_cand_id:c.id}); }catch(_){} }
+    }
+    if(deja){
+      _salarieOk=true;   // fiche déjà existante (rattachée ou réactivée)
+    } else {
+      var eid='u'+Date.now();
+      var _infosEmb={};
+      if(String(c.rqth||'').toLowerCase()==='oui') _infosEmb.rqth='oui';
+      if(c.photo) _infosEmb.photo=c.photo;   // la photo du candidat suit sur sa fiche salarié
+      /* ★ v655 — la date d'entrée suit : c'est elle qui ouvre les horaires
+         (avant, aucun trait n'est plaçable — voir entreeBloque).            */
+      if(c.dateDebut) _infosEmb.date_entree=c.dateDebut;
+      if(c.contratHeures!=null && _infosEmb.contrat_hebdo==null) _infosEmb.contrat_hebdo=c.contratHeures;
+      if(!(c.contratSigneDoc&&(c.contratSigneDoc.data||c.contratSigneDoc.link))) _infosEmb.dossierAFinaliser='oui';
+      // ★ v587 — GRILLE DES CONTRATS (uniquement à l'embauche, jamais sur un
+      // salarié déjà en place) : selon le contrat (15/20/24 h) et le transport
+      // déclaré à la candidature, on pose DEUX jeux de créneaux :
+      //   • infos.disposContrat → ce qui part dans le CONTRAT qu'il signe ;
+      //   • infos.dispos        → ses DISPONIBILITÉS, celles du placement.
+      // 35 h et plus : rien n'est posé (dispo totale).
+      try{
+        var _hC=(c.contratHeures!=null?c.contratHeures:(c.contrat_heures!=null?c.contrat_heures:null));
+        if(_hC==null && c.contratLabel) _hC=String(c.contratLabel);
+        if(_hC==null && c.contratType)  _hC=String(c.contratType);
+        var _tr=c.transport||'';
+        var _dReel=(typeof grcDisposPour==='function')?grcDisposPour(_hC,_tr,'reelles'):null;
+        var _dCont=(typeof grcDisposPour==='function')?grcDisposPour(_hC,_tr,'contrat'):null;
+        if(_dReel) _infosEmb.dispos=_dReel;
+        if(_dCont) _infosEmb.disposContrat=_dCont;
+        if(_dReel||_dCont){
+          _infosEmb.disposSource={ grille:(typeof grcCleContrat==='function')?grcCleContrat(_hC):null,
+                                   vehicule:(typeof grcEstVehicule==='function')?grcEstVehicule(_tr):null,
+                                   transport:_tr, le:new Date().toISOString().slice(0,10) };
+        }
+      }catch(_grc){ console.warn('grille contrats embauche',_grc); }
+      // Rôle déduit du poste choisi au recrutement (Leader/Manager/Directeur/Apprenti/Équipier)
+      var _posteC=String(c.poste||'').toLowerCase();
+      var _roleEmb='equipier';
+      if(_posteC.indexOf('directeur')>=0) _roleEmb='directeur';
+      else if(_posteC.indexOf('manager')>=0) _roleEmb='manager';
+      else if(_posteC.indexOf('leader')>=0) _roleEmb='leader';
+      // IMPORTANT : sb.insert NE lève PAS d'exception en cas d'échec, il renvoie null.
+      // On teste donc la valeur de retour pour savoir si la fiche a bien été créée.
+      var _newEmp=await sb.insert('bks_employees',{id:eid,name:nom,role:_roleEmb,resto_id:c.restoId,archived:false,email:c.email||'',phone:c.phone||'',from_cand_id:c.id,infos:_infosEmb});
+      _salarieOk=!!_newEmp;
+    }
+  }catch(e){console.error('Création employé échec',e);_salarieOk=false;}
+  return _salarieOk;
+}
+window.candCreerSalarieEquipe=candCreerSalarieEquipe;
+
 async function candContratSigne(){
   var c=curCand();if(!c)return;
   if(!(c.contratSigneDoc&&(c.contratSigneDoc.data||c.contratSigneDoc.link))){alert('Importez d\'abord le contrat signé.');return;}
@@ -18998,59 +19263,7 @@ async function candContratSigne(){
     }catch(e){console.error('Dropbox contrat échec',e);}
   }
   // 3) Créer le salarié dans l'équipe
-  var nom=((c.nom||'')+' '+(c.prenom||'')).trim();   // fiche salarié = « NOM Prénom » (cohérent avec la fiche salarié)
-  var _salarieOk=false;   // on ne passera en "essai" QUE si la fiche salarié existe VRAIMENT
-  try{
-    var deja=DB.employees.find(function(e){return e.fromCandId===c.id;});
-    if(!deja){
-      // Anti-doublon par nom (ordre indifférent) : ne pas recréer une fiche existante
-      var _k=_nomKey(nom);
-      var _match=(DB.employees||[]).filter(function(e){return _nomKey(e.name)===_k;});
-      var _actif=_match.find(function(e){return !e.archived;});
-      var _arch=_match.find(function(e){return !!e.archived;});
-      if(_actif){ deja=_actif; try{ await sb.patch('bks_employees','id=eq.'+_actif.id,{from_cand_id:c.id}); }catch(_){} }
-      else if(_arch){ deja=_arch; try{ await reactivateEmp(_arch.id, true); await sb.patch('bks_employees','id=eq.'+_arch.id,{from_cand_id:c.id}); }catch(_){} }
-    }
-    if(deja){
-      _salarieOk=true;   // fiche déjà existante (rattachée ou réactivée)
-    } else {
-      var eid='u'+Date.now();
-      var _infosEmb={};
-      if(String(c.rqth||'').toLowerCase()==='oui') _infosEmb.rqth='oui';
-      if(c.photo) _infosEmb.photo=c.photo;   // la photo du candidat suit sur sa fiche salarié
-      // ★ v587 — GRILLE DES CONTRATS (uniquement à l'embauche, jamais sur un
-      // salarié déjà en place) : selon le contrat (15/20/24 h) et le transport
-      // déclaré à la candidature, on pose DEUX jeux de créneaux :
-      //   • infos.disposContrat → ce qui part dans le CONTRAT qu'il signe ;
-      //   • infos.dispos        → ses DISPONIBILITÉS, celles du placement.
-      // 35 h et plus : rien n'est posé (dispo totale).
-      try{
-        var _hC=(c.contratHeures!=null?c.contratHeures:(c.contrat_heures!=null?c.contrat_heures:null));
-        if(_hC==null && c.contratLabel) _hC=String(c.contratLabel);
-        if(_hC==null && c.contratType)  _hC=String(c.contratType);
-        var _tr=c.transport||'';
-        var _dReel=(typeof grcDisposPour==='function')?grcDisposPour(_hC,_tr,'reelles'):null;
-        var _dCont=(typeof grcDisposPour==='function')?grcDisposPour(_hC,_tr,'contrat'):null;
-        if(_dReel) _infosEmb.dispos=_dReel;
-        if(_dCont) _infosEmb.disposContrat=_dCont;
-        if(_dReel||_dCont){
-          _infosEmb.disposSource={ grille:(typeof grcCleContrat==='function')?grcCleContrat(_hC):null,
-                                   vehicule:(typeof grcEstVehicule==='function')?grcEstVehicule(_tr):null,
-                                   transport:_tr, le:new Date().toISOString().slice(0,10) };
-        }
-      }catch(_grc){ console.warn('grille contrats embauche',_grc); }
-      // Rôle déduit du poste choisi au recrutement (Leader/Manager/Directeur/Apprenti/Équipier)
-      var _posteC=String(c.poste||'').toLowerCase();
-      var _roleEmb='equipier';
-      if(_posteC.indexOf('directeur')>=0) _roleEmb='directeur';
-      else if(_posteC.indexOf('manager')>=0) _roleEmb='manager';
-      else if(_posteC.indexOf('leader')>=0) _roleEmb='leader';
-      // IMPORTANT : sb.insert NE lève PAS d'exception en cas d'échec, il renvoie null.
-      // On teste donc la valeur de retour pour savoir si la fiche a bien été créée.
-      var _newEmp=await sb.insert('bks_employees',{id:eid,name:nom,role:_roleEmb,resto_id:c.restoId,archived:false,email:c.email||'',phone:c.phone||'',from_cand_id:c.id,infos:_infosEmb});
-      _salarieOk=!!_newEmp;
-    }
-  }catch(e){console.error('Création employé échec',e);_salarieOk=false;}
+  var _salarieOk=await candCreerSalarieEquipe(c);
   // ── FILET DE SÉCURITÉ : ne marquer "essai" QUE si le salarié a bien été créé ──
   // Sinon on GARDE la candidature en "retenu" (rien n'est perdu) et on alerte l'utilisateur
   // pour qu'il réessaie. Évite le candidat "en essai fantôme" sans fiche salarié.
@@ -19066,6 +19279,29 @@ async function candContratSigne(){
 
 async function setDateDebut(v){
   var c=curCand();if(!c)return;c.dateDebut=v;
+  /* ★ v655 — une date d'entrée = il rentre dans les horaires, point.
+     On ne réclame ni documents ni contrat signé : la fiche salarié est créée
+     tout de suite, et ses horaires s'ouvrent à cette date. Le dossier à
+     finaliser continue d'être rappelé dans Alertes.                         */
+  try{
+    if(v && (c.statut||'')==='retenu'){
+      var _existe=(DB.employees||[]).some(function(e){ return e.fromCandId===c.id; });
+      if(!_existe){
+        var _ok=await candCreerSalarieEquipe(c);
+        if(_ok){
+          try{ toast((c.prenom||'')+' '+(c.nom||'')+' est dans les horaires à partir du '+_frDate(v),'success'); }catch(_){}
+          try{ await loadAll(); }catch(_){}
+        }
+      } else {
+        /* déjà dans l'équipe : on met simplement sa date d'entrée à jour */
+        try{
+          var _e=(DB.employees||[]).find(function(e){ return e.fromCandId===c.id; });
+          if(_e){ _e.infos=_e.infos||{}; _e.infos.date_entree=v;
+                  await sb.patch('bks_employees','id=eq.'+_e.id,{infos:_e.infos}); }
+        }catch(_){}
+      }
+    }
+  }catch(e){ console.warn('date entrée → équipe', e); }
   try{await sb.patch('bks_candidatures','id=eq.'+_candId,{date_debut:v||null,updated_at:new Date().toISOString()});renderCandActions(c);}
   catch(e){toast('Erreur','error');}
 }
@@ -28392,11 +28628,24 @@ function hrEERenderCompetences(){
   var postesNP=(typeof postesNonProductifs==='function')?postesNonProductifs():[];
   var cols=postesProd.concat(postesNP);
   var h=_hrEEHeader('Compétences','clique une case pour valider/retirer un poste');
-  h+='<div style="font-size:.82rem;color:#aaa;margin-bottom:10px;">Coche les postes que chaque salarié sait tenir. Pris en compte par le placement. (Les Rapports restent en lecture seule pour l\'impression.)</div>';
+  h+='<div style="font-size:.82rem;color:#aaa;margin-bottom:6px;">Coche les postes que chaque salarié sait tenir. Pris en compte par le placement. (Les Rapports restent en lecture seule pour l\'impression.)</div>';
+  /* ★ v653 — on rappelle les deux familles, et on peut cocher toute une famille. */
+  h+='<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:.76rem;font-weight:700;margin-bottom:10px;">'
+    +(POSTES_FAMILLES||[]).map(function(f){
+        return '<span style="display:inline-flex;align-items:center;gap:6px;color:'+f.col+';">'
+          +'<i style="width:10px;height:10px;border-radius:3px;background:'+f.col+';display:inline-block;"></i>'
+          +f.icon+' '+f.titre+' <span style="color:#888;font-weight:600;">('+f.postes.length+' postes)</span></span>';
+      }).join('')+'</div>';
   if(!eq.length){ box.innerHTML=h+'<div style="padding:14px;color:#777;">Aucun équipier sur ce restaurant.</div>'; return; }
   h+='<div style="overflow-x:auto;"><table style="border-collapse:collapse;font-size:.78rem;"><thead><tr style="border-bottom:2px solid #444;">';
   h+='<th style="text-align:left;padding:6px 8px;color:#fff;position:sticky;left:0;background:#1a1a1a;white-space:nowrap;">Salarié</th>';
-  cols.forEach(function(p){ h+='<th style="padding:4px 2px;color:#fff;"><div style="writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;font-size:.72rem;font-weight:600;height:96px;">'+p+'</div></th>'; });
+  cols.forEach(function(p){
+    var f=(typeof posteFamille==='function')?posteFamille(p):null;
+    h+='<th style="padding:4px 2px;color:#fff;'+(f?('border-top:3px solid '+f.col+';'):'')+'">'
+      +'<div style="writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;font-size:.72rem;font-weight:600;height:96px;'
+      +(f?('color:'+f.col+';'):'')+'">'+p+'</div></th>';
+  });
+  h+='<th style="padding:4px 6px;color:#fff;font-size:.7rem;font-weight:700;white-space:nowrap;">Familles</th>';
   h+='</tr></thead><tbody>';
   eq.forEach(function(e){
     var q=(e.infos&&e.infos.qualifs)||[];
@@ -28406,11 +28655,36 @@ function hrEERenderCompetences(){
       var pEsc=p.replace(/'/g,"\\'");
       h+='<td onclick="hrEEToggleQualif(\''+e.id+'\',\''+pEsc+'\')" style="cursor:pointer;text-align:center;padding:0;width:28px;height:28px;'+(on?'background:#1d7a3a;color:#fff;font-weight:800;':'color:#444;')+'">'+(on?'✓':'·')+'</td>';
     });
+    /* ★ v653 — cocher toute une famille d'un coup, salarié par salarié. */
+    h+='<td style="padding:3px 6px;white-space:nowrap;">'
+      +(POSTES_FAMILLES||[]).map(function(f){
+          var tous=f.postes.every(function(p){ return q.indexOf(p)>=0; });
+          return '<button type="button" onclick="hrEEFamille(\''+e.id+'\',\''+f.cle+'\')" title="'
+            +(tous?'Retirer':'Ajouter')+' toute la famille '+f.titre+'" '
+            +'style="background:'+(tous?f.col:'transparent')+';border:1px solid '+f.col+';color:'+(tous?'#fff':f.col)
+            +';border-radius:7px;padding:3px 8px;font-size:.7rem;font-weight:800;cursor:pointer;margin-right:4px;font-family:inherit;">'
+            +f.icon+'</button>';
+        }).join('')+'</td>';
     h+='</tr>';
   });
   h+='</tbody></table></div>';
   box.innerHTML=h;
 }
+/* Ajoute toute la famille, ou la retire si elle est déjà complète. */
+function hrEEFamille(id, cle){
+  var e=_hrEEQualifBuf(id); if(!e) return;
+  var f=(POSTES_FAMILLES||[]).find(function(x){ return x.cle===cle; }); if(!f) return;
+  var q=e.infos.qualifs;
+  var tous=f.postes.every(function(p){ return q.indexOf(p)>=0; });
+  f.postes.forEach(function(p){
+    var i=q.indexOf(p);
+    if(tous){ if(i>=0) q.splice(i,1); }
+    else if(i<0) q.push(p);
+  });
+  hrEERenderCompetences();
+  _hrEESaveInfos(id,'ee-comp-st-');
+}
+window.hrEEFamille=hrEEFamille;
 function hrEEToggleQualif(id, poste){
   var e=_hrEEQualifBuf(id); if(!e) return;
   var i=e.infos.qualifs.indexOf(poste);
