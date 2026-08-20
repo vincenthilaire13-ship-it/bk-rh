@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-26 11:40 · v655 (une date dentree suffit pour entrer dans les horaires)';
+  var EMBEDDED_VERSION = '2026-08-26 15:10 · v656 (rapports, parametres et alertes : reglage sur la tuile, comme lecran tele)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -5269,19 +5269,21 @@ function visToggleList(section, tiles){
 // Mise en page DEUX COLONNES identique à Écran télé / Téléphone équipe :
 // à gauche les interrupteurs, à droite l'aperçu (les tuiles réelles).
 // Non-admin : renvoie juste les tuiles (pas d'interrupteurs).
+/* ★ v656 — RAPPORTS, PARAMÈTRES ET ALERTES SE RÈGLENT COMME L'ÉCRAN TÉLÉ.
+   Vincent : « je voudrais que ça fasse comme écran télé : c'est une tuile, et on
+   peut rajouter ou enlever une tuile. »
+   La longue colonne d'interrupteurs à gauche disparaît : on ne voit plus que les
+   tuiles, et l'interrupteur est POSÉ SUR LA TUILE. Un clic sur l'étiquette
+   l'allume ou l'éteint ; un clic sur la tuile l'ouvre, comme avant.          */
 function visLayout(section, tiles, tilesHtml, titre){
   if(!_visAdmin()) return tilesHtml;
-  return '<div class="tel-wrap">'
-    +'<div class="tel-config">'
-      +'<div class="sec-title" style="margin-bottom:6px;">Afficher / masquer les tuiles</div>'
-      +'<p class="tel-intro">Interrupteur vert = tuile visible par le <b>Directeur</b> et le <b>Manager</b>. Éteins-le pour la masquer. Toi (Admin) vois toujours tout.</p>'
-      +'<div class="tel-toggles">'+visToggleList(section,tiles)+'</div>'
+  var n=0; try{ n=(tiles||[]).filter(function(t){ return _visMasquee(section,t.id); }).length; }catch(_){}
+  return '<div style="font-size:.82rem;color:#8a9099;line-height:1.5;margin:0 0 12px;">'
+      +'Clique l\'étiquette d\'une tuile pour l\'afficher ou la masquer pour le <b>Directeur</b> et le <b>Manager</b>. '
+      +'Toi (Admin) vois toujours tout.'
+      +(n?(' <b style="color:#e8623a;">'+n+' tuile'+(n>1?'s':'')+' masquée'+(n>1?'s':'')+'.</b>'):'')
     +'</div>'
-    +'<div class="tel-preview" style="flex:1 1 540px;min-width:0;align-items:stretch;">'
-      +'<div class="tel-preview-cap" style="text-align:left;margin:0 0 10px;">Aperçu — '+(titre||'')+'</div>'
-      +tilesHtml
-    +'</div>'
-  +'</div>';
+    +tilesHtml;
 }
 window.visLayout=visLayout; window.visToggleList=visToggleList;
 // Une tuile est-elle éteinte (masquée pour Directeur/Manager) ?
@@ -5289,9 +5291,19 @@ function _visMasquee(section,id){ return ((((getVisConfig()[section]||{})[id])||
 // Côté ADMIN uniquement : grise la tuile masquée + affiche une étiquette « 🚫 Masquée ».
 function visDim(section,id){ return (_visAdmin() && _visMasquee(section,id)) ? 'opacity:.5;filter:grayscale(.45);' : ''; }
 function visMark(section,id,corner){
-  if(!(_visAdmin() && _visMasquee(section,id))) return '';
+  if(!_visAdmin()) return '';
+  /* ★ v656 — l'étiquette est maintenant l'INTERRUPTEUR de la tuile. */
+  var off=_visMasquee(section,id);
   var pos=(corner==='left')?'top:8px;left:10px;':'top:8px;right:10px;';
-  return '<span style="position:absolute;'+pos+'z-index:4;background:#7a2020;color:#ffd6d6;border:1px solid #cc5555;border-radius:7px;padding:1px 7px;font-size:.6rem;font-weight:800;letter-spacing:.2px;box-shadow:0 1px 3px rgba(0,0,0,.5);white-space:nowrap;">🚫 Masquée</span>';
+  var st=off
+    ? 'background:#7a2020;color:#ffd6d6;border:1px solid #cc5555;'
+    : 'background:rgba(29,122,58,.16);color:#3ecf8e;border:1px solid rgba(62,207,142,.5);';
+  var txt=off?'🚫 Masquée':'👁 Visible';
+  var aide=off?'Cliquer pour l\'afficher au Directeur et au Manager':'Cliquer pour la masquer au Directeur et au Manager';
+  return '<span onclick="event.stopPropagation();visToggleTile(\''+section+'\',\''+id+'\')" title="'+aide+'"'
+    +' style="position:absolute;'+pos+'z-index:5;'+st+'border-radius:7px;padding:2px 8px;font-size:.6rem;'
+    +'font-weight:800;letter-spacing:.2px;box-shadow:0 1px 3px rgba(0,0,0,.35);white-space:nowrap;cursor:pointer;">'
+    +txt+'</span>';
 }
 window.visDim=visDim; window.visMark=visMark;
 function visPanel(){ return ''; }  // ancien panneau : désactivé (remplacé par visLayout)
