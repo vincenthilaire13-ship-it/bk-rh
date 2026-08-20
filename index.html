@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-27 15:40 · v665 (creneaux restants + placements conserves controles)';
+  var EMBEDDED_VERSION = '2026-08-27 18:50 · v668 (les visites medicales dans une seule tuile)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -947,7 +947,16 @@ header h1 span{color:#fff;}
 .tile{border-radius:14px;border:2px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;transition:transform .18s,box-shadow .18s;user-select:none;}
 .tile:hover{transform:translateY(-4px) scale(1.04);}
 .tile:active{transform:scale(.96);}
-.tile-admin{width:155px;height:155px;background:linear-gradient(145deg,#3A2A00,#1E1600);border-color:var(--yellow);}
+/* ★ v667 — L'ADMIN EN LONGUEUR.
+   La tuile Superviseure a été retirée de l'écran d'accueil (elle donnait exactement
+   le même accès que l'Admin : dans GLOBALS, les deux profils sont en rôle
+   « franchise »). L'Admin reste donc seul sous le trait, et une barre large tient
+   mieux la page qu'un petit carré perdu au milieu. */
+.tile-admin{width:100%;max-width:620px;height:88px;flex-direction:row;gap:16px;justify-content:center;
+  background:linear-gradient(145deg,#3A2A00,#1E1600);border-color:var(--yellow);}
+.tile-admin .tile-icon{font-size:2.1rem;}
+.tile-admin .tile-label{font-size:1.15rem;letter-spacing:3px;}
+.tile-admin .tile-sub{margin-left:2px;}
 .tile-rh{width:155px;height:155px;background:linear-gradient(145deg,#1E2A1E,#111811);border-color:#4A8A4A;}
 .tile-dir{width:160px;height:160px;background:linear-gradient(145deg,#2A1500,#1A0D00);border-color:var(--orange);}
 .tile-mgr{width:138px;height:138px;background:linear-gradient(145deg,#1E2A3A,#111820);border-color:#4A7FAA;}
@@ -1439,9 +1448,10 @@ html,body{overflow-x:hidden;}
       <div class="tile tile-bk" onclick="pickResto('bk526')" style="border-color:#FFB347;"><div class="tile-icon">🍔</div><div class="tile-label">BK 526</div><div class="tile-sub">Sélectionner</div></div>
     </div>
     <div style="width:100%;max-width:620px;height:1px;background:#333;margin:0 auto 18px;"></div>
+    <!-- ★ v667 — la tuile « Superviseure » est retirée : elle ouvrait le même accès
+         que l'Admin (rôle « franchise » pour les deux). L'Admin passe en barre. -->
     <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
       <div class="tile tile-admin" onclick="pickGlobal('admin')"><div class="tile-icon">🛡️</div><div class="tile-label">Admin</div><div class="tile-sub">Accès total</div></div>
-      <div class="tile tile-rh" onclick="pickGlobal('rh')"><div class="tile-icon">👩‍💼</div><div class="tile-label">Superviseure</div><div class="tile-sub">RH / Supervision</div></div>
     </div>
   </div>
 
@@ -1561,6 +1571,7 @@ html,body{overflow-x:hidden;}
       <option value="directeur">👔 Directeur</option>
       <option value="manager">⭐ Manager</option>
       <option value="__ecran">📺 Vue écran télé</option>
+      <option value="__ipad">📟 Vue iPad — bureau manager</option>
       <option value="__telephone">📱 Vue téléphone équipe</option>
     </select>
     <span id="preview-status" style="font-size:.76rem;color:#aaa;"></span>
@@ -4139,6 +4150,15 @@ function onPreviewChange(){
   if(role==='__telephone'){
     var pr0=document.getElementById('preview-role'); if(pr0) pr0.value='';
     try{ _eqKiosk=false; equipierPortail(); }catch(e){ console.warn('preview téléphone',e); }
+    return;
+  }
+  /* ★ v667 — VUE iPAD : le poste du bureau manager, exactement comme sur la tablette.
+     Même principe que la vue téléphone : on ouvre le vrai écran (pickIpad), on ne
+     simule pas un rôle. Le restaurant est celui qui est actif en haut. */
+  if(role==='__ipad'){
+    var pri=document.getElementById('preview-role'); if(pri) pri.value='';
+    try{ pickIpad(resto||'bk500'); }
+    catch(e){ console.warn('preview iPad',e); try{ toast('Impossible d\'ouvrir la vue iPad','error'); }catch(_){} }
     return;
   }
   // Vue ÉCRAN TÉLÉ : on affiche le tableau EN DIRECT du restaurant (comme la télé),
@@ -14233,20 +14253,35 @@ function collectAlertes(restoFiltre){
     });
   }catch(e){}
 
-  // ── 2) VISITE MÉDICALE D'EMBAUCHE (candidats en période d'essai) ──
+  /* ── 2) VISITE MÉDICALE D'EMBAUCHE (candidats en période d'essai) ──
+     ★ v668 — ELLES REJOIGNENT LA TUILE « VISITE MÉDICALE ».
+
+     Vincent : « les visites médicales, c'est le dossier recrutement… il ne faut pas
+     que tu mélanges. Tu mets les visites médicales dans visite médicale. »
+
+     Elles étaient rangées sous « Recrutement » : une visite d'embauche à planifier
+     tombait dans une tuile, une visite périodique dépassée dans une autre, alors que
+     c'est le même travail — appeler l'AMETRA et poser un rendez-vous. Et comme ces
+     trois alertes étaient les SEULES de la catégorie Recrutement, la tuile ne servait
+     qu'à ça : elle est retirée (le recrutement est déjà couvert par « Besoin de
+     recrutement » et « Embauches à finaliser »).
+
+     Le bouton AMETRA suit avec elles (ametraKind / ametraId), et le libellé dit
+     toujours « visite d'embauche » : dans la tuile, on distingue d'un coup d'œil
+     l'embauche du périodique.                                                     */
   cands.filter(function(c){return (c.statut||'')==='essai';}).forEach(function(c){
     var v=visiteInfo(c); var resto=rlabel(c.restoId);
     if(v.fait) return; // déjà faite
     if(v.etat==='depasse'){
-      alerts.push({prio:0,cat:'Recrutement',icon:'📋',col:'#cc5555',
+      alerts.push({prio:0,cat:'Visite médicale',icon:'🩺',col:'#cc5555',
         titre:(c.prenom+' '+c.nom)+' — visite d\'embauche dépassée',
         sub:'À régulariser · '+resto,candId:c.id,ametraKind:'cand',ametraId:c.id});
     }else if(v.etat==='rouge'){
-      alerts.push({prio:1,cat:'Recrutement',icon:'📋',col:'#cc5555',
+      alerts.push({prio:1,cat:'Visite médicale',icon:'🩺',col:'#cc5555',
         titre:(c.prenom+' '+c.nom)+' — visite d\'embauche urgente',
         sub:(v.limiteStr?'Avant le '+v.limiteStr:'')+' · '+resto,candId:c.id,ametraKind:'cand',ametraId:c.id});
     }else if(v.etat==='orange'){
-      alerts.push({prio:2,cat:'Recrutement',icon:'📋',col:'#F5A623',
+      alerts.push({prio:2,cat:'Visite médicale',icon:'🩺',col:'#F5A623',
         titre:(c.prenom+' '+c.nom)+' — visite d\'embauche à planifier',
         sub:(v.limiteStr?'Avant le '+v.limiteStr:'')+' · '+resto,candId:c.id,ametraKind:'cand',ametraId:c.id});
     }
@@ -14411,7 +14446,9 @@ window._alertesApply=_alertesApply; window.alertesTab=alertesTab;
 var ALERT_CATS=[
   // ── 1) Recrutement & intégration ───────────────────────
   {cat:'Besoin de recrutement',icon:'🧩',desc:'Quel contrat recruter (cuisine/salle · 24h/20h/15h) + apprentis (12/resto)'},
-  {cat:'Recrutement',icon:'🎯',desc:'Candidatures, visites d\'embauche, dossiers candidats'},
+  /* ★ v668 — tuile « Recrutement » retirée : elle ne contenait que les visites
+     médicales d'embauche, parties rejoindre « Visite médicale ». Le recrutement
+     reste couvert par « Besoin de recrutement » et « Embauches à finaliser ». */
   {cat:'Dossiers incomplets',icon:'📋',desc:'Pièces manquantes au dossier salarié'},
   // ── 2) Contrats & période d'essai ──────────────────────
   {cat:'Contrats à signer',icon:'📄',desc:'Contrats en attente de signature'},
@@ -14419,7 +14456,7 @@ var ALERT_CATS=[
   {cat:'Période d\'essai',icon:'⏳',desc:'Préavis à envoyer : 3 jours avant les 48 h, 3 jours avant les 15 jours, et au dernier moment'},
   {cat:'Contrats',icon:'🎓',desc:'Échéances de contrat (apprentissage, DPAE…)'},
   // ── 3) Suivi santé & administratif ─────────────────────
-  {cat:'Visite médicale',icon:'🩺',desc:'Visites médicales périodiques à planifier'},
+  {cat:'Visite médicale',icon:'🩺',desc:'Visites d\'embauche ET visites périodiques à planifier — tout le suivi AMETRA'},
   {cat:'Mutuelle',icon:'❤️',desc:'Mutuelles arrivant à expiration'},
   {cat:'Titre de séjour',icon:'🛂',desc:'Titres de séjour à renouveler / expirés'},
   // ── 4) Demandes des équipiers ──────────────────────────
@@ -19358,6 +19395,17 @@ async function candCreerSalarieEquipe(c){
       var _infosEmb={};
       if(String(c.rqth||'').toLowerCase()==='oui') _infosEmb.rqth='oui';
       if(c.photo) _infosEmb.photo=c.photo;   // la photo du candidat suit sur sa fiche salarié
+      /* ★ v666 — LA DATE DE NAISSANCE SUIT, ELLE AUSSI.
+
+         Elle était saisie à la candidature… et perdue à la création de la fiche
+         salarié : elle n'était nulle part dans _infosEmb. Or le code PIN par défaut,
+         c'est la date de naissance en JJMM (ptgCodeAttendu). Sans elle, pas de code —
+         et Paramètres › Codes PIN affichait « 9 salariés sans code, ils ne pourront
+         pas pointer », alors que la date était bien renseignée dans leur candidature.
+         C'est ce que Vincent a constaté sur BK 500 : Breton Kilian, EL BENNOUNI
+         Mariam, Idez Léa, Laib Sarah, LOPEZ LUCAS, Maillard Marina, Mizzi Amaury,
+         Pinto Marine, Quatrepoint Emilie — toutes des fiches nées d'une candidature. */
+      if(c.dateNaissance) _infosEmb.date_naissance=c.dateNaissance;
       /* ★ v655 — la date d'entrée suit : c'est elle qui ouvre les horaires
          (avant, aucun trait n'est plaçable — voir entreeBloque).            */
       if(c.dateDebut) _infosEmb.date_entree=c.dateDebut;
@@ -19447,6 +19495,77 @@ async function candContratSigne(){
   }
   _candUpdate({statut:'essai',contrat_signe:true},'Contrat signé — salarié ajouté à l\'équipe 🚀',function(){loadAll();});
 }
+
+/* ★ v666 — LES FICHES DÉJÀ CRÉÉES SANS DATE DE NAISSANCE.
+
+   Pour celles qui existent déjà, la date est toujours dans leur candidature d'origine
+   (la fiche porte fromCandId). On peut donc la récupérer. Mais JAMAIS tout seul au
+   chargement — c'est l'erreur de la v658, qui écrivait dans la base à chaque
+   ouverture. Ici : on liste, Vincent regarde, Vincent valide. Rien ne part sans lui.
+
+   Le bouton est dans Paramètres › Codes PIN, juste sous le bandeau rouge qui
+   annonce les salariés sans code.                                                  */
+function pinSansDateListe(restoId){
+  var out=[];
+  try{
+    (DB.employees||[]).forEach(function(e){
+      if(!e || e.archived) return;
+      if(restoId && (e.restoId||'').toLowerCase()!==String(restoId).toLowerCase()) return;
+      var dn=(e.infos&&e.infos.date_naissance)||e.dateNaissance||'';
+      if(dn) return;                                   // elle a déjà sa date
+      if(!e.fromCandId) return;                        // pas née d'une candidature
+      var c=(DB.candidatures||[]).find(function(x){ return x.id===e.fromCandId; });
+      if(!c || !c.dateNaissance) return;               // la candidature ne l'a pas non plus
+      out.push({emp:e, cand:c, date:c.dateNaissance});
+    });
+  }catch(_){}
+  return out;
+}
+window.pinSansDateListe=pinSansDateListe;
+
+/* Le bandeau proposé sous l'alerte « salariés sans code ». */
+function pinBandeauRattrapage(restoId){
+  var L=pinSansDateListe(restoId);
+  if(!L.length) return '';
+  function _jjmm(d){ var m=String(d).match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[3]+m[2]):'?'; }
+  return '<div style="background:#12261a;border:1px solid #3ecf8e;border-radius:9px;padding:11px 13px;margin-bottom:12px;">'
+    +'<div style="font-weight:800;color:#3ecf8e;font-size:.9rem;margin-bottom:5px;">'
+      +'✅ '+L.length+' de ces fiches ont leur date de naissance dans leur candidature</div>'
+    +'<div style="color:#a9b4ac;font-size:.79rem;line-height:1.55;margin-bottom:9px;">'
+      +'Elle n\'avait pas été reprise au moment de créer la fiche salarié. On peut la remettre — '
+      +'leur code redeviendra leur date de naissance, comme pour tout le monde.<br>'
+      +L.map(function(x){ return '<b>'+_msgEsc(x.emp.name)+'</b> → '+_jjmm(x.date); }).join(' · ')
+    +'</div>'
+    +'<button type="button" class="btn btn-sm" style="background:#1d7a3a;color:#fff;" '
+      +'onclick="pinRattraperDates(\''+String(restoId||'').replace(/'/g,"")+'\')">'
+      +'📅 Remettre la date de naissance sur ces '+L.length+' fiche(s)</button>'
+    +' <span id="pin-rattrap-msg" style="font-size:.82rem;color:#3ecf8e;font-weight:700;margin-left:8px;"></span>'
+    +'</div>';
+}
+window.pinBandeauRattrapage=pinBandeauRattrapage;
+
+async function pinRattraperDates(restoId){
+  var L=pinSansDateListe(restoId);
+  if(!L.length){ try{ toast('Rien à rattraper.','info'); }catch(_){} return; }
+  var noms=L.map(function(x){ return x.emp.name; });
+  if(!confirm('Remettre la date de naissance sur '+L.length+' fiche(s) ?\n\n'+noms.join('\n')
+    +'\n\nElle est reprise de leur candidature. Leur code PIN redeviendra leur date de naissance (JJMM).')) return;
+  var n=0;
+  for(var i=0;i<L.length;i++){
+    var e=L[i].emp;
+    try{
+      e.infos=e.infos||{};
+      e.infos.date_naissance=L[i].date;
+      var r=await sb.patch('bks_employees','id=eq.'+e.id,{infos:e.infos});
+      n++;
+    }catch(_){}
+  }
+  try{ var el=document.getElementById('pin-rattrap-msg'); if(el) el.textContent='✅ '+n+' fiche(s) complétée(s)'; }catch(_){}
+  try{ toast(n+' date(s) de naissance remise(s) — leur code PIN est rétabli','success'); }catch(_){}
+  try{ if(typeof renderCodesPin==='function') renderCodesPin(); }catch(_){}
+  try{ if(typeof pinRender==='function') pinRender(); }catch(_){}
+}
+window.pinRattraperDates=pinRattraperDates;
 
 /* Le salarié créé depuis ce candidat, s'il existe déjà. */
 function candSalarieDe(c){
@@ -21686,6 +21805,8 @@ function _pinRenderResto(resto){
       +'Le code par défaut est la <b>date de naissance</b> (JJMM). Sans date de naissance dans la fiche, il n\'y a pas de code : '
       +'<b>'+sansCode.map(function(e){return _msgEsc(e.name||'');}).join(', ')+'</b> ne pourr'+(sansCode.length>1?'ont':'a')+' pas pointer. '
       +'Renseigne la date de naissance, tape un code à la main, ou désactive le code.</div>';
+    /* ★ v666 — pour celles dont la candidature a la date, on propose de la remettre. */
+    try{ h+=pinBandeauRattrapage(resto); }catch(_){}
   }
   h+='<div class="pin-filtres">'
       +'<button onclick="pinFiltrer(\'tous\')" class="btn '+(_pinFiltre==='tous'?'btn-red':'btn-gray')+' btn-sm">Tout le monde ('+team.length+')</button>'
