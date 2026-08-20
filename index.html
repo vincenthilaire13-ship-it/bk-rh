@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-24 14:10 · v638 (periode dessai : preavis et dernier jour pour prevenir)';
+  var EMBEDDED_VERSION = '2026-08-24 17:10 · v641 (retirer une absence sur lipad : le creneau est bien libere)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -598,6 +598,23 @@ html.theme-light .pe-b b{color:#1c1e22;}
 .pe-dec-q{font-size:.7rem;color:#8a9099;}
 html.theme-light .pe-dec-b{border-color:#c9ccd4;color:#5f6672;}
 html.theme-light .pe-dec-b:hover{border-color:#8a9099;color:#1c1e22;}
+/* ★ v639 — la règle graduée de la période d'essai. */
+.pe-jauge{position:relative;height:16px;overflow:visible;margin:22px 0 3px;}
+.pe-jg-clip{position:absolute;inset:0;border-radius:9px;overflow:hidden;border:1px solid rgba(0,0,0,.18);}
+.pe-jg-fond{position:absolute;inset:0;}
+.pe-jg-jours{position:absolute;inset:0;
+  background-image:linear-gradient(90deg,rgba(255,255,255,.35) 0 1px,transparent 1px 100%);
+  background-repeat:repeat-x;opacity:.55;}
+.pe-jg-futur{position:absolute;top:0;bottom:0;right:0;background:rgba(255,255,255,.72);}
+.pe-jg-lim{position:absolute;top:-2px;bottom:-2px;width:3px;background:#1c1e22;box-shadow:0 0 0 1px #fff;}
+.pe-jg-cur{position:absolute;top:-3px;bottom:-3px;width:3px;background:#1c1e22;}
+.pe-jg-cur b{position:absolute;left:50%;transform:translateX(-50%);top:-16px;font-size:.62rem;
+  font-weight:900;background:#1c1e22;color:#fff;border-radius:5px;padding:1px 5px;white-space:nowrap;}
+.pe-jg-lbl{display:flex;justify-content:space-between;gap:10px;font-size:.68rem;color:#8a9099;font-weight:700;}
+.pe-jg-lbl .mid{color:#c0392b;}
+html:not(.theme-light) .pe-jg-futur{background:rgba(20,20,22,.74);}
+html:not(.theme-light) .pe-jg-lim,html:not(.theme-light) .pe-jg-cur{background:#fff;}
+html:not(.theme-light) .pe-jg-cur b{background:#fff;color:#111;}
 html:not(.theme-light) .pe-b b{color:#eee;}
 /* ★ v636 — LES CARTES DES CODES PIN. Elles étaient écrites en dur en sombre :
    en thème clair, texte noir sur fond noir. On passe par des classes, avec
@@ -12786,6 +12803,44 @@ function essaiBoutons(c){
 }
 window.essaiBoutons=essaiBoutons;
 
+/* ★ v639 — LA JAUGE DE PÉRIODE D'ESSAI.
+   Une règle graduée jour par jour, du premier jour à la fin. Le fond passe du
+   vert à l'orange puis au rouge à mesure qu'on avance ; un curseur marque
+   AUJOURD'HUI, un drapeau marque le dernier jour pour prévenir.            */
+function essaiJauge(c){
+  var e=essaiInfo(c); if(!e) return '';
+  var total=Math.max(1, Math.round((e.fin-e.debut)/(24*3600*1000)));
+  function pct(d){ var v=Math.round((d-e.debut)/(24*3600*1000)); return Math.max(0, Math.min(100, (v/total)*100)); }
+  var now=new Date();
+  var pNow=pct(now);
+  var pLim=e.dernier?pct(e.dernier.date):null;
+  /* les paliers, pour graduer la couleur au bon endroit */
+  var p8 =pct(new Date(e.debut.getTime()+8*24*3600*1000));
+  var p31=pct(new Date(e.debut.getTime()+31*24*3600*1000));
+  var fond='linear-gradient(90deg,#3ecf8e 0%,#3ecf8e '+p8.toFixed(1)+'%,'
+    +'#E0C040 '+p8.toFixed(1)+'%,#E0C040 '+p31.toFixed(1)+'%,'
+    +'#F5A623 '+p31.toFixed(1)+'%,#F5A623 '+(pLim!=null?pLim.toFixed(1):'90')+'%,'
+    +'#c0392b '+(pLim!=null?pLim.toFixed(1):'90')+'%,#c0392b 100%)';
+  var jourPct=(100/total);
+  var jauge='<div class="pe-jauge" title="'+total+' jours de période d\'essai — J+'+e.jours+' aujourd\'hui">'
+    +'<div class="pe-jg-clip">'
+      +'<div class="pe-jg-fond" style="background:'+fond+';"></div>'
+      +'<div class="pe-jg-jours" style="background-size:'+jourPct.toFixed(3)+'% 100%;"></div>'
+      +'<div class="pe-jg-futur" style="left:'+pNow.toFixed(1)+'%;"></div>'
+    +'</div>'
+    +(pLim!=null?('<div class="pe-jg-lim" style="left:'+pLim.toFixed(1)+'%;" title="Dernier jour pour prévenir : '+e.limiteStr+'"></div>'):'')
+    +'<div class="pe-jg-cur" style="left:'+pNow.toFixed(1)+'%;"><b>J+'+e.jours+'</b></div>'
+  +'</div>'
+  +'<div class="pe-jg-lbl">'
+    +'<span>'+e.debutStr+'</span>'
+    +'<span class="mid">'+(e.apprenti?(e.joursRestants+' j de rupture libre')
+        :('⚑ prévenir avant le '+e.limiteStr+(e.joursAvantLimite>=0?(' · J−'+e.joursAvantLimite):' · passé')))+'</span>'
+    +'<span>'+e.finStr+'</span>'
+  +'</div>';
+  return jauge;
+}
+window.essaiJauge=essaiJauge;
+
 // ── Réglages VISITE MÉDICALE (configurables dans Paramètres › Visite médicale) ──
 // Délais paramétrables ; valeurs par défaut = comportement historique.
 var VISITE_CFG_DEFAUT={embaucheLimiteMois:6, embaucheAlerteMois:4, embaucheUrgentMois:2, periodiqueAlerteJours:30, periodiqueDefautAns:2};
@@ -15940,7 +15995,7 @@ function dashOpenDepannage(){
   var body=dashOpenPanel('🆘 Dépannage — '+lbl);
   var open=depGetAll().filter(function(d){ return d.status==='ouvert' && (''+d.resto).toLowerCase()===(''+resto).toLowerCase(); });
   open.sort(function(a,b){ return (a.jour<b.jour?-1:a.jour>b.jour?1:0) || (a.s-b.s); });
-  var h='<div style="font-size:.85rem;color:#555;margin-bottom:12px;">Créneaux à couvrir suite à une absence. Un équipier compétent choisit un créneau, saisit son code, et l\'obtient immédiatement.</div>';
+  var h='<div style="font-size:.85rem;color:#555;margin-bottom:12px;">Créneaux à couvrir suite à une absence. Un équipier compétent choisit un créneau, dit qui il est, et l\'obtient immédiatement.</div>';
   if(!open.length){ h+='<div style="background:#f2f7f2;border:1px solid #cfe6cf;border-radius:12px;padding:18px;color:#2e7d32;font-size:.94rem;text-align:center;">👍 Aucun créneau à dépanner pour le moment.</div>'; }
   else {
     h+=open.map(function(d){
@@ -15957,7 +16012,10 @@ function dashOpenDepannage(){
   try{ depCharger(true); }catch(_){}
 }
 window.dashOpenDepannage=dashOpenDepannage;
-// Écran télé : « Je prends » → choisir le salarié compétent puis saisir son code.
+/* Écran télé : « Je prends » → on choisit son nom, et c'est tout.
+   ★ v640 — PLUS DE CODE. Vincent : « pour prendre un créneau, il n'y a pas
+   besoin de code. » L'écran est dans le restaurant, entre collègues : le code
+   ne protégeait rien et freinait celui qui rendait service.               */
 function depPrendreEcran(slotId){
   var all=depGetAll(); var slot=all.find(function(d){return d.id===slotId;});
   if(!slot || slot.status!=='ouvert'){ try{ toast('Ce créneau n\'est plus disponible.','error'); }catch(_){} dashOpenDepannage(); return; }
@@ -15974,23 +16032,21 @@ function depPrendreEcran(slotId){
     +'<div style="color:#444;font-size:.9rem;margin-bottom:14px;text-transform:capitalize;">'+_depDateFr(slot.jour)+' · <span style="background:'+col+';color:#fff;border-radius:5px;padding:1px 8px;font-size:.8rem;font-weight:700;">'+_ptgEsc(_depPoste(slot.l))+'</span> '+_depMin2hm(slot.s)+'–'+_depMin2hm(slot.e)+'</div>'
     +(elig.length
       ? '<div style="text-align:left;color:#555;font-size:.82rem;margin-bottom:6px;">Qui prend le créneau ?</div>'
-        +'<select id="dep-pick-emp" class="fi" style="width:100%;margin-bottom:12px;">'+opts+'</select>'
-        +'<div style="text-align:left;color:#555;font-size:.82rem;margin-bottom:6px;">Ton code (jour + mois de naissance, ex. 0309)</div>'
-        +'<input id="dep-pick-pin" type="tel" inputmode="numeric" maxlength="4" placeholder="••••" style="width:140px;background:#f2f2f2;border:1px solid #ccc;color:#111;border-radius:10px;padding:11px;font-size:1.3rem;letter-spacing:.35em;text-align:center;margin-bottom:6px;" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');">'
+        +'<select id="dep-pick-emp" class="fi" style="width:100%;margin-bottom:12px;font-size:1.05rem;padding:12px;">'+opts+'</select>'
         +'<div id="dep-pick-msg" style="font-size:.82rem;min-height:18px;margin:6px 0;"></div>'
-        +'<button onclick="depPrendreEcranValider(\''+slotId+'\')" style="width:100%;background:#D62300;border:none;color:#fff;font-weight:800;border-radius:10px;padding:12px;font-size:1rem;cursor:pointer;">Valider</button>'
+        +'<button onclick="depPrendreEcranValider(\''+slotId+'\')" style="width:100%;background:#D62300;border:none;color:#fff;font-weight:800;border-radius:10px;padding:14px;font-size:1.05rem;cursor:pointer;">✋ Je prends ce créneau</button>'
       : '<div style="background:#fff4f0;border:1px solid #f2c4b4;border-radius:10px;padding:14px;color:#b03a1a;font-size:.9rem;">Aucun équipier compétent disponible dans ce restaurant pour ce poste.</div>')
   +'</div>';
   document.body.appendChild(ov);
 }
 window.depPrendreEcran=depPrendreEcran;
 function depPrendreEcranValider(slotId){
-  var sel=document.getElementById('dep-pick-emp'); var pin=((document.getElementById('dep-pick-pin')||{}).value||'').trim();
+  var sel=document.getElementById('dep-pick-emp');
   var msg=document.getElementById('dep-pick-msg');
   function ko(t){ if(msg){ msg.style.color='#c0392b'; msg.textContent=t; } }
   var empId=sel&&sel.value; if(!empId){ ko('Choisis ton nom.'); return; }
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e){ ko('Salarié introuvable.'); return; }
-  if(!empCodeMatch(e, pin)){ ko('Code incorrect.'); return; }
+  /* ★ v640 — aucun code demandé : le nom suffit. */
   if(depPrendre(slotId, e)){ var ov=document.getElementById('dep-pick-ov'); if(ov) ov.remove(); dashOpenDepannage(); }
   else { ko('Impossible de prendre ce créneau.'); }
 }
@@ -17082,7 +17138,7 @@ function renderCandidatures(){
       var _di=essaiDecisionInfo(c);
       if(_di) alert+='<span style="background:'+_di.coul+';color:#fff;border-radius:10px;padding:2px 8px;font-size:.68rem;font-weight:900;margin-left:6px;">'+_di.icon+' '+_di.court+'</span>';
       /* ★ v638 — décider sans ouvrir la fiche */
-      try{ _peDec=essaiBoutons(c); }catch(_){}
+      try{ _peDec=essaiJauge(c)+essaiBoutons(c); }catch(_){}
     }
     return '<div class="emp-card" style="border-left:4px solid '+col+';cursor:pointer;" onclick="openCand(\''+c.id+'\')">'
       +'<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
@@ -36563,7 +36619,13 @@ function ipadCreneauAbsent(empId, key){
   var quoi=surCreneau
     ? (sg?(_ipadHM(sg.s)+'–'+_ipadHM(sg.e)+(sg.l?(' · '+_ipadEsc(sg.l)):'')):'ce créneau')
     : 'toute la journée';
-  var retirer=surCreneau ? ("ipadRetirerCreneau('"+empId+"')") : ("ipadRetirerAbsence('"+empId+"')");
+  /* ★ v641 — ON PASSE LA CLÉ. Le bouton « Retirer » retombait sur la
+     sélection courante, qui était vide : il retirait alors l'absence du JOUR
+     au lieu du créneau, et le trait restait barré.                        */
+  var retirer=surCreneau ? ("ipadRetirerCreneau('"+empId+"','"+key+"')") : ("ipadRetirerAbsence('"+empId+"')");
+  /* et on cale la sélection sur ce créneau, pour « Changer le motif » */
+  try{ if(surCreneau && sg){ _ipadSelKeys=[key]; _ipadPorteeChoisie=true;
+        _ipadSel={empId:empId, key:key, s:sg.s, e:sg.e, l:sg.l}; } }catch(_){}
   var h='<div class="ip-scope" style="border-color:'+mi.col+';">'
       +mi.icon+' <b>'+_ipadEsc(mi.label)+'</b> — '+quoi+'</div>'
     +'<button class="ip-cren-act" style="border-color:#3ecf8e;" onclick="'+retirer+'">'
@@ -37242,7 +37304,26 @@ function ipadRetirerAbsence(empId){
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
   ipadDemanderCode('Ton code manager','Annuler l\'absence de <b>'+_ipadEsc(e.name)+'</b> (il est finalement présent).', function(who){
     try{ ptgEditPresent(empId,_ipadDate); }catch(err){ console.warn('ipad présent',err); }
-    _ipadConfirme('Absence annulée','<b>'+_ipadEsc(e.name)+'</b> est de nouveau noté présent.<br><span class="ip-par">Par '+_ipadEsc(who.nom)+'</span>');
+    /* ★ v641 — on efface aussi les absences posées CRÉNEAU PAR CRÉNEAU, sinon
+       le trait restait barré alors que la journée était « remise présente ». */
+    var _n=0;
+    try{
+      (_ipadSegs(empId)||[]).forEach(function(sg){
+        var k=sg.s+'-'+sg.e;
+        if(_ipadCrenAbsent(empId,k)){
+          try{ if(typeof ptgEditCrenPresent==='function') ptgEditCrenPresent(empId,_ipadDate,k); _n++; }catch(_){}
+        }
+      });
+    }catch(_){}
+    try{ if(typeof semDepannageRetirer==='function') semDepannageRetirer(empId,_ipadDate); }catch(_){}
+    try{ if(typeof hrReplanifierSurAbsence==='function') hrReplanifierSurAbsence(empId,_ipadDate); }catch(_){}
+    try{ _ipadTracePtg(empId, who, 'absence retirée (journée)'); }catch(_){}
+    try{ HR_ABS_DERNIER_FETCH=0; }catch(_){}
+    try{ if(typeof _semRefreshIfActive==='function') _semRefreshIfActive(); }catch(_){}
+    try{ _ipadSelVide(); }catch(_){}
+    _ipadConfirme('Absence annulée','<b>'+_ipadEsc(e.name)+'</b> est de nouveau noté présent.'
+      +(_n?('<br><span class="ip-par">'+_n+' créneau'+(_n>1?'x':'')+' remis à « à pointer »</span>'):'')
+      +'<br><span class="ip-par">Par '+_ipadEsc(who.nom)+'</span>');
   });
 }
 window.ipadRetirerAbsence=ipadRetirerAbsence;
@@ -37250,9 +37331,12 @@ window.ipadRetirerAbsence=ipadRetirerAbsence;
  * redevient simplement « à pointer ». On ne referme le dépannage / on ne relance la
  * replanification QUE s'il ne reste plus aucune absence sur la journée — sinon on
  * effacerait le remplacement d'un autre créneau encore absent. */
-function ipadRetirerCreneau(empId){
+function ipadRetirerCreneau(empId, key){
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
-  var sel=_ipadSel; if(!sel){ ipadRetirerAbsence(empId); return; }
+  var sel=null;
+  if(key){ var sg=_ipadSegParKey(empId,key); if(sg) sel={empId:empId, key:key, s:sg.s, e:sg.e, l:sg.l}; }
+  if(!sel) sel=_ipadSel;
+  if(!sel){ ipadRetirerAbsence(empId); return; }
   ipadDemanderCode('Ton code manager',
     'Retirer l\'absence de <b>'+_ipadEsc(e.name)+'</b> sur <b>'+_ipadHM(sel.s)+'–'+_ipadHM(sel.e)+'</b>.<br>Le créneau redeviendra simplement « à pointer ».',
     function(who){
@@ -37271,7 +37355,10 @@ function ipadRetirerCreneau(empId){
         /* ★ v629 — il reste des absences ailleurs : on ne referme QUE ce créneau. */
         try{ if(typeof semDepannageRetirer==='function') semDepannageRetirer(empId,_ipadDate,sel.key); }catch(_){}
       }
-      _ipadSel=null;
+      /* ★ v641 — l'écran doit repartir propre, et Contrôle des heures relire. */
+      try{ _ipadSelVide(); }catch(_){ _ipadSel=null; }
+      try{ HR_ABS_DERNIER_FETCH=0; }catch(_){}
+      try{ if(typeof _semRefreshIfActive==='function') _semRefreshIfActive(); }catch(_){}
       _ipadConfirme('Absence retirée',
         '<b>'+_ipadEsc(e.name)+'</b> — créneau '+_ipadHM(sel.s)+'–'+_ipadHM(sel.e)+' remis à « à pointer ».'
         +'<br><span class="ip-par">Par '+_ipadEsc(who.nom)+'</span>'
