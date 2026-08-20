@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-23 21:05 · v627 (recalage automatique des pointages mal accroches)';
+  var EMBEDDED_VERSION = '2026-08-23 23:50 · v629 (absence par creneau respectee partout ; incident ipad = observation verbale)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -580,6 +580,24 @@ html.theme-light{
 }
 /* La barre de navigation garde du contraste sans devenir blanche. */
 html.theme-light nav{ background:#e4e6ec !important; border-color:#d2d5dc !important; }
+/* ★ v628 — LES VOLETS DE LA FICHE SALARIÉ (Identité, Coordonnées, …).
+   Une fiche complète, c'est huit blocs et trois écrans de défilement. On les
+   replie : on ouvre celui qu'on cherche, on referme, on passe au suivant.  */
+.empf-acc{ border:1px solid #2a2a2a; border-radius:12px; background:var(--gray); margin-bottom:10px; overflow:hidden; }
+.empf-acc-h{ display:flex; align-items:center; gap:10px; width:100%; background:transparent; border:0;
+  padding:12px 14px; cursor:pointer; text-align:left; font:inherit; }
+.empf-acc-h .ic{ font-size:1.05rem; flex:none; line-height:1; }
+.empf-acc-h .tt{ font-family:'Barlow Condensed',sans-serif; font-weight:700; letter-spacing:1px;
+  text-transform:uppercase; color:var(--orange); font-size:1rem; }
+.empf-acc-h .sub{ margin-left:auto; font-size:.74rem; color:#8a9099; white-space:nowrap; }
+.empf-acc-h .chev{ flex:none; color:#8a9099; font-size:.85rem; transition:transform .15s ease; }
+.empf-acc.on .empf-acc-h .chev{ transform:rotate(180deg); }
+.empf-acc-h:hover{ background:rgba(255,255,255,.05); }
+.empf-acc-b{ padding:2px 14px 14px; }
+.empf-outils{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+html.theme-light .empf-acc{ border-color:#dcdfe6; }
+html.theme-light .empf-acc-h:hover{ background:rgba(0,0,0,.045); }
+html.theme-light .empf-acc-h .sub, html.theme-light .empf-acc-h .chev{ color:#5f6672; }
 /* ★ v620 — les deux fenêtres de pointage restent lisibles en thème clair. */
 html.theme-light #ptg-ret-sub{ color:#6b5a50 !important; }
 html.theme-light #ptg-hp-choisi{ color:#1a1206 !important; }
@@ -11006,6 +11024,60 @@ var EMPF_SECTIONS=[
   ]},
 ];
 
+/* ★ v628 — OUVRIR / FERMER LES BLOCS DE LA FICHE.
+   L'état est retenu d'un salarié à l'autre : si tu ne regardes jamais les
+   coordonnées bancaires, elles restent fermées.                            */
+function _empfSlug(t){ return String(t||'').toLowerCase()
+  .replace(/[àâä]/g,'a').replace(/[éèêë]/g,'e').replace(/[îï]/g,'i').replace(/[ôö]/g,'o').replace(/[ùûü]/g,'u')
+  .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
+var _EMPF_OUV=null;
+function _empfEtat(){
+  if(_EMPF_OUV) return _EMPF_OUV;
+  try{ var r=localStorage.getItem('bkrh_empf_volets'); if(r) _EMPF_OUV=JSON.parse(r); }catch(_){}
+  if(!_EMPF_OUV || typeof _EMPF_OUV!=='object') _EMPF_OUV={};
+  return _EMPF_OUV;
+}
+function _empfEtatSave(){ try{ localStorage.setItem('bkrh_empf_volets', JSON.stringify(_empfEtat())); }catch(_){} }
+function _empfOuvert(scope, titre, parDefaut){
+  var st=_empfEtat(), k=scope+':'+_empfSlug(titre);
+  return (st[k]===undefined) ? !!parDefaut : !!st[k];
+}
+function empfVolet(scope, titre){
+  var st=_empfEtat(), k=scope+':'+_empfSlug(titre);
+  var el=document.getElementById('empfv-'+scope+'-'+_empfSlug(titre));
+  var box=el?el.parentNode:null;
+  var ouvert=el?(el.style.display!=='none'):false;
+  if(el) el.style.display=ouvert?'none':'';
+  if(box&&box.classList) box.classList.toggle('on', !ouvert);
+  st[k]=!ouvert; _empfEtatSave();
+}
+window.empfVolet=empfVolet;
+function empfVoletsTous(scope, ouvrir){
+  var st=_empfEtat();
+  EMPF_SECTIONS.forEach(function(sec){
+    var sl=_empfSlug(sec.title);
+    st[scope+':'+sl]=!!ouvrir;
+    var el=document.getElementById('empfv-'+scope+'-'+sl);
+    if(el){ el.style.display=ouvrir?'':'none';
+      if(el.parentNode&&el.parentNode.classList) el.parentNode.classList.toggle('on', !!ouvrir); }
+  });
+  _empfEtatSave();
+}
+window.empfVoletsTous=empfVoletsTous;
+/* Un volet : l'en-tête cliquable + le contenu qui se replie. Le contenu reste
+   TOUJOURS dans la page (display:none) — sinon la saisie serait perdue.     */
+function _empfVoletHtml(scope, sec, corps, resume, ouvert){
+  var sl=_empfSlug(sec.title);
+  return '<div class="empf-acc'+(ouvert?' on':'')+'">'
+    +'<button type="button" class="empf-acc-h" onclick="empfVolet(\''+scope+'\',\''+_msgEsc(sec.title)+'\')">'
+      +'<span class="ic">'+sec.icon+'</span>'
+      +'<span class="tt">'+_msgEsc(sec.title)+'</span>'
+      +'<span class="sub">'+(resume||'')+'</span>'
+      +'<span class="chev">▾</span>'
+    +'</button>'
+    +'<div class="empf-acc-b" id="empfv-'+scope+'-'+sl+'"'+(ouvert?'':' style="display:none;"')+'>'+corps+'</div>'
+  +'</div>';
+}
 function _frDate(v){if(!v)return '';try{return new Date(v+'T12:00:00').toLocaleDateString('fr-FR');}catch(_){return v;}}
 
 function empEstEncadrement(e){
@@ -11580,10 +11652,14 @@ function renderEmpFicheInfos(id){
     +(inf.fin_carte_sejour?'<span style="font-size:.74rem;background:#141414;border-left:3px solid '+(_isExpired(inf.fin_carte_sejour)?'#D62300':'#3ecf8e')+';border-radius:0 6px 6px 0;padding:5px 10px;color:#ddd;">🛂 Titre séjour : '+_frDate(inf.fin_carte_sejour)+'</span>':'')
     +(inf.mutuelle_fin?'<span style="font-size:.74rem;background:#141414;border-left:3px solid '+(_isExpired(inf.mutuelle_fin)?'#D62300':'#3ecf8e')+';border-radius:0 6px 6px 0;padding:5px 10px;color:#ddd;">❤️ Mutuelle : '+_frDate(inf.mutuelle_fin)+'</span>':'')
     +'</div></div>';
-  // sections
-  EMPF_SECTIONS.forEach(function(sec){
-    h+='<div class="card" style="margin-bottom:12px;"><div class="sec-title">'+sec.icon+' '+sec.title+'</div>';
-    h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 18px;">';
+  // sections — ★ v628 : chacune se replie
+  h+='<div class="empf-outils">'
+    +'<button class="btn btn-gray btn-sm" onclick="empfVoletsTous(\'fiche\',true)">▾ Tout ouvrir</button>'
+    +'<button class="btn btn-gray btn-sm" onclick="empfVoletsTous(\'fiche\',false)">▸ Tout fermer</button>'
+    +'</div>';
+  EMPF_SECTIONS.forEach(function(sec, iSec){
+    var corps='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 18px;">';
+    var remplis=0;
     sec.fields.forEach(function(f){
       var key=f[0],lbl=f[1],typ=f[2];
       var val;
@@ -11591,12 +11667,15 @@ function renderEmpFicheInfos(id){
       else if(key==='_phone')val=e.phone;
       else if(key==='_role')val=cap(e.role);
       else val=inf[key]||'';
+      if(val) remplis++;
       if(typ==='date')val=_frDate(val);
       var disp=val||'<span style="color:#555;">—</span>';
-      h+='<div><div style="font-size:.7rem;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">'+lbl+'</div>'
+      corps+='<div><div style="font-size:.7rem;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">'+lbl+'</div>'
         +'<div style="font-size:.9rem;color:#eee;word-break:break-word;">'+disp+'</div></div>';
     });
-    h+='</div></div>';
+    corps+='</div>';
+    var resume=remplis+' / '+sec.fields.length+' renseigné'+(remplis>1?'s':'');
+    h+=_empfVoletHtml('fiche', sec, corps, resume, _empfOuvert('fiche', sec.title, iSec===0));
   });
   // ── Suivi des contrats (frise) ──
   h+=_ficheContratsHtml(e);
@@ -11711,25 +11790,29 @@ function empfEdit(){
   h+='<div style="margin-bottom:9px;"><label class="flabel">Nom</label><input type="text" class="fi" id="ef__nom" value="'+String(_efNom).replace(/"/g,'&quot;')+'"></div>';
   h+='<div style="margin-bottom:9px;"><label class="flabel">Prénom</label><input type="text" class="fi" id="ef__prenom" value="'+String(_efPrenom).replace(/"/g,'&quot;')+'"></div>';
   h+='<div style="margin-bottom:9px;"><label class="flabel">Rôle</label><select class="fi" id="ef__role"><option value="equipier">Équipier</option><option value="leader">Leader</option><option value="manager">Manager</option><option value="directeur">Directeur</option></select></div>';
-  var _efRqthOui=String(inf.rqth||'').toLowerCase()==='oui';
-  h+='<div style="margin-bottom:9px;padding:10px 12px;border-radius:9px;background:'+(_efRqthOui?'#10304d':'#1a1a1a')+';border:1px solid '+(_efRqthOui?'#2f7fc4':'#3a3a3a')+';">'
-    +'<label style="display:flex;align-items:center;gap:9px;cursor:pointer;text-transform:none;font-size:.9rem;color:'+(_efRqthOui?'#9fd3ff':'#ddd')+';">'
-    +'<input type="checkbox" id="ef__rqth" '+(_efRqthOui?'checked':'')+' style="width:17px;height:17px;cursor:pointer;accent-color:#2f7fc4;">'
-    +'<span>\u267f Ce salarié est reconnu travailleur handicapé (RQTH)</span></label></div>';
-  // ── RQTH (travailleur handicapé) — case à cocher ──
+  // ── RQTH (travailleur handicapé) — case à cocher (★ v628 : elle était en double) ──
   var _efRqthOui=String(inf.rqth||'').toLowerCase()==='oui';
   h+='<div style="margin-bottom:9px;padding:9px 11px;border-radius:8px;background:'+(_efRqthOui?'#10304d':'#1a1a1a')+';border:1px solid '+(_efRqthOui?'#2f7fc4':'#3a3a3a')+';">'
     +'<label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.9rem;font-weight:600;color:'+(_efRqthOui?'#9fd3ff':'#ddd')+';text-transform:none;letter-spacing:0;">'
     +'<input type="checkbox" id="ef__rqth" '+(_efRqthOui?'checked':'')+' style="width:17px;height:17px;cursor:pointer;accent-color:#2f7fc4;">'
     +'<span>\u267f Travailleur handicapé (RQTH)</span></label></div>';
-  EMPF_SECTIONS.forEach(function(sec){
-    if(sec.title==='Emploi & contrat'){
-      h+='<div style="font-size:.74rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin:14px 0 6px;font-weight:700;">'+sec.icon+' '+sec.title+'</div>';
-      sec.fields.forEach(function(f){if(f[0]==='_role')return;h+=fld(f[0],f[1],f[2]);});
-    }else{
-      h+='<div style="font-size:.74rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin:14px 0 6px;font-weight:700;">'+sec.icon+' '+sec.title+'</div>';
-      sec.fields.forEach(function(f){h+=fld(f[0],f[1],f[2]);});
-    }
+  /* ★ v628 — mêmes volets qu'en lecture. Les champs restent dans la page
+     même fermés : rien n'est perdu à l'enregistrement.                     */
+  h+='<div class="empf-outils">'
+    +'<button type="button" class="btn btn-gray btn-sm" onclick="empfVoletsTous(\'edit\',true)">▾ Tout ouvrir</button>'
+    +'<button type="button" class="btn btn-gray btn-sm" onclick="empfVoletsTous(\'edit\',false)">▸ Tout fermer</button>'
+    +'</div>';
+  EMPF_SECTIONS.forEach(function(sec, iSec){
+    var corps='', remplis=0, total=0;
+    sec.fields.forEach(function(f){
+      if(sec.title==='Emploi & contrat' && f[0]==='_role') return;
+      total++;
+      var v0=(f[0]==='_email')?e.email:(f[0]==='_phone')?e.phone:(inf[f[0]]||'');
+      if(v0) remplis++;
+      corps+=fld(f[0],f[1],f[2]);
+    });
+    var resume=remplis+' / '+total+' renseigné'+(remplis>1?'s':'');
+    h+=_empfVoletHtml('edit', sec, corps, resume, _empfOuvert('edit', sec.title, iSec===0));
   });
   h+='</div>';
   document.getElementById('empedit-body').innerHTML=h;
@@ -11755,7 +11838,6 @@ async function empfSave(){
   if(_no||_pr){ var _nov=_no?_no.value.trim():''; var _prv=_pr?_pr.value.trim():''; inf.nom=_nov; inf.prenom=_prv; var _full=(_nov+' '+_prv).trim(); if(_full) patch.name=_full; }
   var rl=document.getElementById('ef__role');if(rl)patch.role=rl.value;
   var rqEl=document.getElementById('ef__rqth'); if(rqEl) inf.rqth=rqEl.checked?'oui':'non';
-  var rqEl=document.getElementById('ef__rqth');if(rqEl)inf.rqth=rqEl.checked?'oui':'non';
   // dates de visite médicale reportées sur les colonnes dédiées
   if(inf.vm_derniere!==undefined)patch.visite_date=inf.vm_derniere||'';
   if(inf.vm_expiration!==undefined)patch.visite_prochaine=inf.vm_expiration||'';
@@ -15481,12 +15563,18 @@ function depEligible(emp, slot){
   return true;
 }
 // AUTO : un salarié devient absent → ses créneaux du jour partent en dépannage.
-function semDepannageOnAbsence(empId, dateISO, motif){
+/* ★ v629 — UNE ABSENCE SUR UN CRÉNEAU NE CONCERNE QUE CE CRÉNEAU.
+   Vincent : « quand COLIN GIROUD est absente de 08:30 à 10:30, tu envoies en
+   SOS ses DEUX créneaux, alors qu'elle sera là de 12:00 à 14:30. »
+   C'était vrai : on prenait tous les traits du jour. Maintenant, si la clé du
+   créneau est fournie, on ne touche qu'à celui-là.                         */
+function semDepannageOnAbsence(empId, dateISO, motif, key){
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
   var resto=((e.restoId||e.resto_id||'')+'').toLowerCase(); if(!resto) return;
   var segs=[]; try{ segs=_chPlanSegs(e, dateISO, resto); }catch(_){}
   // on ne dépanne pas les créneaux d'encadrement
   segs=(segs||[]).filter(function(s){ try{ return !estTraitEncadrement(s.l); }catch(_){ return true; } });
+  if(key) segs=segs.filter(function(s){ return (s.s+'-'+s.e)===key; });
   if(!segs.length) return;
   var all=depGetAll(); var added=0;
   segs.forEach(function(s){
@@ -15499,9 +15587,12 @@ function semDepannageOnAbsence(empId, dateISO, motif){
 }
 window.semDepannageOnAbsence=semDepannageOnAbsence;
 // AUTO : l'absence est retirée (présent) → on retire ses créneaux encore ouverts.
-function semDepannageRetirer(empId, dateISO){
+function semDepannageRetirer(empId, dateISO, key){
   var all=depGetAll(); var before=all.length;
-  var kept=all.filter(function(d){ return !(String(d.absId)===String(empId) && d.jour===dateISO && d.status==='ouvert'); });
+  var kept=all.filter(function(d){
+    if(!(String(d.absId)===String(empId) && d.jour===dateISO && d.status==='ouvert')) return true;
+    if(key && (d.s+'-'+d.e)!==key) return true;   /* ★ v629 — un seul créneau */
+    return false; });
   if(kept.length!==before){ depSaveAll(kept); try{ depRefreshUI(); }catch(_){} }
 }
 window.semDepannageRetirer=semDepannageRetirer;
@@ -26192,6 +26283,11 @@ var HR_ETAT_MOTIFS={
   trajet:  {label:'Accident de trajet', court:'Trajet', icon:'🛵', col:'#c0562f'}
 };
 function _etatMotifInfo(m){ return HR_ETAT_MOTIFS[m]||HR_ETAT_MOTIFS.absence; }
+/* ★ v629 — VOILÀ POURQUOI « ON NE SAIT PAS CE QUE C'EST ».
+   Cette liste (arrêt maladie, CP, AT, injustifiée…) était enfermée dans son
+   bloc de code : l'écran iPad, qui est dans un autre bloc, ne la voyait pas et
+   retombait sur un unique motif « Absence ». On la publie.                 */
+try{ window.HR_ETAT_MOTIFS=HR_ETAT_MOTIFS; window._etatMotifInfo=_etatMotifInfo; }catch(_){}
 var HR_ETAT_RESTO_FILTRE=''; // resto actif sur l'écran État équipe ('' = celui de la grille)
 function _etatRestoActif(){
   return (HR_ETAT_RESTO_FILTRE || (((typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto&&hrCurrentResto()))||'BK526')).toLowerCase();
@@ -29059,12 +29155,18 @@ function hrAutoPlacerSemaine(force){
 }
 window.hrAutoPlacerSemaine=hrAutoPlacerSemaine;
 // Libère les créneaux d'un salarié pour un jour donné (les rend vides → réattribuables).
-function hrLibererSalarieJour(empId, iso){
+function hrLibererSalarieJour(empId, iso, key){
   try{
     if(typeof DAY_DATES==='undefined') return false;
     var d=DAY_DATES.indexOf(iso); if(d<0) return false;
+    /* ★ v629 — avec une clé de créneau, on ne libère QUE les traits de ce créneau. */
+    var ks=null, ke=null;
+    if(key){ var pp=(''+key).split('-'); ks=parseInt(pp[0],10); ke=parseInt(pp[1],10); }
     var rows=(typeof ROWS_BY_DAY!=='undefined'&&ROWS_BY_DAY[d])||[]; var freed=0;
-    rows.forEach(function(row){ (row.bars||[]).forEach(function(b){ if(b && String(b.empId)===String(empId) && !estTraitEncadrement(b.l)){ b.empId=null; b.emp=null; freed++; } }); });
+    rows.forEach(function(row){ (row.bars||[]).forEach(function(b){
+      if(!b || String(b.empId)!==String(empId) || estTraitEncadrement(b.l)) return;
+      if(ks!=null && !isNaN(ks) && !isNaN(ke) && !(b.s<ke && b.e>ks)) return;   // hors du créneau visé
+      b.empId=null; b.emp=null; freed++; }); });
     return freed>0;
   }catch(e){ return false; }
 }
@@ -29072,24 +29174,24 @@ window.hrLibererSalarieJour=hrLibererSalarieJour;
 // Recalcul immédiat quand une absence est saisie/retirée : uniquement pour la
 // semaine actuellement affichée et NON transférée. On libère le jour de l'absent
 // puis on relance le placement (l'absent est désormais exclu par eligible()).
-function hrReplanifierSurAbsence(empId, dateISO){
+function hrReplanifierSurAbsence(empId, dateISO, key){
   try{
     if(typeof HR_WEEK_LUNDI==='undefined' || !HR_WEEK_LUNDI) return;
     if(typeof hrLundiDe==='function' && hrLundiDe(dateISO)!==HR_WEEK_LUNDI) return; // autre semaine → au prochain affichage
     if(typeof hrSemaineTransferee==='function' && hrSemaineTransferee(HR_WEEK_LUNDI)) return; // publiée → dépannage, pas de re-planif
-    hrLibererSalarieJour(empId, dateISO);
+    hrLibererSalarieJour(empId, dateISO, key);   /* ★ v629 */
     hrAutoPlacerSemaine(true);
   }catch(e){ console.warn('replan absence',e); }
 }
 window.hrReplanifierSurAbsence=hrReplanifierSurAbsence;
 // Aiguillage à la saisie d'une absence : semaine publiée → dépannage (SOS) ;
 // semaine pas encore transférée → re-planification automatique (réattribution).
-function _absAiguillage(empId, dateISO, motif){
+function _absAiguillage(empId, dateISO, motif, key){
   var lundi=(typeof hrLundiDe==='function')?hrLundiDe(dateISO):null;
   var transferee=false;
   try{ transferee=(typeof hrSemaineTransferee==='function' && lundi)?hrSemaineTransferee(lundi):false; }catch(_){}
-  if(transferee){ try{ semDepannageOnAbsence(empId,dateISO,motif); }catch(_){} }
-  else { try{ hrReplanifierSurAbsence(empId,dateISO); }catch(_){} }
+  if(transferee){ try{ semDepannageOnAbsence(empId,dateISO,motif,key); }catch(_){} }
+  else { try{ hrReplanifierSurAbsence(empId,dateISO,key); }catch(_){} }
 }
 window._absAiguillage=_absAiguillage;
 // Même chose pour une PLAGE de dates (absence du…au… saisie dans État équipe).
@@ -36024,6 +36126,16 @@ function _ipadCoul(poste){
   return {bg:'#607d8b',tx:'#fff'};
 }
 // Ce créneau précis est-il déjà marqué absent ? (absence PAR CRÉNEAU)
+/* ★ v629 — Une absence déclarée SUR LA JOURNÉE doit se voir sur CHAQUE
+   créneau : les traits sont barrés, comme une absence par créneau. C'est de
+   l'affichage : la paie garde sa règle « absence du jour ».                */
+function _ipadCrenAbsentOuJour(empId, key){
+  var m=null; try{ m=_ipadCrenAbsent(empId, key); }catch(_){}
+  if(m) return m;
+  try{ var a=(typeof hrAbsenceDuJour==='function')?hrAbsenceDuJour(empId,_ipadDate):null;
+    if(a && a.motif) return a.motif; }catch(_){}
+  return null;
+}
 function _ipadCrenAbsent(empId, key){
   try{
     var all=(typeof ptgGetAll==='function')?ptgGetAll():{};
@@ -36384,7 +36496,7 @@ function ipadRender(contenuBrut){
           var l=pos(sg.s), w=Math.max(pos(sg.e)-pos(sg.s), 34);
           var c=_ipadCoul(sg.l);
           var key=sg.s+'-'+sg.e;
-          var absCren=_ipadCrenAbsent(e.id,key);
+          var absCren=_ipadCrenAbsentOuJour(e.id,key);   /* ★ v629 */
           var choisi=(_ipadSel && _ipadSel.empId===e.id && _ipadSel.key===key);
           // ★ Un clic sélectionne CE trait seulement (pas toute la ligne).
           return '<div class="ip-bar'+(choisi?' ip-bar-on':'')+(absCren?' ip-bar-abs':'')+'"'
@@ -36447,7 +36559,7 @@ function ipadFiche(empId){
   // Les créneaux, celui qui est sélectionné bien visible.
   var lignes=segs.length? segs.map(function(sg){
       var key=sg.s+'-'+sg.e, on=(_ipadSel&&_ipadSel.key===key);
-      var ab=_ipadCrenAbsent(empId,key);
+      var ab=_ipadCrenAbsentOuJour(empId,key);         /* ★ v629 */
       var c=_ipadCoul(sg.l);
       return '<div class="ip-fs'+(on?' ip-fs-on':'')+'" onclick="ipadChoisirTrait(\''+empId+'\',\''+key+'\')">'
         +'<span class="ip-fs-pt" style="background:'+c.bg+';"></span>'
@@ -36586,14 +36698,47 @@ function _ipadQuiEstCe(code){
   return null;
 }
 
-/* ── Action 1 : déclarer une absence ─────────────────────────────────────── */
+/* ── Action 1 : déclarer une absence ───────────────────────────────────────
+   ★ v629 — DEUX QUESTIONS, DANS L'ORDRE, ET RIEN À DEVINER :
+     1. SUR QUOI ? toute la journée (tous les créneaux) ou un créneau précis ;
+     2. QUOI ? arrêt maladie, congé, injustifiée…
+   Avant, la portée dépendait de ce qui avait été touché à l'écran : on ne
+   savait pas ce qu'on déclarait.                                           */
 function ipadAbsence(empId){
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
   _ipadEmp=e;
-  var M=(typeof HR_ETAT_MOTIFS!=='undefined')?HR_ETAT_MOTIFS:{absence:{label:'Absence',icon:'🟧',col:'#d98324'}};
+  var segs=_ipadSegs(empId)||[];
+  if(!_ipadSel && segs.length>1){
+    var h='<div class="ip-code-sub">Absence de <b>'+_ipadEsc(e.name)+'</b>.<br><b>Elle porte sur quoi ?</b></div>'
+      +'<div class="ip-chips">'
+      +'<button class="ip-chip" style="--sc:#cc5555;" onclick="ipadAbsencePortee(\''+empId+'\',\'\')">'
+        +'☀️ Toute la journée — les '+segs.length+' créneaux</button>';
+    segs.forEach(function(sg){
+      h+='<button class="ip-chip" style="--sc:#d98324;" onclick="ipadAbsencePortee(\''+empId+'\',\''+(sg.s+'-'+sg.e)+'\')">'
+        +'🕒 '+_ipadHM(sg.s)+'–'+_ipadHM(sg.e)+' · '+_ipadEsc(sg.l||'')+'</button>';
+    });
+    h+='</div><div class="ip-scope ip-scope-hint">Un seul créneau : le reste de sa journée n\'est pas touché — ni le planning, ni le SOS, ni la paie.</div>';
+    _ipadPanneau('🤒 Absence', h, "ipadFiche('"+empId+"')");
+    return;
+  }
+  _ipadAbsenceMotifs(empId);
+}
+window.ipadAbsence=ipadAbsence;
+function ipadAbsencePortee(empId, key){
+  if(key){ var sg=_ipadSegParKey(empId,key); _ipadSel = sg ? {empId:empId, key:key, s:sg.s, e:sg.e, l:sg.l} : null; }
+  else { _ipadSel=null; }
+  _ipadAbsenceMotifs(empId);
+}
+window.ipadAbsencePortee=ipadAbsencePortee;
+function _ipadAbsenceMotifs(empId){
+  var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
+  var M=(typeof HR_ETAT_MOTIFS!=='undefined')?HR_ETAT_MOTIFS
+        :((typeof window!=='undefined'&&window.HR_ETAT_MOTIFS)?window.HR_ETAT_MOTIFS
+        :{absence:{label:'Absence',icon:'🟧',col:'#d98324'}});
+  var _sg2=_ipadSegs(empId)||[];
   var quoi=_ipadSel
-    ? ('le créneau <b>'+_ipadEsc(_ipadSel.l||'')+' '+_ipadHM(_ipadSel.s)+'–'+_ipadHM(_ipadSel.e)+'</b>')
-    : '<b>toute la journée</b>';
+    ? ('le créneau <b>'+_ipadHM(_ipadSel.s)+'–'+_ipadHM(_ipadSel.e)+'</b>'+(_ipadSel.l?(' · '+_ipadEsc(_ipadSel.l)):''))
+    : ('<b>toute la journée</b>'+(_sg2.length>1?(' — les '+_sg2.length+' créneaux'):''));
   var dejaM=_ipadSel?_ipadCrenAbsent(empId,_ipadSel.key):((typeof hrAbsenceDuJour==='function'&&hrAbsenceDuJour(empId,_ipadDate))||{}).motif;
   var enCours=dejaM?('<div class="ip-scope">Actuellement : <b>'+_ipadEsc(((typeof _etatMotifInfo==='function')?_etatMotifInfo(dejaM).label:dejaM))+'</b>. Choisis un nouveau motif pour le remplacer.</div>'):'';
   var html=enCours+'<div class="ip-code-sub">Motif de l\'absence de <b>'+_ipadEsc(e.name)+'</b> sur '+quoi+'.</div>'
@@ -36604,9 +36749,13 @@ function ipadAbsence(empId){
       +m.icon+' '+_ipadEsc(m.label)+'</button>';
   });
   html+='</div>';
-  _ipadPanneau('🤒 Absence', html, "ipadFiche('"+empId+"')");
+  var segs2=_ipadSegs(empId)||[];
+  var retour=(!_ipadSel && segs2.length>1) ? "ipadFiche('"+empId+"')" : "ipadAbsenceRetour('"+empId+"')";
+  _ipadPanneau('🤒 Absence — quel motif ?', html, retour);
 }
-window.ipadAbsence=ipadAbsence;
+window._ipadAbsenceMotifs=_ipadAbsenceMotifs;
+function ipadAbsenceRetour(empId){ _ipadSel=null; ipadAbsence(empId); }
+window.ipadAbsenceRetour=ipadAbsenceRetour;
 function ipadAbsenceMotif(empId, motif){
   var e=(DB.employees||[]).find(function(x){return String(x.id)===String(empId);}); if(!e) return;
   var mi=(typeof _etatMotifInfo==='function')?_etatMotifInfo(motif):{label:motif};
@@ -36620,8 +36769,8 @@ function ipadAbsenceMotif(empId, motif){
         //   aux autres créneaux du jour.
         try{ ptgEditCrenAbs(empId, _ipadDate, sel.key, motif); }catch(err){ console.warn('ipad abs créneau',err); }
         try{ _ipadTracePtg(empId, who, 'absence '+motif+' '+quoi); }catch(_){}
-        // Le créneau libéré part en remplacement / dépannage comme une absence.
-        try{ _absAiguillage(empId, _ipadDate, motif); }catch(_){}
+        /* ★ v629 — SEUL ce créneau part en remplacement / dépannage. */
+        try{ _absAiguillage(empId, _ipadDate, motif, sel.key); }catch(_){}
       } else {
         try{ ptgEditAbsence(empId, _ipadDate, motif); }catch(err){ console.warn('ipad absence',err); }
         try{
@@ -36672,6 +36821,9 @@ function ipadRetirerCreneau(empId){
       if(!reste){
         try{ if(typeof semDepannageRetirer==='function') semDepannageRetirer(empId,_ipadDate); }catch(_){}
         try{ if(typeof hrReplanifierSurAbsence==='function') hrReplanifierSurAbsence(empId,_ipadDate); }catch(_){}
+      } else {
+        /* ★ v629 — il reste des absences ailleurs : on ne referme QUE ce créneau. */
+        try{ if(typeof semDepannageRetirer==='function') semDepannageRetirer(empId,_ipadDate,sel.key); }catch(_){}
       }
       _ipadSel=null;
       _ipadConfirme('Absence retirée',
@@ -36881,16 +37033,15 @@ function ipadIncident(empId){
   var chips=_ipadListeProbs().map(function(p){
     return '<button class="ip-chip" id="ip-chip-'+p.id+'" onclick="ipadToggleProb(\''+p.id+'\')">'+p.icon+' '+_ipadEsc(p.label)+'</button>';
   }).join('');
-  var S=_ipadListeSanctions();
-  var sanc=Object.keys(S).map(function(k){
-    return '<button class="ip-sanc'+(k==='verbal'?' ip-sanc-on':'')+'" id="ip-sanc-'+k+'" style="--sc:'+(S[k].color||'#888')+';" onclick="ipadChoisirSanction(\''+k+'\')">'
-      +'<span class="ip-sanc-ic">'+S[k].icon+'</span><span>'+_ipadEsc(S[k].label)+'</span></button>';
-  }).join('');
+  /* ★ v629 — PLUS DE « SUITE DONNÉE » SUR L'iPAD. Ce qui se déclare depuis le
+     restaurant est une OBSERVATION VERBALE, rien d'autre. La lettre, l'obser-
+     vation écrite, l'avertissement et la mise à pied se décident au bureau,
+     dans Incidents. Aucun courrier n'est préparé depuis l'iPad.            */
   var cren=_ipadSel?('<div class="ip-scope">Créneau concerné : <b>'+_ipadEsc(_ipadSel.l||'')+' '+_ipadHM(_ipadSel.s)+'–'+_ipadHM(_ipadSel.e)+'</b></div>'):'';
   _ipadPanneau('⚠️ Incident — '+_ipadEsc(e.name||''),
      cren
     +'<div class="ip-lbl">Motif</div><div class="ip-chips">'+chips+'</div>'
-    +'<div class="ip-lbl">Suite donnée</div><div class="ip-sancs">'+sanc+'</div>'
+    +'<div class="ip-scope">Enregistré comme <b>observation verbale</b>. La suite (courrier, avertissement, mise à pied) se décide au bureau, dans Incidents.</div>'
     +'<div class="ip-lbl">Précisions</div>'
     +'<textarea id="ip-inc-note" class="ip-note" rows="3" placeholder="Ce qui s\'est passé (facultatif)"></textarea>'
     +'<div class="ip-msg" id="ip-inc-msg"></div>'
@@ -36918,15 +37069,15 @@ function ipadIncidentSuite(empId){
     var m=document.getElementById('ip-inc-msg'); if(m) m.textContent='Sélectionnez un motif.';   // même règle que l'app
     return;
   }
-  var S=_ipadListeSanctions()[_ipadSanction]||{label:''};
+  _ipadSanction='verbal';   /* ★ v629 — depuis l'iPad, toujours une observation verbale */
   ipadDemanderCode('Ton code manager',
-    'Déclarer <b>'+_ipadEsc(S.label)+'</b> pour <b>'+_ipadEsc(e.name)+'</b>.<br>Ton code sert à savoir qui l\'a signalé.',
+    'Déclarer une <b>observation verbale</b> pour <b>'+_ipadEsc(e.name)+'</b>.<br>Ton code sert à savoir qui l\'a signalé.',
     function(who){ _ipadIncidentEnvoyer(e, probs, note, who); });
 }
 window.ipadIncidentSuite=ipadIncidentSuite;
 async function _ipadIncidentEnvoyer(e, probs, note, who){
-  // Même gravité que l'app : verbal/écrit = 2, avertissement = 3, mise à pied = 4.
-  var sev={verbal:'2',ecrit:'2',avert:'3',mise:'4'}[_ipadSanction]||'2';
+  _ipadSanction='verbal';                 /* ★ v629 */
+  var sev='2';                            // observation verbale
   var extra={source:'ipad'};
   if(_ipadSel) extra.creneau={l:_ipadSel.l, s:_ipadSel.s, e:_ipadSel.e};
   var data={
@@ -36947,21 +37098,13 @@ async function _ipadIncidentEnvoyer(e, probs, note, who){
   var inc=Object.assign({},data,{id:ok.id,empId:e.id,datetime:data.inc_datetime,extraData:extra,sanctionType:_ipadSanction});
   try{ DB.incidents.unshift(inc); }catch(_){}
   try{ if(typeof updateIncBadge==='function') updateIncBadge(); }catch(_){}
-  // Comme dans l'app : au-delà de l'observation verbale, un courrier est préparé.
-  var courrier=false;
-  if(_ipadSanction!=='verbal' && typeof createLetterNew==='function'){
-    try{ var lid=await createLetterNew(inc); courrier=!!lid; }catch(err){ console.warn('ipad courrier',err); }
-  }
-  var S=_ipadListeSanctions()[_ipadSanction]||{label:''};
+  /* ★ v629 — jamais de courrier depuis l'iPad. */
   var libProbs=_ipadListeProbs().filter(function(p){return probs.indexOf(p.id)>=0;}).map(function(p){return p.label;});
   _ipadSel=null;
-  _ipadConfirme('Incident enregistré',
+  _ipadConfirme('Observation verbale enregistrée',
     '<b>'+_ipadEsc(e.name)+'</b><br>'+_ipadEsc(libProbs.join(' · '))
-    +'<br>Suite : <b>'+_ipadEsc(S.label)+'</b>'
     +'<br><span class="ip-par">Signalé par '+_ipadEsc(who.nom)+'</span>'
-    +'<div class="ip-suite">'+(courrier
-        ? 'Un courrier a été préparé : il est à relire et à envoyer depuis <b>Incidents</b>, au bureau.'
-        : 'Enregistré dans <b>Incidents</b>. Aucun courrier pour une observation verbale.')+'</div>');
+    +'<div class="ip-suite">Elle apparaît dans <b>Incidents</b>. La suite se décide au bureau.</div>');
 }
 
 /* ── Action 3 : pointage (réutilise l'éditeur existant) ──────────────────── */
