@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-26 18:00 · v658 (familles de competences reglables + cuisine-comptoir au recrutement)';
+  var EMBEDDED_VERSION = '2026-08-26 19:30 · v659 (creneaux restants : meme compte pour tout le monde)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -31895,16 +31895,48 @@ function hrTableauSemaine(resto, lundiIso, affOverride){
   // dessine TOUJOURS la semaine affichée, donc ROWS_BY_DAY correspond à ce tableau.
   // On n'exige plus l'égalité stricte HR_WEEK_LUNDI===lundiIso (qui pouvait échouer
   // au changement de semaine et faire « disparaître » la ligne créneaux + totaux).
-  var _memeSemaineReste=false;
-  try{ _memeSemaineReste=(typeof ROWS_BY_DAY!=='undefined' && ROWS_BY_DAY && ROWS_BY_DAY.length===7); }catch(e){}
-  if(_memeSemaineReste && !_imp){
+  /* ★ v659 — LES CRÉNEAUX RESTANTS SE COMPTENT SUR LA SEMAINE AFFICHÉE.
+     Avant, cette ligne était construite à partir de ROWS_BY_DAY : la grille
+     CHARGÉE EN MÉMOIRE dans le navigateur. Deux personnes qui regardaient la
+     MÊME semaine pouvaient donc lire deux totaux différents — 67 chez Vincent,
+     74 chez sa RH — et le total pouvait même décrire une AUTRE semaine que
+     celle affichée à l'écran (le contrôle sur le lundi avait été retiré).
+     On lit maintenant les traits de la semaine affichée à leur source
+     partagée, la même que le reste du tableau : _chJoursSrc.               */
+  var _traitsSem=null;
+  try{
+    var _tmp=[], _vide=true;
+    for(var _dS=0;_dS<7;_dS++){
+      var _aS=[];
+      try{ _aS=_chJoursSrc(resto, iso(dates[_dS]))||[]; }catch(_e1){ _aS=[]; }
+      if(_aS.length) _vide=false;
+      _tmp.push(_aS);
+    }
+    if(!_vide) _traitsSem=_tmp;
+  }catch(_e2){}
+  /* Repli : la semaine n'est pas (encore) enregistrée → on reprend ce que le
+     navigateur a sous la main, comme avant.                                */
+  if(!_traitsSem){
+    try{
+      if(typeof ROWS_BY_DAY!=='undefined' && ROWS_BY_DAY && ROWS_BY_DAY.length===7){
+        var _tmp2=[];
+        for(var _dR=0;_dR<7;_dR++){
+          var _l=[];
+          (ROWS_BY_DAY[_dR]||[]).forEach(function(r){ (r.bars||[]).forEach(function(b){ _l.push(b); }); });
+          _tmp2.push(_l);
+        }
+        _traitsSem=_tmp2;
+      }
+    }catch(_e3){}
+  }
+  if(_traitsSem && !_imp){
     var _eqResto=(DB.employees||[]).filter(function(e){return e.role==='equipier'&&!e.archived&&(e.restoId||'').toLowerCase()===(resto||'').toLowerCase();});
     // busy par jour reconstruit depuis les traits posés (pour savoir qui est déjà occupé)
     var _busyJ={};
     for(var _d=0;_d<7;_d++){
-      (ROWS_BY_DAY[_d]||[]).forEach(function(r){ r.bars.forEach(function(b){
-        if(b.empId){ (_busyJ[b.empId]=_busyJ[b.empId]||{}); (_busyJ[b.empId][_d]=_busyJ[b.empId][_d]||[]).push({s:b.s,e:b.e}); }
-      }); });
+      (_traitsSem[_d]||[]).forEach(function(b){
+        if(b && b.empId){ (_busyJ[b.empId]=_busyJ[b.empId]||{}); (_busyJ[b.empId][_d]=_busyJ[b.empId][_d]||[]).push({s:b.s,e:b.e}); }
+      });
     }
     function _dispoOk(e,d,s,ee){ var jk=JOURS_KEYS[d]; var dd=(e.infos&&e.infos.dispos&&e.infos.dispos[jk])||null; if(!dd||!dd.on)return false; var f=_dispoMin(dd.from),t=_dispoMin(dd.to); if(f==null||t==null)return false; return s>=f&&ee<=t; }
     function _libre(id,d,s,ee){ var a=(_busyJ[id]||{})[d]||[]; for(var i=0;i<a.length;i++){ if(s<a[i].e&&ee>a[i].s)return false; } return true; }
@@ -31913,8 +31945,8 @@ function hrTableauSemaine(resto, lundiIso, affOverride){
     var causeGlobale={comp:0, dispo:0, occupe:0, possible:0}; // compteur de causes (en créneaux)
     for(var jR=0;jR<7;jR++){
       var arrV=[];
-      (ROWS_BY_DAY[jR]||[]).forEach(function(r){ r.bars.forEach(function(b){
-        if(b.empId || estTraitEncadrement(b.l)) return;
+      (_traitsSem[jR]||[]).forEach(function(b){
+        if(!b || b.empId || estTraitEncadrement(b.l)) return;
         // diagnostic de cause pour CE trait vide
         var nbComp=0, nbDispo=0, nbOccupe=0, nbPossible=0;
         _eqResto.forEach(function(e){
@@ -31932,7 +31964,7 @@ function hrTableauSemaine(resto, lundiIso, affOverride){
         else if(nbDispo>0 && nbDispo>=nbOccupe) causeGlobale.dispo++;
         else causeGlobale.occupe++;
         arrV.push({s:b.s,e:b.e,l:b.l,cause:cause,ccol:ccol});
-      }); });
+      });
       arrV.sort(function(a,b){return a.s-b.s;});
       resteJour[jR]=arrV; totalReste+=arrV.length;
     }
