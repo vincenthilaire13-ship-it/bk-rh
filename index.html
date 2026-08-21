@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-27 21:30 · v670 (contrats : dispos contractuelles et documents)';
+  var EMBEDDED_VERSION = '2026-08-28 13:30 · v676 (sans excuse - et le numero de mutuelle)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -2549,6 +2549,10 @@ html,body{overflow-x:hidden;}
     <div class="card param-card" id="pc-grille-contrats" style="display:none;">
       <div class="sec-title">📋 Grille des contrats — dispo contrat / dispo réelles</div>
       <div id="pc-grille-contrats-body"></div>
+    </div>
+    <div class="card param-card" id="pc-completer-fiches" style="display:none;">
+      <div class="sec-title">📋 Compléter les fiches depuis le recrutement</div>
+      <div id="pc-completer-fiches-body"></div>
     </div>
     <div class="card param-card" id="pc-fiches-recrut" style="display:none;">
       <div class="sec-title">🧹 Fiches créées par le recrutement</div>
@@ -5685,6 +5689,7 @@ var PARAM_TILES=[
   {ico:'📋', titre:'Grille des contrats', sub:'Dispo contrat / dispo réelles', type:'card', card:'pc-grille-contrats', id:'pc-grille-contrats', fn:'paramGrilleContrats()', accent:'#B57EDC'},
   {ico:'🎯', titre:'Familles de compétences', sub:'Cuisine intégrée / Comptoir', type:'card', card:'pc-familles', id:'pc-familles', fn:'paramFamilles()', accent:'#1d7a3a'},
   {ico:'🧹', titre:'Fiches créées par le recrutement', sub:'Vérifier et retirer', type:'card', card:'pc-fiches-recrut', id:'pc-fiches-recrut', fn:'paramFichesRecrut()', accent:'#e8623a'},
+  {ico:'📋', titre:'Compléter les fiches', sub:'Remplir les cases vides depuis le recrutement', type:'card', card:'pc-completer-fiches', id:'pc-completer-fiches', fn:'paramCompleterFiches()', accent:'#1d7a3a'},
   {ico:'📋', titre:'Incidents',     sub:'Suivi disciplinaire',          type:'page', page:'incidents',      accent:'#D62300'},
   {ico:'📅', titre:'Disponibilité contrat',sub:'Base des contrats (import Excel)', type:'card', card:'pc-dispos',      accent:'#1565c0'},
   {ico:'💶', titre:'Salaires',      sub:'Grille des salaires',          type:'page', page:'salaires',       accent:'#2e7d32'},
@@ -11863,6 +11868,8 @@ var EMPF_SECTIONS=[
     ['num_secu','N° de sécurité sociale'],
     ['inscrit_sante','Inscrit en santé (mutuelle obligatoire)'],
     ['mutuelle','Mutuelle (statut)'],
+    ['mutuelle_org','Nom de la mutuelle'],
+    ['mutuelle_num','N° d\'adhérent / de contrat mutuelle'],
     ['mutuelle_adhesion','Adhésion à notre mutuelle (oui / non)'],
     ['mutuelle_fin','Fin de droit / de validité mutuelle','date'],
     ['mutuelle_affiliation','Date d\'affiliation à notre mutuelle','date'],
@@ -19096,6 +19103,18 @@ function docFileName(key){
 
 function renderDocsRecap(c){
   var docs=c.documents||{};
+  /* ★ v672 — si le numéro saisi ne colle pas a l'état civil, la RH doit le voir. */
+  var _alerteSecu='';
+  try{
+    var _ip=_infosPersoDe(c);
+    if(_ip && _ip.num_secu){
+      var _inc=secuCoherences(_ip.num_secu, {sexe:c.sexe||'', dateNaissance:c.dateNaissance||'', cpNaissance:_ip.cp_naissance||''});
+      if(_inc.length){
+        _alerteSecu='<div style="background:#3a2410;border:1px solid #F5A623;border-radius:8px;padding:9px 11px;margin-bottom:9px;color:#f0c070;font-size:.78rem;line-height:1.5;">'
+          +'<b>⚠️ Numéro de sécurité sociale à vérifier</b><br>'+_inc.map(_msgEsc).join('<br>')+'</div>';
+      }
+    }
+  }catch(_){}
   var rows=DOC_TYPES.map(function(d){
     if(d.cond24h&&!estMoins24h(c))return '';
     if(d.sides){
@@ -19114,7 +19133,9 @@ function renderDocsRecap(c){
   var extra='';
   if(c.contactUrgence&&c.contactUrgence.nom)extra+='<div style="margin-top:8px;font-size:.78rem;color:#ccc;">🆘 Urgence : '+c.contactUrgence.nom+' — '+(c.contactUrgence.tel||'')+'</div>';
   if(c.taillesTenue)extra+='<div style="font-size:.78rem;color:#ccc;">👕 Tailles : '+c.taillesTenue+'</div>';
-  return rows+extra;
+  /* ★ v672 — l'alerte d'incohérence passe AVANT la liste des pièces : c'est la
+     première chose que la RH doit voir sur ce dossier. */
+  return _alerteSecu+rows+extra;
 }
 
 function downloadDoc(cid,docId){
@@ -19406,6 +19427,26 @@ async function candCreerSalarieEquipe(c){
          Mariam, Idez Léa, Laib Sarah, LOPEZ LUCAS, Maillard Marina, Mizzi Amaury,
          Pinto Marine, Quatrepoint Emilie — toutes des fiches nées d'une candidature. */
       if(c.dateNaissance) _infosEmb.date_naissance=c.dateNaissance;
+      /* ★ v673 — TOUT CE QUE LA CANDIDATURE CONTIENT DÉJÀ REMPLIT LA FICHE.
+
+         Vincent : « il y a déjà le nom, le prénom, le sexe, la date de naissance,
+         le téléphone, l'e-mail, la nationalité, l'adresse, le code postal…
+         pourquoi ça ne remplit pas la fiche du salarié ? »
+
+         Il avait raison, et c'était bien plus large que la date de naissance
+         corrigée en v666 : le sexe, la nationalité, l'adresse, le code postal, la
+         ville et le moyen de transport étaient saisis à la candidature… et jamais
+         recopiés. La RH les retapait à la main depuis la fiche candidat.        */
+      if(c.sexe)        _infosEmb.sexe=c.sexe;
+      if(c.nationalite) _infosEmb.nationalite=c.nationalite;
+      if(c.adresse)     _infosEmb.adresse=c.adresse;
+      if(c.codePostal)  _infosEmb.code_postal=c.codePostal;
+      if(c.ville)       _infosEmb.ville=c.ville;
+      if(c.transport)   _infosEmb.transport=c.transport;
+      if(c.etudiant)    _infosEmb.statut_etudiant='oui';
+      /* ★ v671 — ce que le salarié a saisi lui-même sur la page de dépôt remplit
+         sa fiche : identité, adresse, titre de séjour, banque, mutuelle. */
+      try{ _infosEmb=infosPersoVersFiche(_infosPersoDe(c), _infosEmb); }catch(_ip){}
       /* ★ v655 — la date d'entrée suit : c'est elle qui ouvre les horaires
          (avant, aucun trait n'est plaçable — voir entreeBloque).            */
       if(c.dateDebut) _infosEmb.date_entree=c.dateDebut;
@@ -19846,13 +19887,45 @@ function genAttest24hPDF(){
     doc.save(fn);
   }catch(e){alert('Impossible de générer le modèle. Vous pouvez rédiger l\'attestation à la main : indiquez votre nom, le restaurant, le nombre d\'heures demandé, le motif, la date et votre signature.');}
 }
+/* ★ v673 — le numéro de sécu se contrôle pendant la frappe, au recrutement. */
+function _postSecuLive(){
+  try{
+    var el=document.getElementById('p-secu'), msg=document.getElementById('p-secu-msg');
+    if(!el||!msg) return;
+    var brut=el.value.toUpperCase().replace(/[^0-9AB]/g,'');
+    if(!brut){ msg.textContent='Sur votre carte vitale ou votre attestation CPAM.'; msg.style.color='#888'; return; }
+    if(brut.length<15){ msg.textContent='Encore '+(15-brut.length)+' chiffre(s)…'; msg.style.color='#888'; return; }
+    if(!secuValide(brut)){ msg.textContent='⛔ Numéro incorrect — recopiez-le exactement.'; msg.style.color='#e8623a'; return; }
+    var j=(document.getElementById('p-naiss-j')||{}).value||'';
+    var m=(document.getElementById('p-naiss-m')||{}).value||'';
+    var a=(document.getElementById('p-naiss-a')||{}).value||'';
+    var dn=(a&&m&&j)?(a+'-'+('0'+m).slice(-2)+'-'+('0'+j).slice(-2)):'';
+    var inc=secuCoherences(brut, {
+      sexe:(document.getElementById('p-sexe')||{}).value||'',
+      dateNaissance:dn,
+      cpNaissance:(document.getElementById('p-cp-naiss')||{}).value||''
+    });
+    if(inc.length){ msg.textContent='⚠️ '+inc[0]; msg.style.color='#e8a020'; }
+    else { msg.textContent='✅ Numéro valide et cohérent'; msg.style.color='#4CAF50'; }
+  }catch(_){}
+}
+window._postSecuLive=_postSecuLive;
+function _postToggleSejour(){
+  try{
+    var v=(document.getElementById('p-sejour-oui')||{}).value;
+    var b=document.getElementById('p-sejour-bloc');
+    if(b) b.style.display=(v==='oui')?'block':'none';
+  }catch(_){}
+}
+window._postToggleSejour=_postToggleSejour;
+
 async function showDocsPage(cid){
   window.__postulerEnCours=false;   // nouvelle page → verrou libre
   document.getElementById('loading-screen').style.display='none';
   var ls=document.getElementById('login-screen');if(ls)ls.style.display='none';
   var ap=document.getElementById('app');if(ap)ap.style.display='none';
   try{
-    var arr=await sb.get('bks_candidatures','select=id,prenom,nom,resto_id,documents,contact_urgence,tailles_tenue,videos_faites,contrat_heures,contrat_label&id=eq.'+cid);
+    var arr=await sb.get('bks_candidatures','select=id,prenom,nom,resto_id,documents,contact_urgence,tailles_tenue,videos_faites,contrat_heures,contrat_label,onboarding,adresse,code_postal,ville,nationalite,sexe,date_naissance&id=eq.'+cid);
     _docsCand=arr&&arr[0]?arr[0]:null;
   }catch(e){_docsCand=null;}
   var sp=document.createElement('div');sp.style.cssText='min-height:100vh;background:#1A1A1A;';
@@ -19907,6 +19980,8 @@ async function showDocsPage(cid){
     +'<div style="max-width:560px;margin:0 auto;padding:20px 16px 60px;" id="docs-body">'
     +'<div class="card"><div class="sec-title">📎 Vos documents</div>'
     +'<p style="font-size:.78rem;color:#aaa;margin-bottom:6px;">Pour chaque pièce : 📸 prenez une photo ou 🖼️ choisissez un fichier. Vous pouvez compléter en plusieurs fois.</p>'+rows+'</div>'
+    /* ★ v671 — ce que le salarié renseigne lui-même, et qui remplira sa fiche. */
+    +_docsBlocsInfos(_docsCand)
     +'<div class="card"><div class="sec-title">🆘 Contact en cas d\'urgence</div>'
     +'<div class="form-row"><div><label class="flabel">Nom et prénom</label><input type="text" id="doc-urg-nom" class="fi" value="'+(cu.nom||'').replace(/"/g,'&quot;')+'"></div>'
     +'<div><label class="flabel">Téléphone</label><input type="tel" id="doc-urg-tel" class="fi" value="'+(cu.tel||'').replace(/"/g,'&quot;')+'"></div></div></div>'
@@ -19921,6 +19996,318 @@ async function showDocsPage(cid){
   document.body.prepend(sp);
 }
 
+/* ★ v671 — les quatre blocs que Vincent a demandés, plus la mutuelle. */
+function _docsBlocsInfos(c){
+  var ip=_infosPersoDe(c);
+  function val(k, repli){
+    var v=(ip[k]!=null&&String(ip[k])!=='')?ip[k]:(repli!=null?repli:'');
+    return String(v).replace(/"/g,'&quot;');
+  }
+  function champ(id,lbl,v,type,ph){
+    return '<div><label class="flabel">'+lbl+'</label>'
+      +'<input type="'+(type||'text')+'" id="'+id+'" class="fi" value="'+v+'"'
+      +(ph?(' placeholder="'+ph+'"'):'')+'></div>';
+  }
+  var h='';
+  /* ═══════════════════════════════════════════════════════════════════════════
+     ★ v675 — ON REDEMANDE L'IDENTITÉ, MAIS SEULEMENT À CEUX À QUI ELLE MANQUE.
+
+     Vincent : « Lucas Lopez est rentré via l'application recrutement. Pourquoi les
+     informations de son identité, de ses coordonnées, ne sont pas dedans ? »
+
+     La réponse est dans l'historique du code, et elle vaut pour TOUS ceux recrutés
+     avant la v673 — ce n'est pas un accident sur lui :
+
+        v655 / v658  → la création d'une fiche copiait : contrat, date d'entrée,
+                       dispos, photo, RQTH. RIEN D'AUTRE.
+        v666         → + la date de naissance
+        v673         → + sexe, nationalité, adresse, code postal, ville, transport
+
+     La fiche de Lucas Lopez a été créée à l'époque des 5 champs. Son adresse et sa
+     nationalité dormaient dans sa candidature sans jamais descendre. La v674 peut
+     les récupérer.
+
+     MAIS la v673 a créé un trou que je dois refermer ici : en déplaçant l'identité
+     vers le formulaire de recrutement, j'ai fait que les personnes recrutées AVANT
+     n'ont plus AUCUN endroit où donner leur lieu de naissance, leur numéro de
+     sécurité sociale ou leur titre de séjour — ces champs n'existaient pas dans le
+     formulaire qu'elles ont rempli.
+
+     Donc : cette page regarde ce qui manque, et ne redemande QUE ça. Quelqu'un
+     recruté après la v673 ne voit que la banque et la mutuelle, comme prévu.
+     Lucas Lopez, lui, verra aussi les cases que personne ne lui a jamais posées.
+     ═══════════════════════════════════════════════════════════════════════════ */
+  var _manqueIdentite = _fcrVide(ip.ville_naissance) || _fcrVide(ip.num_secu);
+  var _manqueAdresse  = _fcrVide(ip.adresse) && _fcrVide(c.adresse);
+  var _manqueSejour   = _fcrVide(ip.etranger_hors_ue);
+
+  /* ★ v676 — PAS DE BANDEAU D'EXCUSE.
+     Vincent : « il n'y a pas besoin de s'excuser ». On demande ce qui manque,
+     normalement, comme n'importe quelle autre case du dossier. Le salarié n'a
+     pas à savoir qu'une version de l'application n'avait pas posé la question. */
+
+  /* 🪪 IDENTITÉ — seulement si elle manque */
+  if(_manqueIdentite){
+    h+='<div class="card"><div class="sec-title">🪪 Votre identité</div>'
+      +'<p style="font-size:.78rem;color:#aaa;margin-bottom:8px;">Ces informations partent sur votre contrat : merci de les écrire exactement comme sur votre pièce d\'identité.</p>'
+      +'<div class="form-row">'+champ('ip-ville-naiss','Ville de naissance',val('ville_naissance'))
+        +champ('ip-cp-naiss','Code postal de naissance',val('cp_naissance'),'text','34000').replace('class="fi"','class="fi" oninput="_docsSecuLive()"')+'</div>'
+      +'<div class="form-row">'+champ('ip-pays-naiss','Pays de naissance',val('pays_naissance','France'))
+        +champ('ip-nat','Nationalité',val('nationalite',c.nationalite||''))+'</div>'
+      +'<div style="margin-top:6px;">'
+        +'<label class="flabel">N° de sécurité sociale (15 chiffres)</label>'
+        +'<input type="text" inputmode="numeric" id="ip-secu" class="fi" value="'+val('num_secu')+'" placeholder="2 85 09 34 172 038 45" oninput="_docsSecuLive()">'
+        +'<div id="ip-secu-msg" style="font-size:.72rem;margin-top:3px;color:#888;">Il est écrit sur votre carte vitale ou votre attestation CPAM.</div>'
+      +'</div></div>';
+  }
+
+  /* 📍 ADRESSE — seulement si elle manque */
+  if(_manqueAdresse){
+    h+='<div class="card"><div class="sec-title">📍 Votre adresse</div>'
+      +'<div style="margin-bottom:6px;">'+champ('ip-adresse','Adresse (numéro et rue)',val('adresse',c.adresse||'')).replace('<div>','<div style="width:100%;">')+'</div>'
+      +'<div style="margin-bottom:6px;">'+champ('ip-compl','Complément (bâtiment, appartement, étage)',val('complement')).replace('<div>','<div style="width:100%;">')+'</div>'
+      +'<div class="form-row">'+champ('ip-cp','Code postal',val('code_postal',c.codePostal||''),'text','34000')
+        +champ('ip-ville','Ville',val('ville',c.ville||''))+'</div></div>';
+  }
+
+  /* 🛂 TITRE DE SÉJOUR — seulement si on ne l'a jamais demandé */
+  if(_manqueSejour){
+    h+='<div class="card"><div class="sec-title">🛂 Titre de séjour</div>'
+      +'<p style="font-size:.78rem;color:#aaa;margin-bottom:8px;">À remplir uniquement si vous n\'êtes pas ressortissant de l\'Union européenne.</p>'
+      +'<div style="margin-bottom:8px;"><label class="flabel">Avez-vous un titre de séjour ?</label>'
+        +'<select id="ip-hors-ue" class="fi" onchange="_docsToggleSejour()">'
+        +'<option value="non" selected>Non — je suis français(e) ou ressortissant(e) UE</option>'
+        +'<option value="oui">Oui — j\'ai un titre de séjour</option></select></div>'
+      +'<div id="ip-sejour-bloc" style="display:none;">'
+        +'<div style="margin-bottom:6px;">'+champ('ip-sejour-num','N° du titre de séjour',val('titre_sejour_num')).replace('<div>','<div style="width:100%;">')+'</div>'
+        +'<div class="form-row">'+champ('ip-sejour-del','Date de délivrance',val('sejour_delivrance'),'date')
+          +champ('ip-sejour-fin','Fin de validité',val('fin_carte_sejour'),'date')+'</div>'
+      +'</div></div>';
+  }
+
+  /* ★ v673 — LE RESTE : LA BANQUE ET LA MUTUELLE, POUR TOUT LE MONDE.
+
+     L'identité, les coordonnées et le titre de séjour sont désormais demandés au
+     RECRUTEMENT — le candidat les saisit une seule fois, en postulant. Ici on ne
+     redemande donc que ce qu'on ne peut pas connaître avant : son RIB, et sa
+     situation mutuelle. Chacun avec sa pièce justificative, déposée juste au-dessus.
+
+     Le code des blocs identité / adresse / séjour est conservé plus bas mais n'est
+     plus appelé : si un jour il faut redemander quelque chose ici, tout est prêt. */
+
+  /* 🏦 BANQUE */
+  h+='<div class="card"><div class="sec-title">🏦 Vos coordonnées bancaires</div>'
+    +'<p style="font-size:.78rem;color:#aaa;margin-bottom:8px;">C\'est sur ce compte que votre salaire sera versé. Recopiez-les depuis votre RIB — '
+    +'et n\'oubliez pas de déposer la <b>photo du RIB</b> dans les documents ci-dessus.</p>'
+    +'<div style="margin-bottom:6px;"><label class="flabel">IBAN</label>'
+      +'<input type="text" id="ip-iban" class="fi" value="'+val('iban')+'" placeholder="FR76 1234 5678 9012 3456 7890 123" '
+      +'oninput="_docsIbanLive()" style="font-family:\'DM Mono\',monospace;">'
+      +'<div id="ip-iban-msg" style="font-size:.72rem;margin-top:3px;color:#888;">Il commence par FR et contient 27 caractères.</div></div>'
+    +'<div class="form-row">'+champ('ip-bic','BIC (facultatif)',val('bic'))
+      +champ('ip-banque','Nom de votre banque',val('banque'))+'</div></div>';
+
+  /* ❤️ MUTUELLE */
+  var _adh=String(ip.mutuelle_adhesion||'').toLowerCase();
+  h+='<div class="card"><div class="sec-title">❤️ Mutuelle</div>'
+    +'<p style="font-size:.78rem;color:#aaa;margin-bottom:8px;">L\'adhésion à notre mutuelle d\'entreprise est obligatoire, '
+    +'sauf si vous êtes déjà couvert(e) par ailleurs et que vous nous le prouvez.</p>'
+    +'<div style="margin-bottom:8px;"><label class="flabel">Êtes-vous déjà couvert(e) par une mutuelle ?</label>'
+      +'<select id="ip-mut-adh" class="fi" onchange="_docsToggleMutuelle()">'
+      +'<option value=""'+(_adh?'':' selected')+'>— à préciser —</option>'
+      +'<option value="non"'+(_adh==='non'?' selected':'')+'>Non — j\'adhère à votre mutuelle</option>'
+      +'<option value="oui"'+(_adh==='oui'?' selected':'')+'>Oui — je suis déjà couvert(e) ailleurs</option></select></div>'
+    +'<div id="ip-mut-bloc" style="display:'+(_adh==='oui'?'block':'none')+';">'
+      /* ★ v676 — Vincent : « la mutuelle, donc son numéro de mutuelle, etc. » */
+      +'<div style="margin-bottom:6px;">'+champ('ip-mut-num','N° d\'adhérent / de contrat mutuelle',val('mutuelle_num')).replace('<div>','<div style="width:100%;">')+'</div>'
+      +'<div style="margin-bottom:6px;">'+champ('ip-mut-org','Nom de votre mutuelle',val('mutuelle_org')).replace('<div>','<div style="width:100%;">')+'</div>'
+      +'<div>'+champ('ip-mut-fin','Jusqu\'à quelle date êtes-vous couvert(e) ?',val('mutuelle_fin'),'date').replace('<div>','<div style="width:100%;">')+'</div>'
+      +'<p style="font-size:.74rem;color:#e8a020;margin-top:6px;">⚠️ Déposez votre <b>attestation de mutuelle</b> dans les documents ci-dessus — '
+      +'sans elle, l\'adhésion à notre mutuelle sera automatique.</p>'
+    +'</div></div>';
+  return h;
+}
+window._docsBlocsInfos=_docsBlocsInfos;
+
+function _docsToggleMutuelle(){
+  try{
+    var v=(document.getElementById('ip-mut-adh')||{}).value;
+    var b=document.getElementById('ip-mut-bloc');
+    if(b) b.style.display=(v==='oui')?'block':'none';
+  }catch(_){}
+}
+window._docsToggleMutuelle=_docsToggleMutuelle;
+
+/* Conservé, non appelé — voir la note ci-dessus. */
+function _docsBlocsInfosComplet(c){
+  var ip=_infosPersoDe(c);
+  function val(k, repli){
+    var v=(ip[k]!=null&&String(ip[k])!=='')?ip[k]:(repli!=null?repli:'');
+    return String(v).replace(/"/g,'&quot;');
+  }
+  function champ(id,lbl,v,type,ph){
+    return '<div><label class="flabel">'+lbl+'</label>'
+      +'<input type="'+(type||'text')+'" id="'+id+'" class="fi" value="'+v+'"'
+      +(ph?(' placeholder="'+ph+'"'):'')+'></div>';
+  }
+  var h='';
+
+  /* 🪪 IDENTITÉ */
+  h+='<div class="card"><div class="sec-title">🪪 Votre identité</div>'
+    +'<p style="font-size:.78rem;color:#aaa;margin-bottom:8px;">Ces informations partent directement sur votre contrat : merci de les écrire exactement comme sur votre pièce d\'identité.</p>'
+    +'<div class="form-row">'+champ('ip-ville-naiss','Ville de naissance',val('ville_naissance'))
+      +champ('ip-cp-naiss','Code postal de naissance',val('cp_naissance'),'text','34000').replace('class="fi"','class="fi" oninput="_docsSecuLive()"')+'</div>'
+    +'<div class="form-row">'+champ('ip-pays-naiss','Pays de naissance',val('pays_naissance','France'))
+      +champ('ip-nat','Nationalité',val('nationalite',c.nationalite||''))+'</div>'
+    +'<div style="margin-top:6px;">'
+      +'<label class="flabel">N° de sécurité sociale (15 chiffres)</label>'
+      +'<input type="text" inputmode="numeric" id="ip-secu" class="fi" value="'+val('num_secu')+'" placeholder="2 85 09 34 172 038 45" oninput="_docsSecuLive()">'
+      +'<div id="ip-secu-msg" style="font-size:.72rem;margin-top:3px;color:#888;">Il est écrit sur votre carte vitale ou votre attestation CPAM.</div>'
+    +'</div></div>';
+
+  /* 📍 COORDONNÉES */
+  h+='<div class="card"><div class="sec-title">📍 Votre adresse</div>'
+    +'<div style="margin-bottom:6px;">'+champ('ip-adresse','Adresse (numéro et rue)',val('adresse',c.adresse||'')).replace('<div>','<div style="width:100%;">')+'</div>'
+    +'<div style="margin-bottom:6px;">'+champ('ip-compl','Complément (bâtiment, appartement, étage)',val('complement')).replace('<div>','<div style="width:100%;">')+'</div>'
+    +'<div class="form-row">'+champ('ip-cp','Code postal',val('code_postal',c.codePostal||''),'text','34000')
+      +champ('ip-ville','Ville',val('ville',c.ville||''))+'</div></div>';
+
+  /* 🛂 TITRE DE SÉJOUR */
+  var hors=String(ip.etranger_hors_ue||'').toLowerCase()==='oui';
+  h+='<div class="card"><div class="sec-title">🛂 Titre de séjour</div>'
+    +'<p style="font-size:.78rem;color:#aaa;margin-bottom:8px;">À remplir uniquement si vous n\'êtes pas ressortissant de l\'Union européenne.</p>'
+    +'<div style="margin-bottom:8px;"><label class="flabel">Avez-vous un titre de séjour ?</label>'
+      +'<select id="ip-hors-ue" class="fi" onchange="_docsToggleSejour()">'
+      +'<option value="non"'+(hors?'':' selected')+'>Non — je suis français ou ressortissant UE</option>'
+      +'<option value="oui"'+(hors?' selected':'')+'>Oui — j\'ai un titre de séjour</option></select></div>'
+    +'<div id="ip-sejour-bloc" style="display:'+(hors?'block':'none')+';">'
+      +'<div style="margin-bottom:6px;">'+champ('ip-sejour-num','N° du titre de séjour',val('titre_sejour_num')).replace('<div>','<div style="width:100%;">')+'</div>'
+      +'<div class="form-row">'+champ('ip-sejour-del','Date de délivrance',val('sejour_delivrance'),'date')
+        +champ('ip-sejour-fin','Fin de validité',val('fin_carte_sejour'),'date')+'</div>'
+    +'</div></div>';
+
+  /* 🏦 BANQUE */
+  h+='<div class="card"><div class="sec-title">🏦 Vos coordonnées bancaires</div>'
+    +'<p style="font-size:.78rem;color:#aaa;margin-bottom:8px;">C\'est sur ce compte que votre salaire sera versé. Recopiez-les depuis votre RIB.</p>'
+    +'<div style="margin-bottom:6px;"><label class="flabel">IBAN</label>'
+      +'<input type="text" id="ip-iban" class="fi" value="'+val('iban')+'" placeholder="FR76 1234 5678 9012 3456 7890 123" '
+      +'oninput="_docsIbanLive()" style="font-family:\'DM Mono\',monospace;">'
+      +'<div id="ip-iban-msg" style="font-size:.72rem;margin-top:3px;color:#888;">Il commence par FR et contient 27 caractères.</div></div>'
+    +'<div class="form-row">'+champ('ip-bic','BIC (facultatif)',val('bic'))
+      +champ('ip-banque','Nom de votre banque',val('banque'))+'</div></div>';
+
+  /* ❤️ MUTUELLE */
+  var adh=String(ip.mutuelle_adhesion||'').toLowerCase();
+  h+='<div class="card"><div class="sec-title">❤️ Mutuelle</div>'
+    +'<div style="margin-bottom:8px;"><label class="flabel">Souhaitez-vous adhérer à notre mutuelle d\'entreprise ?</label>'
+      +'<select id="ip-mut-adh" class="fi">'
+      +'<option value=""'+(adh?'':' selected')+'>— à préciser —</option>'
+      +'<option value="oui"'+(adh==='oui'?' selected':'')+'>Oui, je souhaite y adhérer</option>'
+      +'<option value="non"'+(adh==='non'?' selected':'')+'>Non — je suis déjà couvert(e) ailleurs</option></select></div>'
+    +'<div>'+champ('ip-mut-fin','Si vous êtes déjà couvert(e) : jusqu\'à quelle date ?',val('mutuelle_fin'),'date').replace('<div>','<div style="width:100%;">')+'</div>'
+    +'<p style="font-size:.74rem;color:#888;margin-top:6px;">Si vous êtes déjà couvert(e) par ailleurs, joignez votre attestation dans les documents ci-dessus.</p></div>';
+  return h;
+}
+window._docsBlocsInfos=_docsBlocsInfos;
+
+function _docsToggleSejour(){
+  try{
+    var v=(document.getElementById('ip-hors-ue')||{}).value;
+    var b=document.getElementById('ip-sejour-bloc');
+    if(b) b.style.display=(v==='oui')?'block':'none';
+  }catch(_){}
+}
+window._docsToggleSejour=_docsToggleSejour;
+
+/* L'IBAN se met en forme et se vérifie pendant la frappe. */
+/* ★ v672 — le numéro de sécu se contrôle pendant la frappe, comme l'IBAN. */
+function _docsSecuLive(){
+  try{
+    var el=document.getElementById('ip-secu'), msg=document.getElementById('ip-secu-msg');
+    if(!el||!msg) return;
+    var brut=el.value.toUpperCase().replace(/[^0-9AB]/g,'');
+    if(!brut){ msg.textContent='Il est écrit sur votre carte vitale ou votre attestation CPAM.'; msg.style.color='#888'; return; }
+    if(brut.length<15){ msg.textContent='Encore '+(15-brut.length)+' chiffre(s)…'; msg.style.color='#888'; return; }
+    if(!secuValide(brut)){
+      msg.textContent='⛔ Ce numéro est incorrect — recopiez-le exactement depuis votre carte vitale.';
+      msg.style.color='#e8623a'; return;
+    }
+    var cpEl=document.getElementById('ip-cp-naiss');
+    var inc=secuCoherences(brut, {
+      sexe:(_docsCand&&_docsCand.sexe)||'',
+      dateNaissance:(_docsCand&&_docsCand.date_naissance)||'',
+      cpNaissance:cpEl?cpEl.value:''
+    });
+    if(inc.length){ msg.textContent='⚠️ '+inc[0]; msg.style.color='#e8a020'; }
+    else { msg.textContent='✅ Numéro valide et cohérent avec votre état civil'; msg.style.color='#4CAF50'; }
+  }catch(_){}
+}
+window._docsSecuLive=_docsSecuLive;
+
+function _docsIbanLive(){
+  try{
+    var el=document.getElementById('ip-iban'), msg=document.getElementById('ip-iban-msg');
+    if(!el||!msg) return;
+    var brut=el.value.toUpperCase().replace(/[^0-9A-Z]/g,'');
+    var pos=el.selectionStart, avant=el.value.length;
+    el.value=ibanFormate(brut);
+    try{ el.selectionStart=el.selectionEnd=Math.max(0,pos+(el.value.length-avant)); }catch(_){}
+    if(!brut){ msg.textContent='Il commence par FR et contient 27 caractères.'; msg.style.color='#888'; return; }
+    if(ibanValide(brut)){ msg.textContent='✅ IBAN valide'; msg.style.color='#4CAF50'; }
+    else if(brut.length<27){ msg.textContent='Encore '+(27-brut.length)+' caractère(s)…'; msg.style.color='#888'; }
+    else { msg.textContent='⛔ Cet IBAN est incorrect — vérifiez chaque chiffre sur votre RIB.'; msg.style.color='#e8623a'; }
+  }catch(_){}
+}
+window._docsIbanLive=_docsIbanLive;
+
+/* Ce qui a été saisi, relu et contrôlé. Renvoie {ok, msg, data}. */
+function _docsLireInfos(){
+  function v(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; }
+  var iban=v('ip-iban').toUpperCase().replace(/[^0-9A-Z]/g,'');
+  var secu=v('ip-secu').replace(/[\s.\-]/g,'');
+  if(iban && !ibanValide(iban))
+    return {ok:false, msg:'L\'IBAN saisi est incorrect. Vérifiez chaque chiffre sur votre RIB — une seule erreur empêche le virement de votre salaire.'};
+  if(secu && !secuValide(secu))
+    return {ok:false, msg:'Le numéro de sécurité sociale est incorrect. Recopiez-le exactement depuis votre carte vitale (15 chiffres).'};
+  /* ★ v672 — le numéro est bon en lui-même : correspond-il à la bonne personne ? */
+  if(secu){
+    var _inc=secuCoherences(secu, {
+      sexe:(_docsCand&&_docsCand.sexe)||'',
+      dateNaissance:(_docsCand&&_docsCand.date_naissance)||'',
+      cpNaissance:v('ip-cp-naiss')
+    });
+    if(_inc.length){
+      return {ok:false, msg:'Ce numéro de sécurité sociale ne semble pas être le vôtre :\n\n· '
+        +_inc.join('\n· ')
+        +'\n\nVérifiez que vous avez bien recopié VOTRE carte vitale, et non celle d\'un proche.'};
+    }
+  }
+  var cp=v('ip-cp');
+  if(cp && !/^[0-9]{5}$/.test(cp))
+    return {ok:false, msg:'Le code postal doit contenir 5 chiffres.'};
+  var horsUe=v('ip-hors-ue');
+  if(horsUe==='oui' && !v('ip-sejour-num'))
+    return {ok:false, msg:'Merci d\'indiquer le numéro de votre titre de séjour.'};
+  /* ★ v673 — la mutuelle : si on se déclare couvert ailleurs, il faut la date. */
+  if(v('ip-mut-adh')==='oui'){
+    if(!v('ip-mut-num'))
+      return {ok:false, msg:'Vous avez indiqué être déjà couvert(e) par une mutuelle : merci d\'indiquer votre numéro d\'adhérent.'};
+    if(!v('ip-mut-fin'))
+      return {ok:false, msg:'Merci de préciser jusqu\'à quelle date vous êtes couvert(e), et de déposer votre attestation de mutuelle.'};
+  }
+  return {ok:true, data:{
+    ville_naissance:v('ip-ville-naiss'), cp_naissance:v('ip-cp-naiss'),
+    pays_naissance:v('ip-pays-naiss'), nationalite:v('ip-nat'), num_secu:secu,
+    adresse:v('ip-adresse'), complement:v('ip-compl'), code_postal:cp, ville:v('ip-ville'),
+    etranger_hors_ue:horsUe, titre_sejour_num:v('ip-sejour-num'),
+    sejour_delivrance:v('ip-sejour-del'), fin_carte_sejour:v('ip-sejour-fin'),
+    iban:iban, bic:v('ip-bic').toUpperCase(), banque:v('ip-banque'),
+    mutuelle_adhesion:v('ip-mut-adh'), mutuelle_fin:v('ip-mut-fin'),
+    mutuelle_num:v('ip-mut-num'), mutuelle_org:v('ip-mut-org'),
+    saisi_le:new Date().toISOString().slice(0,10)
+  }};
+}
+window._docsLireInfos=_docsLireInfos;
+
 function parseTailles(str){
   var t={haut:'—',pantalon:'—',chaussures:'—'};
   (str||'').split('·').forEach(function(p){
@@ -19931,6 +20318,179 @@ function parseTailles(str){
   });
   return t;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   ★ v671 — LE SALARIÉ REMPLIT SA PROPRE FICHE.
+
+   Vincent : « quand je vais dans quelqu'un, j'aimerais qu'il rentre son identité
+   complète, ses coordonnées avec son adresse complète, son titre de séjour s'il a
+   un numéro, ses informations de compte bancaire, sa mutuelle. »
+
+   Jusqu'ici la page de dépôt ne demandait que des PHOTOS de pièces : la RH devait
+   ensuite lire chaque image et retaper l'IBAN, le numéro de sécurité sociale,
+   l'adresse… à la main, dans la fiche. D'où les fautes de frappe, et le temps perdu.
+
+   Maintenant le salarié SAISIT lui-même, et l'application CONTRÔLE à la source :
+   un IBAN dont la clé est fausse ou un numéro de sécu incohérent sont refusés
+   avant l'envoi. Ce sont de vraies vérifications mathématiques, pas un simple
+   comptage de caractères.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* L'IBAN, vérifié par sa clé (norme ISO 13616, modulo 97).
+   On déplace les 4 premiers caractères à la fin, on remplace les lettres par des
+   nombres (A=10 … Z=35), et le tout doit valoir 1 modulo 97.                   */
+function ibanValide(v){
+  var t=String(v==null?'':v).toUpperCase().replace(/[\s\-]/g,'');
+  if(!/^[A-Z]{2}[0-9A-Z]{11,32}$/.test(t)) return false;
+  var r=t.slice(4)+t.slice(0,4), n='';
+  for(var i=0;i<r.length;i++){
+    var c=r.charAt(i);
+    n += (c>='A'&&c<='Z') ? String(c.charCodeAt(0)-55) : c;
+  }
+  /* modulo 97 par tranches, parce que le nombre est trop grand pour un entier JS */
+  var reste=0;
+  for(var j=0;j<n.length;j+=7){ reste=parseInt(String(reste)+n.substr(j,7),10)%97; }
+  return reste===1;
+}
+window.ibanValide=ibanValide;
+function ibanFormate(v){
+  var t=String(v==null?'':v).toUpperCase().replace(/[^0-9A-Z]/g,'');
+  return t.replace(/(.{4})/g,'$1 ').trim();
+}
+window.ibanFormate=ibanFormate;
+
+/* Le numéro de sécurité sociale : 13 chiffres + une clé de 2 chiffres.
+   La clé vaut 97 moins le reste du numéro divisé par 97. La Corse (2A / 2B) est
+   gérée : 2A devient 19, 2B devient 18.                                         */
+function secuValide(v){
+  var t=String(v==null?'':v).toUpperCase().replace(/[\s.\-]/g,'');
+  if(!/^[12][0-9]{2}[0-9]{2}(2[AB]|[0-9]{2})[0-9]{3}[0-9]{3}[0-9]{2}$/.test(t)) return false;
+  var num=t.slice(0,13), cle=parseInt(t.slice(13),10);
+  var corse=null;
+  if(num.indexOf('2A')>=0){ corse=num.replace('2A','19'); }
+  else if(num.indexOf('2B')>=0){ corse=num.replace('2B','18'); }
+  var n=corse||num;
+  if(!/^[0-9]{13}$/.test(n)) return false;
+  var reste=0;
+  for(var j=0;j<n.length;j+=7){ reste=parseInt(String(reste)+n.substr(j,7),10)%97; }
+  return (97-reste)===cle;
+}
+window.secuValide=secuValide;
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   ★ v672 — LE NUMÉRO DE SÉCU EST RECOUPÉ AVEC L'ÉTAT CIVIL.
+
+   Vincent : « l'IBAN, le numéro de sécurité sociale, tu peux les contrôler par
+   rapport aux documents aussi ? »
+
+   Lire le texte sur la photo (OCR) coûterait ~5 Mo à charger sur le téléphone du
+   salarié, plusieurs secondes par pièce, pour une fiabilité moyenne sur un RIB
+   photographié de travers. Le code de cette application dit « SANS IA — 100 %
+   règles, aucun service payant », et on s'y tient.
+
+   Il y a beaucoup mieux, et gratuit : LE NUMÉRO DE SÉCU CONTIENT L'ÉTAT CIVIL.
+
+       1 85 09 34 172 038 45
+       │  │  │  │
+       │  │  │  └─ département de naissance (34 = Hérault)
+       │  │  └──── mois de naissance (09 = septembre)
+       │  └─────── année de naissance (85 = 1985)
+       └────────── sexe (1 = homme, 2 = femme)
+
+   On a déjà son sexe et sa date de naissance depuis sa candidature, et il vient de
+   saisir son code postal de naissance. On compare donc les quatre. Quelqu'un qui
+   recopie le numéro de son conjoint, ou qui se trompe d'une ligne sur sa carte
+   vitale, est repéré immédiatement — sans lire la moindre photo.
+
+   Prudence assumée : on ne signale QUE ce qui est certain. Les mois particuliers
+   (20 à 42, 50 à 99 — mois de naissance inconnu), les personnes nées à l'étranger
+   (département 99), les DOM (97x, 98x) et les numéros provisoires (1er chiffre
+   7 ou 8) ne déclenchent aucune alerte.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+function secuCoherences(num, civil){
+  var out=[];
+  try{
+    var t=String(num==null?'':num).toUpperCase().replace(/[\s.\-]/g,'');
+    if(!/^[0-9]{5}/.test(t.slice(0,1)+t.slice(1,5)) || t.length<7) return out;
+    civil=civil||{};
+
+    /* 1) LE SEXE */
+    var c1=t.charAt(0);
+    if(c1==='1'||c1==='2'){
+      var sx=String(civil.sexe||'').trim().toLowerCase();
+      if(sx){
+        var estH=(sx.indexOf('h')===0||sx.indexOf('m')===0);   /* Homme / Masculin */
+        var estF=(sx.indexOf('f')===0);                        /* Femme / Féminin  */
+        if(estH && c1==='2') out.push('le numéro commence par 2 (femme) alors que votre fiche indique « homme »');
+        if(estF && c1==='1') out.push('le numéro commence par 1 (homme) alors que votre fiche indique « femme »');
+      }
+    }
+
+    /* 2) L'ANNÉE ET 3) LE MOIS */
+    var nais=String(civil.dateNaissance||'').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(nais){
+      var an=parseInt(nais[1],10), mo=parseInt(nais[2],10);
+      var anNum=parseInt(t.slice(1,3),10);
+      if(!isNaN(anNum) && String(an).slice(2)!==t.slice(1,3)){
+        out.push('l\'année du numéro (' + t.slice(1,3) + ') ne correspond pas à votre année de naissance (' + String(an).slice(2) + ')');
+      }
+      var moNum=parseInt(t.slice(3,5),10);
+      /* les mois 20-42 et 50-99 sont des cas particuliers : on ne dit rien */
+      if(!isNaN(moNum) && moNum>=1 && moNum<=12 && moNum!==mo){
+        var MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+        out.push('le mois du numéro (' + MOIS[moNum-1] + ') ne correspond pas à votre date de naissance (' + MOIS[mo-1] + ')');
+      }
+    }
+
+    /* 4) LE DÉPARTEMENT DE NAISSANCE */
+    var dep=t.slice(5,7);
+    var cp=String(civil.cpNaissance||'').replace(/[^0-9AB]/gi,'').toUpperCase();
+    if(cp.length>=2 && dep!=='99' && dep!=='97' && dep!=='98'
+       && !/^9[78]/.test(cp) && c1!=='7' && c1!=='8'){
+      var depCp=cp.slice(0,2);
+      if(/^[0-9]{2}$/.test(dep) && /^[0-9]{2}$/.test(depCp) && dep!==depCp && !(dep==='20'&&depCp==='20')){
+        out.push('le département du numéro (' + dep + ') ne correspond pas à votre code postal de naissance (' + depCp + ')');
+      }
+    }
+  }catch(_){}
+  return out;
+}
+window.secuCoherences=secuCoherences;
+
+/* Ce que le salarié a saisi, rangé dans la candidature (jsonb « onboarding »,
+   qui est libre — aucune colonne à créer en base).                             */
+function _infosPersoDe(c){
+  try{ return (c && c.onboarding && c.onboarding.infosPerso) || {}; }catch(_){ return {}; }
+}
+window._infosPersoDe=_infosPersoDe;
+
+/* Les champs saisis → les champs de la FICHE SALARIÉ, aux bons noms.
+   C'est cette table qui fait que ce qu'il tape atterrit au bon endroit.        */
+var INFOS_PERSO_VERS_FICHE={
+  ville_naissance:'ville_naissance', cp_naissance:'cp_naissance', pays_naissance:'pays_naissance',
+  nationalite:'nationalite', num_secu:'num_secu',
+  adresse:'adresse', complement:'complement', code_postal:'code_postal', ville:'ville',
+  etranger_hors_ue:'etranger_hors_ue', titre_sejour_num:'titre_sejour_num',
+  sejour_delivrance:'sejour_delivrance', fin_carte_sejour:'fin_carte_sejour',
+  iban:'iban', bic:'bic', banque:'banque',
+  mutuelle_adhesion:'mutuelle_adhesion', mutuelle_fin:'mutuelle_fin',
+  mutuelle_num:'mutuelle_num', mutuelle_org:'mutuelle_org'
+};
+window.INFOS_PERSO_VERS_FICHE=INFOS_PERSO_VERS_FICHE;
+/* Recopie sur un objet infos de fiche salarié. Ne écrase JAMAIS une valeur déjà
+   renseignée par la RH : le salarié complète, il ne corrige pas par-dessus.    */
+function infosPersoVersFiche(ip, infos){
+  infos=infos||{};
+  try{
+    Object.keys(INFOS_PERSO_VERS_FICHE).forEach(function(k){
+      var v=ip&&ip[k]; if(v==null||String(v).trim()==='') return;
+      var dest=INFOS_PERSO_VERS_FICHE[k];
+      if(infos[dest]==null || String(infos[dest]).trim()==='') infos[dest]=v;
+    });
+  }catch(_){}
+  return infos;
+}
+window.infosPersoVersFiche=infosPersoVersFiche;
 
 // ── CONTRÔLE DES PIÈCES DÉPOSÉES (SANS IA — 100% règles, aucun service payant) ──
 // Vérifie : type de fichier autorisé, taille (pas vide / pas énorme), lisibilité
@@ -20028,10 +20588,23 @@ async function submitDocs(){
         }catch(upErr){console.error('Dropbox échec, conservation locale',upErr);}
       }
     }
+    /* ★ v671 — ce que le salarié a saisi, contrôlé avant d'être enregistré. */
+    var _lu=_docsLireInfos();
+    if(!_lu.ok){
+      window.__postulerEnCours=false;
+      var _bs=document.getElementById('doc-submit-btn');
+      if(_bs){ _bs.disabled=false; _bs.textContent='📤 Envoyer mon dossier'; }
+      alert('⛔ '+_lu.msg);
+      return;
+    }
+    var _onb=(_docsCand.onboarding&&typeof _docsCand.onboarding==='object')?_docsCand.onboarding:{};
+    _onb.infosPerso=_lu.data;
+
     var patch={
       documents:_docsData,
       contact_urgence:{nom:document.getElementById('doc-urg-nom').value.trim(),tel:document.getElementById('doc-urg-tel').value.trim()},
       tailles_tenue:tailles.join(' · '),
+      onboarding:_onb,
       docs_soumis:true,
       updated_at:new Date().toISOString()
     };
@@ -20083,6 +20656,23 @@ function showPostulerPage(presetResto){
       +'</div>'
       +'<div style="font-size:.68rem;color:#888;margin-top:3px;">Exemple : 03 / 09 / 2001</div>'
     +'</div></div>'
+    /* ★ v673 — LE LIEU DE NAISSANCE ET LE NUMÉRO DE SÉCU, DEMANDÉS ICI.
+
+       Vincent : « l'identité complètement au recrutement, les coordonnées
+       complètement au recrutement, le titre de séjour complètement au recrutement.
+       Ce qu'il faudrait faire remplir quand on demande les documents, c'est
+       simplement l'information bancaire et la mutuelle. »
+
+       C'est plus logique : le candidat remplit son état civil UNE fois, au moment
+       où il postule. Et le numéro de sécu est contrôlé ici même — le sexe et la
+       date de naissance sont saisis deux champs plus haut, le recoupement est donc
+       immédiat.                                                                 */
+    +'<div class="form-row"><div><label class="flabel">Ville de naissance *</label><input type="text" id="p-ville-naiss" class="fi" oninput="_postSecuLive()"></div>'
+    +'<div><label class="flabel">Code postal de naissance *</label><input type="text" inputmode="numeric" id="p-cp-naiss" class="fi" placeholder="34000" oninput="_postSecuLive()"></div></div>'
+    +'<div class="form-row"><div><label class="flabel">Pays de naissance *</label><input type="text" id="p-pays-naiss" class="fi" value="France"></div>'
+    +'<div><label class="flabel">N° de sécurité sociale *</label>'
+      +'<input type="text" inputmode="numeric" id="p-secu" class="fi" placeholder="2 85 09 34 172 038 45" oninput="_postSecuLive()">'
+      +'<div id="p-secu-msg" style="font-size:.68rem;color:#888;margin-top:3px;">Sur votre carte vitale ou votre attestation CPAM.</div></div></div>'
     +'<div class="form-row"><div><label class="flabel">Téléphone *</label><input type="tel" id="p-phone" class="fi" placeholder="06 00 00 00 00"></div>'
     +'<div><label class="flabel">Email *</label><input type="email" id="p-email" class="fi" placeholder="vous@email.com"></div></div>'
     +'<div class="form-row"><div><label class="flabel">Nationalité *</label><select id="p-nationalite" class="fi" onchange="toggleNatAutre()"><option value="">— Choisir —</option><option value="Française">Française</option><option value="Autre">Autre</option></select></div>'
@@ -20107,6 +20697,17 @@ function showPostulerPage(presetResto){
     +'<label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;display:flex;align-items:center;gap:6px;">♿ Bénéficiez-vous d\'une RQTH ? <span style="font-size:.72rem;color:#888;">(facultatif)</span></label>'
     +'<p style="font-size:.74rem;color:#7AB8D8;margin:4px 0 8px;">Reconnaissance de la Qualité de Travailleur Handicapé. Cette information reste confidentielle et nous aide à adapter votre accueil. Vous n\'êtes pas obligé(e) de répondre.</p>'
     +'<select id="p-rqth" class="fi"><option value="">Je préfère ne pas répondre</option><option value="oui">Oui</option><option value="non">Non</option></select></div>'
+    +'</div>'
+    /* ★ v673 — LE TITRE DE SÉJOUR, DEMANDÉ AU RECRUTEMENT LUI AUSSI. */
+    +'<div class="card"><div class="sec-title">🛂 Titre de séjour</div>'
+    +'<div style="margin-bottom:10px;"><label class="flabel">Avez-vous un titre de séjour ? *</label>'
+      +'<select id="p-sejour-oui" class="fi" onchange="_postToggleSejour()">'
+      +'<option value="non">Non — je suis français(e) ou ressortissant(e) de l\'Union européenne</option>'
+      +'<option value="oui">Oui — je suis titulaire d\'un titre de séjour</option></select></div>'
+    +'<div id="p-sejour-bloc" style="display:none;margin-bottom:10px;">'
+      +'<div style="margin-bottom:8px;"><label class="flabel">N° du titre de séjour *</label><input type="text" id="p-sejour-num" class="fi"></div>'
+      +'<div class="form-row"><div><label class="flabel">Date de délivrance *</label><input type="date" id="p-sejour-del" class="fi"></div>'
+      +'<div><label class="flabel">Fin de validité *</label><input type="date" id="p-sejour-fin" class="fi"></div></div></div>'
     +'</div>'
     +'<div class="card"><div class="sec-title">🚗 Comment venez-vous ?</div>'
     +'<label class="flabel" style="text-transform:none;font-size:.85rem;color:#ddd;">Votre moyen de transport pour venir travailler *</label>'
@@ -20573,6 +21174,24 @@ async function submitPostuler(){
   var _m=_today.getMonth()-_bd.getMonth();
   if(_m<0||(_m===0&&_today.getDate()<_bd.getDate()))_age--;
   if(_age<18){alert('Vous devez avoir au moins 18 ans pour postuler. Nous ne pouvons malheureusement pas retenir votre candidature.');return;}
+  /* ★ v673 — le lieu de naissance, le numéro de sécu et le titre de séjour. */
+  var _vn=(document.getElementById('p-ville-naiss')||{}).value.trim();
+  var _cpn=(document.getElementById('p-cp-naiss')||{}).value.trim();
+  var _secu=String((document.getElementById('p-secu')||{}).value||'').replace(/[\s.\-]/g,'');
+  if(!_vn){alert('Merci d\'indiquer votre ville de naissance.');return;}
+  if(!/^[0-9]{5}$/.test(_cpn)){alert('Le code postal de naissance doit contenir 5 chiffres.');return;}
+  if(!_secu){alert('Merci d\'indiquer votre numéro de sécurité sociale (il figure sur votre carte vitale).');return;}
+  if(!secuValide(_secu)){alert('Le numéro de sécurité sociale est incorrect. Recopiez-le exactement depuis votre carte vitale (15 chiffres).');return;}
+  var _incSecu=secuCoherences(_secu,{sexe:sexe,dateNaissance:naissance,cpNaissance:_cpn});
+  if(_incSecu.length){
+    alert('Ce numéro de sécurité sociale ne correspond pas à ce que vous avez indiqué :\n\n· '+_incSecu.join('\n· ')
+      +'\n\nVérifiez votre carte vitale, votre sexe et votre date de naissance.');
+    return;
+  }
+  if((document.getElementById('p-sejour-oui')||{}).value==='oui'){
+    if(!(document.getElementById('p-sejour-num')||{}).value.trim()){alert('Merci d\'indiquer le numéro de votre titre de séjour.');return;}
+    if(!(document.getElementById('p-sejour-fin')||{}).value){alert('Merci d\'indiquer la date de fin de validité de votre titre de séjour.');return;}
+  }
   if(!phone){alert('Merci d\'indiquer votre téléphone.');return;}
   if(!email||email.indexOf('@')<0){alert('Merci d\'indiquer un email valide.');return;}
   if(!nationalite){alert('Merci d\'indiquer votre nationalité.');return;}
@@ -20667,6 +21286,19 @@ async function submitPostuler(){
     transport:transport,trajet:trajet,
     dispos:(function(){ try{ dispos._des={immediat:(desChoix==='oui'), date:(desChoix==='oui'?'':desDate)}; }catch(_){} return dispos; })(),
     motivation:motivation,
+    /* ★ v673 — le reste de l'identité, rangé dans le jsonb « onboarding »
+       (aucune colonne à créer en base). C'est lui qui remplira la fiche.      */
+    onboarding:{infosPerso:{
+      ville_naissance:(document.getElementById('p-ville-naiss')||{}).value||'',
+      cp_naissance:(document.getElementById('p-cp-naiss')||{}).value||'',
+      pays_naissance:(document.getElementById('p-pays-naiss')||{}).value||'',
+      num_secu:String((document.getElementById('p-secu')||{}).value||'').replace(/[\s.\-]/g,''),
+      etranger_hors_ue:(document.getElementById('p-sejour-oui')||{}).value||'non',
+      titre_sejour_num:(document.getElementById('p-sejour-num')||{}).value||'',
+      sejour_delivrance:(document.getElementById('p-sejour-del')||{}).value||'',
+      fin_carte_sejour:(document.getElementById('p-sejour-fin')||{}).value||'',
+      saisi_le:new Date().toISOString().slice(0,10)
+    }},
     statut:'nouveau',created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
   var btn=event&&event.target;if(btn){btn.disabled=true;btn.textContent='Envoi...';}
   // ── UPLOAD CV + PHOTO SUR DROPBOX (lien en base, plus de base64) ──────────────
@@ -40016,6 +40648,193 @@ function ptgSetDebutJour(v){
   try{ toast('La journée de travail commence à '+String(n).padStart(2,'0')+':00 et se termine à '+String(n).padStart(2,'0')+':00 le lendemain.','success'); }catch(_){}
 }
 window.ptgSetDebutJour=ptgSetDebutJour;
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   ★ v674 — COMPLÉTER LES FICHES DÉJÀ EN POSTE.
+
+   La v673 fait descendre l'identité de la candidature vers la fiche… mais seulement
+   au moment où la fiche est CRÉÉE. Les salariés déjà en poste gardent donc leurs
+   trous : leur candidature contient leur adresse, leur nationalité, leur sexe, et
+   leur fiche reste vide.
+
+   Cet écran compare, pour chaque salarié issu d'un recrutement, ce que contient sa
+   CANDIDATURE et ce que contient sa FICHE, et propose de combler les trous.
+
+   ⚠️ Rien ne part tout seul — c'est la leçon de la v658. On liste, Vincent regarde
+   les valeurs qui seront écrites, Vincent coche, Vincent valide.
+   Et on ne remplit QUE les cases vides : jamais d'écrasement.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Les champs qui vivent en COLONNE sur bks_employees (pas dans infos). */
+var FCR_COLONNES=[
+  {cle:'email', lbl:'E-mail',    de:function(c){ return c.email||''; }},
+  {cle:'phone', lbl:'Téléphone', de:function(c){ return c.phone||''; }}
+];
+/* Les champs qui vivent dans infos, et d'où ils viennent dans la candidature. */
+var FCR_INFOS=[
+  {cle:'date_naissance', lbl:'Date de naissance',   de:function(c){ return c.dateNaissance||''; }},
+  {cle:'sexe',           lbl:'Sexe',                de:function(c){ return c.sexe||''; }},
+  {cle:'nationalite',    lbl:'Nationalité',         de:function(c){ return c.nationalite||''; }},
+  {cle:'adresse',        lbl:'Adresse',             de:function(c){ return c.adresse||''; }},
+  {cle:'code_postal',    lbl:'Code postal',         de:function(c){ return c.codePostal||''; }},
+  {cle:'ville',          lbl:'Ville',               de:function(c){ return c.ville||''; }},
+  {cle:'transport',      lbl:'Transport',           de:function(c){ return c.transport||''; }},
+  {cle:'statut_etudiant',lbl:'Statut étudiant',     de:function(c){ return c.etudiant?'oui':''; }},
+  {cle:'date_entree',    lbl:'Date d\'entrée',      de:function(c){ return c.dateDebut||''; }},
+  {cle:'contrat_hebdo',  lbl:'Contrat hebdo',       de:function(c){ return (c.contratHeures!=null&&c.contratHeures>0)?c.contratHeures:''; }}
+];
+/* Et tout ce que le candidat a saisi lui-même (v671/v672/v673). */
+var FCR_LIBELLES={
+  ville_naissance:'Ville de naissance', cp_naissance:'CP de naissance',
+  pays_naissance:'Pays de naissance', nationalite:'Nationalité', num_secu:'N° sécurité sociale',
+  adresse:'Adresse', complement:'Complément d\'adresse', code_postal:'Code postal', ville:'Ville',
+  etranger_hors_ue:'Titre de séjour (oui/non)', titre_sejour_num:'N° titre de séjour',
+  sejour_delivrance:'Délivrance du titre', fin_carte_sejour:'Fin du titre',
+  iban:'IBAN', bic:'BIC', banque:'Banque',
+  mutuelle_adhesion:'Mutuelle', mutuelle_fin:'Fin de couverture mutuelle',
+  mutuelle_num:'N° de mutuelle', mutuelle_org:'Nom de la mutuelle'
+};
+
+function _fcrVide(v){ return v==null || String(v).trim()===''; }
+
+/* La candidature d'origine d'un salarié, s'il en a une. */
+function fcrCandidatureDe(e){
+  if(!e || !e.fromCandId) return null;
+  return (DB.candidatures||[]).find(function(c){ return c.id===e.fromCandId; })||null;
+}
+window.fcrCandidatureDe=fcrCandidatureDe;
+
+/* Ce qui peut être rempli pour ce salarié. Renvoie [] s'il ne manque rien. */
+function fcrManquants(e){
+  var out=[], c=fcrCandidatureDe(e);
+  if(!c) return out;
+  var inf=e.infos||{};
+  FCR_COLONNES.forEach(function(f){
+    var v=f.de(c); if(_fcrVide(v)) return;
+    if(_fcrVide(e[f.cle])) out.push({ou:'col', cle:f.cle, lbl:f.lbl, val:v});
+  });
+  FCR_INFOS.forEach(function(f){
+    var v=f.de(c); if(_fcrVide(v)) return;
+    if(_fcrVide(inf[f.cle])) out.push({ou:'infos', cle:f.cle, lbl:f.lbl, val:v});
+  });
+  /* ce que le candidat a saisi lui-même */
+  var ip=_infosPersoDe(c);
+  Object.keys(INFOS_PERSO_VERS_FICHE).forEach(function(k){
+    var v=ip&&ip[k]; if(_fcrVide(v)) return;
+    if(k==='etranger_hors_ue' && String(v).toLowerCase()==='non') return;  /* pas une info utile */
+    var dest=INFOS_PERSO_VERS_FICHE[k];
+    if(out.some(function(x){ return x.ou==='infos' && x.cle===dest; })) return;
+    if(_fcrVide(inf[dest])) out.push({ou:'infos', cle:dest, lbl:(FCR_LIBELLES[k]||dest), val:v});
+  });
+  return out;
+}
+window.fcrManquants=fcrManquants;
+
+/* ── Paramètres › 📋 Compléter les fiches depuis le recrutement ─────────────── */
+function paramCompleterFiches(){
+  try{ paramOuvrir('card','pc-completer-fiches'); }catch(_){}
+  renderCompleterFiches();
+}
+window.paramCompleterFiches=paramCompleterFiches;
+
+function renderCompleterFiches(){
+  var box=document.getElementById('pc-completer-fiches-body'); if(!box) return;
+  var eq=(DB.employees||[]).filter(function(e){ return e && !e.archived && e.fromCandId; });
+  var lignes=[];
+  eq.forEach(function(e){
+    var m=fcrManquants(e);
+    if(m.length) lignes.push({emp:e, manque:m});
+  });
+  var h='<p style="font-size:.84rem;color:#aaa;margin-bottom:14px;line-height:1.6;">'
+    +'Depuis la <b>v673</b>, tout ce que le candidat saisit descend sur sa fiche à la création. '
+    +'Les salariés <b>déjà en poste</b>, eux, gardent leurs trous : leur candidature contient leur adresse, '
+    +'leur nationalité, leur sexe… et leur fiche est vide. On peut les combler ici.<br>'
+    +'<b style="color:#ddd;">Rien ne part tout seul :</b> tu vois les valeurs, tu coches, tu valides. '
+    +'Et on ne remplit <b>que les cases vides</b> — ce que tu as déjà saisi n\'est jamais écrasé.</p>';
+
+  if(!lignes.length){
+    box.innerHTML=h+'<div style="color:#3ecf8e;font-weight:700;font-size:.9rem;">✅ Rien à compléter — toutes les fiches issues du recrutement sont à jour.</div>';
+    return;
+  }
+  var total=lignes.reduce(function(n,l){ return n+l.manque.length; },0);
+  h+='<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;font-size:.86rem;">'
+    +'<span><b style="color:#e8a020;font-size:1.15rem;">'+lignes.length+'</b> fiche(s) à compléter</span>'
+    +'<span><b style="color:#e8a020;font-size:1.15rem;">'+total+'</b> case(s) vides remplissables</span></div>';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">'
+    +'<button type="button" class="btn btn-gray btn-sm" onclick="fcrCocher(true)">Tout cocher</button>'
+    +'<button type="button" class="btn btn-gray btn-sm" onclick="fcrCocher(false)">Tout décocher</button>'
+    +'<button type="button" class="btn btn-sm" style="background:#1d7a3a;color:#fff;" onclick="fcrCompleter()">📋 Compléter les fiches cochées</button>'
+    +'<span id="fcr-status" style="font-size:.84rem;color:#3ecf8e;font-weight:700;align-self:center;"></span></div>';
+
+  h+='<div style="display:flex;flex-direction:column;gap:9px;">';
+  lignes.sort(function(a,b){ return String(a.emp.name||'').localeCompare(String(b.emp.name||'')); }).forEach(function(l){
+    h+='<div style="border:1px solid #2a2a2a;border-radius:10px;padding:10px 12px;background:#151515;">'
+      +'<label style="display:flex;align-items:center;gap:9px;cursor:pointer;margin-bottom:7px;">'
+        +'<input type="checkbox" class="fcr-ck" data-id="'+_msgEsc(l.emp.id)+'" checked>'
+        +'<b style="color:#eee;">'+_msgEsc(l.emp.name||'—')+'</b>'
+        +'<span style="color:#8a9099;font-size:.78rem;">'+_msgEsc((l.emp.restoId||'').toUpperCase())+'</span>'
+        +'<span style="color:#e8a020;font-size:.78rem;font-weight:700;">'+l.manque.length+' case(s) à remplir</span>'
+      +'</label>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px;padding-left:26px;">';
+    l.manque.forEach(function(m){
+      var aff=String(m.val);
+      if(m.cle==='iban') aff=aff.slice(0,8)+'…'+aff.slice(-4);
+      if(m.cle==='num_secu') aff=aff.slice(0,3)+'…'+aff.slice(-2);
+      h+='<span style="background:#1d2b1f;border:1px solid #2e7d32;color:#a8d5b0;border-radius:7px;padding:3px 9px;font-size:.76rem;">'
+        +_msgEsc(m.lbl)+' : <b>'+_msgEsc(aff)+'</b></span>';
+    });
+    h+='</div></div>';
+  });
+  h+='</div>';
+  box.innerHTML=h;
+}
+window.renderCompleterFiches=renderCompleterFiches;
+
+function fcrCocher(v){
+  try{ Array.prototype.forEach.call(document.querySelectorAll('.fcr-ck'),function(c){ c.checked=!!v; }); }catch(_){}
+}
+window.fcrCocher=fcrCocher;
+
+function _fcrStatus(t,col){
+  try{ var el=document.getElementById('fcr-status'); if(el){ el.style.color=col||'#3ecf8e'; el.textContent=t; setTimeout(function(){ if(el) el.textContent=''; },5000); } }catch(_){}
+}
+
+async function fcrCompleter(){
+  var ids=[];
+  try{ Array.prototype.forEach.call(document.querySelectorAll('.fcr-ck'),function(c){ if(c.checked) ids.push(c.getAttribute('data-id')); }); }catch(_){}
+  if(!ids.length){ _fcrStatus('Aucune fiche cochée.','#e8a020'); return; }
+  var nbCases=0;
+  ids.forEach(function(id){
+    var e=(DB.employees||[]).find(function(x){ return String(x.id)===String(id); });
+    if(e) nbCases+=fcrManquants(e).length;
+  });
+  if(!confirm('Compléter '+ids.length+' fiche(s) ?\n\n'+nbCases+' case(s) vides seront remplies depuis les candidatures.\n\n'
+    +'Aucune information déjà saisie ne sera modifiée.')) return;
+
+  var okFiches=0, okCases=0;
+  for(var i=0;i<ids.length;i++){
+    var e=(DB.employees||[]).find(function(x){ return String(x.id)===String(ids[i]); });
+    if(!e) continue;
+    var m=fcrManquants(e);
+    if(!m.length) continue;
+    var patch={}, infos=JSON.parse(JSON.stringify(e.infos||{}));
+    m.forEach(function(x){
+      if(x.ou==='col'){ patch[x.cle]=x.val; }
+      else { infos[x.cle]=x.val; }
+    });
+    patch.infos=infos;
+    try{
+      await sb.patch('bks_employees','id=eq.'+e.id, patch);
+      Object.keys(patch).forEach(function(k){ if(k!=='infos') e[k]=patch[k]; });
+      e.infos=infos;
+      okFiches++; okCases+=m.length;
+    }catch(_){}
+  }
+  renderCompleterFiches();
+  _fcrStatus('✅ '+okFiches+' fiche(s) complétée(s) · '+okCases+' case(s) remplies');
+  try{ toast(okFiches+' fiche(s) complétée(s) — '+okCases+' case(s) remplies','success'); }catch(_){}
+}
+window.fcrCompleter=fcrCompleter;
 
 /* ── ★ v664 — Paramètres › 🧹 FICHES CRÉÉES PAR LE RECRUTEMENT ────────────────
    Toute fiche salarié née d'une candidature porte une marque : fromCandId. On les
