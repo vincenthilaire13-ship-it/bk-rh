@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-09-16 09:00 · v696 (pieces rangees supprimables, signature en casse normale, alerte de deploiement)';
+  var EMBEDDED_VERSION = '2026-09-17 09:00 · v697 (frise des contrats, menus deroulants, signature au choix du salarie)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -225,6 +225,13 @@ html.theme-light [style*="background:#11160f" i],html.theme-light [style*="backg
 html.theme-light [style*="background:#12161c" i],html.theme-light [style*="background: #12161c" i]{ background:#eef0f4 !important; }
 html.theme-light [style*="background:#12210f" i],html.theme-light [style*="background: #12210f" i]{ background:#eef5ed !important; }
 html.theme-light [style*="background:#12211a" i],html.theme-light [style*="background: #12211a" i]{ background:#edf5f1 !important; }
+/* ★ v697 — la frise des contrats : « à venir » et « terminé » doivent rester
+   lisibles en thème clair. Sans ça, le « CDI » du bandeau bleu s'écrivait en
+   sombre sur sombre. */
+html.theme-light [style*="background:#141d2b" i]{ background:#eef3fb !important; }
+html.theme-light [style*="background:#141d2b" i] b{ color:#2b3a4d !important; }
+html.theme-light [style*="background:#161616" i]{ background:#f3f4f6 !important; }
+html.theme-light [style*="background:#161616" i] b{ color:#4a4f57 !important; }
 html.theme-light [style*="background:#12233a" i],html.theme-light [style*="background: #12233a" i]{ background:#edf0f5 !important; }
 html.theme-light [style*="background:#12324a" i],html.theme-light [style*="background: #12324a" i]{ background:#edf2f5 !important; }
 html.theme-light [style*="background:#132a1e" i],html.theme-light [style*="background: #132a1e" i]{ background:#edf5f1 !important; }
@@ -11384,6 +11391,49 @@ async function _pieceBlob(url){
 }
 
 var _empDocCtx={empId:null,boxId:'histo-docs'};
+/* ★ v697 — DES MENUS DÉROULANTS, « PARCE QUE CE N'EST PAS JOLI ».
+
+   L'onglet Documents déroulait tout à plat : la visite médicale, les onze pièces
+   du recrutement, les documents RH, puis le formulaire d'ajout — quatre écrans de
+   défilement pour trouver une ligne. Chaque bloc se replie maintenant, et se
+   souvient de comment on l'a laissé.
+
+   Un détail qui compte : les boutons posés DANS l'en-tête (⬇️ Tout télécharger,
+   📄 Générer un contrat) ne doivent pas replier la section quand on clique dessus.
+   D'où le stopPropagation. */
+function _accEstOuvert(id, parDefaut){
+  try{ var v=localStorage.getItem('bkrh_acc_'+id); if(v==='1') return true; if(v==='0') return false; }catch(_){}
+  return !!parDefaut;
+}
+function _accToggle(id){
+  var c=document.getElementById('acc-corps-'+id), f=document.getElementById('acc-chev-'+id);
+  if(!c) return;
+  var ouvre=(c.style.display==='none');
+  c.style.display=ouvre?'block':'none';
+  if(f) f.textContent=ouvre?'▾':'▸';
+  try{ localStorage.setItem('bkrh_acc_'+id, ouvre?'1':'0'); }catch(_){}
+}
+window._accToggle=_accToggle; window._accEstOuvert=_accEstOuvert;
+
+function _accSection(id, icone, titre, opts){
+  opts=opts||{};
+  var ouvert=_accEstOuvert(id, !!opts.ouvertParDefaut);
+  var col=opts.couleur||'var(--orange)';
+  return '<div class="acc-sec" data-acc="'+id+'" style="border:1px solid #2A2A2A;border-radius:10px;'
+      +'margin-bottom:9px;background:#141414;overflow:hidden;">'
+    +'<div onclick="_accToggle(\''+id+'\')" style="display:flex;align-items:center;gap:9px;padding:11px 13px;cursor:pointer;flex-wrap:wrap;">'
+      +'<span id="acc-chev-'+id+'" style="width:14px;color:#888;font-size:.9rem;">'+(ouvert?'▾':'▸')+'</span>'
+      +'<span style="font-size:1.02rem;">'+icone+'</span>'
+      +'<span style="flex:1;min-width:120px;font-size:.78rem;font-weight:700;color:'+col+';text-transform:uppercase;letter-spacing:1px;">'
+        +titre+'</span>'
+      +(opts.etat?('<span style="font-size:.74rem;color:#999;">'+opts.etat+'</span>'):'')
+      +(opts.actions?('<span onclick="event.stopPropagation();">'+opts.actions+'</span>'):'')
+    +'</div>'
+    +'<div id="acc-corps-'+id+'" style="display:'+(ouvert?'block':'none')+';padding:0 13px 12px;">'+(opts.contenu||'')+'</div>'
+  +'</div>';
+}
+window._accSection=_accSection;
+
 function renderEmpDocs(empId,boxId){
   var box=document.getElementById(boxId||'histo-docs');if(!box)return;
   _empDocCtx={empId:empId,boxId:boxId||'histo-docs'};
@@ -11404,11 +11454,7 @@ function renderEmpDocs(empId,boxId){
     });
   }
   if(cand&&(Object.keys(cand.documents||{}).length||cand.cvName||cand.cvData||cand.photo)){
-    h+='<div style="border-top:1px solid #333;padding-top:14px;margin-bottom:6px;">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap;">'
-      +'<div style="font-size:.78rem;color:#3ecf8e;text-transform:uppercase;letter-spacing:1px;font-weight:700;">🎯 Documents du recrutement (déposés par le salarié)</div>'
-      +'<button class="btn btn-red btn-sm" onclick="downloadAllCandDocs(\''+cand.id+'\')">⬇️ Tout télécharger</button>'
-      +'</div>';
+    var _hRec='';           /* ★ v697 — on remplit, on plie à la fin */
     DOC_TYPES.forEach(function(d){
       function pieceLine(key,lbl){
         var p=(cand.documents||{})[key];if(!p||!(p.link||p.data))return '';
@@ -11417,41 +11463,74 @@ function renderEmpDocs(empId,boxId){
           +(p.link?'<button class="btn btn-gray btn-sm" onclick="window.open(\''+p.link+'\',\'_blank\')">👁️ Lire</button> <button class="btn btn-gray btn-sm" onclick="dlDoc(\''+p.link+'\')">⬇️ Télécharger</button>':'<span style="font-size:.72rem;color:#a8460f;">déposé (local)</span>')
           +'</div>';
       }
-      if(d.sides){d.sides.forEach(function(s){h+=pieceLine(d.id+'_'+s.toLowerCase(),d.label+' — '+s);});}
-      else{h+=pieceLine(d.id,d.label);}
+      if(d.sides){d.sides.forEach(function(s){_hRec+=pieceLine(d.id+'_'+s.toLowerCase(),d.label+' — '+s);});}
+      else{_hRec+=pieceLine(d.id,d.label);}
     });
     // CV (lien Dropbox ou PDF base64 — chargé à la demande)
     if(cand.cvName||cand.cvData){
-      h+='<div style="display:flex;align-items:center;gap:8px;background:#11160f;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
+      _hRec+='<div style="display:flex;align-items:center;gap:8px;background:#11160f;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
         +'<span style="flex:1;min-width:0;font-size:.82rem;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📄 CV'+(cand.cvName?' — '+cand.cvName:'')+'</span>'
         +'<button class="btn btn-gray btn-sm" onclick="viewCV(\''+cand.id+'\')">👁️ Lire</button> <button class="btn btn-gray btn-sm" onclick="downloadCV(\''+cand.id+'\')">⬇️ Télécharger</button>'
         +'</div>';
     }
     // Photo
     if(cand.photo){
-      h+='<div style="display:flex;align-items:center;gap:8px;background:#11160f;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
+      _hRec+='<div style="display:flex;align-items:center;gap:8px;background:#11160f;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
         +'<span style="flex:1;min-width:0;font-size:.82rem;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📷 Photo</span>'
         +'<button class="btn btn-gray btn-sm" onclick="viewCandPhoto(\''+cand.id+'\')">👁️ Lire</button> <button class="btn btn-gray btn-sm" onclick="dlCandPhoto(\''+cand.id+'\')">⬇️ Télécharger</button>'
         +'</div>';
     }
-    h+='</div>';
+    var _nRec=(_hRec.match(/border-radius:6px/g)||[]).length;
+    h+=_accSection('rec-'+empId,'🎯','Documents du recrutement',{
+      couleur:'#3ecf8e',
+      etat:_nRec+' pièce'+(_nRec>1?'s':''),
+      actions:'<button class="btn btn-gray btn-sm" style="padding:2px 8px;" onclick="downloadAllCandDocs(\''+cand.id+'\')">⬇️ Tout télécharger</button>',
+      contenu:_hRec
+    });
   }
-  h+='<div style="border-top:1px solid #333;padding-top:14px;">'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px;">'
-    +'<div style="font-size:.78rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;font-weight:700;">📁 Documents RH</div>'
-    +((!window.__readOnly && curUser && (curUser.role==='franchise'||curUser.role==='directeur'))?'<button class="btn btn-red btn-sm" onclick="openContratGen(\''+empId+'\')">📄 Générer un contrat / avenant</button>':'')
-    +'</div>';
+  /* ★ v697 — « au lieu de Documents RH, tu vas me faire un menu déroulant pour
+     les contrats qui sont signés, donc qu'on puisse voir que les contrats sont
+     signés. »
+
+     C'est ici que les contrats signés vivent désormais — ils quittent la fiche,
+     où Vincent ne veut plus que la suite des périodes de travail. On montre donc
+     DEUX choses dans ce tiroir : les documents signés dans l'application, et les
+     pièces rangées dans Dropbox. */
+  var _hRH='';
+  var _dirRH=(!window.__readOnly && curUser && (curUser.role==='franchise'||curUser.role==='directeur'));
+  var _sigs=(DB.letters||[]).filter(function(l){
+    return l.empId===empId && (l.type==='contrat'||l.sanctionType==='contrat')
+      && (l.sigStatus==='signed'||l.sigStatus==='refused');
+  }).sort(function(a,b){ return new Date(b.signedAt||b.refusedAt||b.createdAt||0)-new Date(a.signedAt||a.refusedAt||a.createdAt||0); });
+
+  if(_sigs.length){
+    _hRH+='<div style="font-size:.74rem;color:#888;margin:4px 0 4px;">✍️ Signés dans l\'application</div>';
+    _sigs.forEach(function(l){
+      var id=ctrDocIdent(l);
+      var ok=(l.sigStatus==='signed');
+      var dt=ok?(l.signedAt?new Date(l.signedAt).toLocaleDateString('fr-FR'):''):(l.refusedAt?new Date(l.refusedAt).toLocaleDateString('fr-FR'):'');
+      _hRH+='<div style="display:flex;align-items:center;gap:8px;background:#141414;border-radius:6px;padding:7px 10px;margin-bottom:5px;flex-wrap:wrap;">'
+        +'<span style="font-size:1.02rem;">'+id.icone+'</span>'
+        +'<span style="flex:1;min-width:150px;font-size:.82rem;color:#ddd;">'+escapeHtmlCt(id.nom)
+          +'<br><span style="font-size:.72rem;color:'+(ok?'#4CAF50':'#cc5555')+';font-weight:700;">'
+          +(ok?('✍️ Signé'+(dt?(' le '+dt):'')):('❌ Refus'+(dt?(' le '+dt):'')))+'</span></span>'
+        +'<button class="btn btn-gray btn-sm" onclick="ctrRelire(\''+l.id+'\')">👁️ Lire</button>'
+        +'<button class="btn btn-gray btn-sm" onclick="telechargerPdfCourrier(\''+l.id+'\')">⬇️ Télécharger</button>'
+        +(_dirRH?('<button class="btn-danger" style="padding:3px 8px;" onclick="ctrSupprimerDoc(\''+l.id+'\')">🗑️</button>'):'')
+        +'</div>';
+    });
+  }
   // liste groupée par catégorie
-  if(!docs.length){
-    h+='<p style="font-size:.78rem;color:#666;margin-bottom:10px;">Aucun document RH pour l\'instant.</p>';
+  if(!docs.length && !_sigs.length){
+    _hRH+='<p style="font-size:.78rem;color:#666;margin-bottom:10px;">Aucun document RH pour l\'instant.</p>';
   }else{
     EMPDOC_CATS.forEach(function(cat){
       var grp=docs.filter(function(d){return d.categorie===cat.id;});
       if(!grp.length)return;
-      h+='<div style="font-size:.74rem;color:#888;margin:8px 0 4px;">'+cat.icon+' '+cat.label+'</div>';
+      _hRH+='<div style="font-size:.74rem;color:#888;margin:8px 0 4px;">'+cat.icon+' '+cat.label+' — rangé dans le dossier</div>';
       grp.forEach(function(d){
         var dt=d.createdAt?new Date(d.createdAt).toLocaleDateString('fr-FR'):'';
-        h+='<div style="display:flex;align-items:center;gap:8px;background:#141414;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
+        _hRH+='<div style="display:flex;align-items:center;gap:8px;background:#141414;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
           +'<span style="flex:1;min-width:0;font-size:.82rem;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(d.label||d.name||'Document')+(dt?' <span style="color:#666;font-size:.72rem;">· '+dt+'</span>':'')+'</span>'
           +(d.link?'<button class="btn btn-gray btn-sm" onclick="viewDoc(\''+d.id+'\')">👁️ Lire</button> <button class="btn btn-gray btn-sm" onclick="dlDoc(\''+d.link+'\')">⬇️ Télécharger</button>':'<span style="font-size:.72rem;color:#a8460f;">non lisible</span>')
           +((curUser&&curUser.role==='franchise')?'<button class="btn-danger" style="padding:3px 8px;" onclick="delEmpDoc(\''+d.id+'\')">🗑️</button>':'')
@@ -11459,12 +11538,17 @@ function renderEmpDocs(empId,boxId){
       });
     });
   }
+  var _nSig=_sigs.filter(function(l){ return l.sigStatus==='signed'; }).length;
+  h+=_accSection('rh-'+empId,'📁','Contrats & documents signés',{
+    etat:(_nSig?(_nSig+' signé'+(_nSig>1?'s':'')):'')+((_nSig&&docs.length)?' · ':'')+(docs.length?(docs.length+' au dossier'):''),
+    actions:(_dirRH?('<button class="btn btn-red btn-sm" style="padding:2px 8px;" onclick="openContratGen(\''+empId+'\')">📄 Générer un contrat / avenant</button>'):''),
+    contenu:_hRH
+  });
   // ajout d'un document (masqué en lecture seule)
   if(!window.__readOnly){
   var today=new Date();today.setMinutes(today.getMinutes()-today.getTimezoneOffset());var todayStr=today.toISOString().slice(0,10);
-  h+='<div style="background:#141414;border-radius:8px;padding:12px;margin-top:10px;">'
-    +'<div style="font-size:.8rem;color:#ddd;margin-bottom:9px;">➕ Ajouter un document</div>'
-    +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:9px;">'
+  var _hAdd='';
+  _hAdd+='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:9px;">'
     +'<div style="flex:1;min-width:130px;"><div style="font-size:.7rem;color:#888;margin-bottom:3px;">Type *</div>'
     +'<select id="empdoc-cat" class="fi">'+EMPDOC_CATS.map(function(c){return '<option value="'+c.id+'">'+c.icon+' '+c.label+'</option>';}).join('')+'</select></div>'
     +'<div style="flex:1;min-width:130px;"><div style="font-size:.7rem;color:#888;margin-bottom:3px;">Date du document *</div>'
@@ -11482,8 +11566,10 @@ function renderEmpDocs(empId,boxId){
       +'<div style="font-size:.72rem;color:#666;margin-top:3px;">PDF ou image · max 8 Mo · rangé dans Dropbox au nom du salarié</div>'
     +'</div>'
     +'<input type="file" id="empdoc-file" accept="application/pdf,image/*" style="display:none;" onchange="handleEmpDocUpload(this)">'
-    +'<div id="empdoc-status" style="font-size:.74rem;color:#888;margin-top:8px;"></div>'
-    +'</div>';
+    +'<div id="empdoc-status" style="font-size:.74rem;color:#888;margin-top:8px;"></div>';
+  /* ★ v697 — le formulaire d'ajout se replie lui aussi : on ne l'ouvre que
+     lorsqu'on a un papier à déposer. */
+  h+=_accSection('add-'+empId,'➕','Ajouter un document',{couleur:'#8fa0b8', contenu:_hAdd});
   }
   box.innerHTML=h;
 }
@@ -11527,14 +11613,18 @@ function renderVisiteMedicalePanel(empId,boxId){
   _visitePanelBox=boxId||'histo-visite';
   var e=DB.employees.find(function(x){return x.id===empId;});if(!e){box.innerHTML='';return;}
   var v=visiteEmpInfo(e);
-  box.innerHTML='<div style="border-top:1px solid #333;padding-top:14px;">'
-    +'<div style="font-size:.78rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:700;">🩺 Visite médicale</div>'
-    +'<div style="background:#141414;border-left:4px solid '+v.col+';border-radius:0 8px 8px 0;padding:10px 12px;">'
+  /* ★ v697 — repliée elle aussi, mais l'état reste lisible sans l'ouvrir :
+     il est écrit dans l'en-tête. */
+  var _corps='<div style="background:#0f0f0f;border-left:4px solid '+v.col+';border-radius:0 8px 8px 0;padding:10px 12px;">'
     +'<div style="font-weight:700;font-size:.9rem;color:#fff;">'+v.badge+'</div>'
     +(v.sub?'<div style="font-size:.74rem;color:#999;margin-top:3px;">'+v.sub+'</div>':'')
     +'</div>'
-    +(window.__readOnly?'':'<button class="btn btn-red btn-sm" style="margin-top:10px;width:100%;" onclick="openValiderVisite(\''+empId+'\')">✅ Valider une visite médicale</button>')
-    +'</div>';
+    +(window.__readOnly?'':'<button class="btn btn-red btn-sm" style="margin-top:10px;width:100%;" onclick="openValiderVisite(\''+empId+'\')">✅ Valider une visite médicale</button>');
+  box.innerHTML=(typeof _accSection==='function')
+    ? _accSection('vm-'+empId,'🩺','Visite médicale',{
+        etat:'<span style="color:'+v.col+';font-weight:700;">'+String(v.badge||'').replace(/<[^>]*>/g,'')+'</span>',
+        contenu:_corps })
+    : ('<div style="border-top:1px solid #333;padding-top:14px;">'+_corps+'</div>');
 }
 
 var _visiteEmpId=null,_visiteFileData=null,_visiteFileName=null;
@@ -12715,49 +12805,135 @@ function _contratIcone(type){
   if(t.indexOf('cdi')>=0) return '📄';
   return '📄';
 }
-function _ficheContratsHtml(e){
-  var inf=e.infos||{};
-  var items=[];
-  // 1) Contrat en cours (déduit des infos importées)
+/* ★ v697 — « JE VEUX SIMPLEMENT SAVOIR QUE SON CONTRAT EST EN VERT, QU'ELLE EST
+   EN VINGT-QUATRE HEURES. »
+
+   Vincent : « sur la fiche salariée, je n'ai pas besoin de voir comme quoi c'est
+   signé le contrat et cetera. […] Si on génère un autre avenant, ça mettra le
+   nouvel avenant au-dessus, à partir de quelle date, donc ça mettra fin à son
+   contrat de vingt-quatre heures. Et si elle est en apprentissage, ça passera
+   en [apprenti]. »
+
+   C'est une frise, pas une liste de documents : la période en cours en vert, ce
+   qui est programmé au-dessus, ce qui est terminé en dessous, chacune avec ses
+   dates. La signature des documents, elle, a sa propre carte — et une fois tout
+   signé, elle disparaît : les documents signés se retrouvent dans l'onglet
+   Documents. */
+function _ctrIsoAuj(){
+  var t=new Date();
+  return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+}
+function _ctrPeriodes(e){
+  var inf=(e&&e.infos)||{};
+  var _n=function(v){ var x=parseFloat(String(v==null?'':v).replace(',','.')); return (isFinite(x)&&x>0)?x:0; };
   var typ=inf.contrat_type||inf.cdi_cdd||'';
   var estAppr=String(typ).toLowerCase().indexOf('apprent')>=0;
-  var ligneCour='';
-  if(typ||inf.contrat_hebdo||inf.date_entree){
-    var bits=[];
-    if(typ) bits.push('<b style="color:#eee;">'+(estAppr?'Apprentissage':String(typ).toUpperCase())+'</b>');
-    if(inf.contrat_hebdo) bits.push(inf.contrat_hebdo+'h/sem');
-    var periode='';
-    if(estAppr && (inf.apprentissage_debut||inf.apprentissage_fin)){
-      periode='du '+(inf.apprentissage_debut?_frDate(inf.apprentissage_debut):'?')+' au '+(inf.apprentissage_fin?_frDate(inf.apprentissage_fin):'?');
-    } else if(inf.date_fin_cdd){
-      periode='jusqu\'au '+_frDate(inf.date_fin_cdd);
-    } else if(inf.date_entree){
-      periode='depuis le '+_frDate(inf.date_entree);
-    }
-    if(periode) bits.push('<span style="color:#aaa;">'+periode+'</span>');
-    ligneCour='<div style="display:flex;align-items:center;gap:10px;background:#12211a;border:1px solid #234a34;border-radius:8px;padding:9px 12px;margin-bottom:8px;">'
-      +'<div style="font-size:1.25rem;">'+_contratIcone(typ)+'</div>'
-      +'<div style="flex:1;min-width:0;"><div style="font-size:.72rem;color:#4CAF50;text-transform:uppercase;letter-spacing:.5px;font-weight:700;">Contrat en cours</div>'
-      +'<div style="font-size:.86rem;">'+bits.join(' · ')+'</div>'
-      +(inf.emploi_libelle?'<div style="font-size:.72rem;color:#777;">'+inf.emploi_libelle+'</div>':'')+'</div></div>';
+  var P=[];
+
+  /* le socle : le contrat d'embauche */
+  if(inf.date_entree || _n(inf.contrat_hebdo) || typ){
+    P.push({debut:(estAppr&&inf.apprentissage_debut)?inf.apprentissage_debut:(inf.date_entree||''),
+            hebdo:_n(inf.contrat_hebdo), type:typ, motif:'Contrat d\'embauche'});
   }
-  /* ★ v690 — LE POSTE DE COMMANDE EST ICI, PAS DANS LES RÉGLAGES.
+  /* la sortie d'apprentissage ouvre une période */
+  if(inf.apprentissage_fin && _n(inf.contrat_apres)){
+    P.push({debut:inf.apprentissage_fin, hebdo:_n(inf.contrat_apres),
+            type:(inf.contrat_type_apres||'CDI'), motif:'Fin d\'apprentissage'});
+  }
+  /* les avenants déjà enregistrés */
+  (inf.contrat_periodes||[]).forEach(function(p){
+    if(p && p.debut) P.push({debut:p.debut, hebdo:_n(p.hebdo), type:p.type||typ, motif:p.motif||'Avenant'});
+  });
+  /* le changement programmé (compatibilité : hrContratHebdo le lit depuis toujours) */
+  if(inf.contrat_futur_date && _n(inf.contrat_futur_hebdo)){
+    P.push({debut:inf.contrat_futur_date, hebdo:_n(inf.contrat_futur_hebdo), type:typ, motif:'Avenant'});
+  }
+  if(!P.length) return [];
 
-     Vincent : « quand tu vas sur le dossier du salarié, tu as en bas les contrats.
-     Mais ça ne va pas dans Paramètres. »
+  /* une seule période par date de début — la dernière écrite fait foi */
+  var par={}; P.forEach(function(p){ par[p.debut||'']=p; });
+  P=Object.keys(par).map(function(k){ return par[k]; })
+    .sort(function(a,b){ return String(a.debut||'').localeCompare(String(b.debut||'')); });
 
-     Alors tout ce qu'on peut faire d'un contrat se fait maintenant depuis sa
-     fiche : le relire, sortir son PDF, le faire signer sur la tablette, rouvrir
-     le brouillon du mail — et le supprimer pour recommencer.
+  /* chaque période s'arrête quand la suivante commence */
+  for(var i=0;i<P.length-1;i++) P[i].fin=P[i+1].debut;
+  var last=P[P.length-1];
+  if(!last.fin){
+    if(inf.date_fin_cdd) last.fin=inf.date_fin_cdd;
+    else if(estAppr && inf.apprentissage_fin && P.length===1) last.fin=inf.apprentissage_fin;
+    else if(inf.date_sortie) last.fin=inf.date_sortie;
+  }
 
-     Et les documents sont GROUPÉS PAR GÉNÉRATION. Cinq documents sortis ensemble
-     forment une fournée : c'est ainsi qu'ils partent (un seul mail) et c'est ainsi
-     qu'on les efface (un seul geste). Les voir en vrac, mélangés à ceux du mois
-     dernier, ne racontait rien. */
+  var auj=_ctrIsoAuj();
+  P.forEach(function(p){
+    p.etat=(p.debut && p.debut>auj) ? 'futur' : ((p.fin && p.fin<=auj) ? 'passe' : 'cours');
+  });
+  /* ★ v697 — un salarié qui démarre le 3 septembre n'a pas « aucun contrat » : il
+     a CE contrat-là, qui commence bientôt. Tant qu'aucune période n'est en cours,
+     la première à venir est la sienne — et elle s'affiche en vert, comme Vincent
+     le demande. Le bleu « à venir » est réservé à ce qui s'ajoute PAR-DESSUS un
+     contrat déjà actif : un avenant programmé. */
+  if(!P.some(function(p){ return p.etat==='cours'; })){
+    var f=P.filter(function(p){ return p.etat==='futur'; })[0];
+    if(f) f.etat='cours';
+  }
+  return P.reverse();     /* la plus récente en haut */
+}
+window._ctrPeriodes=_ctrPeriodes;
+
+function _ctrPeriodeHtml(p, inf){
+  var _f=function(n){ return (''+(Math.round(n*100)/100)).replace('.',','); };
+  var estAppr=String(p.type||'').toLowerCase().indexOf('apprent')>=0;
+  var lbl=estAppr?'Apprentissage':(String(p.type||'').toUpperCase()||'Contrat');
+  var col = p.etat==='cours' ? {b:'#12211a',c:'#234a34',t:'#4CAF50',x:'Contrat en cours'}
+          : p.etat==='futur' ? {b:'#141d2b',c:'#2f4468',t:'#7fb0ef',x:'À venir'}
+                             : {b:'#161616',c:'#2A2A2A',t:'#888',x:'Terminé'};
+  var quand = p.etat==='futur' ? ('à partir du '+_frDate(p.debut))
+            : p.etat==='cours' ? ('depuis le '+_frDate(p.debut))
+            : (p.debut?('du '+_frDate(p.debut)+(p.fin?(' au '+_frDate(p.fin)):'')):'');
+  var bits=[];
+  bits.push('<b style="color:'+(p.etat==='passe'?'#9aa0a6':(p.etat==='futur'?'#cfe1fb':'#eee'))+';">'+escapeHtmlCt(lbl)+'</b>');
+  if(p.hebdo) bits.push('<b style="color:'+col.t+';">'+_f(p.hebdo)+' h/sem</b>');
+  if(quand) bits.push('<span style="color:#999;">'+quand+'</span>');
+  return '<div style="display:flex;align-items:center;gap:10px;background:'+col.b+';border:1px solid '+col.c
+      +';border-radius:8px;padding:9px 12px;margin-bottom:6px;">'
+    +'<div style="font-size:1.2rem;'+(p.etat==='passe'?'opacity:.5;':'')+'">'+_contratIcone(p.type)+'</div>'
+    +'<div style="flex:1;min-width:0;">'
+      +'<div style="font-size:.7rem;color:'+col.t+';text-transform:uppercase;letter-spacing:.5px;font-weight:700;">'
+        +col.x+(p.motif&&p.etat!=='cours'?(' · '+escapeHtmlCt(p.motif)):'')+'</div>'
+      +'<div style="font-size:.86rem;">'+bits.join(' · ')+'</div>'
+      +((p.etat==='cours'&&inf&&inf.emploi_libelle)?('<div style="font-size:.72rem;color:#777;">'+escapeHtmlCt(inf.emploi_libelle)+'</div>'):'')
+    +'</div></div>';
+}
+window._ctrPeriodeHtml=_ctrPeriodeHtml;
+
+function _ficheContratsHtml(e){
+  var inf=e.infos||{};
   var _dir=!!(curUser&&(curUser.role==='franchise'||curUser.role==='directeur')&&!window.__readOnly);
-  var lets=(DB.letters||[]).filter(function(l){return l.empId===e.id && (l.type==='contrat'||l.sanctionType==='contrat');});
 
-  /* on regroupe par fournée : letC_<horodatage>[_n] */
+  /* ── 1. LA FRISE DES CONTRATS ─────────────────────────────────────────── */
+  var per=_ctrPeriodes(e);
+  var friseHtml=per.map(function(p){ return _ctrPeriodeHtml(p, inf); }).join('');
+
+  var carteContrats='<div class="card" style="margin-bottom:12px;">'
+    +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+      +'<div class="sec-title" style="flex:1;min-width:170px;margin:0;">📄 Suivi des contrats</div>'
+      +(_dir?('<button class="btn btn-red btn-sm" onclick="openContratGen(\''+e.id+'\')">📄 Générer un contrat / avenant</button>'):'')
+    +'</div>'
+    +'<div style="margin-top:10px;"></div>'
+    +(friseHtml||'<div style="font-size:.8rem;color:#666;padding:4px 0;">Aucun contrat renseigné — complétez « Emploi & contrat » dans sa fiche.</div>')
+    +(per.length>1?('<div style="font-size:.7rem;color:#666;margin-top:4px;">Chaque avenant ouvre une nouvelle période et ferme la précédente.</div>'):'')
+    +'</div>';
+
+  /* ── 2. LE SUIVI DES SIGNATURES — seulement ce qui reste à signer ──────── */
+  /* ★ v697 — Vincent : « je n'ai pas besoin de voir comme quoi c'est signé le
+     contrat ». Une fois la fournée entièrement signée, elle quitte la fiche :
+     on la retrouve dans l'onglet Documents › Contrats & documents signés. */
+  var lets=(DB.letters||[]).filter(function(l){
+    return l.empId===e.id && (l.type==='contrat'||l.sanctionType==='contrat')
+      && (l.sigStatus||'pending')==='pending';
+  });
+
   var lots={}, ordre=[];
   lets.forEach(function(l){
     var k=(String(l.id||'').match(/^(letC_\d+)/)||[])[1]||String(l.id||'');
@@ -12770,84 +12946,52 @@ function _ficheContratsHtml(e){
     return db-da;
   });
 
-  var histHtml='';
+  var sigHtml='';
   ordre.forEach(function(k){
     var lot=lots[k].slice().sort(function(a,b){ return String(a.id).localeCompare(String(b.id),'fr',{numeric:true}); });
     var dt=lot[0].createdAt?new Date(lot[0].createdAt).toLocaleDateString('fr-FR'):'';
-    var attente=lot.filter(function(l){ return (l.sigStatus||'pending')==='pending'; }).length;
-    var signes=lot.filter(function(l){ return l.sigStatus==='signed'; }).length;
-    var etat=attente
-      ? ('<span style="color:#F5A623;font-weight:700;">⏳ '+attente+' à signer</span>')
-      : (signes===lot.length?'<span style="color:#4CAF50;font-weight:700;">✍️ tout est signé</span>':'<span style="color:#cc5555;font-weight:700;">❌ refus</span>');
+    var envoye=lot.some(function(l){ return !!l.sentAt; });
 
-    histHtml+='<div style="border-top:1px solid #262626;margin-top:8px;padding-top:8px;">'
+    sigHtml+='<div style="border-top:1px solid #262626;margin-top:8px;padding-top:8px;">'
       +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px;">'
         +'<div style="flex:1;min-width:150px;font-size:.72rem;color:#888;text-transform:uppercase;letter-spacing:.5px;">'
-          +'Généré le '+escapeHtmlCt(dt)+' · '+lot.length+' document'+(lot.length>1?'s':'')+' · '+etat
+          +'Généré le '+escapeHtmlCt(dt)+' · '+lot.length+' document'+(lot.length>1?'s':'')
+          +' · <span style="color:#F5A623;font-weight:700;">⏳ '+lot.length+' à signer</span>'
+          +(envoye?' · <span style="color:#8fd49a;">✉️ déjà envoyé</span>':'')
         +'</div>'
-        +(_dir&&attente?('<button class="btn btn-gray btn-sm" style="padding:2px 8px;" onclick="ctrOuvrirBrouillon(\''+lot[0].id+'\')">✉️ Brouillon</button>'):'')
+        +(_dir?('<button class="btn btn-gray btn-sm" style="padding:2px 8px;" onclick="ctrOuvrirBrouillon(\''+lot[0].id+'\')">✉️ '+(envoye?'Renvoyer':'Brouillon')+'</button>'):'')
         +(_dir&&lot.length>1?('<button class="btn btn-gray btn-sm" style="padding:2px 8px;color:#e8907a;" onclick="ctrSupprimerLot(\''+lot[0].id+'\')">🗑️ Tout supprimer</button>'):'')
       +'</div>';
 
     lot.forEach(function(l){
       var id=ctrDocIdent(l);
-      var ss=l.sigStatus||'pending';
-      var st=ss==='signed'?'<span style="color:#4CAF50;font-weight:700;font-size:.72rem;">✍️ Signé'+(l.signedAt?(' le '+new Date(l.signedAt).toLocaleDateString('fr-FR')):'')+'</span>'
-        :ss==='refused'?'<span style="color:#cc5555;font-weight:700;font-size:.72rem;">❌ Refus</span>'
-        :'<span style="color:#F5A623;font-weight:700;font-size:.72rem;">⏳ À signer</span>';
-      histHtml+='<div style="display:flex;align-items:center;gap:9px;padding:6px 0 6px 4px;flex-wrap:wrap;">'
+      sigHtml+='<div style="display:flex;align-items:center;gap:9px;padding:6px 0 6px 4px;flex-wrap:wrap;">'
         +'<div style="font-size:1.05rem;">'+id.icone+'</div>'
-        +'<div style="flex:1;min-width:140px;font-size:.83rem;color:#ddd;">'+escapeHtmlCt(id.nom)+'<br>'+st+'</div>'
+        +'<div style="flex:1;min-width:140px;font-size:.83rem;color:#ddd;">'+escapeHtmlCt(id.nom)
+          +'<br><span style="color:#F5A623;font-weight:700;font-size:.72rem;">⏳ À signer</span></div>'
         +'<div style="display:flex;gap:4px;flex-wrap:wrap;">'
-          /* ★ v694 — la même relecture mise en page que dans le panneau d'envoi. */
           +'<button class="btn btn-gray btn-sm" style="padding:2px 8px;" onclick="ctrRelire(\''+l.id+'\')">👁️</button>'
           +'<button class="btn btn-gray btn-sm" style="padding:2px 8px;" onclick="telechargerPdfCourrier(\''+l.id+'\')">📄</button>'
-          +(_dir&&ss==='pending'?('<button class="btn btn-gray btn-sm" style="padding:2px 8px;" onclick="signerSurPlace(\''+l.id+'\')">✍️</button>'):'')
+          +(_dir?('<button class="btn btn-gray btn-sm" style="padding:2px 8px;" onclick="signerSurPlace(\''+l.id+'\')">✍️</button>'):'')
           +(_dir?('<button class="btn btn-gray btn-sm" style="padding:2px 8px;color:#e8907a;" onclick="ctrSupprimerDoc(\''+l.id+'\')" title="Supprimer ce document">🗑️</button>'):'')
         +'</div></div>';
     });
-    histHtml+='</div>';
+    sigHtml+='</div>';
   });
 
-  /* les pièces rangées dans Dropbox (PDF signés, DPAE…) restent à part */
-  var docs=(DB.empDocs||[]).filter(function(d){return d.empId===e.id && (d.categorie==='contrat'||d.categorie==='avenant'||d.categorie==='dpae');})
-    .sort(function(a,b){return new Date(b.createdAt||0)-new Date(a.createdAt||0);});
-  var docsHtml='';
-  if(docs.length){
-    docsHtml+='<div style="border-top:1px solid #262626;margin-top:10px;padding-top:8px;">'
-      +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px;">'
-        +'<div style="flex:1;min-width:150px;font-size:.72rem;color:#888;text-transform:uppercase;letter-spacing:.5px;">📎 Pièces rangées dans le dossier</div>'
-        /* ★ v696 — et tout d'un coup, quand ce sont des essais. */
-        +(_dir&&docs.length>1?('<button class="btn btn-gray btn-sm" style="padding:2px 8px;color:#e8907a;" onclick="ctrViderPieces(\''+e.id+'\')">🗑️ Tout retirer</button>'):'')
+  var carteSig='';
+  if(sigHtml){
+    carteSig='<div class="card" style="margin-bottom:12px;">'
+      +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+        +'<div class="sec-title" style="flex:1;min-width:170px;margin:0;">✍️ Suivi des signatures</div>'
+        +'<span style="font-size:.72rem;color:#888;">Une fois tout signé, les documents passent dans l\'onglet <b>Documents</b>.</span>'
+      +'</div>'
+      +sigHtml
       +'</div>';
-    docs.forEach(function(d){
-      var dt=d.createdAt?new Date(d.createdAt).toLocaleDateString('fr-FR'):'';
-      docsHtml+='<div style="display:flex;align-items:center;gap:9px;padding:6px 0 6px 4px;flex-wrap:wrap;">'
-        +'<div style="font-size:1.05rem;">'+_empDocCatIcon(d.categorie)+'</div>'
-        +'<div style="flex:1;min-width:140px;font-size:.83rem;color:#ddd;">'+escapeHtmlCt(d.label||d.name||_empDocCatLbl(d.categorie))
-        +(dt?' <span style="color:#666;font-size:.72rem;">· '+dt+'</span>':'')+'</div>'
-        +(d.link?('<button class="btn btn-gray btn-sm" style="padding:2px 8px;" onclick="viewDoc(\''+d.id+'\')">👁️ Lire</button>'):'')
-        /* ★ v696 — Vincent : « ces trucs-là, tu peux me les supprimer, ça n'a rien
-           à faire là. » Il avait quatre PDF d'essai empilés ici et AUCUN bouton pour
-           les enlever : seul « 👁️ Lire ». Il fallait passer par la base pour faire le
-           ménage. Plus maintenant. */
-        +(_dir?('<button class="btn btn-gray btn-sm" style="padding:2px 8px;color:#e8907a;" onclick="ctrSupprimerPiece(\''+d.id+'\')" title="Retirer cette pièce du dossier">🗑️</button>'):'')
-        +'</div>';
-    });
-    docsHtml+='</div>';
   }
 
-  if(!ligneCour && !histHtml && !docsHtml) return '';
-  return '<div class="card" style="margin-bottom:12px;">'
-    +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
-      +'<div class="sec-title" style="flex:1;min-width:170px;margin:0;">📄 Suivi des contrats</div>'
-      +(_dir?('<button class="btn btn-red btn-sm" onclick="openContratGen(\''+e.id+'\')">📄 Générer un contrat / avenant</button>'):'')
-    +'</div>'
-    +'<div style="margin-top:10px;"></div>'
-    +ligneCour
-    +(histHtml||'<div style="font-size:.8rem;color:#666;padding:4px 0;">Aucun contrat ou avenant enregistré pour l\'instant.</div>')
-    +docsHtml
-    +'</div>';
+  if(!friseHtml && !carteSig) return '';
+  return carteContrats+carteSig;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -21308,6 +21452,11 @@ async function contratGenAction(mode){
     }
     try{ if(document.getElementById('empf-docs')) renderEmpDocs(e.id,'empf-docs'); }catch(_){}
     try{ if(typeof renderContrats==='function' && document.getElementById('contrats-list')) renderContrats(); }catch(_){}
+    /* ★ v697 — venu du recrutement : la fiche candidature se referme derrière nous. */
+    if(window._ctrDepuisRecrutement){
+      window._ctrDepuisRecrutement=null;
+      try{ closeModal('modal-cand'); }catch(_){}
+    }
     toast(faits.length+' document(s) créé(s) pour '+e.name+'.','success');
     /* ★ v688 — LE PIÈGE À ÉVITER.
        Un avenant signé qui ne change rien dans la fiche, c'est un salarié qui
@@ -21486,6 +21635,14 @@ async function ctrProposerBascule(e, docs, saisi){
   try{
     var inf=Object.assign({}, e.infos||{});
     inf.contrat_futur_date=eff; inf.contrat_futur_hebdo=nouv;
+    /* ★ v697 — et on l'inscrit dans la suite des périodes, pour que la frise de
+       la fiche garde la trace de TOUS les avenants — pas seulement du dernier.
+       (contrat_futur_* ne retient qu'un changement à la fois : le deuxième
+       avenant effaçait le premier, et l'historique disparaissait avec lui.) */
+    var _per=(inf.contrat_periodes||[]).filter(function(p){ return p && p.debut!==eff; });
+    _per.push({debut:eff, hebdo:nouv, type:(inf.contrat_type||inf.cdi_cdd||''), motif:'Avenant'});
+    _per.sort(function(a,b){ return String(a.debut).localeCompare(String(b.debut)); });
+    inf.contrat_periodes=_per;
     await sb.patch('bks_employees','id=eq.'+e.id,{infos:inf});
     e.infos=inf;
     await loadAll();
@@ -23144,7 +23301,29 @@ function candRetenuActionsHtml(c){
         +(vidsOk?'':'⚠️ Cochez d\'abord « Vidéos de formation réalisées ». ')
         +(_dateDem?('Le salarié sera créé et ajouté aux horaires <b>à partir du '+_demTxt+'</b> (date de démarrage).'):'⚠️ Indiquez d\'abord la <b>date de démarrage</b> ci-dessus.')
         +'</div>'
-      +'<button class="btn btn-red" style="width:100%;'+(_peutContrat?'':'opacity:.45;cursor:not-allowed;')+'" '+(_peutContrat?'':'disabled')+' onclick="candFaireContrat()">📝 Faire le contrat &amp; l\'envoyer en signature</button>'
+      /* ★ v697 — si des documents ont déjà été générés pour ce salarié, on ne
+         propose plus le même grand bouton rouge : on dit où ils en sont. */
+      +(function(){
+        var _sal=(DB.employees||[]).filter(function(x){return x.fromCandId===c.id;})[0];
+        var _ls=_sal?(DB.letters||[]).filter(function(l){
+          return l.empId===_sal.id && (l.type==='contrat'||l.sanctionType==='contrat'); }):[];
+        if(!_ls.length){
+          return '<button class="btn btn-red" style="width:100%;'+(_peutContrat?'':'opacity:.45;cursor:not-allowed;')+'" '
+            +(_peutContrat?'':'disabled')+' onclick="candFaireContrat()">📝 Faire le contrat &amp; l\'envoyer en signature</button>';
+        }
+        var _att=_ls.filter(function(l){ return (l.sigStatus||'pending')==='pending'; }).length;
+        var _sig=_ls.filter(function(l){ return l.sigStatus==='signed'; }).length;
+        return '<div style="background:#0f1c14;border:1px solid #2d5a3a;border-radius:8px;padding:9px 11px;color:#8fd49a;font-size:.8rem;line-height:1.5;">'
+          +'✅ <b>'+_ls.length+' document'+(_ls.length>1?'s':'')+' déjà généré'+(_ls.length>1?'s':'')+'</b>'
+          +(_att?(' — <span style="color:#F5A623;">'+_att+' en attente de signature</span>'):'')
+          +(_sig?(' — <span style="color:#8fd49a;">'+_sig+' signé'+(_sig>1?'s':'')+'</span>'):'')
+          +'<br><span style="color:#7d9f88;font-size:.74rem;">Le suivi se fait dans sa fiche : Équipe → '
+          +escapeHtmlCt(_sal.name||'')+' → Suivi des signatures.</span></div>'
+          +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">'
+          +'<button class="btn btn-gray btn-sm" onclick="closeModal(\'modal-cand\');openEmpFiche(\''+_sal.id+'\')">👤 Ouvrir sa fiche</button>'
+          +'<button class="btn btn-gray btn-sm" onclick="candFaireContrat()">🔁 Regénérer un document</button>'
+          +'</div>';
+      })()
       +(_peutContrat?'':'<p style="font-size:.72rem;color:#7fa8cc;margin-top:6px;">Requis : vidéos de formation réalisées + date de démarrage renseignée.</p>')
       +(_salExiste?'<p style="font-size:.75rem;color:#3ecf8e;margin-top:8px;">✅ Salarié créé — inscrit aux horaires dès sa date de démarrage. Vous pouvez régénérer le contrat si besoin.</p>':'')
       +'</div>';
@@ -23236,6 +23415,10 @@ async function candFaireContrat(){
     if(!_e){ alert('⚠️ Le salarié n\'a pas pu être créé (réseau ou base). Réessayez dans un instant.'); return; }
     try{ renderCandActions(curCand()); }catch(_){}
     try{ toast(_e.name+' inscrit(e) aux horaires à partir du '+new Date(c.dateDebut+'T12:00:00').toLocaleDateString('fr-FR')+'.','success'); }catch(_){}
+    /* ★ v697 — on note d'où l'on vient : une fois les documents partis, il ne faut
+       PAS retomber sur « Faire le contrat & l'envoyer en signature ».
+       Vincent : « on a déjà envoyé, donc on ne va pas l'envoyer quinze fois. » */
+    window._ctrDepuisRecrutement=c.id;
     // Ouvre le générateur de contrat (choix du modèle, aperçu, envoi en signature)
     try{ openContratGen(_e.id); }catch(err){ console.warn('openContratGen',err); toast('Salarié créé. Ouvrez sa fiche pour générer le contrat.','info'); }
   }catch(err){ console.error('candFaireContrat',err); toast('Erreur lors de la création du contrat','error'); }
@@ -26163,7 +26346,20 @@ function showSignPage(lid){
     + reste.map(function(x,k){ return _sigFeuille(x, k+1, reste.length, soc); }).join('')
     + _sigBasDePage(lid, reste);
   window.scrollTo(0,0);
-  setTimeout(function(){ try{ _sigInit('sigpad-link'); }catch(_){} },60);
+  /* ★ v697 — l'aperçu de la signature écrite se dessine tout de suite : sans ça
+     le cadre restait vide tant qu'on n'avait pas touché au champ. On le redessine
+     aussi quand la police embarquée finit de charger. */
+  setTimeout(function(){
+    try{ _sigInit('sigpad-link'); }catch(_){}
+    try{ _sigApercuNom(); }catch(_){}
+  },60);
+  try{
+    if(document.fonts && document.fonts.load){
+      document.fonts.load('96px "BKRH Signature"').then(function(){
+        try{ _CTR_SIG_CACHE={}; _sigApercuNom(); }catch(_){}
+      }).catch(function(){});
+    }
+  }catch(_){}
 }
 
 function _sigIntro(nom, reste, dejaSignes){
@@ -26192,8 +26388,47 @@ function _sigFeuille(l, k, total, soc){
     +'</div></div>';
 }
 
+/* ★ v697 — « QU'ELLE PUISSE SOIT ÉCRIRE SON NOM, SOIT SIGNER À LA MAIN. »
+
+   Vincent : « pour la signature de son contrat, je souhaiterais qu'elle puisse
+   […] mettre son nom directement, pré-sélectionné, son prénom et son nom, comme
+   pour moi, soit elle fait la signature à la main. C'est comme elle le veut. »
+
+   Deux onglets, donc, exactement comme son propre pavé : son nom écrit à
+   l'anglaise — pré-rempli depuis sa fiche, modifiable — ou le tracé au doigt.
+   Sur un téléphone, écrire son nom marche du premier coup ; dessiner au doigt,
+   rarement. */
+var _sigModeSalarie='nom';
+function _sigModeSet(m){
+  _sigModeSalarie=(m==='trace')?'trace':'nom';
+  var bn=document.getElementById('sigm-nom'), bt=document.getElementById('sigm-trace');
+  var zn=document.getElementById('sigz-nom'), zt=document.getElementById('sigz-trace');
+  var actif='background:#1d7a3a;color:#fff;border:1px solid #1d7a3a;';
+  var repos='background:#f1f1f1;color:#444;border:1px solid #ccc;';
+  if(bn) bn.setAttribute('style','flex:1;min-width:130px;padding:10px 12px;border-radius:8px;font-weight:800;font-size:.84rem;cursor:pointer;'+(_sigModeSalarie==='nom'?actif:repos));
+  if(bt) bt.setAttribute('style','flex:1;min-width:130px;padding:10px 12px;border-radius:8px;font-weight:800;font-size:.84rem;cursor:pointer;'+(_sigModeSalarie==='trace'?actif:repos));
+  if(zn) zn.style.display=(_sigModeSalarie==='nom')?'block':'none';
+  if(zt) zt.style.display=(_sigModeSalarie==='trace')?'block':'none';
+  if(_sigModeSalarie==='trace'){ setTimeout(function(){ try{ _sigInit('sigpad-link'); }catch(_){} },30); }
+  else _sigApercuNom();
+}
+function _sigApercuNom(){
+  var el=document.getElementById('sigz-nom-apercu'); if(!el) return;
+  var nom=((document.getElementById('sigz-nom-champ')||{}).value||'').trim();
+  var png=nom?ctrSignatureEcrite(nom):'';
+  el.innerHTML=png?('<img src="'+png+'" style="max-height:70px;max-width:100%;">')
+                  :'<span style="color:#999;font-size:.8rem;">Écrivez votre nom ci-dessous</span>';
+}
+window._sigModeSet=_sigModeSet; window._sigApercuNom=_sigApercuNom;
+
 function _sigBasDePage(lid, reste){
   var n=reste.length;
+  var nom='';
+  try{
+    var l0=reste[0]||{};
+    var emp=(DB.employees||[]).find(function(x){ return x.id===l0.empId; });
+    nom=ctrNomPropre(_ctrPrenomNom((emp&&emp.name)||l0.empName||'', emp));
+  }catch(_){}
   return '<div style="background:#fff;border-radius:12px;padding:20px;margin-top:20px;box-shadow:0 2px 10px rgba(0,0,0,.07);">'
     +'<div style="font-size:.92rem;color:#1a1a1a;font-weight:700;margin-bottom:4px;">Votre signature</div>'
     +'<div style="font-size:.85rem;color:#444;line-height:1.6;margin-bottom:12px;">'
@@ -26202,9 +26437,19 @@ function _sigBasDePage(lid, reste){
       +'<br><span style="color:#666;font-size:.82rem;">'
       +reste.map(function(x){ return escapeHtmlCt(ctrDocIdent(x).nom); }).join(' · ')
       +'</span></div>'
-    +_sigPadMarkup('sigpad-link')
+    +'<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">'
+      +'<button id="sigm-nom" onclick="_sigModeSet(\'nom\')" style="flex:1;min-width:130px;padding:10px 12px;border-radius:8px;font-weight:800;font-size:.84rem;cursor:pointer;background:#1d7a3a;color:#fff;border:1px solid #1d7a3a;">✒️ Écrire mon nom</button>'
+      +'<button id="sigm-trace" onclick="_sigModeSet(\'trace\')" style="flex:1;min-width:130px;padding:10px 12px;border-radius:8px;font-weight:800;font-size:.84rem;cursor:pointer;background:#f1f1f1;color:#444;border:1px solid #ccc;">✍️ Signer à la main</button>'
+    +'</div>'
+    +'<div id="sigz-nom" style="display:block;">'
+      +'<div id="sigz-nom-apercu" style="background:#fff;border:1px dashed #bbb;border-radius:8px;padding:10px;min-height:86px;display:flex;align-items:center;justify-content:center;margin-bottom:9px;"></div>'
+      +'<input type="text" id="sigz-nom-champ" value="'+String(nom).replace(/"/g,'&quot;')+'" oninput="_sigApercuNom()" '
+        +'placeholder="Prénom Nom" style="width:100%;padding:11px 12px;border:1px solid #ccc;border-radius:8px;font-size:1rem;box-sizing:border-box;">'
+      +'<div style="text-align:center;color:#888;font-size:.74rem;margin-top:5px;">Vérifiez l\'orthographe : c\'est ce qui apparaîtra sur vos documents.</div>'
+    +'</div>'
+    +'<div id="sigz-trace" style="display:none;">'+_sigPadMarkup('sigpad-link')+'</div>'
     +'<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px;">'
-      +'<button onclick="_sigClear(\'sigpad-link\')" style="background:#eee;color:#444;border:1px solid #ccc;padding:12px 20px;border-radius:8px;font-weight:700;cursor:pointer;">↺ Effacer</button>'
+      +'<button onclick="_sigEffacer()" style="background:#eee;color:#444;border:1px solid #ccc;padding:12px 20px;border-radius:8px;font-weight:700;cursor:pointer;">↺ Effacer</button>'
       +'<button onclick="doSignConfirm(\''+lid+'\')" style="background:linear-gradient(135deg,#2e9e4f,#1d7a3a);color:#fff;border:none;padding:12px 26px;border-radius:8px;font-weight:800;cursor:pointer;">'
         +'✅ Je signe '+(n>1?('les '+n+' documents'):'ce document')+'</button>'
     +'</div>'
@@ -26212,24 +26457,81 @@ function _sigBasDePage(lid, reste){
       +'<button onclick="doRefuse(\''+lid+'\')" style="background:none;border:none;color:#a04040;text-decoration:underline;cursor:pointer;font-size:.82rem;">Je refuse de signer</button>'
     +'</div></div>';
 }
+function _sigEffacer(){
+  if(_sigModeSalarie==='trace'){ try{ _sigClear('sigpad-link'); }catch(_){} }
+  else { var c=document.getElementById('sigz-nom-champ'); if(c){ c.value=''; _sigApercuNom(); } }
+}
+window._sigEffacer=_sigEffacer;
+
+/* « IDEZ LEA » dans la base, « Léa Idez » sur un contrat : on remet le prénom
+   devant quand la candidature nous le dit. */
+function _ctrPrenomNom(nomComplet, emp){
+  try{
+    var c=_empCand(emp);
+    if(c && c.prenom && c.nom) return String(c.prenom).trim()+' '+String(c.nom).trim();
+    var inf=(emp&&emp.infos)||{};
+    if(inf.prenom && inf.nom) return String(inf.prenom).trim()+' '+String(inf.nom).trim();
+  }catch(_){}
+  return String(nomComplet||'');
+}
+window._ctrPrenomNom=_ctrPrenomNom;
+
+/* ★ v697 — « À PARTIR DU MOMENT OÙ ELLE A SIGNÉ, QU'ELLE AIT TOUT DE SUITE UNE
+   TRACE DE CE QU'ELLE A SIGNÉ. »
+
+   Vincent : « il ne faut pas qu'elle demande à l'employeur d'envoyer ses papiers.
+   […] tu télécharges tout de suite une copie de ce qu'elle a signé. »
+
+   Il a raison sur le fond comme sur le droit : un salarié doit repartir avec son
+   exemplaire. La page de fin ne dit donc plus « demandez une copie » — elle la
+   donne, document par document, ou tous d'un coup. */
+function sigTelechargerUn(lid){
+  try{ telechargerPdfCourrier(lid); }catch(e){ alert('Téléchargement impossible sur cet appareil.'); }
+}
+function sigTelechargerTout(ids){
+  var l=String(ids||'').split('|').filter(Boolean);
+  /* un par un, espacés : Chrome bloque les téléchargements en rafale. */
+  l.forEach(function(id,i){ setTimeout(function(){ sigTelechargerUn(id); }, i*900); });
+  var z=document.getElementById('sig-dl-etat');
+  if(z) z.textContent=l.length+' document'+(l.length>1?'s':'')+' en cours de téléchargement…';
+}
+window.sigTelechargerUn=sigTelechargerUn; window.sigTelechargerTout=sigTelechargerTout;
 
 function _sigFini(nSignes, nRefus, lot){
-  var ou='<div style="font-size:.86rem;color:#444;line-height:1.7;margin-top:10px;">'
-    +'Vos documents signés sont conservés dans votre dossier chez l\'employeur. '
-    +'Vous pouvez en demander une copie à tout moment à la direction du restaurant.</div>';
+  var signes=lot.filter(function(x){return x.sigStatus==='signed';});
+  var ids=signes.map(function(x){ return x.id; }).join('|');
+  var ou='<div style="border-top:1px solid #eee;margin-top:16px;padding-top:14px;">'
+    +'<div style="font-size:.9rem;color:#1a1a1a;font-weight:700;margin-bottom:4px;">📥 Gardez votre exemplaire</div>'
+    +'<div style="font-size:.84rem;color:#444;line-height:1.6;margin-bottom:10px;">'
+      +'Téléchargez dès maintenant '+(signes.length>1?('vos '+signes.length+' documents signés'):'votre document signé')
+      +'. Une copie reste aussi dans votre dossier chez l\'employeur.</div>'
+    +(signes.length>1?('<button onclick="sigTelechargerTout(\''+ids+'\')" '
+        +'style="background:linear-gradient(135deg,#2e9e4f,#1d7a3a);color:#fff;border:none;padding:12px 24px;'
+        +'border-radius:8px;font-weight:800;cursor:pointer;margin-bottom:10px;">⬇️ Tout télécharger ('+signes.length+')</button>'):'')
+    +'<div style="display:flex;flex-direction:column;gap:6px;">'
+      +signes.map(function(x){ var id=ctrDocIdent(x);
+        return '<button onclick="sigTelechargerUn(\''+x.id+'\')" '
+          +'style="display:flex;align-items:center;gap:9px;background:#f6f7f9;border:1px solid #dfe2e7;'
+          +'border-radius:8px;padding:10px 12px;cursor:pointer;text-align:left;width:100%;font-size:.85rem;color:#222;">'
+          +'<span style="font-size:1.05rem;">'+id.icone+'</span>'
+          +'<span style="flex:1;min-width:0;">'+escapeHtmlCt(id.nom)+'</span>'
+          +'<span style="color:#1d7a3a;font-weight:800;font-size:.8rem;">⬇️ PDF</span></button>';
+      }).join('')
+    +'</div>'
+    +'<div id="sig-dl-etat" style="font-size:.78rem;color:#1d7a3a;margin-top:8px;min-height:1em;"></div>'
+  +'</div>';
   if(nRefus && !nSignes){
     return '<div style="background:#fff;border-radius:12px;padding:34px 24px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.07);">'
       +'<div style="font-size:2.6rem;">❌</div>'
       +'<div style="font-size:1.15rem;font-weight:800;color:#a04040;margin-top:8px;">Refus enregistré</div>'
       +'<div style="font-size:.86rem;color:#444;margin-top:8px;">La direction en est informée.</div></div>';
   }
-  return '<div style="background:#fff;border-radius:12px;padding:34px 24px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.07);">'
+  return '<div style="background:#fff;border-radius:12px;padding:30px 24px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.07);">'
     +'<div style="font-size:2.6rem;">✅</div>'
     +'<div style="font-size:1.15rem;font-weight:800;color:#1d7a3a;margin-top:8px;">'
       +(nSignes>1?(nSignes+' documents signés'):'Document signé')+'. Merci !</div>'
     +'<ul style="list-style:none;padding:0;margin:12px 0 0;font-size:.86rem;color:#333;line-height:1.9;">'
-      +lot.filter(function(x){return x.sigStatus==='signed';})
-          .map(function(x){ var id=ctrDocIdent(x); return '<li>'+id.icone+' '+escapeHtmlCt(id.nom)+'</li>'; }).join('')
+      +signes.map(function(x){ var id=ctrDocIdent(x); return '<li>'+id.icone+' '+escapeHtmlCt(id.nom)+'</li>'; }).join('')
     +'</ul>'+ou+'</div>';
 }
 
@@ -26238,10 +26540,19 @@ function _sigFini(nSignes, nRefus, lot){
 function doSignStart(lid){ try{ document.getElementById('sigpad-link').scrollIntoView({behavior:'smooth',block:'center'}); }catch(_){} }
 
 async function doSignConfirm(lid){
-  if(!_sigDrawn('sigpad-link')){ alert('Merci de signer dans le cadre avec votre doigt.'); return; }
-  var brut=_sigData('sigpad-link');
-  /* ★ v691 — recadrée, comme celle de la direction : sinon elle se perd dans le cadre. */
-  var png=await new Promise(function(ok){ try{ ctrRecadrerSignature(brut, ok); }catch(_){ ok(brut); } });
+  var png='';
+  if(_sigModeSalarie==='trace'){
+    if(!_sigDrawn('sigpad-link')){ alert('Merci de signer dans le cadre avec votre doigt.'); return; }
+    var brut=_sigData('sigpad-link');
+    /* ★ v691 — recadrée, comme celle de la direction : sinon elle se perd dans le cadre. */
+    png=await new Promise(function(ok){ try{ ctrRecadrerSignature(brut, ok); }catch(_){ ok(brut); } });
+  } else {
+    /* ★ v697 — son nom écrit, comme celui du gérant. */
+    var nom=((document.getElementById('sigz-nom-champ')||{}).value||'').trim();
+    if(nom.length<3){ alert('Merci d\'écrire votre prénom et votre nom.'); return; }
+    png=ctrSignatureEcrite(nom);
+    if(!png){ alert('Signature impossible à créer. Essayez « Signer à la main ».'); return; }
+  }
   await doSign(lid, png);
 }
 window.doSignStart=doSignStart; window.doSignConfirm=doSignConfirm;
@@ -30457,6 +30768,14 @@ function hrContratHebdo(emp){
   try{
     var _t=new Date();
     var today=_t.getFullYear()+'-'+String(_t.getMonth()+1).padStart(2,'0')+'-'+String(_t.getDate()).padStart(2,'0');
+    /* ★ v697 — la suite des périodes d'abord, si elle existe : elle sait empiler
+       plusieurs avenants, là où contrat_futur_* n'en retenait qu'un. Un salarié
+       qui n'en a pas (tous ceux d'avant cette version) suit exactement le même
+       chemin qu'avant. */
+    var _ps=(inf.contrat_periodes||[]).filter(function(p){
+      return p && p.debut && p.debut<=today && parseFloat(p.hebdo)>0;
+    }).sort(function(a,b){ return String(a.debut).localeCompare(String(b.debut)); });
+    if(_ps.length) return parseFloat(_ps[_ps.length-1].hebdo);
     // 1) Nouveau contrat programmé (ex. saisonnier -> nouveau contrat au 1er septembre)
     if(inf.contrat_futur_date && today>=inf.contrat_futur_date){
       var hf=parseFloat(inf.contrat_futur_hebdo); if(!isNaN(hf)&&hf>0) return hf;
