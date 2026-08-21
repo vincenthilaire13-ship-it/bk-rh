@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-28 13:30 · v676 (sans excuse - et le numero de mutuelle)';
+  var EMBEDDED_VERSION = '2026-08-28 14:10 · v677 (la tuile contrats sort detat equipe)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -28662,7 +28662,6 @@ function hrRenderEtatEquipe(){
   if(HR_EE_VUE==='etat'){ _hrEtatRenderAbsences(); return; }
   if(HR_EE_VUE==='dispos'){ hrEERenderDispos(); return; }
   if(HR_EE_VUE==='competences'){ hrEERenderCompetences(); return; }
-  if(HR_EE_VUE==='contrats'){ hrEERenderContrats(); return; }
   if(HR_EE_VUE==='fixes'){ hrEERenderFixes(); return; }
   if(HR_EE_VUE==='complement'){ hrEERenderComplement(); return; }
   if(HR_EE_VUE==='integration'){ hrEERenderIntegration(); return; }
@@ -28690,7 +28689,6 @@ function hrEERenderTuiles(){
     {vue:'dispos',      ico:'📅', titre:'Disponibilités',  sub:'Créneaux par jour de semaine',          col:'#1565c0', badge:0},
     {vue:'competences', ico:'🎯', titre:'Compétences',     sub:'Qui sait faire quoi',                   col:'#2e7d32', badge:0},
     {vue:'fixes',       ico:'📌', titre:'Salariés fixés',   sub:'Horaires fixes + poste (le moteur les respecte)', col:'#8e44ad', badge:0},
-    {vue:'contrats',    ico:'📄', titre:'Contrats',        sub:'Tous les contrats + historique (lecture)', col:'#c0392b', badge:0},
     {vue:'complement',  ico:'🧩', titre:'Complément horaire', sub:'Compléter les contrats (renforts, 2e passe)', col:'#1d7a3a', badge:0},
     {vue:'integration', ico:'🎓', titre:'Semaine intégration', sub:'Nouvelles recrues en doublon (modèles)', col:'#8e44ad', badge:0}
   ];
@@ -29782,7 +29780,20 @@ function ctrToggle(id){
 }
 window.ctrToggle=ctrToggle;
 
-// ══ VUE « CONTRATS » (État équipe) — v669, lecture seule ══════════════════════
+/* ══ VUE « CONTRATS » — MISE DE CÔTÉ EN v677 ═══════════════════════════════════
+   Vincent : « État équipe, on a fait une connerie, il faut virer les contrats.
+   Les contrats, on va les laisser dans chaque personne, et on va travailler
+   ensemble après sur les contrats. »
+
+   La tuile est retirée de l'écran État équipe et l'aiguillage débranché. TOUT LE
+   CODE RESTE ICI, intact et testé : la ligne de vie (ctrPeriodes), les anomalies
+   (ctrAnomalies), la période active (ctrPeriodeActive), les dispos contractuelles
+   et les documents (ctrDetailHtml), et cet écran (hrEERenderContrats).
+
+   Quand on reprendra les contrats ensemble, il n'y aura qu'à rebrancher — ou à
+   réutiliser ces fonctions directement dans la fiche du salarié, qui est
+   l'endroit que Vincent a choisi.                                              */
+// ══ VUE « CONTRATS » (État équipe) — v669, hors service depuis la v677 ════════
 function hrEERenderContrats(){
   var box=document.getElementById('etat-equipe-list'); if(!box) return;
   var eq=_etatEquipiers();
