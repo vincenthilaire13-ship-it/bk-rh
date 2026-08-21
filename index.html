@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-08-28 13:30 · v676 (sans excuse - et le numero de mutuelle)';
+  var EMBEDDED_VERSION = '2026-09-04 09:00 · v684 (plus de synchro automatique encadrement)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1245,6 +1245,46 @@ html.theme-light .ag-empty{color:#8b9099 !important;}
 .actu-item{background:linear-gradient(155deg,#232323,#191919);border:1px solid #333;border-radius:14px;padding:14px 15px;margin-bottom:12px;border-left:5px solid #F5A623;}
 .actu-item .ai-t{font-weight:800;font-size:1.06rem;color:#fff;margin-bottom:4px;line-height:1.2;}
 .actu-item .ai-x{font-size:.92rem;color:#d5d5d5;line-height:1.45;white-space:pre-wrap;word-break:break-word;}
+/* ★ v682 — LE DOCUMENT TEL QUE LE SALARIÉ LE VOIT.
+   Vincent : « c'est complètement dégueulasse quand tu fais signer au salarié ».
+   Une feuille blanche, une vraie typographie, des titres qui se voient, des
+   tableaux qui sont des tableaux. Et surtout : exactement ce qu'il aura en PDF. */
+.ctrdoc{background:#fff;color:#1a1a1a;font-family:Georgia,'Times New Roman',serif;
+  font-size:.86rem;line-height:1.62;text-align:justify;hyphens:auto;}
+.ctrdoc-t{font-family:'Barlow Condensed',Arial,sans-serif;font-weight:900;font-size:1.35rem;
+  letter-spacing:1px;text-transform:uppercase;text-align:center;color:#111;
+  border-bottom:2px solid #C01E00;padding-bottom:7px;margin-bottom:8px;}
+.ctrdoc-ent{text-align:center;font-family:Arial,sans-serif;font-size:.7rem;color:#777;margin-bottom:16px;}
+.ctrdoc-st{font-family:Arial,sans-serif;font-weight:800;font-size:.95rem;text-align:center;
+  color:#111;margin:16px 0 10px;letter-spacing:.3px;}
+.ctrdoc-a{font-family:Arial,sans-serif;font-weight:800;font-size:.83rem;color:#8B1500;
+  background:#f2f2f2;border-left:3px solid #C01E00;padding:5px 9px;margin:16px 0 8px;
+  text-align:left;letter-spacing:.2px;}
+.ctrdoc-sa{font-family:Arial,sans-serif;font-weight:700;font-size:.8rem;color:#333;
+  margin:11px 0 4px;text-align:left;}
+.ctrdoc-p{margin:0 0 7px;}
+.ctrdoc-li{margin:0 0 4px 18px;text-indent:-11px;}
+.ctrdoc-li:before{content:'• ';color:#C01E00;font-weight:700;}
+.ctrdoc-bl{text-align:left;margin:6px 0 8px;line-height:1.45;}
+.ctrdoc-v{height:7px;}
+.ctrdoc-tab{width:100%;border-collapse:collapse;margin:12px 0 4px;font-family:Arial,sans-serif;
+  font-size:.76rem;text-align:left;}
+.ctrdoc-tab th{background:#3c3c3c;color:#fff;padding:6px 8px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.4px;font-size:.68rem;}
+.ctrdoc-tab td{padding:5px 8px;border-bottom:1px solid #e4e4e4;}
+.ctrdoc-tab tbody tr:nth-child(odd){background:#f8f8f8;}
+.ctrdoc-tab td.b{font-weight:700;}
+.ctrdoc-tab td.g{color:#999;font-style:italic;}
+.ctrdoc-tab .r{text-align:right;}
+.ctrdoc-tab tfoot td{background:#fff;border-top:2px solid #3c3c3c;border-bottom:none;
+  font-weight:800;color:#8B1500;text-transform:uppercase;font-size:.7rem;padding-top:7px;}
+.ctrdoc-note{font-size:.68rem;color:#888;font-style:italic;margin:2px 0 12px;text-align:left;}
+.ctrdoc-sig{display:flex;gap:18px;margin:22px 0 4px;border-top:1px solid #ddd;padding-top:14px;}
+.ctrdoc-sig>div{flex:1;min-width:0;}
+.ctrdoc-sl{font-family:Arial,sans-serif;font-size:.66rem;font-weight:800;color:#777;
+  text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;}
+.ctrdoc-sn{font-size:.78rem;color:#555;margin-bottom:5px;}
+.ctrdoc-sb{height:62px;border:1px solid #ccc;border-radius:3px;background:#fcfcfc;}
 .actu-item .ai-media{margin-top:10px;}
 .actu-item img.ai-img{width:100%;max-height:52vh;object-fit:contain;border-radius:10px;display:block;background:#0b0b0b;}
 .actu-item .ai-pdf{display:flex;align-items:center;gap:10px;background:#0e0e0e;border:1px solid #3a3a3a;border-radius:10px;padding:11px 13px;color:#8fc3f5;text-decoration:none;font-size:.9rem;margin-top:8px;font-weight:600;}
@@ -2341,13 +2381,49 @@ html,body{overflow-x:hidden;}
     </div>
     <div class="card param-card" id="pc-societe" style="display:none;">
       <div class="sec-title">🏢 Société / employeur</div>
-      <p style="font-size:.83rem;color:#aaa;margin-bottom:12px;">Informations de l'entreprise employeur, utilisées pour <strong>remplir automatiquement les contrats</strong> (champs {societe}, {societe_details}, {urssaf}). <strong>Une société par restaurant</strong> : cette fiche correspond au restaurant sélectionné en haut (le bandeau). Pour éditer une autre société, changez de restaurant en haut.</p>
+      <p style="font-size:.83rem;color:#aaa;margin-bottom:12px;">L'entreprise employeur, <strong>restaurant par restaurant</strong>. Ces cases remplissent les contrats et les avenants : raison sociale, adresse, SIRET, URSSAF, jusqu'à la ligne des caméras de vidéosurveillance. Cette fiche correspond au <strong>restaurant sélectionné en haut</strong> ; pour en éditer une autre, changez de restaurant dans le bandeau.</p>
+      <div style="background:#3a2410;border:1px solid #F5A623;border-radius:8px;padding:9px 11px;margin-bottom:12px;color:#f0c070;font-size:.79rem;line-height:1.55;">
+        <b>⚠️ À renseigner pour chaque restaurant.</b> Tant qu'un restaurant n'a pas sa société,
+        l'application refuse de générer son contrat — plutôt que de sortir en silence celle d'un autre.
+      </div>
+      <div id="soc-etat" style="margin-bottom:12px;"></div>
       <div style="display:flex;flex-direction:column;gap:10px;max-width:640px;">
         <div id="soc-resto-label" style="font-size:.9rem;color:#F5A623;font-weight:700;margin-bottom:4px;"></div>
-        <div><div class="flabel">Raison sociale (nom de la société)</div><input type="text" id="soc-nom" class="fi" placeholder="Ex : SARL BK RESTAURATION"></div>
-        <div><div class="flabel">Coordonnées / détails (adresse, SIRET, forme, capital…)</div><textarea id="soc-details" class="fi" style="min-height:80px;" placeholder="Ex : SARL au capital de 10 000 € — 12 rue des Arènes, 34000 Montpellier — SIRET 123 456 789 00012 — Code APE 5610C"></textarea></div>
+        <div><div class="flabel">Raison sociale (nom de la société)</div><input type="text" id="soc-nom" class="fi" placeholder="Ex : BK AVENUE SARL"></div>
+        <div class="form-row">
+          <div><div class="flabel">Forme juridique</div><input type="text" id="soc-forme" class="fi" placeholder="SARL"></div>
+          <div><div class="flabel">Capital social</div><input type="text" id="soc-capital" class="fi" placeholder="50 000 €"></div>
+        </div>
+        <div><div class="flabel">Adresse (numéro et rue)</div><input type="text" id="soc-adresse" class="fi" placeholder="Route de Ganges"></div>
+        <div class="form-row">
+          <div><div class="flabel">Code postal et ville</div><input type="text" id="soc-cpville" class="fi" placeholder="34980 SAINT CLEMENT DE RIVIERE"></div>
+          <div><div class="flabel">Téléphone</div><input type="text" id="soc-tel" class="fi" placeholder="04 67 58 94 57"></div>
+        </div>
+        <div class="form-row">
+          <div><div class="flabel">SIRET</div><input type="text" id="soc-siret" class="fi" placeholder="830 144 242 00013"></div>
+          <div><div class="flabel">Code APE / NAF</div><input type="text" id="soc-ape" class="fi" placeholder="5610C"></div>
+        </div>
+        <div class="form-row">
+          <div><div class="flabel">Gérant (signataire des contrats)</div><input type="text" id="soc-gerant" class="fi" placeholder="Vincent HILAIRE"></div>
+          <div><div class="flabel">Ville de signature</div><input type="text" id="soc-ville-sign" class="fi" placeholder="Montpellier"></div>
+        </div>
+        <div><div class="flabel">Nom du restaurant dans les contrats <span style="color:#888;font-weight:400;">— après « BURGER KING… », y compris sur la note caméras</span></div><input type="text" id="soc-resto-nom" class="fi" placeholder="Près des Arènes"></div>
+        <div style="border-top:1px solid #333;margin-top:6px;padding-top:10px;">
+          <div style="font-size:.84rem;color:#F5A623;font-weight:700;margin-bottom:7px;">📹 Vidéosurveillance de ce restaurant</div>
+          <div class="form-row">
+            <div><div class="flabel">Téléphone à indiquer aux salariés</div><input type="text" id="soc-cam-tel" class="fi" placeholder="06 72 10 70 14"></div>
+            <div><div class="flabel">Durée de conservation des images</div><input type="text" id="soc-cam-duree" class="fi" placeholder="30 jours"></div>
+          </div>
+          <div><div class="flabel">Zones filmées <span style="color:#888;font-weight:400;">— à écrire restaurant par restaurant</span></div><textarea id="soc-cam-zones" class="fi" style="min-height:56px;" placeholder="Ex : la salle, le comptoir et les caisses, le drive, la porte de service et les abords extérieurs."></textarea></div>
+        </div>
         <div><div class="flabel">N° URSSAF</div><input type="text" id="soc-urssaf" class="fi" placeholder="Ex : 337 1234567890"></div>
-        <div><button class="btn btn-red btn-sm" onclick="saveSociete()">💾 Enregistrer</button> <span id="soc-status" style="font-size:.78rem;color:#888;"></span></div>
+        <div><div class="flabel">Ligne libre (si vous voulez écrire les coordonnées vous-même)</div><textarea id="soc-details" class="fi" style="min-height:60px;" placeholder="Laissez vide : elle se compose toute seule à partir des cases ci-dessus."></textarea></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <button class="btn btn-red btn-sm" onclick="saveSociete()">💾 Enregistrer</button>
+          <button class="btn btn-gray btn-sm" onclick="socProposer()">📋 Reprendre depuis mes contrats</button>
+          <span id="soc-status" style="font-size:.78rem;color:#888;"></span>
+        </div>
+        <div style="font-size:.74rem;color:#777;line-height:1.5;">« Reprendre depuis mes contrats » recopie dans les cases ce que j'ai lu dans vos contrats CDI équipier (500, 509, 526). <b>Rien n'est enregistré</b> tant que vous n'avez pas relu et cliqué sur Enregistrer.</div>
       </div>
     </div>
     <div class="card param-card" id="pc-signature" style="display:none;">
@@ -3032,6 +3108,14 @@ html,body{overflow-x:hidden;}
       <div id="np-resto-row" style="display:none;margin-bottom:10px;"><label class="flabel">Restaurant</label>
         <select id="np-resto" class="fi"><option value="bk500">BK 500</option><option value="bk509">BK 509</option><option value="bk526">BK 526</option></select></div>
       <button class="btn btn-red btn-sm" onclick="addPerson()">+ Ajouter</button>
+    </div>
+    <!-- ★ v684 — le rangement se fait ICI, à la demande, jamais tout seul. -->
+    <div style="background:#1A1A1A;border-radius:8px;padding:12px;margin-bottom:14px;">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-gray btn-sm" onclick="encVerifier()">🔍 Vérifier l'encadrement</button>
+        <span style="font-size:.75rem;color:#888;line-height:1.45;">Compare le planning et l'Équipe, et propose ce qu'il y aurait à ranger. <b>Rien n'est modifié sans votre validation.</b></span>
+      </div>
+      <div id="enc-verif" style="margin-top:10px;"></div>
     </div>
     <div id="people-list" style="max-height:58vh;overflow-y:auto;"></div>
     <div style="display:flex;justify-content:flex-end;margin-top:14px;"><button class="btn btn-gray" onclick="closeModal('modal-people');renderPlanning();">Fermer</button></div>
@@ -13089,6 +13173,20 @@ function _pdfSafe(s){
 function avertPdf(emp, body, titre, fnLabel, sig){
   try{
     var JS=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF; if(!JS){ return; }
+    /* ★ v682 — les contrats et leurs annexes passent par le moteur typographique.
+       Les sanctions (avertissements, mises en demeure) gardent l'ancien rendu :
+       ce sont des lettres d'une page, elles n'ont pas besoin de tableaux. */
+    if(sig && sig.contrat && typeof ctrPdfContrat==='function'){
+      var _soc={}; try{ _soc=getSociete(emp&&emp.restoId)||{}; }catch(_){}
+      var _d2=ctrPdfContrat(emp, body, titre, _soc, sig);
+      if(_d2){
+        if(sig.blob){ try{ return _d2.output('blob'); }catch(_){ return null; } }
+        var _p2=(fnLabel?String(fnLabel).replace(/\s+/g,'_'):'Document');
+        var _s2=(sig.status==='signed')?'_SIGNE':(sig.status==='refused')?'_REFUS':'';
+        _d2.save(_p2+_s2+'_'+dbxClean((emp&&emp.name)||'doc')+'_'+new Date().toISOString().slice(0,10)+'.pdf');
+        return;
+      }
+    }
     var doc=new JS({unit:'mm',format:'a4'});
     var M=18, W=210, y=22;
     doc.setTextColor(17,17,17);
@@ -17728,22 +17826,146 @@ function renderSocieteForm(){
   var rid=_socRid(); _socRestoSel=rid;
   var lb=(typeof RESTOS!=='undefined'&&RESTOS[rid]&&RESTOS[rid].label)||rid;
   var lbEl=document.getElementById('soc-resto-label'); if(lbEl) lbEl.textContent='🍔 Société de '+lb+' — restaurant sélectionné en haut';
-  var s=getSociete(rid);
-  var n=document.getElementById('soc-nom'); if(n)n.value=s.nom||'';
-  var d=document.getElementById('soc-details'); if(d)d.value=s.details||'';
-  var u=document.getElementById('soc-urssaf'); if(u)u.value=s.urssaf||'';
+  /* ★ v679 — on lit la société DU RESTAURANT, jamais celle par défaut : sinon on
+     recopierait sans le vouloir l'employeur d'un autre restaurant. */
+  var s=(_societesAll()||{})[rid]||{};
+  function _v(id,val){ var el=document.getElementById(id); if(el) el.value=val||''; }
+  _v('soc-nom',s.nom); _v('soc-forme',s.forme); _v('soc-capital',s.capital);
+  _v('soc-adresse',s.adresse); _v('soc-cpville',s.cp_ville); _v('soc-tel',s.tel);
+  _v('soc-siret',s.siret); _v('soc-ape',s.ape);
+  _v('soc-gerant',s.gerant); _v('soc-ville-sign',s.ville_signature);
+  _v('soc-resto-nom',s.restaurant_nom);
+  _v('soc-cam-tel',s.cameras_tel); _v('soc-cam-duree',s.cameras_duree); _v('soc-cam-zones',s.cameras_zones);
+  _v('soc-urssaf',s.urssaf); _v('soc-details',s.details);
+  renderSocieteEtat();
 }
+/* ★ v679 — l'état des trois sociétés, d'un coup d'œil. */
+function renderSocieteEtat(){
+  var box=document.getElementById('soc-etat'); if(!box) return;
+  var all=_societesAll()||{};
+  var h='<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+  _socRestoList().forEach(function(rid){
+    var lb=(typeof RESTOS!=='undefined'&&RESTOS[rid]&&RESTOS[rid].label)||rid;
+    var s=all[rid]||{};
+    var manque=socManquants(s);
+    var ok=!manque.length;
+    h+='<div style="flex:1;min-width:170px;background:'+(ok?'#1e3320':'#3a1a15')+';border:1px solid '+(ok?'#3d7a45':'#8B3020')+';border-radius:8px;padding:8px 10px;">'
+      +'<div style="font-weight:800;color:'+(ok?'#8fd49a':'#e8907a')+';font-size:.84rem;">'+(ok?'✅ ':'⛔ ')+escapeHtmlCt(lb)+'</div>'
+      +'<div style="font-size:.74rem;color:#aaa;margin-top:3px;">'
+        +(ok?escapeHtmlCt(s.nom||''):('manque : '+escapeHtmlCt(manque.join(', '))))+'</div></div>';
+  });
+  h+='</div>';
+  box.innerHTML=h;
+}
+window.renderSocieteEtat=renderSocieteEtat;
+/* Ce qu'il faut au minimum pour qu'un contrat soit valable. */
+function socManquants(s){
+  s=s||{};
+  var need=[['nom','raison sociale'],['adresse','adresse'],['cp_ville','code postal et ville'],
+            ['siret','SIRET'],['urssaf','URSSAF'],['gerant','gérant'],
+            ['restaurant_nom','nom du restaurant']];
+  return need.filter(function(n){ return !String(s[n[0]]||'').trim(); }).map(function(n){ return n[1]; });
+}
+window.socManquants=socManquants;
+/* Les coordonnées en une ligne, composées toutes seules si la RH n'a rien écrit. */
+function socDetails(s){
+  s=s||{};
+  if(String(s.details||'').trim()) return s.details.trim();
+  var bouts=[];
+  if(s.forme||s.capital) bouts.push([s.forme||'', s.capital?('au capital de '+s.capital):''].filter(Boolean).join(' '));
+  if(s.adresse) bouts.push(s.adresse);
+  if(s.cp_ville) bouts.push(s.cp_ville);
+  if(s.siret) bouts.push('SIRET '+s.siret);
+  if(s.ape) bouts.push('Code APE '+s.ape);
+  return bouts.filter(Boolean).join(' — ');
+}
+window.socDetails=socDetails;
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ★ v679 — CE QUE J'AI LU DANS VOS PROPRES CONTRATS.
+
+   Trois documents Word fournis par Vincent (CONTRAT CDI EQUIPIER TEMPS PARTIEL
+   500 / 509 / 526). Chacun nomme sa société en toutes lettres. On ne les écrit
+   PAS en base : on les propose dans les cases, la direction relit, et c'est
+   elle qui enregistre. (Leçon de la v658 : jamais d'écriture automatique.)
+
+   Deux réserves, dites franchement :
+     · BK 509 — le contrat ne donne que le RCS 888 428 174, pas le SIRET
+       complet. Il manque les 5 chiffres de l'établissement.
+     · BK 526 — le contrat porte encore « Restaurant_URSSAFCode » à la place du
+       numéro URSSAF : le modèle Word n'a jamais été rempli à cet endroit.
+   ═══════════════════════════════════════════════════════════════════════════ */
+var SOC_PROPOSITIONS={
+  bk500:{nom:'BURGER AVENUE 500', forme:'SARL', capital:'105 170 €',
+    adresse:"185 Av du Mas d'Argelliers", cp_ville:'34070 MONTPELLIER',
+    tel:'04 67 58 94 57', siret:'527 514 806 00019', ape:'5610C',
+    urssaf:'917000001260238439', gerant:'Vincent HILAIRE',
+    ville_signature:'Montpellier', restaurant_nom:"Près des Arènes",
+    cameras_tel:'06 72 10 70 14', cameras_duree:'30 jours', cameras_zones:''},
+  bk509:{nom:'BK SAINT JEAN', forme:'SARL', capital:'50 000 €',
+    adresse:'946 Avenue de la Condamine', cp_ville:'34430 SAINT JEAN DE VEDAS',
+    tel:'', siret:'888 428 174', ape:'5610C',
+    urssaf:'917000001261951758', gerant:'Vincent HILAIRE',
+    ville_signature:'Montpellier', restaurant_nom:'Saint-Jean-de-Védas',
+    cameras_tel:'06 72 10 70 14', cameras_duree:'30 jours', cameras_zones:''},
+  bk526:{nom:'BK AVENUE', forme:'SARL', capital:'50 000 €',
+    adresse:'C/C Carrefour Trifontaine, Route de Ganges', cp_ville:'34980 SAINT CLEMENT DE RIVIERE',
+    tel:'', siret:'830 144 242 00013', ape:'5610C',
+    urssaf:'', gerant:'Vincent HILAIRE',
+    ville_signature:'Montpellier', restaurant_nom:'Saint-Clément-de-Rivière',
+    cameras_tel:'06 72 10 70 14', cameras_duree:'30 jours', cameras_zones:''}
+};
+var SOC_RESERVES={
+  bk509:'Votre contrat ne donne que le RCS (888 428 174), pas le SIRET complet : ajoutez les 5 chiffres de l\'établissement.',
+  bk526:'Votre contrat porte encore « Restaurant_URSSAFCode » au lieu du numéro URSSAF : il est à saisir à la main.'
+};
+window.SOC_PROPOSITIONS=SOC_PROPOSITIONS; window.SOC_RESERVES=SOC_RESERVES;
+
+/* On remplit les CASES, pas la base. La direction relit puis enregistre. */
+function socProposer(){
+  var rid=_socRid();
+  var p=SOC_PROPOSITIONS[rid];
+  var lb=(typeof RESTOS!=='undefined'&&RESTOS[rid]&&RESTOS[rid].label)||rid;
+  if(!p){ try{ toast('Je n\'ai pas de contrat pour '+lb+'.','error'); }catch(_){} return; }
+  var CH=[['soc-nom','nom'],['soc-forme','forme'],['soc-capital','capital'],
+          ['soc-adresse','adresse'],['soc-cpville','cp_ville'],['soc-tel','tel'],
+          ['soc-siret','siret'],['soc-ape','ape'],['soc-gerant','gerant'],
+          ['soc-ville-sign','ville_signature'],['soc-urssaf','urssaf'],
+          ['soc-resto-nom','restaurant_nom'],
+          ['soc-cam-tel','cameras_tel'],['soc-cam-duree','cameras_duree'],['soc-cam-zones','cameras_zones']];
+  var ecrits=0, gardes=0;
+  CH.forEach(function(c){
+    var el=document.getElementById(c[0]); if(!el) return;
+    var v=p[c[1]]||'';
+    /* ★ On n'écrase JAMAIS ce que la direction a déjà saisi. */
+    if(String(el.value||'').trim()){ if(v) gardes++; return; }
+    if(v){ el.value=v; ecrits++; }
+  });
+  var st=document.getElementById('soc-status');
+  var msg=ecrits+' case(s) proposée(s) pour '+lb+(gardes?(' · '+gardes+' déjà remplie(s), laissée(s) telle(s) quelle(s)'):'')
+        +' — relisez, puis Enregistrer.';
+  if(SOC_RESERVES[rid]) msg+='  ⚠️ '+SOC_RESERVES[rid];
+  if(st){ st.textContent=msg; st.style.color='#f0c070'; }
+  try{ toast('Proposition recopiée — rien n\'est enregistré','success'); }catch(_){}
+}
+window.socProposer=socProposer;
 function saveSociete(){
   var rid=_socRid();
-  var s={nom:((document.getElementById('soc-nom')||{}).value||'').trim(),
-         details:((document.getElementById('soc-details')||{}).value||'').trim(),
-         urssaf:((document.getElementById('soc-urssaf')||{}).value||'').trim()};
+  function _g(id){ return ((document.getElementById(id)||{}).value||'').trim(); }
+  var s={nom:_g('soc-nom'), details:_g('soc-details'), urssaf:_g('soc-urssaf'),
+         forme:_g('soc-forme'), capital:_g('soc-capital'),
+         adresse:_g('soc-adresse'), cp_ville:_g('soc-cpville'), tel:_g('soc-tel'),
+         siret:_g('soc-siret'), ape:_g('soc-ape'),
+         gerant:_g('soc-gerant'), ville_signature:_g('soc-ville-sign'),
+         restaurant_nom:_g('soc-resto-nom'),
+         cameras_tel:_g('soc-cam-tel'), cameras_duree:_g('soc-cam-duree'), cameras_zones:_g('soc-cam-zones')};
   var all=_societesAll(); all[rid]=s; DB_SOCIETES=all;
   try{ localStorage.setItem('bkrh_societes',JSON.stringify(all)); }catch(e){}
   try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:'bkrh_societes',valeur:all},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
   var lb=(typeof RESTOS!=='undefined'&&RESTOS[rid]&&RESTOS[rid].label)||rid;
   var st=document.getElementById('soc-status'); if(st){ st.textContent='\u2705 Enregistr\u00e9 pour '+lb; setTimeout(function(){if(st)st.textContent='';},4000); }
   try{ toast('Soci\u00e9t\u00e9 enregistr\u00e9e \u2714 ('+lb+')','success'); }catch(_){}
+  try{ renderSocieteEtat(); }catch(_){}
 }
 window.getSociete=getSociete; window.saveSociete=saveSociete; window.renderSocieteForm=renderSocieteForm;
 async function hrChargerSocieteSupabase(){
@@ -17836,11 +18058,1031 @@ function _plagesPlanifTxt(e){
   lignes.push('Total hebdomadaire des plages : '+Math.floor(totW/60)+'h'+('0'+(totW%60)).slice(-2));
   return lignes.join('\n');
 }
+/* ═══════════════════════════════════════════════════════════════════════════
+   ★ v678 — « QU'EST-CE QUI RESTE À REMPLIR, ET OÙ ? »
+
+   Vincent : « il faut que tu remplisses, qu'il n'y ait plus rien à remplir dans
+   le contrat ». Tout ce qui PEUT se remplir tout seul se remplit désormais tout
+   seul (fiche du salarié, puis candidature, puis grille des salaires, puis
+   société du restaurant). Mais une information que PERSONNE n'a jamais saisie
+   ne peut pas sortir de nulle part.
+
+   Alors au lieu de la laisser apparaître en jaune au milieu du contrat, on
+   l'annonce en haut de la fenêtre, avec son vrai nom et l'endroit où aller la
+   chercher. Plus de surprise à la lecture du PDF.
+   ═══════════════════════════════════════════════════════════════════════════ */
+var CTR_OU_REMPLIR={
+  /* la fiche du salarié — onglet Identité / Coordonnées / Banque */
+  ville_naissance :{lbl:'Ville de naissance',        ou:'fiche'},
+  cp_naissance    :{lbl:'Code postal de naissance',  ou:'fiche'},
+  pays_naissance  :{lbl:'Pays de naissance',         ou:'fiche'},
+  num_secu        :{lbl:'N° de sécurité sociale',    ou:'fiche'},
+  date_naissance  :{lbl:'Date de naissance',         ou:'fiche'},
+  nationalite     :{lbl:'Nationalité',               ou:'fiche'},
+  adresse         :{lbl:'Adresse complète',          ou:'fiche'},
+  email           :{lbl:'Adresse e-mail',            ou:'fiche'},
+  civilite        :{lbl:'Civilité (Monsieur / Madame)', ou:'fiche'},
+  iban            :{lbl:'IBAN',                      ou:'fiche'},
+  bic             :{lbl:'BIC',                       ou:'fiche'},
+  banque          :{lbl:'Nom de la banque',          ou:'fiche'},
+  titre_sejour_num:{lbl:'N° du titre de séjour',     ou:'fiche'},
+  fin_carte_sejour:{lbl:'Fin de validité du titre de séjour', ou:'fiche'},
+  poste           :{lbl:'Poste',                     ou:'fiche'},
+  date_debut      :{lbl:'Date d\'entrée',            ou:'fiche'},
+  /* les disponibilités contractuelles */
+  plages_planification:{lbl:'Disponibilités contractuelles', ou:'dispos'},
+  /* la fenêtre elle-même */
+  taux_horaire    :{lbl:'Taux horaire',              ou:'grille'},
+  niveau_echelon  :{lbl:'Niveau / échelon',          ou:'grille'},
+  statut          :{lbl:'Statut',                    ou:'grille'},
+  brut_mensuel    :{lbl:'Salaire brut mensuel',      ou:'grille'},
+  heures_mois     :{lbl:'Heures mensuelles',         ou:'grille'},
+  h_s1:{lbl:'Heures hebdomadaires', ou:'grille'}, h_s2:{lbl:'Heures hebdomadaires', ou:'grille'},
+  h_s3:{lbl:'Heures hebdomadaires', ou:'grille'}, h_s4:{lbl:'Heures hebdomadaires', ou:'grille'},
+  /* Paramètres › Société */
+  societe         :{lbl:'Nom de la société',         ou:'societe'},
+  societe_details :{lbl:'Coordonnées de la société', ou:'societe'},
+  urssaf          :{lbl:'N° URSSAF',                 ou:'societe'},
+  societe_forme   :{lbl:'Forme juridique',           ou:'societe'},
+  societe_capital :{lbl:'Capital social',            ou:'societe'},
+  societe_adresse :{lbl:'Adresse de la société',     ou:'societe'},
+  societe_cp_ville:{lbl:'Code postal et ville',      ou:'societe'},
+  societe_tel     :{lbl:'Téléphone du restaurant',   ou:'societe'},
+  siret           :{lbl:'SIRET',                     ou:'societe'},
+  ape             :{lbl:'Code APE',                  ou:'societe'},
+  gerant          :{lbl:'Gérant signataire',         ou:'societe'},
+  ville_signature :{lbl:'Ville de signature',        ou:'societe'},
+  restaurant_nom  :{lbl:'Nom du restaurant',         ou:'societe'},
+  cameras_tel     :{lbl:'Téléphone vidéosurveillance', ou:'societe'},
+  cameras_duree   :{lbl:'Durée de conservation des images', ou:'societe'},
+  cameras_zones   :{lbl:'Zones filmées',             ou:'societe'}
+};
+var CTR_OU_TXT={
+  fiche  :'Fiche du salarié',
+  dispos :'Fiche du salarié › Disponibilités contractuelles',
+  grille :'Ci-dessus : poste / niveau et heures par semaine',
+  societe:'Paramètres › Société'
+};
+
+/* La société de ce restaurant est-elle vraiment la sienne, ou celle par défaut ?
+   Vincent : « par rapport aux caméras, c'est toujours sur le restaurant de
+   Saint-Clément-de-Rivière alors qu'il devrait y en avoir d'autres ».
+   L'application SAIT gérer une société par restaurant. Simplement, quand celle
+   du restaurant n'a jamais été renseignée, elle retombe silencieusement sur la
+   société « par défaut ». Désormais, elle le dit. */
+function ctrSocieteEstDefaut(restoId){
+  try{
+    var all=_societesAll()||{};
+    var p=all[restoId];
+    if(p && (p.nom||p.details||p.urssaf)) return false;
+    return !!(all._defaut && (all._defaut.nom||all._defaut.details||all._defaut.urssaf));
+  }catch(_){ return false; }
+}
+window.ctrSocieteEstDefaut=ctrSocieteEstDefaut;
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ★ v679 — LA SOCIÉTÉ N'EST PLUS ÉCRITE EN DUR DANS LES CONTRATS.
+
+   Vincent : « par rapport aux caméras, c'est toujours sur le restaurant de
+   Saint-Clément-de-Rivière alors qu'il devrait y en avoir d'autres. »
+
+   Il avait raison, et la cause n'était pas le réglage : dans les quatre modèles
+   livrés avec l'application, l'employeur est TAPÉ DANS LE TEXTE, entre 7 et 13
+   fois par modèle — « BK AVENUE SARL, Route de Ganges, 34980 SAINT CLEMENT DE
+   RIVIERE », et jusqu'au SIRET dans le modèle 35 h. Le réglage Paramètres ›
+   Société ne remplissait que {societe} et {urssaf} : tout le reste du contrat
+   continuait à nommer Saint-Clément, quel que soit le restaurant.
+
+   Ses propres avenants le prouvent : celui d'Alicia Bonne porte en pied de page
+   BURGER AVENUE 500 — 185 Avenue du Mas d'Argelliers, 34070 Montpellier —
+   SIRET 527 514 806 00019. Ce sont bien deux sociétés distinctes.
+
+   On corrige à la fabrication du contrat, et pas seulement dans le texte
+   d'origine : un modèle que la RH a déjà modifié (rangé dans Supabase) garde
+   sinon l'ancien texte pour toujours. Chaque mention est remplacée par la
+   société DU RESTAURANT de ce salarié.
+   ═══════════════════════════════════════════════════════════════════════════ */
+var CTR_EN_DUR=[
+  {quoi:'nom',      re:/\bLa\s+SARL\s+BK\s*AVENUE\b/gi},
+  {quoi:'nom',      re:/\bSARL\s+BK\s*AVENUE\b/gi},
+  {quoi:'nom',      re:/\bBK\s*AVENUE\s+SARL\b/gi},
+  {quoi:'nom',      re:/\bBK\s*AVENUE\b/gi},
+  {quoi:'adresse',  re:/\bRoute\s+de\s+Ganges\b/gi},
+  {quoi:'cp_ville', re:/\b34\s?980\s+SAINT[\s-]CLEMENT\s+DE\s+RIVIERE\b/gi},
+  {quoi:'cp_ville', re:/\b34\s?980\s+Saint[\s-]Cl[ée]ment\s+de\s+Rivi[èe]re\b/gi},
+  {quoi:'ville',    re:/\bSAINT[\s-]CLEMENT\s+DE\s+RIVIERE\s*\(\s*34\s?980\s*\)/gi},
+  {quoi:'siret',    re:/830\s?144\s?242\s?000\s?13/g},
+  {quoi:'ape',      re:/\bCODE\s+APE\s*:\s*5610\s?C\b/gi, prefixe:'CODE APE : '},
+  {quoi:'capital',  re:/\bau\s+capital\s+de\s+50\s?000\s*€/gi, prefixe:'au capital de '},
+  {quoi:'resto',    re:/\bRestaurant\s+BURGER\s+KING\s+Saint[\s-]Cl[ée]ment\s+de\s+Rivi[èe]re\b/gi, prefixe:'Restaurant BURGER KING '},
+  /* ★ v679b — la fin de la ligne des caméras : « …sur le restaurant de BURGER KING
+     Saint Clément de Rivière. » C'est LA phrase que Vincent avait repérée. */
+  {quoi:'resto',    re:/\bBURGER\s+KING\s+Saint[\s-]Cl[ée]ment\s+de\s+Rivi[èe]re\b/gi, prefixe:'BURGER KING '}
+];
+/* Ce que vaut chaque morceau pour CE restaurant. Vide = on ne remplace pas. */
+function ctrValeursSociete(e, soc){
+  soc=soc||{};
+  /* Le nom du restaurant tel que la direction veut le lire dans le contrat
+     (« Près des Arènes »), et non l'étiquette courte de l'application (« BK 500 »). */
+  var resto=String(soc.restaurant_nom||'').trim()
+            || (typeof RESTOS!=='undefined'&&RESTOS[e.restoId]&&RESTOS[e.restoId].label)||e.restoId||'';
+  var ville=String(soc.cp_ville||'').replace(/^\s*[0-9]{2}\s?[0-9]{3}\s*/,'').trim();
+  return {nom:soc.nom||'', adresse:soc.adresse||'', cp_ville:soc.cp_ville||'',
+          ville:ville?(ville+' ('+String(soc.cp_ville||'').slice(0,5).trim()+')'):'',
+          siret:soc.siret||'', ape:soc.ape||'', capital:soc.capital||'', resto:resto};
+}
+/* Remplace, et dit combien de fois. */
+function ctrDesenDurcir(lines, e, soc){
+  /* Tant qu'on ne sait pas QUI est l'employeur, on ne touche à rien : un contrat
+     à moitié remplacé serait pire qu'un contrat resté tel quel. La fabrication
+     est de toute façon refusée dans ce cas. */
+  if(!String((soc||{}).nom||'').trim()){
+    var _r=0;
+    lines.forEach(function(pair){
+      if(/BK\s*AVENUE|Route\s+de\s+Ganges|SAINT[\s-]CLEMENT|Saint[\s-]Cl[\u00e9e]ment|830\s?144\s?242/i.test(pair[0]||'')) _r++;
+    });
+    return {lignes:lines, remplaces:0, restants:_r};
+  }
+  var val=ctrValeursSociete(e, soc), n=0, restants=0;
+  var out=lines.map(function(pair){
+    var t=pair[0]||'';
+    CTR_EN_DUR.forEach(function(r){
+      var v=val[r.quoi]; if(!String(v).trim()) return;
+      t=t.replace(r.re, function(){ n++; return (r.prefixe||'')+v; });
+    });
+    if(/BK\s*AVENUE|Route\s+de\s+Ganges|SAINT[\s-]CLEMENT|Saint[\s-]Cl[ée]ment|830\s?144\s?242/i.test(t)) restants++;
+    return [t, pair[1]];
+  });
+  return {lignes:out, remplaces:n, restants:restants};
+}
+window.ctrDesenDurcir=ctrDesenDurcir;
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ★ v679 — LES PLAGES DE PLANIFICATION SONT CONTRÔLÉES.
+
+   La loi est rappelée en bas des avenants de Vincent :
+     (1) 12 heures par jour au maximum
+     (2) au plus 3 fois la durée hebdomadaire, avec un plafond de 75 heures
+
+   La grille des contrats les respecte aujourd'hui, mais de justesse :
+     15 h → 31h30 / 45   ·   20 h → 59h30 / 60   ·   24 h → 72h00 / 72
+   Le 24 h est PILE au plafond. Une demi-heure ajoutée dans Paramètres › Grille
+   des contrats et le contrat sort de la loi sans que personne ne le voie. On le
+   vérifie donc à chaque fabrication de contrat.
+   ═══════════════════════════════════════════════════════════════════════════ */
+function ctrPlagesControle(dispos, heuresHebdo){
+  var JN=[['lun','Lundi'],['mar','Mardi'],['mer','Mercredi'],['jeu','Jeudi'],['ven','Vendredi'],['sam','Samedi'],['dim','Dimanche']];
+  function toMin(hm){ if(!hm) return null; var p=String(hm).replace('h',':').split(':'); var h=parseInt(p[0],10); var m=parseInt(p[1]||'0',10); if(isNaN(h))return null; return h*60+(isNaN(m)?0:m); }
+  var total=0, alertes=[], jours=[];
+  JN.forEach(function(d){
+    var jd=(dispos||{})[d[0]]; if(!jd || jd.on===false) { jours.push({j:d[1],min:0}); return; }
+    var crens=(jd.creneaux&&jd.creneaux.length)?jd.creneaux:[{from:jd.from,to:jd.to}];
+    var m=0;
+    crens.forEach(function(cr){ if(!cr||!cr.from||!cr.to) return; var a=toMin(cr.from), b=toMin(cr.to); if(a==null||b==null) return; if(b<=a) b+=1440; m+=(b-a); });
+    total+=m; jours.push({j:d[1],min:m});
+    if(m>12*60) alertes.push(d[1]+' : '+_ctrHM(m)+' de plage, le maximum légal est 12 h par jour');
+  });
+  var h=parseFloat(String(heuresHebdo).replace(',','.'))||0;
+  var plafond=h?Math.min(3*h,75):75;
+  if(h && total>plafond*60){
+    alertes.push('Total des plages : '+_ctrHM(total)+' pour un plafond de '+_ctrHM(plafond*60)
+      +' ('+(3*h>75?'75 h maximum':'3 × '+(''+h).replace('.',',')+' h')+')');
+  }
+  return {total:total, plafond:plafond*60, jours:jours, alertes:alertes, ok:!alertes.length};
+}
+function _ctrHM(min){ return Math.floor(min/60)+'h'+('0'+Math.round(min%60)).slice(-2); }
+window.ctrPlagesControle=ctrPlagesControle; window._ctrHM=_ctrHM;
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ★ v680 — UN DOCUMENT, UNE SIGNATURE. ON ARRÊTE L'EMPILEMENT.
+
+   Vincent : « j'aimerais bien qu'on se sépare proprement le contrat, qu'on
+   sépare proprement les caméras et qu'on sépare proprement les tenues. »
+
+   Il a raison, et ses propres fichiers Word le montrent : sous le nom « contrat
+   de travail », quatre à cinq documents sont collés bout à bout, chacun avec sa
+   propre mention « Lu et approuvé » et sa propre signature :
+
+     1. le CONTRAT DE TRAVAIL          (articles 1 à 11)
+     2. le RÈGLEMENT INTÉRIEUR         (articles 1 à 17, sa signature)
+     3. le REÇU DE TENUE DE TRAVAIL    (le tableau des articles et des prix)
+     4. l'INFORMATION VIDÉOSURVEILLANCE (l'information individuelle)
+     5. l'ACCORD COURRIER ÉLECTRONIQUE  (présent seulement dans le 24 h)
+
+   Un reçu de tenue n'est pas un article du contrat : c'est une décharge. Une
+   information caméras n'est pas une clause : c'est une notification. Les mêler
+   rend le contrat illisible et la signature ambiguë — on ne sait plus ce que le
+   salarié a réellement approuvé.
+
+   On les sépare donc, chacun devenant un document à part entière, avec son
+   titre, son employeur, son salarié et sa signature. Le découpage se fait par
+   REPÈRES DANS LE TEXTE, pas par numéro de ligne : il tient donc aussi sur un
+   modèle que la RH a modifié, et sur le 35 h qui ne range pas ses parties dans
+   le même ordre que les autres.
+   ═══════════════════════════════════════════════════════════════════════════ */
+var CTR_SECTIONS=[
+  {cle:'contrat',   titre:'CONTRAT DE TRAVAIL',
+   court:'📄 Contrat',            defaut:true},
+  /* ★ v683 — Vincent : « tu mets le contrat tout seul, s'il te plaît ». Par
+     défaut on ne sort QUE le contrat. Le règlement intérieur, le reçu de tenue
+     et la note caméras sont des documents à part : on les coche quand on en a
+     besoin, et ils sortent alors chacun dans leur propre PDF, avec leur propre
+     signature. Un contrat de travail fait cinq pages, pas dix-huit. */
+  {cle:'reglement', titre:'RÈGLEMENT INTÉRIEUR',
+   court:'📕 Règlement intérieur', defaut:false,
+   marque:/^R[èe]glement\s+Int[ée]rieur\s*$/i},
+  {cle:'tenue',     titre:'REÇU DE TENUE DE TRAVAIL',
+   court:'👕 Reçu de tenue',       defaut:false,
+   marque:/^V[ÊE]TEMENTS\s+DE\s+TRAVAIL\s*$|Je\s+déclare\s+avoir\s+reçu,\s*ce\s+jour,\s*une\s+tenue/i},
+  {cle:'cameras',   titre:'INFORMATION INDIVIDUELLE — VIDÉOSURVEILLANCE',
+   court:'📹 Information caméras', defaut:false,
+   marque:/^Information\s*:\s*$/},
+  {cle:'lre',       titre:'ACCORD POUR LA RÉCEPTION DE COURRIERS ÉLECTRONIQUES',
+   court:'✉️ Accord courrier électronique', defaut:false,
+   marque:/^ACCORD\s+DU\s+SALARI[ÉE]\s+POUR\s+LA\s+R[ÉE]CEPTION/i}
+];
+window.CTR_SECTIONS=CTR_SECTIONS;
+
+/* Coupe un modèle en documents. Tout ce qui précède le premier repère est le
+   contrat. Une partie absente du modèle n'apparaît tout simplement pas. */
+function ctrDecouper(lines){
+  var out={contrat:[]}, ordre=['contrat'], cur='contrat';
+  (lines||[]).forEach(function(pair){
+    var t=String((pair&&pair[0])||'').trim();
+    for(var i=1;i<CTR_SECTIONS.length;i++){
+      var sec=CTR_SECTIONS[i];
+      if(sec.marque && sec.marque.test(t) && !out[sec.cle]){
+        cur=sec.cle; out[cur]=[]; ordre.push(cur); break;
+      }
+    }
+    out[cur].push(pair);
+  });
+  out._ordre=ordre;
+  return out;
+}
+window.ctrDecouper=ctrDecouper;
+
+/* Les documents réellement présents dans ce modèle, dans l'ordre de l'écran. */
+function ctrDocsDispo(lines){
+  var d=ctrDecouper(lines);
+  return CTR_SECTIONS.filter(function(sec){ return d[sec.cle] && d[sec.cle].length; })
+    .map(function(sec){ return {cle:sec.cle, titre:sec.titre, court:sec.court,
+                                defaut:sec.defaut, lignes:d[sec.cle]}; });
+}
+window.ctrDocsDispo=ctrDocsDispo;
+
+/* L'en-tête d'un document détaché : sans lui, une feuille « Reçu de tenue »
+   ne dirait ni de qui ni de quel employeur elle parle. */
+function ctrEnTete(sec, e, soc){
+  if(sec.cle==='contrat') return [];
+  var nom=(e&&e.name)||'';
+  var l=[[sec.titre,1],['',0]];
+  if(soc && soc.nom) l.push([(soc.nom||'')+(soc.cp_ville?(' — '+soc.cp_ville):''),0]);
+  if(nom) l.push(['Salarié(e) : '+nom,0]);
+  l.push(['',0]);
+  return l;
+}
+window.ctrEnTete=ctrEnTete;
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ★ v680 — LA NOTE CAMÉRAS EST RÉÉCRITE, RESTAURANT PAR RESTAURANT.
+
+   Vincent : « tu as ensuite la note par rapport aux caméras qui est à vérifier
+   et à corriger, peut-être tu peux la réécrire d'ailleurs pour les caméras,
+   pour chaque restaurant. »
+
+   L'ancienne tenait en une phrase — « vous êtes informé(e) de la présence de
+   caméra de vidéosurveillance » — et ne disait ni pourquoi on filme, ni ce
+   qu'on filme, ni combien de temps on garde, ni quels droits a le salarié. Or
+   l'article L. 1222-4 du Code du travail et le RGPD demandent tout cela.
+
+   Celle-ci le dit, et elle prend ses valeurs dans la fiche société du
+   restaurant : téléphone, durée de conservation, zones filmées. Ce qui n'est
+   pas renseigné reste en jaune et l'application le réclame avant de sortir la
+   note — plutôt qu'un trou qui passe inaperçu.
+
+   ⚠️ Je ne suis pas juriste : ce texte suit ce que demandent le Code du travail
+   et le RGPD, mais faites-le relire par votre conseil avant de le faire signer.
+   ═══════════════════════════════════════════════════════════════════════════ */
+function ctrNoteCameras(){
+  return [
+    ['INFORMATION INDIVIDUELLE — DISPOSITIF DE VIDÉOSURVEILLANCE',1],
+    ['{societe} — Restaurant BURGER KING {restaurant_nom}',1],
+    ['',0],
+    ['Salarié(e) : {civilite} {nom} {prenom}',0],
+    ['',0],
+    ['Conformément à l\'article L. 1222-4 du Code du travail et au Règlement (UE) 2016/679 (RGPD), vous êtes informé(e), à titre individuel et préalablement à votre prise de poste, de l\'existence d\'un dispositif de vidéosurveillance dans le restaurant où vous travaillez.',0],
+    ['',0],
+    ['1. RESPONSABLE DU TRAITEMENT',1],
+    ['{societe}, {societe_adresse}, {societe_cp_ville}, représentée par {gerant}, franchisé indépendant BURGER KING.',0],
+    ['',0],
+    ['2. POURQUOI NOUS FILMONS',1],
+    ['Le dispositif a pour seules finalités la sécurité des personnes, la prévention des atteintes aux biens, la lutte contre les vols et la protection des fonds. Il n\'a pas pour objet de contrôler votre activité à votre poste de travail, ni de mesurer votre rendement.',0],
+    ['',0],
+    ['3. SUR QUEL FONDEMENT',1],
+    ['L\'intérêt légitime du responsable du traitement (article 6.1.f du RGPD) : assurer la sécurité des personnes et des biens.',0],
+    ['',0],
+    ['4. CE QUI EST FILMÉ',1],
+    ['{cameras_zones}',0],
+    ['Aucune caméra n\'est installée dans les vestiaires, les sanitaires, les locaux de pause ni les locaux réservés aux représentants du personnel. Aucune caméra ne filme un poste de travail de manière permanente.',0],
+    ['',0],
+    ['5. QUI PEUT VOIR LES IMAGES',1],
+    ['Les seules personnes habilitées par la direction. Les images peuvent être remises aux services de police ou de gendarmerie sur réquisition judiciaire.',0],
+    ['',0],
+    ['6. COMBIEN DE TEMPS ELLES SONT GARDÉES',1],
+    ['Les images sont conservées {cameras_duree}, puis effacées automatiquement — sauf procédure en cours, auquel cas elles sont conservées le temps de celle-ci.',0],
+    ['',0],
+    ['7. VOS DROITS',1],
+    ['Vous disposez d\'un droit d\'accès aux images vous concernant, ainsi que d\'un droit de rectification, d\'effacement, de limitation du traitement et d\'opposition. Pour l\'exercer, adressez-vous à la direction du restaurant, ou par écrit à {societe}, {societe_adresse}, {societe_cp_ville}.',0],
+    ['Pour toute question sur le fonctionnement du dispositif : {cameras_tel}.',0],
+    ['Vous pouvez introduire une réclamation auprès de la CNIL — 3 place de Fontenoy, TSA 80715, 75334 PARIS CEDEX 07 — www.cnil.fr.',0],
+    ['',0],
+    ['8. REPRÉSENTANTS DU PERSONNEL',1],
+    ['Le comité social et économique, lorsqu\'il existe, a été informé et consulté préalablement à la mise en place du dispositif.',0],
+    ['',0],
+    ['Fait à {ville_signature}, le {date_signature}',0],
+    ['',0],
+    ['{{s1|signature|85|37}}                                            {{s2|signature|85|37}}',1]
+  ];
+}
+window.ctrNoteCameras=ctrNoteCameras;
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ★ v683 — LE REÇU DE TENUE DE TRAVAIL, REFAIT.
+
+   Vincent : « la note pour les vêtements, tu peux la refaire aussi pour qu'elle
+   soit plus jolie. »
+
+   L'ancienne, dans le modèle, avait trois défauts qu'on ne voyait pas :
+     · « Fonction : Equipier » et « Date d'entrée : 18 juin 2026 » étaient TAPÉS
+       EN DUR — tout le monde recevait la date d'un autre ;
+     · le total (108,43 €) était figé lui aussi : changer une ligne du tableau ne
+       le changeait pas ;
+     · elle n'engageait à rien de précis sur la restitution.
+
+   Celle-ci prend l'identité dans la fiche, RECALCULE les totaux ligne par ligne
+   et le montant global, et dit clairement ce que le salarié reconnaît.
+
+   Les articles et les prix sont dans TENUES_DEFAUT, repris de vos documents. Ils
+   peuvent être remplacés sans toucher au code, en rangeant une autre liste sous
+   la clé « bkrh_tenues » (même forme : nb, nom, ht).
+   ═══════════════════════════════════════════════════════════════════════════ */
+var TENUES_DEFAUT=[
+  {nb:2, nom:'Pantalon(s)',     ht:15.82},
+  {nb:2, nom:'Polo',            ht:11.85},
+  {nb:1, nom:'Ceinture',        ht:5.22},
+  {nb:1, nom:'Casquette',       ht:4.00},
+  {nb:2, nom:'Tablier',         ht:8.07},
+  {nb:1, nom:'Sur-chaussures',  ht:9.00},
+  {nb:1, nom:'Badge',           ht:2.00}
+];
+function ctrTenuesListe(){
+  try{ var raw=localStorage.getItem('bkrh_tenues');
+       if(raw){ var a=JSON.parse(raw); if(a && a.length) return a; } }catch(_){}
+  return TENUES_DEFAUT;
+}
+window.TENUES_DEFAUT=TENUES_DEFAUT; window.ctrTenuesListe=ctrTenuesListe;
+
+function _ctrEur(n){ return (Math.round(n*100)/100).toFixed(2).replace('.',',')+' €'; }
+
+function ctrNoteTenues(){
+  var L=ctrTenuesListe(), TVA=1.20, total=0;
+  var lignes=[
+    ['REÇU DE TENUE DE TRAVAIL',1],
+    ['{societe} — Restaurant BURGER KING {restaurant_nom}',1],
+    ['',0],
+    ['Salarié(e) : {civilite} {nom} {prenom}',0],
+    ['Fonction : {poste}',0],
+    ["Date d'entrée : {date_debut}",0],
+    ['',0],
+    ['Je déclare avoir reçu, ce jour, une tenue de travail comprenant :',1],
+    ['',0],
+    ['Nombre',0],['Désignation',0],['Valeur HT',0],['Valeur TTC',0],['TOTAL TTC',0]
+  ];
+  L.forEach(function(a){
+    var ht=parseFloat(a.ht)||0, ttc=ht*TVA, tot=ttc*(parseInt(a.nb,10)||0);
+    total+=tot;
+    lignes.push([String(a.nb),0]);
+    lignes.push([String(a.nom||''),0]);
+    lignes.push([_ctrEur(ht),0]);
+    lignes.push([_ctrEur(ttc),0]);
+    lignes.push([_ctrEur(tot),0]);
+  });
+  lignes.push(['Pour un montant global en Euros (TTC) :',0]);
+  lignes.push([_ctrEur(total),0]);
+  lignes.push(['',0]);
+  lignes.push(['Je reconnais que ces effets restent la propriété de {societe} et me sont confiés pour la seule durée de mon contrat de travail.',0]);
+  lignes.push(["Je m'engage à en faire un usage normal, à les entretenir, et à les restituer propres et repassés au moment de mon départ, quelle qu'en soit la cause.",0]);
+  lignes.push(['À défaut de restitution, leur valeur pourra m\'être réclamée, dans les limites prévues par la loi.',0]);
+  lignes.push(['Le présent reçu est établi en deux exemplaires, dont un me reste.',0]);
+  lignes.push(['',0]);
+  lignes.push(['Fait à {ville_signature}, le {date_signature}',0]);
+  lignes.push(['',0]);
+  /* ★ v683 — pas d'intitulés à la main : le bloc de signature fabrique les siens
+     (l'employeur à gauche avec son gérant, le salarié à droite avec son nom). */
+  lignes.push(['{{s1|signature|85|37}}                                            {{s2|signature|85|37}}',1]);
+  return lignes;
+}
+window.ctrNoteTenues=ctrNoteTenues;
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ★ v682 — UN CONTRAT QUI RESSEMBLE À UN CONTRAT.
+
+   Vincent : « regarde le contrat quand tu fais signer, ça donne ça. Ce n'est pas
+   terrible… c'est complètement dégueulasse quand tu fais signer au salarié. Il
+   faut que ce soit en format comme le premier, pour que ce soit joli. »
+
+   Il a raison. Jusqu'ici le PDF était un déversement de texte : une seule police,
+   une seule taille, pas de marges dignes de ce nom, les titres d'articles noyés
+   dans les paragraphes, le tableau des plages de planification aplati en lignes,
+   celui des tenues éclaté en une colonne de mots, et les signatures en vrac.
+
+   Le problème de fond : le document arrive ici en TEXTE BRUT (c'est ce qui est
+   rangé dans bks_letters). Il n'y a plus ni gras, ni tableau, ni structure. Il
+   faut donc les RETROUVER, en lisant le texte comme un typographe le lirait.
+
+   C'est ce que fait ctrBlocs() : elle reconnaît les titres d'articles, les
+   sous-articles, les listes à tiret, le tableau des plages de planification, le
+   tableau des tenues de travail et les blocs de signature — puis ctrPdfContrat()
+   les dessine chacun à sa manière, et ctrHtmlDoc() fait la même chose à l'écran.
+
+   Une seule lecture du texte, deux rendus : ce que le salarié voit sur la
+   tablette est exactement ce qu'il aura en PDF.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+var CTR_JOURS_FR7=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+
+/* Une ligne de plage : « Lundi : 11h00 – 14h30 et 18h30 – 01h30  (10h30) » */
+function _ctrLignePlage(t){
+  var m=String(t||'').match(/^(Lundi|Mardi|Mercredi|Jeudi|Vendredi|Samedi|Dimanche)\s*:\s*(.*)$/);
+  if(!m) return null;
+  var reste=(m[2]||'').trim();
+  var tot=''; var mt=reste.match(/\(([^)]*)\)\s*$/);
+  if(mt){ tot=mt[1].trim(); reste=reste.slice(0,mt.index).trim(); }
+  if(/^repos$/i.test(reste)) return {j:m[1], p:[], tot:'—', repos:true};
+  var parts=reste.split(/\s+et\s+/).map(function(x){ return x.trim(); }).filter(Boolean);
+  return {j:m[1], p:parts, tot:tot||'', repos:false};
+}
+
+/* Le texte, relu comme un typographe le lirait. */
+function ctrBlocs(texte){
+  var L=String(texte==null?'':texte).replace(/\r/g,'').split('\n');
+  var out=[], i=0;
+
+  /* Une ligne « courte » : un morceau d'adresse, un nom, une mention — pas une
+     phrase. Ni un titre, ni une puce, ni une ligne de tableau. */
+  function _ctrCourte(t){
+    if(!t || t.length>62) return false;
+    if(/[.;]$/.test(t)) return false;
+    if(/^ARTICLE\s+\d+/i.test(t)) return false;
+    if(/^Article\s+\d{1,2}\s*[-–]/i.test(t)) return false;
+    if(/^\d{1,2}\.\d{1,2}\s*[-–]/.test(t)) return false;
+    if(/^[-–•]\s+/.test(t)) return false;
+    if(/\{\{s\d\|signature/.test(t)) return false;
+    if(_ctrLignePlage(t)) return false;
+    if(/^(Nombre|Désignation|Valeur HT|Valeur TTC|TOTAL TTC)$/i.test(t)) return false;
+    if(/\s{4,}/.test(t)) return false;          /* deux colonnes : c'est autre chose */
+    /* Une ligne en capitales de trois mots sans chiffre, c'est un intertitre
+       (« ENTRE LES PARTIES SOUSSIGNEES »), pas un morceau d'adresse. */
+    if(estMajuscule(t) && t.split(/\s+/).length>=3 && !/[0-9]/.test(t)) return false;
+    return t.split(/\s+/).length<=9;
+  }
+
+  function estMajuscule(t){
+    var lettres=t.replace(/[^A-Za-zÀ-ÿ]/g,'');
+    if(lettres.length<3) return false;
+    return lettres===lettres.toUpperCase() && !/[.:;]$/.test(t.trim());
+  }
+
+  while(i<L.length){
+    var t=L[i], tr=t.trim();
+
+    if(!tr){ out.push({t:'vide'}); i++; continue; }
+
+    /* ── Les signatures ─────────────────────────────────────────────────── */
+    if(/\{\{s\d\|signature/.test(tr)){
+      var n=(tr.match(/\{\{s\d\|signature/g)||[]).length;
+      /* les deux lignes précédentes servent souvent de légendes */
+      var g='', d='';
+      for(var b=out.length-1; b>=0 && b>=out.length-3; b--){
+        var p=out[b]; if(!p || p.t==='vide' || p.t==='signatures') continue;
+        var st=String(p.s||'');
+        if(/Lu et approuv|Signature|l'employ|responsable|Le G[ée]rant|Pour la/i.test(st)){
+          var deux=st.split(/\s{4,}/).map(function(x){return x.trim();}).filter(Boolean);
+          if(!g) g=deux[0]||''; if(!d) d=deux[1]||'';
+          out.splice(b,1);
+        } else break;
+      }
+      out.push({t:'signatures', n:(n>=2?2:1), gauche:g, droite:d});
+      i++; continue;
+    }
+
+    /* ── Le tableau des plages de planification ─────────────────────────── */
+    var pl=_ctrLignePlage(tr);
+    if(pl){
+      var rows=[], tot='';
+      while(i<L.length){
+        var q=_ctrLignePlage(L[i].trim());
+        if(q){ rows.push(q); i++; continue; }
+        var mt2=L[i].trim().match(/^Total hebdomadaire[^:]*:\s*(.*)$/i);
+        if(mt2){ tot=(mt2[1]||'').trim(); i++; }
+        break;
+      }
+      out.push({t:'plages', rows:rows, total:tot});
+      continue;
+    }
+
+    /* ── Le tableau des tenues de travail ───────────────────────────────── */
+    if(/^Nombre$/i.test(tr) && /^D[ée]signation$/i.test((L[i+1]||'').trim())){
+      var head=[], k=i;
+      while(k<L.length && head.length<5){ var h=L[k].trim(); if(h) head.push(h); k++; }
+      var rows2=[], cur=[], total2='';
+      while(k<L.length){
+        var c=L[k].trim();
+        if(/^Pour un montant global/i.test(c)){
+          k++;
+          while(k<L.length && !L[k].trim()) k++;
+          total2=(L[k]||'').trim(); k++;
+          break;
+        }
+        if(c){ cur.push(c); if(cur.length===5){ rows2.push(cur); cur=[]; } }
+        k++;
+      }
+      if(cur.length) rows2.push(cur.concat(['','','','','']).slice(0,5));
+      out.push({t:'tenues', head:head, rows:rows2, total:total2});
+      i=k; continue;
+    }
+
+    /* ── Les blocs courts : une adresse, une identité, un pied de lettre ──
+       Trois lignes de dix mots ne sont pas trois paragraphes. Collées les unes
+       aux autres, sans justification, elles se lisent comme sur le Word. */
+    if(_ctrCourte(tr) && _ctrCourte((L[i+1]||'').trim())){
+      var blk=[];
+      while(i<L.length){
+        var c0=L[i].trim();
+        if(!_ctrCourte(c0)) break;
+        blk.push(c0); i++;
+      }
+      out.push({t:'bloc', l:blk});
+      continue;
+    }
+
+    /* ── Les titres ─────────────────────────────────────────────────────── */
+    if(/^ARTICLE\s+\d+/i.test(tr)){ out.push({t:'article', s:tr}); i++; continue; }
+    if(/^\d{1,2}\s*[-–]\s*[A-ZÀ-Ý]/.test(tr) && tr.length<70){ out.push({t:'soustitre', s:tr}); i++; continue; }
+    if(/^\d{1,2}\.\d{1,2}\s*[-–]/.test(tr)){ out.push({t:'sousart', s:tr}); i++; continue; }
+    if(/^Article\s+\d{1,2}\s*[-–]/i.test(tr)){ out.push({t:'sousart', s:tr}); i++; continue; }
+    if(/^\d\.\s+[A-ZÀ-Ý]/.test(tr) && tr.length<80){ out.push({t:'sousart', s:tr}); i++; continue; }
+    if(estMajuscule(tr) && tr.length<80){ out.push({t:'soustitre', s:tr}); i++; continue; }
+
+    /* ── Les listes ─────────────────────────────────────────────────────── */
+    if(/^[-–•]\s+/.test(tr)){ out.push({t:'puce', s:tr.replace(/^[-–•]\s+/,'')}); i++; continue; }
+
+    out.push({t:'para', s:tr});
+    i++;
+  }
+
+  /* Deux vides de suite n'apportent rien. */
+  var net=[];
+  out.forEach(function(b){
+    if(b.t==='vide' && net.length && net[net.length-1].t==='vide') return;
+    net.push(b);
+  });
+  while(net.length && net[0].t==='vide') net.shift();
+  while(net.length && net[net.length-1].t==='vide') net.pop();
+  return net;
+}
+window.ctrBlocs=ctrBlocs;
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LE PDF
+   ═══════════════════════════════════════════════════════════════════════════ */
+function ctrPdfContrat(emp, texte, titre, soc, sig){
+  var JS=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF; if(!JS) return null;
+  var doc=new JS({unit:'mm',format:'a4'});
+  soc=soc||{};
+  var M=20, MR=20, W=210, H=297, BAS=H-22;
+  var L=W-M-MR;                       /* largeur utile */
+  var y=0, page=0;
+
+  function _s(t){ return (typeof _pdfSafe==='function')?_pdfSafe(String(t==null?'':t)):String(t==null?'':t); }
+
+  function pied(){
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(140,140,140);
+    doc.setDrawColor(225,225,225); doc.line(M, H-16, W-MR, H-16);
+    var g=[soc.nom||'', soc.restaurant_nom?('Restaurant '+soc.restaurant_nom):''].filter(Boolean).join(' — ');
+    if(g) doc.text(_s(g), M, H-12);
+    doc.text('Page '+page, W-MR, H-12, {align:'right'});
+    doc.setTextColor(17,17,17);
+  }
+  function nouvelle(){
+    if(page){ pied(); doc.addPage(); }   /* la première page existe déjà */
+    page++;
+    y=M+4;
+    if(page>1){
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(150,150,150);
+      doc.text(_s(String(titre||'').toUpperCase()), M, M-6);
+      doc.setDrawColor(230,230,230); doc.line(M, M-4, W-MR, M-4);
+      doc.setTextColor(17,17,17);
+    }
+  }
+  function place(h){ if(y+h>BAS) nouvelle(); }
+
+  /* Une ligne justifiée : les mots sont espacés pour atteindre la marge. */
+  function ligne(txt, x, largeur, justifier){
+    if(!justifier){ doc.text(txt, x, y); return; }
+    var mots=txt.split(/\s+/).filter(Boolean);
+    if(mots.length<2){ doc.text(txt, x, y); return; }
+    var lw=0; for(var i=0;i<mots.length;i++) lw+=doc.getTextWidth(mots[i]);
+    var gap=(largeur-lw)/(mots.length-1);
+    if(gap<=0 || gap>6){ doc.text(txt, x, y); return; }
+    var cx=x;
+    for(var k=0;k<mots.length;k++){ doc.text(mots[k], cx, y); cx+=doc.getTextWidth(mots[k])+gap; }
+  }
+
+  function para(txt, opt){
+    opt=opt||{};
+    var x=M+(opt.retrait||0), largeur=L-(opt.retrait||0);
+    doc.setFont(opt.police||'times', opt.style||'normal');
+    doc.setFontSize(opt.taille||10);
+    doc.setTextColor(opt.couleur?opt.couleur[0]:17, opt.couleur?opt.couleur[1]:17, opt.couleur?opt.couleur[2]:17);
+    var ls=doc.splitTextToSize(_s(txt), largeur);
+    var interligne=opt.interligne||4.8;
+    for(var i=0;i<ls.length;i++){
+      place(interligne);
+      if(opt.puce && i===0){ doc.text('•', M+(opt.retrait||0)-4, y); }
+      ligne(ls[i], x, largeur, (opt.justifier!==false) && (i<ls.length-1));
+      y+=interligne;
+    }
+    doc.setTextColor(17,17,17);
+  }
+
+  /* ── Page de garde du document ─────────────────────────────────────────── */
+  nouvelle();
+  /* ★ v683 — un document refait porte déjà son titre en première ligne : on ne
+     l'imprime pas deux fois. */
+  var _blocsDoc=ctrBlocs(texte);
+  var _tt=String(titre||'').trim().toUpperCase();
+  while(_blocsDoc.length && (_blocsDoc[0].t==='soustitre'||_blocsDoc[0].t==='vide')
+        && (_blocsDoc[0].t==='vide' || String(_blocsDoc[0].s||'').trim().toUpperCase()===_tt)){
+    if(_blocsDoc[0].t==='vide'){ break; }
+    _blocsDoc.shift();
+  }
+  doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.setTextColor(17,17,17);
+  var tl=doc.splitTextToSize(_s(String(titre||'DOCUMENT').toUpperCase()), L);
+  for(var ti=0;ti<tl.length;ti++){ doc.text(tl[ti], W/2, y, {align:'center'}); y+=7.5; }
+  doc.setDrawColor(192,30,0); doc.setLineWidth(0.8); doc.line(M, y-2, W-MR, y-2); doc.setLineWidth(0.2);
+  y+=6;
+  if(soc.nom){
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(120,120,120);
+    var ent=[soc.nom, soc.adresse, soc.cp_ville].filter(Boolean).join(' — ');
+    doc.text(_s(ent), W/2, y, {align:'center'}); y+=6;
+    doc.setTextColor(17,17,17);
+  }
+  y+=2;
+
+  /* ── Le corps ──────────────────────────────────────────────────────────── */
+  var blocs=_blocsDoc;
+  blocs.forEach(function(b){
+    if(b.t==='vide'){ y+=2.6; return; }
+
+    if(b.t==='soustitre'){
+      y+=3; place(9);
+      doc.setFont('helvetica','bold'); doc.setFontSize(11.5); doc.setTextColor(17,17,17);
+      doc.text(_s(b.s), W/2, y, {align:'center'}); y+=7;
+      return;
+    }
+    if(b.t==='article'){
+      y+=4; place(20);                       /* un titre ne finit pas une page */
+      doc.setFillColor(245,245,245); doc.rect(M-2, y-4.6, L+4, 7.2, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(140,20,0);
+      doc.text(_s(b.s), M, y); y+=7.5;
+      doc.setTextColor(17,17,17);
+      return;
+    }
+    if(b.t==='sousart'){
+      y+=2.5; place(14);
+      para(b.s, {police:'helvetica', style:'bold', taille:9.8, justifier:false, interligne:4.8});
+      y+=1.5;
+      return;
+    }
+    if(b.t==='puce'){ para(b.s, {retrait:6, puce:true}); y+=1; return; }
+
+    if(b.t==='bloc'){
+      y+=1.5;
+      b.l.forEach(function(x){ para(x, {justifier:false, interligne:4.6}); });
+      y+=1.5;
+      return;
+    }
+
+    if(b.t==='plages'){
+      y+=3;
+      var hL=6.4, hT=hL*(b.rows.length+1)+(b.total?hL:0)+4;
+      place(Math.min(hT, BAS-M));
+      var c=[M, M+34, M+34+52, M+34+104, W-MR];
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(255,255,255);
+      doc.setFillColor(60,60,60); doc.rect(M, y-4.4, L, hL, 'F');
+      doc.text('JOUR', c[0]+2, y);
+      doc.text('PLAGE 1', c[1]+2, y);
+      doc.text('PLAGE 2', c[2]+2, y);
+      doc.text('TOTAL JOUR', c[3]-2, y, {align:'right'});
+      y+=hL;
+      doc.setTextColor(17,17,17);
+      b.rows.forEach(function(r,ri){
+        place(hL);
+        if(ri%2===0){ doc.setFillColor(248,248,248); doc.rect(M, y-4.4, L, hL, 'F'); }
+        doc.setFont('helvetica','bold'); doc.setFontSize(9);
+        doc.text(_s(r.j), c[0]+2, y);
+        doc.setFont('helvetica','normal');
+        if(r.repos){ doc.setTextColor(150,150,150); doc.text('repos', c[1]+2, y); doc.setTextColor(17,17,17); }
+        else {
+          doc.text(_s(r.p[0]||''), c[1]+2, y);
+          doc.text(_s(r.p[1]||''), c[2]+2, y);
+        }
+        doc.setFont('helvetica','bold');
+        doc.text(_s(r.tot||''), c[3]-2, y, {align:'right'});
+        y+=hL;
+      });
+      doc.setDrawColor(200,200,200); doc.line(M, y-4.4, W-MR, y-4.4);
+      if(b.total){
+        place(hL+2);
+        doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(140,20,0);
+        doc.text("NOMBRE TOTAL D'HEURES DE PLANIFICATION", c[0]+2, y+1);
+        doc.text(_s(b.total), c[3]-2, y+1, {align:'right'});
+        doc.setTextColor(17,17,17); y+=hL+2;
+      }
+      y+=2;
+      doc.setFont('times','italic'); doc.setFontSize(7.6); doc.setTextColor(120,120,120);
+      place(5);
+      doc.text(_s('(1) Maximum 12 heures par jour. (2) Maximum 3 fois la durée hebdomadaire prévue au présent contrat, avec un plafond de 75 heures.'), M, y);
+      doc.setTextColor(17,17,17); y+=6;
+      return;
+    }
+
+    if(b.t==='tenues'){
+      y+=3;
+      var hl=6.4;
+      place(Math.min(hl*(b.rows.length+2)+6, BAS-M));
+      var cc=[M, M+22, M+96, M+128, W-MR];
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(255,255,255);
+      doc.setFillColor(60,60,60); doc.rect(M, y-4.4, L, hl, 'F');
+      doc.text(_s(b.head[0]||'Nombre'), cc[0]+2, y);
+      doc.text(_s(b.head[1]||'Désignation'), cc[1]+2, y);
+      doc.text(_s(b.head[2]||'Valeur HT'), cc[2]+2, y);
+      doc.text(_s(b.head[3]||'Valeur TTC'), cc[3]+2, y);
+      doc.text(_s(b.head[4]||'Total TTC'), cc[4]-2, y, {align:'right'});
+      y+=hl; doc.setTextColor(17,17,17);
+      b.rows.forEach(function(r,ri){
+        place(hl);
+        if(ri%2===0){ doc.setFillColor(248,248,248); doc.rect(M, y-4.4, L, hl, 'F'); }
+        doc.setFont('helvetica','normal'); doc.setFontSize(9);
+        doc.text(_s(r[0]||''), cc[0]+2, y);
+        doc.setFont('helvetica','bold'); doc.text(_s(r[1]||''), cc[1]+2, y);
+        doc.setFont('helvetica','normal');
+        doc.text(_s(r[2]||''), cc[2]+2, y);
+        doc.text(_s(r[3]||''), cc[3]+2, y);
+        doc.text(_s(r[4]||''), cc[4]-2, y, {align:'right'});
+        y+=hl;
+      });
+      doc.setDrawColor(200,200,200); doc.line(M, y-4.4, W-MR, y-4.4);
+      if(b.total){
+        place(hl+2);
+        doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(140,20,0);
+        doc.text('POUR UN MONTANT GLOBAL EN EUROS (TTC)', cc[0]+2, y+1);
+        doc.text(_s(b.total), cc[4]-2, y+1, {align:'right'});
+        doc.setTextColor(17,17,17); y+=hl+3;
+      }
+      return;
+    }
+
+    if(b.t==='signatures'){
+      /* ★ v682 — tout le bloc tient sur une page : un cadre de signature seul en
+         haut d'une feuille, sans son intitulé, ne veut plus rien dire. */
+      y+=6;
+      if(y+54>BAS) nouvelle();
+      doc.setDrawColor(215,215,215); doc.line(M, y-2, W-MR, y-2); y+=6;
+      var demi=(L-10)/2;
+      var xg=M, xd=M+demi+10;
+      var gLbl=b.gauche||('Pour '+(soc.nom||"l'entreprise"));
+      var dLbl=b.droite||"Le/La salarié(e)";
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(110,110,110);
+      doc.text(_s(gLbl.toUpperCase()), xg, y);
+      if(b.n>=2) doc.text(_s(dLbl.toUpperCase()), xd, y);
+      y+=4;
+      doc.setFont('times','normal'); doc.setFontSize(9); doc.setTextColor(90,90,90);
+      doc.text(_s(soc.gerant||''), xg, y+3.5);
+      if(b.n>=2) doc.text(_s((emp&&emp.name)||''), xd, y+3.5);
+      y+=6;
+      doc.setTextColor(17,17,17);
+
+      var boxH=26;
+      doc.setFillColor(252,252,252);
+      doc.roundedRect(xg, y, demi, boxH, 1.5, 1.5, 'F');
+      if(b.n>=2) doc.roundedRect(xd, y, demi, boxH, 1.5, 1.5, 'F');
+      doc.setDrawColor(200,200,200);
+      doc.roundedRect(xg, y, demi, boxH, 1.5, 1.5);
+      if(b.n>=2) doc.roundedRect(xd, y, demi, boxH, 1.5, 1.5);
+
+      /* La signature de la direction, si elle est réglée. */
+      if(sig && sig.dirImg){ try{ doc.addImage(sig.dirImg,'PNG', xg+3, y+3, Math.min(demi-6,52), boxH-6); }catch(_){} }
+      /* Celle du salarié, si le document est signé. */
+      if(b.n>=2 && sig && sig.status==='signed'){
+        if(sig.img){ try{ doc.addImage(sig.img,'PNG', xd+3, y+3, Math.min(demi-6,52), boxH-6); }catch(_){} }
+        else {
+          doc.setFont('times','italic'); doc.setFontSize(18); doc.setTextColor(20,49,92);
+          doc.text(_s((sig.name)||(emp&&emp.name)||''), xd+4, y+15);
+          doc.setTextColor(17,17,17);
+        }
+      }
+      if(b.n>=2 && sig && sig.status==='refused'){
+        doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(192,30,0);
+        doc.text('REFUS DE SIGNER', xd+4, y+14);
+        doc.setTextColor(17,17,17);
+      }
+      y+=boxH+4;
+
+      doc.setFont('times','italic'); doc.setFontSize(7.8); doc.setTextColor(120,120,120);
+      doc.text(_s('Signature précédée de la mention « Lu et approuvé »'), xg, y);
+      if(sig && sig.status==='signed' && sig.date){
+        doc.setFont('helvetica','bold'); doc.setTextColor(46,125,50);
+        doc.text(_s('Signé le '+new Date(sig.date).toLocaleString('fr-FR')), xd, y);
+      }
+      doc.setTextColor(17,17,17); y+=8;
+      return;
+    }
+
+    para(b.s); y+=1.3;
+  });
+
+  /* Si le document n'avait aucun bloc de signature, on en pose un. */
+  var aSig=blocs.some(function(b){ return b.t==='signatures'; });
+  if(!aSig && sig && (sig.contrat || sig.status)){
+    y+=8; place(46);
+    doc.setDrawColor(215,215,215); doc.line(M, y-2, W-MR, y-2); y+=7;
+    var d2=(L-10)/2, x2=M+d2+10;
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(110,110,110);
+    doc.text(_s(('Pour '+(soc.nom||"l'entreprise")).toUpperCase()), M, y);
+    doc.text("LE/LA SALARIÉ(E)", x2, y); y+=6;
+    doc.setTextColor(17,17,17);
+    doc.setDrawColor(200,200,200);
+    doc.roundedRect(M, y, d2, 26, 1.5, 1.5); doc.roundedRect(x2, y, d2, 26, 1.5, 1.5);
+    if(sig.dirImg){ try{ doc.addImage(sig.dirImg,'PNG', M+3, y+3, Math.min(d2-6,52), 20); }catch(_){} }
+    if(sig.status==='signed'){
+      if(sig.img){ try{ doc.addImage(sig.img,'PNG', x2+3, y+3, Math.min(d2-6,52), 20); }catch(_){} }
+      else { doc.setFont('times','italic'); doc.setFontSize(18); doc.setTextColor(20,49,92);
+             doc.text(_s(sig.name||(emp&&emp.name)||''), x2+4, y+15); doc.setTextColor(17,17,17); }
+    } else if(sig.status==='refused'){
+      doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(192,30,0);
+      doc.text('REFUS DE SIGNER', x2+4, y+14); doc.setTextColor(17,17,17);
+    }
+    y+=32;
+    doc.setFont('times','italic'); doc.setFontSize(7.8); doc.setTextColor(120,120,120);
+    doc.text(_s('Signature précédée de la mention « Lu et approuvé »'), M, y);
+    doc.setTextColor(17,17,17);
+  }
+
+  pied();
+  return doc;
+}
+window.ctrPdfContrat=ctrPdfContrat;
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LE MÊME DOCUMENT, À L'ÉCRAN — pour que le salarié signe ce qu'il verra.
+   ═══════════════════════════════════════════════════════════════════════════ */
+function ctrHtmlDoc(texte, soc, titre){
+  soc=soc||{};
+  function E(x){ return (typeof escapeHtmlCt==='function')?escapeHtmlCt(String(x==null?'':x)):String(x==null?'':x); }
+  var h='<div class="ctrdoc">';
+  if(titre){
+    h+='<div class="ctrdoc-t">'+E(String(titre).toUpperCase())+'</div>';
+    var ent=[soc.nom, soc.adresse, soc.cp_ville].filter(Boolean).join(' — ');
+    if(ent) h+='<div class="ctrdoc-ent">'+E(ent)+'</div>';
+  }
+  ctrBlocs(texte).forEach(function(b){
+    if(b.t==='vide'){ h+='<div class="ctrdoc-v"></div>'; return; }
+    if(b.t==='soustitre'){ h+='<div class="ctrdoc-st">'+E(b.s)+'</div>'; return; }
+    if(b.t==='article'){ h+='<div class="ctrdoc-a">'+E(b.s)+'</div>'; return; }
+    if(b.t==='sousart'){ h+='<div class="ctrdoc-sa">'+E(b.s)+'</div>'; return; }
+    if(b.t==='puce'){ h+='<div class="ctrdoc-li">'+E(b.s)+'</div>'; return; }
+    if(b.t==='bloc'){
+      h+='<div class="ctrdoc-bl">'+b.l.map(function(x){ return E(x); }).join('<br>')+'</div>';
+      return;
+    }
+    if(b.t==='plages'){
+      h+='<table class="ctrdoc-tab"><thead><tr><th>Jour</th><th>Plage 1</th><th>Plage 2</th><th class="r">Total jour</th></tr></thead><tbody>';
+      b.rows.forEach(function(r){
+        h+='<tr><td class="b">'+E(r.j)+'</td>'
+          +(r.repos?'<td class="g" colspan="2">repos</td>':('<td>'+E(r.p[0]||'')+'</td><td>'+E(r.p[1]||'')+'</td>'))
+          +'<td class="r b">'+E(r.tot||'')+'</td></tr>';
+      });
+      h+='</tbody>';
+      if(b.total) h+='<tfoot><tr><td colspan="3">Nombre total d\'heures de planification</td><td class="r">'+E(b.total)+'</td></tr></tfoot>';
+      h+='</table><div class="ctrdoc-note">(1) Maximum 12 heures par jour. (2) Maximum 3 fois la durée hebdomadaire prévue au présent contrat, avec un plafond de 75 heures.</div>';
+      return;
+    }
+    if(b.t==='tenues'){
+      h+='<table class="ctrdoc-tab"><thead><tr>'
+        +'<th>'+E(b.head[0]||'Nombre')+'</th><th>'+E(b.head[1]||'Désignation')+'</th>'
+        +'<th>'+E(b.head[2]||'Valeur HT')+'</th><th>'+E(b.head[3]||'Valeur TTC')+'</th>'
+        +'<th class="r">'+E(b.head[4]||'Total TTC')+'</th></tr></thead><tbody>';
+      b.rows.forEach(function(r){
+        h+='<tr><td>'+E(r[0]||'')+'</td><td class="b">'+E(r[1]||'')+'</td><td>'+E(r[2]||'')+'</td><td>'+E(r[3]||'')+'</td><td class="r">'+E(r[4]||'')+'</td></tr>';
+      });
+      h+='</tbody>';
+      if(b.total) h+='<tfoot><tr><td colspan="4">Pour un montant global en euros (TTC)</td><td class="r">'+E(b.total)+'</td></tr></tfoot>';
+      h+='</table>';
+      return;
+    }
+    if(b.t==='signatures'){
+      h+='<div class="ctrdoc-sig">'
+        +'<div><div class="ctrdoc-sl">'+E(b.gauche||('Pour '+(soc.nom||"l'entreprise")))+'</div>'
+          +'<div class="ctrdoc-sn">'+E(soc.gerant||'')+'</div><div class="ctrdoc-sb"></div></div>'
+        +(b.n>=2?('<div><div class="ctrdoc-sl">'+E(b.droite||'Le/La salarié(e)')+'</div>'
+          +'<div class="ctrdoc-sn">&nbsp;</div><div class="ctrdoc-sb"></div></div>'):'')
+        +'</div><div class="ctrdoc-note">Signature précédée de la mention « Lu et approuvé »</div>';
+      return;
+    }
+    h+='<p class="ctrdoc-p">'+E(b.s)+'</p>';
+  });
+  return h+'</div>';
+}
+window.ctrHtmlDoc=ctrHtmlDoc;
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ★ v681 — L'ENVOI D'ESSAI. RIEN NE PART CHEZ LE SALARIÉ.
+
+   Vincent : « on va se servir d'Idez Léa, et on va envoyer le contrat signé sur
+   mon adresse mail. On fait des tests sur cette fille-là. Par contre, on n'en
+   voit pas sur son adresse mail, donc je vois si je peux changer les
+   informations comme ça on ne prend pas de risque. »
+
+   Changer l'adresse de Léa dans sa fiche marcherait — mais il faudrait penser à
+   la remettre après, et une fiche salarié modifiée pour un essai, c'est
+   exactement le genre de chose qu'on oublie. On ne touche donc pas à sa fiche.
+
+   À la place, un interrupteur : tant qu'il est armé, TOUT mail de contrat part
+   sur l'adresse d'essai, quel que soit le salarié. Le mail dit en toutes lettres
+   qu'il s'agit d'un essai et à qui il aurait dû aller. Le réglage est rangé dans
+   le navigateur (localStorage) — rien en base, rien qui suive les autres postes.
+   ═══════════════════════════════════════════════════════════════════════════ */
+function ctrEssai(){
+  try{ var raw=localStorage.getItem('bkrh_envoi_essai');
+       if(raw){ var o=JSON.parse(raw)||{}; return {on:!!o.on, email:String(o.email||'').trim()}; } }catch(_){}
+  /* Adresse d'essai par défaut : celle que Vincent a donnée. L'interrupteur, lui,
+     est au repos — rien ne change tant qu'on ne l'arme pas. */
+  return {on:false, email:'vincent.hilaire13@gmail.com'};
+}
+function ctrEssaiSet(on, email){
+  var v={on:!!on, email:String(email==null?ctrEssai().email:email).trim()};
+  try{ localStorage.setItem('bkrh_envoi_essai',JSON.stringify(v)); }catch(_){}
+  return v;
+}
+/* Armé seulement si l'adresse ressemble à une adresse. */
+function ctrEssaiActif(){
+  var e=ctrEssai();
+  return !!(e.on && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e.email));
+}
+window.ctrEssai=ctrEssai; window.ctrEssaiSet=ctrEssaiSet; window.ctrEssaiActif=ctrEssaiActif;
+
+function ctrEssaiToggle(on){
+  var i=document.getElementById('ctr-essai-mail');
+  ctrEssaiSet(on, i?i.value:null);
+  ctrRenderEssai();
+}
+function ctrEssaiMail(v){ ctrEssaiSet(ctrEssai().on, v); ctrRenderEssai(); }
+window.ctrEssaiToggle=ctrEssaiToggle; window.ctrEssaiMail=ctrEssaiMail;
+
+function ctrRenderEssai(){
+  var box=document.getElementById('contratgen-essai'); if(!box) return;
+  var e=ctrEssai(), actif=ctrEssaiActif();
+  var h='<div style="background:'+(actif?'#3a1a15':'#141414')+';border:1px solid '+(actif?'#C01E00':'#333')
+    +';border-radius:8px;padding:9px 12px;">'
+    +'<label style="display:flex;align-items:center;gap:8px;cursor:pointer;">'
+      +'<input type="checkbox" '+(e.on?'checked':'')+' onchange="ctrEssaiToggle(this.checked)" style="width:16px;height:16px;accent-color:#C01E00;">'
+      +'<span style="font-size:.82rem;font-weight:800;color:'+(actif?'#ff9a80':'#ccc')+';">🧪 Envoi d\'essai — ne rien envoyer au salarié</span>'
+    +'</label>'
+    +'<div style="margin-top:7px;display:'+(e.on?'block':'none')+';">'
+      +'<input type="email" id="ctr-essai-mail" class="fi" value="'+String(e.email||'').replace(/"/g,'&quot;')+'" '
+        +'placeholder="votre.adresse@exemple.fr" onchange="ctrEssaiMail(this.value)" oninput="ctrEssaiMail(this.value)">'
+      +'<div style="margin-top:5px;font-size:.75rem;color:'+(actif?'#e8907a':'#888')+';line-height:1.5;">'
+        +(actif
+          ? ('<b>Tout part sur '+escapeHtmlCt(e.email)+'.</b> Le salarié ne reçoit rien, et sa fiche n\'est pas modifiée. '
+             +'Le mail porte la mention « ESSAI » et rappelle à qui il aurait dû aller.')
+          : 'Écrivez l\'adresse qui doit recevoir les essais. Tant qu\'elle n\'est pas valable, l\'envoi reste normal.')
+      +'</div>'
+    +'</div></div>';
+  box.innerHTML=h;
+}
+window.ctrRenderEssai=ctrRenderEssai;
+
 function _contratRemplir(lines, e, opts){
   opts=opts||{};
   var inf=e.infos||{};
   var c=_empCand(e)||{};
   var soc=getSociete(e.restoId)||{};
+  /* ★ v678 — ce que le salarié a saisi lui-même, s'il vient du recrutement. */
+  var _ipC={}; try{ _ipC=_infosPersoDe(c)||{}; }catch(_){}
   var row=opts.row||null;
   var heures=parseFloat(opts.heures)||0;
   var tauxNum=row?tauxEffectif(row.taux):(parseFloat(inf.taux_horaire)||0);
@@ -17857,8 +19099,11 @@ function _contratRemplir(lines, e, opts){
     if(toks.length>1){ prenom=toks[toks.length-1]; nom=toks.slice(0,toks.length-1).join(' '); }
     else { nom=e.name||''; }
   }
-  var resto=RESTOS[e.restoId]?RESTOS[e.restoId].label:(e.restoId||'');
-  var adresse=(c.adresse||inf.adresse||'');
+  /* ★ v679b — dans un contrat, le restaurant s'appelle « Près des Arènes »,
+     pas « BK 500 ». Le nom se règle dans Paramètres › Société. */
+  var resto=String(soc.restaurant_nom||'').trim()
+            || (RESTOS[e.restoId]?RESTOS[e.restoId].label:(e.restoId||''));
+  var adresse=(inf.adresse||c.adresse||'');
   var cpville=[c.codePostal||'', c.ville||''].filter(Boolean).join(' ');
   if(cpville) adresse=(adresse?adresse+', ':'')+cpville;
   var sexe=(c.sexe||inf.civilite||'').toString().toLowerCase();
@@ -17867,7 +19112,18 @@ function _contratRemplir(lines, e, opts){
     prenom:prenom, nom:nom, email:c.email||e.email||'', poste:c.poste||inf.poste||'',
     restaurant:resto, resto:resto,
     date_debut:_frD(inf.date_anciennete||c.dateDebut), date_naissance:_frD(inf.date_naissance||c.dateNaissance),
-    ville_naissance:inf.ville_naissance||'', num_secu:inf.num_secu||'',
+    /* ★ v678 — LES CHAMPS JAUNES SE REMPLISSENT TOUT SEULS.
+       Ils restaient en jaune ({num_secu}, {ville_naissance}) parce qu'on ne
+       regardait QUE la fiche salarié. Or le candidat les a saisis à son
+       recrutement, dans sa candidature. On lit donc les deux : la fiche d'abord,
+       la candidature ensuite.                                                 */
+    ville_naissance:inf.ville_naissance||_ipC.ville_naissance||'',
+    num_secu:inf.num_secu||_ipC.num_secu||'',
+    cp_naissance:inf.cp_naissance||_ipC.cp_naissance||'',
+    pays_naissance:inf.pays_naissance||_ipC.pays_naissance||'',
+    iban:inf.iban||_ipC.iban||'', bic:inf.bic||_ipC.bic||'', banque:inf.banque||_ipC.banque||'',
+    titre_sejour_num:inf.titre_sejour_num||_ipC.titre_sejour_num||'',
+    fin_carte_sejour:_frD(inf.fin_carte_sejour||_ipC.fin_carte_sejour||''),
     adresse:adresse, nationalite:c.nationalite||inf.nationalite||'',
     date_signature:new Date().toLocaleDateString('fr-FR'),
     civilite:civilite,
@@ -17879,9 +19135,20 @@ function _contratRemplir(lines, e, opts){
     h_s1:hStr, h_s2:hStr, h_s3:hStr, h_s4:hStr,
     // société / employeur (Paramètres → Société)
     plages_planification:_plagesPlanifTxt(e),
-    societe:soc.nom||'', societe_details:soc.details||'', urssaf:soc.urssaf||''
+    /* ★ v679 — l'employeur, morceau par morceau, pour CE restaurant. */
+    societe:soc.nom||'', societe_details:socDetails(soc), urssaf:soc.urssaf||'',
+    societe_forme:soc.forme||'', societe_capital:soc.capital||'',
+    societe_adresse:soc.adresse||'', societe_cp_ville:soc.cp_ville||'',
+    societe_tel:soc.tel||'', siret:soc.siret||'', ape:soc.ape||'',
+    gerant:soc.gerant||'', ville_signature:soc.ville_signature||'',
+    restaurant_nom:soc.restaurant_nom||'',
+    cameras_tel:soc.cameras_tel||'', cameras_duree:soc.cameras_duree||'',
+    cameras_zones:soc.cameras_zones||''
   };
-  return lines.map(function(pair){
+  /* ★ v679 — d'abord on chasse l'employeur écrit en dur, ensuite on remplit. */
+  var _src=lines;
+  try{ var _d=ctrDesenDurcir(lines, e, soc); _src=_d.lignes; window._CTR_DERNIER_DESEN=_d; }catch(_){}
+  return _src.map(function(pair){
     var t=(pair[0]||'').replace(/\{([a-z_0-9]+)\}/g,function(full,k){ return (map[k]!=null && map[k]!=='') ? map[k] : full; });
     return [t, pair[1]];
   });
@@ -17909,6 +19176,9 @@ function openContratGen(empId){
         +'<div style="flex:1;min-width:200px;"><div class="flabel">Poste / niveau (grille des salaires)</div><select id="contratgen-grille" class="fi" onchange="contratGenPreview()">'+gridOpts+'</select></div>'
         +'<div style="min-width:110px;"><div class="flabel">Heures / semaine</div><input type="number" id="contratgen-heures" class="fi" min="0" step="0.5" value="'+_h0+'" oninput="contratGenPreview()"></div>'
       +'</div>'
+      +'<div id="contratgen-essai" style="margin-bottom:10px;"></div>'
+      +'<div id="contratgen-docs" style="margin-bottom:10px;"></div>'
+      +'<div id="contratgen-manque"></div>'
       +'<div style="font-size:.78rem;color:#888;margin-bottom:6px;">Le taux horaire, le niveau et le salaire mensuel se remplissent depuis la grille + les heures. Les champs <span style="background:#ffe08a;color:#7a5c00;border-radius:3px;padding:0 3px;">en jaune</span> restent à compléter. Vous pouvez tout modifier avant d\'envoyer.</div>'
       +'<div id="contratgen-preview" contenteditable="true" style="background:#fafafa;color:#111;border-radius:8px;padding:20px;font-family:Georgia,serif;line-height:1.7;white-space:pre-wrap;font-size:.85rem;max-height:48vh;overflow:auto;"></div>'
       +'<div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px;">'
@@ -17918,14 +19188,69 @@ function openContratGen(empId){
       +'</div>'
     +'</div></div>';
   document.body.appendChild(ov);
+  try{ ctrRenderEssai(); }catch(_){}
   contratGenPreview();
 }
 window.openContratGen=openContratGen;
 function contratGenModelChange(){
   var sel=document.getElementById('contratgen-model'); var key=sel?sel.value:'';
   var h=_modelHeures(key); var hi=document.getElementById('contratgen-heures'); if(hi && h) hi.value=h;
+  _CTR_DOCS_CHOIX=null;              /* nouveau modèle : on repart des cases par défaut */
   contratGenPreview();
 }
+/* ★ v680 — quels documents la direction veut sortir, cette fois-ci. */
+var _CTR_DOCS_CHOIX=null;
+function ctrRenderChoixDocs(dispo){
+  var box=document.getElementById('contratgen-docs'); if(!box) return;
+  if(!_CTR_DOCS_CHOIX){
+    _CTR_DOCS_CHOIX={};
+    dispo.forEach(function(d){ _CTR_DOCS_CHOIX[d.cle]=!!d.defaut; });
+  }
+  if(dispo.length<2){ box.innerHTML=''; return; }
+  var h='<div style="background:#141414;border:1px solid #333;border-radius:8px;padding:10px 12px;">'
+    +'<div style="font-size:.78rem;color:#ddd;font-weight:700;margin-bottom:7px;">'
+      +'Ce modèle contient '+dispo.length+' documents distincts — par défaut, seul le contrat sort'
+      +'</div><div style="display:flex;gap:12px;flex-wrap:wrap;">';
+  dispo.forEach(function(d){
+    h+='<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.8rem;color:#ccc;">'
+      +'<input type="checkbox" '+(_CTR_DOCS_CHOIX[d.cle]?'checked':'')
+      +' onchange="ctrToggleDoc(\''+d.cle+'\',this.checked)" style="width:15px;height:15px;accent-color:var(--orange);">'
+      +escapeHtmlCt(d.court)+'</label>';
+  });
+  h+='</div><div style="margin-top:7px;font-size:.73rem;color:#888;line-height:1.5;">'
+    +'Chaque document coché sort <b>séparément</b> : son titre, son employeur, son salarié, sa signature. '
+    +'Un reçu de tenue et une information caméras ne sont pas des articles du contrat.'
+    +'</div></div>';
+  box.innerHTML=h;
+}
+function ctrToggleDoc(cle,on){ _CTR_DOCS_CHOIX=_CTR_DOCS_CHOIX||{}; _CTR_DOCS_CHOIX[cle]=!!on; contratGenPreview(); }
+window.ctrRenderChoixDocs=ctrRenderChoixDocs; window.ctrToggleDoc=ctrToggleDoc;
+
+/* Les documents cochés, prêts à sortir : titre + lignes déjà remplies. */
+function ctrDocsChoisis(e, opts){
+  var sel=document.getElementById('contratgen-model'); var key=sel?sel.value:'';
+  var lines=null; try{ lines=key?getModeleTexte(key):null; }catch(_){}
+  if(!lines) return [];
+  var soc=getSociete(e.restoId)||{};
+  var dispo=ctrDocsDispo(lines);
+  ctrRenderChoixDocs(dispo);
+  var out=[];
+  dispo.forEach(function(d){
+    if(dispo.length>1 && _CTR_DOCS_CHOIX && !_CTR_DOCS_CHOIX[d.cle]) return;
+    var sec=CTR_SECTIONS.filter(function(x){ return x.cle===d.cle; })[0]||{cle:d.cle,titre:d.titre};
+    /* ★ v680 — la note caméras du modèle est remplacée par la note réécrite :
+       l'ancienne ne tenait qu'en une phrase et ne disait presque rien. */
+    /* ★ v680/v683 — la note caméras et le reçu de tenue du modèle sont remplacés
+       par les versions refaites : celles du modèle portaient des dates et des
+       totaux tapés en dur. */
+    var brut = (d.cle==='cameras') ? ctrNoteCameras()
+             : (d.cle==='tenue')   ? ctrNoteTenues()
+             : ctrEnTete(sec, e, soc).concat(d.lignes);
+    out.push({cle:d.cle, titre:d.titre, court:d.court, lignes:_contratRemplir(brut, e, opts)});
+  });
+  return out;
+}
+window.ctrDocsChoisis=ctrDocsChoisis;
 window.contratGenModelChange=contratGenModelChange;
 function contratGenPreview(){
   var e=(DB.employees||[]).find(function(x){return x.id===_contratGenEmp;}); if(!e) return;
@@ -17935,37 +19260,212 @@ function contratGenPreview(){
   if(!lines){ box.innerHTML='<em style="color:#888;">Aucun texte de modèle disponible. Ajoutez ou éditez le modèle dans Paramètres → Contrats.</em>'; return; }
   var gi=document.getElementById('contratgen-grille'); var row=(gi&&gi.value!=='')?getSalaires()[+gi.value]:null;
   var hi=document.getElementById('contratgen-heures'); var heures=hi?hi.value:'';
-  var filled=_contratRemplir(lines, e, {row:row, heures:heures});
-  var html=filled.map(function(pair){
+  /* ★ v680 — un aperçu par document, séparés pour de bon. */
+  var docs=ctrDocsChoisis(e, {row:row, heures:heures});
+  if(!docs.length){
+    box.innerHTML='<em style="color:#888;">Aucun document coché — cochez au moins un document ci-dessus.</em>';
+    try{ ctrRenderManque(e, []); }catch(_){}
+    return;
+  }
+  var _restants={};
+  function _ligne(pair){
     var t=escapeHtmlCt(pair[0]||'');
-    t=t.replace(/\{([a-z_0-9]+)\}/g,'<span style="background:#ffe08a;color:#7a5c00;border-radius:3px;padding:0 2px;">{$1}</span>');
+    t=t.replace(/\{([a-z_0-9]+)\}/g,function(full,k){
+      _restants[k]=true;
+      return '<span style="background:#ffe08a;color:#7a5c00;border-radius:3px;padding:0 2px;">{'+k+'}</span>';
+    });
     return '<div>'+(t||'&nbsp;')+'</div>';
+  }
+  var html=docs.map(function(d,i){
+    var sep=i?('<div style="border-top:2px dashed #bbb;margin:26px 0 14px;padding-top:10px;'
+              +'font-family:sans-serif;font-size:.72rem;color:#999;letter-spacing:1px;text-transform:uppercase;">'
+              +'— document séparé —</div>'):'';
+    return sep+'<div>'+d.lignes.map(_ligne).join('')+'</div>';
   }).join('');
   box.innerHTML=html;
+  try{ ctrRenderManque(e, Object.keys(_restants)); }catch(_){}
 }
+
+/* ★ v678 — le bandeau « il reste ça à remplir, et voici où ». */
+function ctrRenderManque(e, cles){
+  var zone=document.getElementById('contratgen-manque'); if(!zone) return;
+  var h='';
+
+  var _lb=(typeof RESTOS!=='undefined'&&RESTOS[e.restoId]&&RESTOS[e.restoId].label)||e.restoId||'ce restaurant';
+
+  /* 0) ★ v681 — l'essai passe avant tout le reste : on doit le voir. */
+  try{
+    if(ctrEssaiActif()){
+      h+='<div style="background:#3a1a15;border:1px solid #C01E00;border-radius:8px;padding:9px 12px;margin-bottom:9px;color:#ff9a80;font-size:.79rem;line-height:1.5;">'
+        +'🧪 <b>Envoi d\'essai armé</b> — tout partira sur <b>'+escapeHtmlCt(ctrEssai().email)+'</b>, '
+        +'pas à '+escapeHtmlCt(e.name||'ce salarié')+'. Sa fiche n\'est pas modifiée.'
+        +'</div>';
+    }
+  }catch(_){}
+
+  /* 1) la société : celle du restaurant, et est-elle complète ? */
+  var _socR=(_societesAll()||{})[e.restoId]||{};
+  var _socManque=socManquants(_socR);
+  if(_socManque.length){
+    h+='<div style="background:#3a1a15;border:1px solid #8B3020;border-radius:8px;padding:10px 12px;margin-bottom:9px;color:#e8907a;font-size:.79rem;line-height:1.55;">'
+      +'<b>⛔ La société de '+escapeHtmlCt(_lb)+' n\'est pas renseignée</b><br>'
+      +'Il manque : <b>'+escapeHtmlCt(_socManque.join(', '))+'</b>.<br>'
+      +'Sans elle, le contrat nommerait un autre employeur que le vôtre. '
+      +'Allez dans <b>Paramètres › Société</b>, choisissez '+escapeHtmlCt(_lb)+' en haut, et enregistrez.'
+      +'</div>';
+  } else {
+    var _d=window._CTR_DERNIER_DESEN||null;
+    if(_d && _d.remplaces){
+      h+='<div style="background:#1e3320;border:1px solid #3d7a45;border-radius:8px;padding:8px 11px;margin-bottom:9px;color:#8fd49a;font-size:.77rem;line-height:1.5;">'
+        +'🏢 <b>'+escapeHtmlCt(_socR.nom||'')+'</b> — '+_d.remplaces+' mention(s) de l\'employeur remplacée(s) dans le texte du modèle'
+        +(_d.restants?(' · <span style="color:#f0c070;">⚠️ '+_d.restants+' ligne(s) nomment encore un autre employeur : relisez l\'aperçu</span>'):'')
+        +'</div>';
+    }
+  }
+
+  /* 2) la loi sur les plages de planification */
+  try{
+    var _hi=document.getElementById('contratgen-heures');
+    var _ctl=ctrPlagesControle((e.infos&&(e.infos.disposContrat||e.infos.dispos))||{}, _hi?_hi.value:'');
+    if(_ctl.alertes.length){
+      h+='<div style="background:#3a1a15;border:1px solid #8B3020;border-radius:8px;padding:10px 12px;margin-bottom:9px;color:#e8907a;font-size:.79rem;line-height:1.55;">'
+        +'<b>⛔ Les plages de planification sortent de la loi</b><br>'
+        +_ctl.alertes.map(escapeHtmlCt).join('<br>')
+        +'<div style="margin-top:5px;color:#c98070;font-size:.74rem;">Rappel du contrat : 12 h par jour au maximum, et au plus 3 fois la durée hebdomadaire, plafonné à 75 h.</div>'
+        +'</div>';
+    } else if(_ctl.total){
+      h+='<div style="font-size:.75rem;color:#888;margin-bottom:9px;">⚖️ Plages de planification : '
+        +_ctrHM(_ctl.total)+' au total, plafond légal '+_ctrHM(_ctl.plafond)+'.</div>';
+    }
+  }catch(_){}
+
+  /* 2) ce qui reste en jaune, rangé par endroit où le remplir */
+  var par={};
+  (cles||[]).forEach(function(k){
+    var d=CTR_OU_REMPLIR[k];
+    var ou=d?d.ou:'autre', lbl=d?d.lbl:('{'+k+'}');
+    par[ou]=par[ou]||[];
+    if(par[ou].indexOf(lbl)<0) par[ou].push(lbl);
+  });
+  var ordre=['fiche','dispos','grille','societe','autre'];
+  var bloc='';
+  ordre.forEach(function(ou){
+    var l=par[ou]; if(!l||!l.length) return;
+    bloc+='<div style="margin-top:5px;"><span style="color:#F5A623;font-weight:700;">'
+      +escapeHtmlCt(CTR_OU_TXT[ou]||'À compléter à la main')+'</span> — '
+      +escapeHtmlCt(l.join(', '))+'</div>';
+  });
+
+  if(bloc){
+    h+='<div style="background:#2a2a2a;border:1px solid #555;border-radius:8px;padding:10px 12px;margin-bottom:9px;color:#ddd;font-size:.79rem;line-height:1.5;">'
+      +'<b style="color:#fff;">📋 Il reste '+(cles.length>1?(cles.length+' informations'):'1 information')+' à renseigner</b>'
+      +bloc
+      +'<div style="margin-top:7px;color:#888;font-size:.74rem;">Vous pouvez aussi les taper directement dans l\'aperçu ci-dessous : il est modifiable.</div>'
+      +'</div>';
+  } else {
+    h+='<div style="background:#1e3320;border:1px solid #3d7a45;border-radius:8px;padding:9px 11px;margin-bottom:9px;color:#8fd49a;font-size:.79rem;">'
+      +'✅ <b>Le contrat est complet</b> — plus rien à remplir.</div>';
+  }
+  zone.innerHTML=h;
+}
+window.ctrRenderManque=ctrRenderManque;
 window.contratGenPreview=contratGenPreview;
 async function contratGenAction(mode){
   var e=(DB.employees||[]).find(function(x){return x.id===_contratGenEmp;}); if(!e){ toast('Salarié introuvable.','error'); return; }
   var box=document.getElementById('contratgen-preview'); if(!box) return;
   var texte=(box.innerText||box.textContent||'').replace(/ /g,' ').replace(/\n{3,}/g,'\n\n').trim();
   if(!texte){ toast('Le contrat est vide.','error'); return; }
+
+  /* ★ v679 — LA SOCIÉTÉ D'ABORD. On ne signe pas un contrat au nom du mauvais
+     employeur : mieux vaut un refus net qu'un contrat faux parti par mail. */
+  {
+    var _lbR=(typeof RESTOS!=='undefined'&&RESTOS[e.restoId]&&RESTOS[e.restoId].label)||e.restoId||'ce restaurant';
+    var _mq=socManquants((_societesAll()||{})[e.restoId]||{});
+    if(_mq.length){
+      alert('Impossible de générer ce contrat.\n\nLa société de '+_lbR+' n\'est pas renseignée '
+        +'(il manque : '+_mq.join(', ')+').\n\nSans elle, le contrat nommerait un autre employeur '
+        +'que le vôtre. Allez dans Paramètres › Société, choisissez '+_lbR+' en haut du bandeau, '
+        +'et enregistrez.');
+      return;
+    }
+    /* Il reste un employeur écrit en dur dans le texte ? On prévient. */
+    if(/BK\s*AVENUE|Route\s+de\s+Ganges|SAINT[\s-]CLEMENT|Saint[\s-]Cl[ée]ment|830\s?144\s?242/i.test(texte)){
+      if(!confirm('Attention : le texte nomme encore « BK AVENUE / Saint-Clément-de-Rivière » à un endroit '
+        +'que je n\'ai pas su remplacer.\n\nRelisez l\'aperçu (il est modifiable) avant d\'envoyer.\n\nEnvoyer quand même ?')) return;
+    }
+    /* Et la loi sur les plages. */
+    var _hi2=document.getElementById('contratgen-heures');
+    var _c2=ctrPlagesControle((e.infos&&(e.infos.disposContrat||e.infos.dispos))||{}, _hi2?_hi2.value:'');
+    if(_c2.alertes.length){
+      if(!confirm('Les plages de planification sortent de la loi :\n\n· '+_c2.alertes.join('\n· ')
+        +'\n\n(12 h par jour au maximum ; au plus 3 fois la durée hebdomadaire, plafonné à 75 h.)'
+        +'\n\nGénérer quand même ?')) return;
+    }
+  }
   if(/\{[a-z_0-9]+\}/.test(texte)){
     if(!confirm('Il reste des champs à compléter (surlignés en jaune, ex. {taux_horaire}). Envoyer quand même ?')) return;
   }
-  if(mode==='mail' && !e.email){ toast('Ce salarié n\'a pas d\'email renseigné (à renseigner dans la fiche).','error'); return; }
+  /* ★ v681 — en essai, l'adresse du salarié n'est pas nécessaire : c'est même
+     tout l'intérêt (Idez Léa n'en a pas dans sa fiche). */
+  if(mode==='mail' && !e.email && !ctrEssaiActif()){ toast('Ce salarié n\'a pas d\'email renseigné (à renseigner dans la fiche).','error'); return; }
   if(window._contratEnCours) return; window._contratEnCours=true;
-  var lid='letC_'+Date.now();
+
+  /* ★ v680 — UN DOCUMENT, UNE LETTRE, UN PDF, UNE SIGNATURE.
+     Avant, les cinq parties partaient en un seul bloc et le salarié signait une
+     fois pour tout : impossible de savoir ce qu'il avait réellement approuvé.
+     Désormais chaque document coché part pour lui-même. */
   var reporter=(curUser.role==='directeur')?('Directeur — '+(curUser.name||'')):'La Direction';
+  var _gi=document.getElementById('contratgen-grille');
+  var _row=(_gi&&_gi.value!=='')?getSalaires()[+_gi.value]:null;
+  var _hh=document.getElementById('contratgen-heures');
+  var docs=[];
+  try{ docs=ctrDocsChoisis(e, {row:_row, heures:_hh?_hh.value:''}); }catch(_){}
+  if(!docs.length){ toast('Aucun document coché.','error'); window._contratEnCours=false; return; }
+
+  /* Un seul document : l'aperçu fait foi, il est modifiable à l'écran.
+     Plusieurs : on repart du modèle, l'aperçu ne saurait pas où couper. */
+  if(docs.length===1) docs[0].texte=texte;
+  docs.forEach(function(d){
+    if(d.texte) return;
+    d.texte=d.lignes.map(function(pr){ return pr[0]||''; }).join('\n')
+             .replace(/\n{3,}/g,'\n\n').trim();
+  });
+
+  if(mode==='mail' && docs.length>1){
+    if(!confirm(docs.length+' documents vont partir à '+e.name+', chacun à signer séparément :\n\n· '
+      +docs.map(function(d){ return d.titre; }).join('\n· ')
+      +'\n\nCela fera '+docs.length+' envois. Continuer ?')){ window._contratEnCours=false; return; }
+  }
+
+  var faits=[], premier=null;
   try{
-    await sb.insert('bks_letters',{id:lid,incident_id:'',emp_id:e.id,emp_name:e.name,emp_email:e.email||'',sanction_type:'contrat',type:'contrat',status:'pending',sig_status:'pending',body:texte,created_by:reporter,created_at:new Date().toISOString()});
+    for(var i=0;i<docs.length;i++){
+      var d=docs[i];
+      var lid='letC_'+Date.now()+(i?('_'+i):'');
+      await sb.insert('bks_letters',{id:lid,incident_id:'',emp_id:e.id,emp_name:e.name,
+        emp_email:e.email||'',sanction_type:'contrat',type:'contrat',status:'pending',
+        sig_status:'pending',body:d.texte,created_by:reporter,created_at:new Date().toISOString()});
+      try{ avertPdf(e, d.texte, d.titre, d.titre.replace(/[^A-Za-zÀ-ÿ0-9]+/g,'_').slice(0,40),
+              {contrat:true, dirImg:(DB.mailSettings&&DB.mailSettings.signatureDir)||''}); }catch(_){}
+      faits.push({lid:lid, titre:d.titre});
+      if(!premier) premier=lid;
+    }
     await loadAll(); try{ updateVBadge(); }catch(_){}
-    try{ avertPdf(e, texte, 'CONTRAT DE TRAVAIL', 'Contrat', {contrat:true, dirImg:(DB.mailSettings&&DB.mailSettings.signatureDir)||''}); }catch(_){}
     var ov=document.getElementById('contratgen-ov'); if(ov) ov.remove();
-    if(mode==='tablette'){ try{ signerSurPlace(lid); }catch(_){} }
-    else { try{ await sendContratEmail(lid); }catch(_){} }
+    if(mode==='tablette'){ try{ signerSurPlace(premier); }catch(_){} }
+    else {
+      for(var k=0;k<faits.length;k++){ try{ await sendContratEmail(faits[k].lid); }catch(_){} }
+    }
     try{ if(document.getElementById('empf-docs')) renderEmpDocs(e.id,'empf-docs'); }catch(_){}
     try{ if(typeof renderContrats==='function' && document.getElementById('contrats-list')) renderContrats(); }catch(_){}
-    toast('Contrat créé pour '+e.name+' — PDF téléchargé.','success');
+    toast(faits.length+' document(s) créé(s) pour '+e.name+' — PDF téléchargé(s).','success');
+    if(mode==='tablette' && faits.length>1){
+      setTimeout(function(){
+        alert(faits.length+' documents ont été créés. Vous venez d\'ouvrir la signature du premier :\n\n'
+          +faits[0].titre+'\n\nLes '+(faits.length-1)+' autres vous attendent dans le dossier du salarié, '
+          +'chacun avec sa propre signature.');
+      },600);
+    }
   }catch(err){ console.error('contratGenAction',err); toast('Erreur à la création du contrat','error'); }
   finally{ window._contratEnCours=false; }
 }
@@ -17973,19 +19473,34 @@ window.contratGenAction=contratGenAction;
 // Mail « votre contrat à signer » (ouvre un brouillon à valider). Direction/admin.
 async function sendContratEmail(lid){
   var l=(DB.letters||[]).find(function(x){return x.id===lid;}); if(!l){ toast('Contrat introuvable','error'); return; }
-  if(!l.empEmail){ toast('Pas d\'email pour ce salarié.','error'); return; }
+  /* ★ v681 — en mode essai, tout part sur l'adresse d'essai. Le salarié n'a même
+     pas besoin d'avoir une adresse : c'est justement le cas d'Idez Léa. */
+  var _es=ctrEssaiActif()?ctrEssai():null;
+  if(!_es && !l.empEmail){ toast('Pas d\'email pour ce salarié.','error'); return; }
   var emp=(DB.employees||[]).find(function(x){return x.id===l.empId;});
   var restoLbl=emp&&RESTOS[emp.restoId]?RESTOS[emp.restoId].label:'Burger King';
   var prenom=(l.empName||'').trim().split(/\s+/).slice(-1)[0]||'';
   var sigUrl=window.location.origin+window.location.pathname+'#sign/'+lid;
   var subj='Votre contrat à signer — '+restoLbl;
   var body='Bonjour '+prenom+',\n\nVeuillez trouver ci-dessous votre contrat de travail. Merci de le lire attentivement et de le signer en ligne via le lien ci-dessous :\n\n🔗 '+sigUrl+'\n\n———\n'+(l.text||'')+'\n———\n\nCordialement,\n'+restoLbl;
+  /* ★ v681 — l'essai se voit dès l'objet, et dit à qui il aurait dû aller. */
+  if(_es){
+    subj='[ESSAI] '+subj+' — '+(l.empName||'');
+    body='⚠️ ENVOI D\'ESSAI — ce message ne part PAS au salarié.\n'
+        +'Destinataire réel prévu : '+(l.empName||'')+(l.empEmail?(' <'+l.empEmail+'>'):' (aucune adresse dans sa fiche)')+'\n'
+        +'Le lien de signature ci-dessous est bien réel : signer dessus signera vraiment ce document.\n'
+        +'————————————————————————\n\n'+body;
+  }
   var ms=DB.mailSettings||{}; var cc=(ms.ccRecipients||[]).concat((ms.recipients||[]).map(function(r){return r.email;})).filter(Boolean).join(',');
   var mode=(ms.mailMode)||'gmail';
-  if(mode==='gmail'){ window.open(_gmailBase()+'&to='+encodeURIComponent(l.empEmail)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
-  else { window.open('mailto:'+l.empEmail+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
+  /* ★ v681 — en essai : une seule adresse, et surtout AUCUNE copie aux autres. */
+  var dest=_es?_es.email:l.empEmail;
+  if(_es) cc='';
+  if(mode==='gmail'){ window.open(_gmailBase()+'&to='+encodeURIComponent(dest)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
+  else { window.open('mailto:'+dest+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
   try{ await sb.patch('bks_letters','id=eq.'+lid,{sent_at:new Date().toISOString()}); await loadAll(); }catch(_){}
-  toast('Mail du contrat prêt (brouillon à valider avant envoi).','success');
+  toast(_es?('🧪 Essai : brouillon prêt pour '+dest+' — rien ne part au salarié.')
+           :'Mail du contrat prêt (brouillon à valider avant envoi).','success');
 }
 window.sendContratEmail=sendContratEmail;
 // Archive le PDF du contrat SIGNÉ dans le dossier Dropbox du salarié + fiche.
@@ -21389,7 +22904,31 @@ async function loadPlanning(){
 
 async function openPlanning(){
   await loadPlanning();
-  try{ await _syncEncadrementAuto(); }catch(_){}
+  /* ═══════════════════════════════════════════════════════════════════════
+     ★ v684 — LA SYNCHRO AUTOMATIQUE EST COUPÉE.
+
+     Vincent : « il y a un petit bug là sur les plannings d'encadrement, quand
+     on met quelqu'un, ça saute. »
+
+     C'était vrai, et la cause était ICI. À chaque ouverture de la page,
+     _syncEncadrementAuto() écrivait dans la base sans rien demander : elle
+     fusionnait des personnes, en supprimait, en recréait, et DÉPLAÇAIT leurs
+     journées d'une ligne à l'autre.
+
+     Reproduit au banc (bench/diag_encadrement.js) :
+       · on ajoute « Kevin » à la main, on lui pose une ouverture le jeudi ;
+         on change de page, on revient — Kevin a disparu et son ouverture est
+         passée sur la ligne de « LE LABOURIER KEVIN » ;
+       · on mute quelqu'un sur un autre restaurant — il apparaît DEUX fois,
+         l'ancienne ligne gardant tout l'historique, la nouvelle étant vide ;
+         un changement de rôle en crée une troisième.
+
+     C'est la même maladie que celle corrigée en v664 pour les fiches salariés.
+     La règle est la même : ON LISTE, L'UTILISATEUR COCHE, L'UTILISATEUR VALIDE.
+     La page affiche, elle n'écrit pas. Le rangement se fait à la demande, par
+     le bouton « 🔍 Vérifier l'encadrement » dans Gérer les personnes.
+     ═══════════════════════════════════════════════════════════════════════ */
+  try{ window.ENC_SYNC_AUTO=false; }catch(_){}
   renderPlanning();
 }
 // Synchro AUTOMATIQUE de l'encadrement : supprime les doublons de noms (ordre indifférent)
@@ -21455,6 +22994,172 @@ async function _syncEncadrementAuto(){
   }catch(_){}
 }
 window._syncEncadrementAuto=_syncEncadrementAuto;
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ★ v684 — « VÉRIFIER L'ENCADREMENT » : ON PROPOSE, VOUS DÉCIDEZ.
+
+   encPropositions() ne touche à RIEN. Elle lit le planning et l'Équipe, et
+   renvoie la liste de ce qui mériterait d'être rangé. C'est encAppliquer() qui
+   écrit, et seulement pour les lignes cochées.
+
+   Quatre sortes de propositions :
+     · fusion    — deux lignes pour la même personne, l'une au nom raccourci
+     · doublon   — deux lignes strictement identiques
+     · déplacer  — la personne a changé de restaurant ou de rôle : on DÉPLACE sa
+                   ligne (son historique suit) au lieu d'en créer une seconde
+     · ajout     — un manager / leader de l'Équipe qui n'a aucune ligne
+   ═══════════════════════════════════════════════════════════════════════════ */
+function encPropositions(){
+  var out=[];
+  try{
+    if(typeof _nomKey!=='function' || !window.PLAN) return out;
+    var gens=(PLAN.people||[]).slice();
+    var emps=(DB.employees||[]).filter(function(e){ return e && !e.archived && (e.role==='manager'||e.role==='leader'); });
+    function nk(x){ return _nomKey(x||''); }
+    function toks(x){ return nk(x).split(' ').filter(Boolean); }
+    function catr(p){ return (p.categorie||'')+'|'+((''+(p.resto_id||'')).toLowerCase()); }
+    function cle(nom,cat,resto){ return nk(nom)+'|'+(cat||'')+'|'+((''+(resto||'')).toLowerCase()); }
+    function lbl(cat,resto){ return (cat||'?')+(resto?(' '+String(resto).toUpperCase()):''); }
+    var empParNom={}; emps.forEach(function(e){ empParNom[nk(e.name)]=e; });
+    var toutesFiches={}; (DB.employees||[]).forEach(function(e){ if(e&&e.name) toutesFiches[nk(e.name)]=true; });
+    var consommes={};
+
+    /* 1) Doublons stricts — même nom, même catégorie, même restaurant. */
+    var parCle={};
+    gens.forEach(function(p){ (parCle[cle(p.nom,p.categorie,p.resto_id)]=parCle[cle(p.nom,p.categorie,p.resto_id)]||[]).push(p); });
+    Object.keys(parCle).forEach(function(k){
+      var arr=parCle[k]; if(arr.length<2) return;
+      for(var j=1;j<arr.length;j++){
+        consommes[arr[j].id]=true;
+        out.push({type:'doublon', de:arr[j].id, vers:arr[0].id,
+          titre:'Doublon : « '+arr[j].nom+' » ('+lbl(arr[j].categorie,arr[j].resto_id)+')',
+          detail:'Deux lignes strictement identiques. La seconde est supprimée, ses journées repassent sur la première.'});
+      }
+    });
+
+    /* 2) Fusions — un nom raccourci sous un nom complet, même poste, même resto.
+          On ne propose QUE si la cible est une vraie fiche de l'Équipe et qu'il
+          n'y a aucune ambiguïté. */
+    gens.forEach(function(P){
+      if(!P || !P.id || consommes[P.id]) return;
+      if(toutesFiches[nk(P.nom)]) return;                 /* nom exact d'un salarié : on garde */
+      var tp=toks(P.nom); if(!tp.length) return;
+      var cands=gens.filter(function(Fx){
+        if(!Fx || Fx===P || !Fx.id || consommes[Fx.id]) return false;
+        if(catr(Fx)!==catr(P)) return false;
+        var tf=toks(Fx.nom);
+        if(tf.length<=tp.length) return false;
+        return tp.every(function(w){ return tf.indexOf(w)>=0; });
+      });
+      var reels=cands.filter(function(Fx){ return toutesFiches[nk(Fx.nom)]; });
+      if(reels.length!==1) return;                        /* ambigu → on ne propose rien */
+      consommes[P.id]=true;
+      out.push({type:'fusion', de:P.id, vers:reels[0].id,
+        titre:'« '+P.nom+' » semble être « '+reels[0].nom+' »',
+        detail:'Même poste, même restaurant. La ligne courte est supprimée et ses journées passent sur la fiche complète.'});
+    });
+
+    /* 3) Déplacements — la personne existe, mais son poste ou son restaurant a
+          changé dans l'Équipe. On DÉPLACE sa ligne, l'historique reste avec elle. */
+    var prisParNom={};
+    gens.forEach(function(p){ if(!consommes[p.id]) (prisParNom[nk(p.nom)]=prisParNom[nk(p.nom)]||[]).push(p); });
+    emps.forEach(function(e){
+      var lignes=prisParNom[nk(e.name)]||[];
+      if(lignes.length!==1) return;                       /* 0 → ajout ; 2+ → ambigu */
+      var p=lignes[0];
+      var memeCat=((p.categorie||'')===(e.role||''));
+      var memeResto=(((''+(p.resto_id||'')).toLowerCase())===((''+(e.restoId||'')).toLowerCase()));
+      if(memeCat && memeResto) return;
+      consommes[p.id]=true;
+      out.push({type:'deplacer', de:p.id, categorie:e.role, resto:(''+(e.restoId||'')).toLowerCase(),
+        titre:'« '+p.nom+' » est passé(e) de '+lbl(p.categorie,p.resto_id)+' à '+lbl(e.role,e.restoId),
+        detail:'Sa ligne est déplacée, avec tout son historique. Aucune deuxième ligne n\'est créée.'});
+    });
+
+    /* 4) Ajouts — un manager / leader de l'Équipe sans aucune ligne. */
+    emps.forEach(function(e){
+      if((prisParNom[nk(e.name)]||[]).length) return;
+      if(gens.some(function(p){ return nk(p.nom)===nk(e.name); })) return;
+      out.push({type:'ajout', nom:e.name, categorie:e.role, resto:(''+(e.restoId||'')).toLowerCase(),
+        titre:'Ajouter « '+e.name+' » ('+lbl(e.role,e.restoId)+')',
+        detail:'Il/elle est '+(e.role||'')+' dans l\'Équipe mais n\'a aucune ligne dans le planning.'});
+    });
+  }catch(err){ console.warn('encPropositions', err); }
+  return out;
+}
+window.encPropositions=encPropositions;
+
+var ENC_PROPS=[];
+function encVerifier(){
+  ENC_PROPS=encPropositions();
+  encRender();
+}
+window.encVerifier=encVerifier;
+
+function encRender(){
+  var box=document.getElementById('enc-verif'); if(!box) return;
+  if(!ENC_PROPS.length){
+    box.innerHTML='<div style="background:#1e3320;border:1px solid #3d7a45;border-radius:8px;padding:10px 12px;color:#8fd49a;font-size:.82rem;">'
+      +'✅ <b>Rien à ranger</b> — le planning et l\'Équipe disent la même chose.</div>';
+    return;
+  }
+  var ICO={fusion:'🔗', doublon:'👥', deplacer:'➡️', ajout:'➕'};
+  var h='<div style="background:#141414;border:1px solid #444;border-radius:8px;padding:12px 14px;">'
+    +'<div style="font-size:.86rem;color:#F5A623;font-weight:800;margin-bottom:4px;">'
+      +ENC_PROPS.length+' proposition(s)</div>'
+    +'<div style="font-size:.75rem;color:#888;margin-bottom:10px;line-height:1.5;">'
+      +'Décochez ce que vous ne voulez pas. <b>Rien n\'est écrit tant que vous n\'avez pas validé.</b></div>';
+  ENC_PROPS.forEach(function(p,i){
+    h+='<label style="display:flex;gap:9px;align-items:flex-start;padding:8px 0;border-top:1px solid #262626;cursor:pointer;">'
+      +'<input type="checkbox" checked data-enc="'+i+'" style="width:16px;height:16px;margin-top:2px;accent-color:var(--orange);">'
+      +'<div style="min-width:0;"><div style="font-size:.83rem;color:#eee;font-weight:600;">'+ICO[p.type]+' '+escapeHtmlCt(p.titre)+'</div>'
+      +'<div style="font-size:.74rem;color:#8d8d8d;line-height:1.45;">'+escapeHtmlCt(p.detail)+'</div></div></label>';
+  });
+  h+='<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">'
+    +'<button class="btn btn-red btn-sm" onclick="encAppliquer()">✔️ Appliquer ce qui est coché</button>'
+    +'<button class="btn btn-gray btn-sm" onclick="document.getElementById(\'enc-verif\').innerHTML=\'\';">Annuler</button>'
+    +'</div></div>';
+  box.innerHTML=h;
+}
+window.encRender=encRender;
+
+async function encAppliquer(){
+  var box=document.getElementById('enc-verif'); if(!box) return;
+  var choisis=[];
+  Array.prototype.forEach.call(box.querySelectorAll('input[data-enc]'),function(c){
+    if(c.checked) choisis.push(ENC_PROPS[+c.getAttribute('data-enc')]);
+  });
+  if(!choisis.length){ toast('Rien de coché.','error'); return; }
+  if(!confirm(choisis.length+' modification(s) vont être enregistrées dans le planning d\'encadrement.\n\nContinuer ?')) return;
+  var faits=0, rates=0;
+  var ordre=(PLAN.people||[]).length+1;
+  for(var i=0;i<choisis.length;i++){
+    var p=choisis[i];
+    try{
+      if(p.type==='fusion' || p.type==='doublon'){
+        await sb.patch('bks_planning_cells','person_id=eq.'+p.de,{person_id:p.vers});
+        await sb.del('bks_planning_people','id=eq.'+p.de);
+        faits++;
+      } else if(p.type==='deplacer'){
+        await sb.patch('bks_planning_people','id=eq.'+p.de,
+          {categorie:p.categorie, resto_id:p.resto});
+        faits++;
+      } else if(p.type==='ajout'){
+        await sb.insert('bks_planning_people',
+          {nom:p.nom, categorie:p.categorie, resto_id:p.resto, ordre:ordre++, actif:true});
+        faits++;
+      }
+    }catch(e){ rates++; console.error('encAppliquer', p, e); }
+  }
+  await loadPlanning();
+  try{ renderPeopleList(); }catch(_){}
+  try{ renderPlanning(); }catch(_){}
+  ENC_PROPS=[];
+  box.innerHTML='<div style="background:#1e3320;border:1px solid #3d7a45;border-radius:8px;padding:10px 12px;color:#8fd49a;font-size:.82rem;">'
+    +'✅ <b>'+faits+' modification(s) enregistrée(s)</b>'+(rates?(' · '+rates+' en échec'):'')+'</div>';
+  toast(faits+' modification(s) enregistrée(s)','success');
+}
+window.encAppliquer=encAppliquer;
 
 function setPlanView(v){
   var ancien=planView;
@@ -21634,7 +23339,11 @@ function personRow(p,days){
 var _cellPid=null,_cellDate=null;
 function openCell(pid,date){
   _cellPid=pid;_cellDate=date;
-  var p=PLAN.people.find(function(x){return x.id===pid;});
+  /* ★ v684 — la case envoie l'identifiant en TEXTE ('12'), la base le donne en
+     NOMBRE (12) : la comparaison stricte échouait toujours, et la personne
+     n'était jamais retrouvée. Conséquence invisible : un directeur recevait la
+     palette des managers, et le tri des codes par poste ne s'appliquait jamais. */
+  var p=PLAN.people.find(function(x){return String(x.id)===String(pid);});
   var dObj=new Date(date+'T12:00:00');
   document.getElementById('cell-title').textContent=(p?p.nom:'')+' · '+dObj.toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'short'});
   var cur=PLAN.cells[cellKey(pid,date)]||'';
@@ -21776,6 +23485,7 @@ function managePeople(grp){
     if(typeof npCatChange==='function') npCatChange();
   }
   renderPeopleList();
+  try{ var _ev=document.getElementById('enc-verif'); if(_ev) _ev.innerHTML=''; ENC_PROPS=[]; }catch(_){}
   document.getElementById('modal-people').classList.add('open');
 }
 function npCatChange(){
@@ -22031,7 +23741,7 @@ function showSignPage(lid){
   if(l.sigStatus==='signed')done='<div style="text-align:center;padding:40px;"><div style="font-size:3rem;">✅</div><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.4rem;font-weight:700;color:#4CAF50;margin-top:10px;">Document signé le '+new Date(l.signedAt).toLocaleDateString('fr-FR')+'</div></div>';
   else if(l.sigStatus==='refused')done='<div style="text-align:center;padding:40px;"><div style="font-size:3rem;">❌</div><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.4rem;font-weight:700;color:#cc5555;margin-top:10px;">Refus enregistré</div></div>';
   var actions=done||'<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px;"><button onclick="doSignStart(\''+lid+'\')" style="background:linear-gradient(135deg,#4CAF50,#2E7D32);color:#fff;border:none;padding:12px 28px;border-radius:8px;font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:1rem;text-transform:uppercase;letter-spacing:2px;cursor:pointer;">✅ Je signe ce document</button><button onclick="doRefuse(\''+lid+'\')" style="background:#333;color:#ccc;border:1px solid #555;padding:12px 28px;border-radius:8px;font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:1rem;text-transform:uppercase;letter-spacing:2px;cursor:pointer;">❌ Je refuse de signer</button></div>';
-  sb2.innerHTML='<div style="text-align:center;margin:20px 0;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;color:#F5A623;">'+st.label+'</div><div style="color:#aaa;margin-top:5px;">Destinataire : <strong style="color:#fff;">'+l.empName+'</strong></div></div><div style="background:#fafafa;color:#111;border-radius:8px;padding:28px;font-family:Georgia,serif;line-height:1.75;white-space:pre-wrap;margin:20px 0;font-size:.88rem;">'+_sigStripText(l.text)+'</div>'+actions;
+  sb2.innerHTML='<div style="text-align:center;margin:20px 0;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;color:#F5A623;">'+st.label+'</div><div style="color:#aaa;margin-top:5px;">Destinataire : <strong style="color:#fff;">'+l.empName+'</strong></div></div><div style="background:#fff;border-radius:8px;padding:30px 32px;margin:20px 0;">'+_ctrVue(l)+'</div>'+actions;
 }
 
 // Page de signature par lien (téléphone) : affiche le document (défilable) + pavé au doigt.
@@ -22040,7 +23750,7 @@ function doSignStart(lid){
   var b=document.getElementById('sig-body'); if(!b) return;
   var st=SANCTIONS[l.sanctionType]||{label:'Document'};
   b.innerHTML='<div style="text-align:center;margin:6px 0 12px;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.5rem;font-weight:900;color:#F5A623;">'+st.label+'</div><div style="color:#aaa;margin-top:4px;">'+(l.empName||'')+'</div></div>'
-    +'<div style="background:#fafafa;color:#111;border-radius:8px;padding:20px;font-family:Georgia,serif;line-height:1.7;white-space:pre-wrap;font-size:.86rem;margin:10px 0;-webkit-overflow-scrolling:touch;">'+_sigStripText(l.text)+'</div>'
+    +'<div style="background:#fff;border-radius:8px;padding:20px 22px;margin:10px 0;-webkit-overflow-scrolling:touch;">'+_ctrVue(l)+'</div>'
     +'<div style="color:#F5A623;text-align:center;margin:14px 0 6px;font-weight:700;">✍️ Signez ci-dessous avec le doigt</div>'
     +_sigPadMarkup('sigpad-link')
     +'<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:16px 0 30px;">'
@@ -22121,6 +23831,23 @@ function _sigImg(l){ return (l&&_sigMem[l.id])||''; }
 function _sigStripText(t){ return String(t==null?'':t).replace(/\n*<<<SIG(?:IMG|URL):[^>]*>>>/g,''); }
 window._sigClear=_sigClear;
 
+/* ★ v682 — un contrat s'affiche en contrat ; une lettre de sanction reste une
+   lettre. On ne change que ce que le salarié lit avant de signer. */
+function _ctrVue(l){
+  try{
+    var txt=(typeof _sigStripText==='function')?_sigStripText(l.text||''):(l.text||'');
+    var estContrat=(l&&(l.type==='contrat'||l.sanctionType==='contrat'));
+    if(estContrat && typeof ctrHtmlDoc==='function'){
+      var emp=(DB.employees||[]).find(function(x){ return x.id===l.empId; })||null;
+      var soc={}; try{ soc=getSociete(emp&&emp.restoId)||{}; }catch(_){}
+      return ctrHtmlDoc(txt, soc, '');
+    }
+    return '<div style="color:#111;font-family:Georgia,serif;line-height:1.7;white-space:pre-wrap;font-size:.85rem;">'
+      +((typeof escapeHtmlCt==='function')?escapeHtmlCt(txt):txt)+'</div>';
+  }catch(_){ return ''; }
+}
+window._ctrVue=_ctrVue;
+
 function signerSurPlace(lid){
   var l=DB.letters.find(function(x){return x.id===lid;}); if(!l){ toast('Document introuvable','error'); return; }
   var st=SANCTIONS[l.sanctionType]||{label:'Document'};
@@ -22131,7 +23858,7 @@ function signerSurPlace(lid){
     +'<div style="background:linear-gradient(135deg,#C01E00,#8B1500);padding:14px 20px;text-align:center;border-radius:12px 12px 0 0;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.3rem;color:#F5A623;text-transform:uppercase;letter-spacing:2px;">Signature — '+st.label+'</div></div>'
     +'<div id="signplace-inner" style="padding:20px;">'
     +'<div style="color:#aaa;text-align:center;margin-bottom:12px;">Présenté à : <strong style="color:#fff;">'+l.empName+'</strong></div>'
-    +'<div style="background:#fafafa;color:#111;border-radius:8px;padding:22px;font-family:Georgia,serif;line-height:1.7;white-space:pre-wrap;font-size:.85rem;max-height:42vh;overflow:auto;">'+_sigStripText(l.text)+'</div>'
+    +'<div style="background:#fff;border-radius:8px;padding:22px 24px;max-height:42vh;overflow:auto;">'+_ctrVue(l)+'</div>'
     +'<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;">'
     +'<button onclick="signPlaceSignStart(\''+lid+'\')" style="background:linear-gradient(135deg,#4CAF50,#2E7D32);color:#fff;border:none;padding:12px 24px;border-radius:8px;font-weight:700;cursor:pointer;">✅ Je signe</button>'
     +'<button onclick="signPlaceRefuse(\''+lid+'\')" style="background:#333;color:#ccc;border:1px solid #555;padding:12px 24px;border-radius:8px;font-weight:700;cursor:pointer;">❌ Je refuse de signer</button>'
@@ -22146,7 +23873,7 @@ function signPlaceSignStart(lid){
   var inner=document.getElementById('signplace-inner'); if(!inner) return;
   var l=DB.letters.find(function(x){return x.id===lid;})||{};
   inner.innerHTML='<div style="color:#aaa;text-align:center;margin-bottom:8px;">Document présenté à <strong style="color:#fff;">'+(l.empName||'')+'</strong> — relisez, puis signez</div>'
-    +'<div style="background:#fafafa;color:#111;border-radius:8px;padding:16px;font-family:Georgia,serif;line-height:1.6;white-space:pre-wrap;font-size:.82rem;max-height:34vh;overflow:auto;margin-bottom:12px;-webkit-overflow-scrolling:touch;">'+_sigStripText(l.text)+'</div>'
+    +'<div style="background:#fff;border-radius:8px;padding:16px 18px;max-height:34vh;overflow:auto;margin-bottom:12px;-webkit-overflow-scrolling:touch;">'+_ctrVue(l)+'</div>'
     +'<div style="color:#F5A623;text-align:center;margin:6px 0;font-weight:700;font-size:.9rem;">✍️ Signez ci-dessous avec le doigt</div>'
     +_sigPadMarkup('sigpad-place')
     +'<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px;">'
@@ -22336,8 +24063,8 @@ function voirCourrier(lid){
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;';
   ov.innerHTML='<div style="background:#1A1A1A;border:1px solid #444;border-radius:12px;max-width:640px;width:100%;max-height:92vh;overflow:auto;">'
     +'<div style="background:linear-gradient(135deg,#C01E00,#8B1500);padding:12px 18px;text-align:center;border-radius:12px 12px 0 0;color:#F5A623;font-weight:700;font-family:\'Barlow Condensed\',sans-serif;letter-spacing:2px;text-transform:uppercase;">'+st.label+'</div>'
-    +'<div style="padding:18px;"><div style="background:#fafafa;color:#111;border-radius:8px;padding:22px;font-family:Georgia,serif;line-height:1.7;font-size:.85rem;">'
-      +'<div style="white-space:pre-wrap;">'+_esc(corps)+'</div>'+sigHtml+'</div>'
+    +'<div style="padding:18px;"><div style="background:#fff;border-radius:8px;padding:22px 24px;">'
+      +_ctrVue({text:corps, empId:l.empId, type:l.type, sanctionType:l.sanctionType})+sigHtml+'</div>'
     +'<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px;">'
       +'<button onclick="telechargerPdfCourrier(\''+l.id+'\')" style="background:#8B1500;color:#fff;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-weight:700;">📄 Télécharger le PDF</button>'
       +((l.sigStatus!=='signed'&&l.sigStatus!=='refused')?('<button onclick="annulerAvertissement(\''+l.id+'\')" style="background:#3a1616;color:#f0a0a0;border:1px solid #a03a3a;padding:9px 18px;border-radius:8px;cursor:pointer;font-weight:700;">✕ Annuler ce document</button>'):'')
@@ -28662,7 +30389,6 @@ function hrRenderEtatEquipe(){
   if(HR_EE_VUE==='etat'){ _hrEtatRenderAbsences(); return; }
   if(HR_EE_VUE==='dispos'){ hrEERenderDispos(); return; }
   if(HR_EE_VUE==='competences'){ hrEERenderCompetences(); return; }
-  if(HR_EE_VUE==='contrats'){ hrEERenderContrats(); return; }
   if(HR_EE_VUE==='fixes'){ hrEERenderFixes(); return; }
   if(HR_EE_VUE==='complement'){ hrEERenderComplement(); return; }
   if(HR_EE_VUE==='integration'){ hrEERenderIntegration(); return; }
@@ -28690,7 +30416,6 @@ function hrEERenderTuiles(){
     {vue:'dispos',      ico:'📅', titre:'Disponibilités',  sub:'Créneaux par jour de semaine',          col:'#1565c0', badge:0},
     {vue:'competences', ico:'🎯', titre:'Compétences',     sub:'Qui sait faire quoi',                   col:'#2e7d32', badge:0},
     {vue:'fixes',       ico:'📌', titre:'Salariés fixés',   sub:'Horaires fixes + poste (le moteur les respecte)', col:'#8e44ad', badge:0},
-    {vue:'contrats',    ico:'📄', titre:'Contrats',        sub:'Tous les contrats + historique (lecture)', col:'#c0392b', badge:0},
     {vue:'complement',  ico:'🧩', titre:'Complément horaire', sub:'Compléter les contrats (renforts, 2e passe)', col:'#1d7a3a', badge:0},
     {vue:'integration', ico:'🎓', titre:'Semaine intégration', sub:'Nouvelles recrues en doublon (modèles)', col:'#8e44ad', badge:0}
   ];
@@ -29782,7 +31507,20 @@ function ctrToggle(id){
 }
 window.ctrToggle=ctrToggle;
 
-// ══ VUE « CONTRATS » (État équipe) — v669, lecture seule ══════════════════════
+/* ══ VUE « CONTRATS » — MISE DE CÔTÉ EN v677 ═══════════════════════════════════
+   Vincent : « État équipe, on a fait une connerie, il faut virer les contrats.
+   Les contrats, on va les laisser dans chaque personne, et on va travailler
+   ensemble après sur les contrats. »
+
+   La tuile est retirée de l'écran État équipe et l'aiguillage débranché. TOUT LE
+   CODE RESTE ICI, intact et testé : la ligne de vie (ctrPeriodes), les anomalies
+   (ctrAnomalies), la période active (ctrPeriodeActive), les dispos contractuelles
+   et les documents (ctrDetailHtml), et cet écran (hrEERenderContrats).
+
+   Quand on reprendra les contrats ensemble, il n'y aura qu'à rebrancher — ou à
+   réutiliser ces fonctions directement dans la fiche du salarié, qui est
+   l'endroit que Vincent a choisi.                                              */
+// ══ VUE « CONTRATS » (État équipe) — v669, hors service depuis la v677 ════════
 function hrEERenderContrats(){
   var box=document.getElementById('etat-equipe-list'); if(!box) return;
   var eq=_etatEquipiers();
