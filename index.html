@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-09-08 09:00 · v688 (un seul avenant, dans la meme tuile)';
+  var EMBEDDED_VERSION = '2026-09-15 09:00 · v695 (signature en casse normale, niveau pre-rempli, alerte de deploiement)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1023,6 +1023,18 @@ input[type="date"].fi::-webkit-calendar-picker-indicator,input[type="time"].fi::
 .btn{border:none;padding:10px 24px;border-radius:var(--r);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.95rem;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:transform .15s;}
 .btn:active{transform:scale(.97);}
 .btn-red{background:linear-gradient(135deg,var(--red),#A01800);color:#fff;}
+/* ★ v694 — LA SIGNATURE NE DÉPEND PLUS DES POLICES DE LA MACHINE.
+
+   Sur son Mac, « Vincent Hilaire » s'écrivait en Snell Roundhand. Sur un PC, sur
+   le téléphone de la salariée, sur la tablette du restaurant : autre chose, ou
+   rien du tout. Une signature qui change de forme selon l'appareil n'est pas une
+   signature. Celle-ci est embarquée dans le fichier — 13 ko, la même partout.
+   (Great Vibes, licence SIL Open Font 1.1, librement embarquable.)            */
+@font-face{
+  font-family:'BKRH Signature';
+  font-style:normal; font-weight:400; font-display:swap;
+  src:url(data:font/woff2;base64,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) format('woff2');
+}
 .btn-gray{background:#333;color:#ddd;border:1px solid #555;}
 .btn-sm{padding:5px 10px;font-size:.78rem;letter-spacing:1px;}
 .btn-danger{background:transparent;border:1px solid #663333;color:#cc5555;padding:5px 9px;border-radius:var(--r);cursor:pointer;font-size:.78rem;transition:all .2s;}
@@ -1284,7 +1296,10 @@ html.theme-light .ag-empty{color:#8b9099 !important;}
 .ctrdoc-sl{font-family:Arial,sans-serif;font-size:.66rem;font-weight:800;color:#777;
   text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;}
 .ctrdoc-sn{font-size:.78rem;color:#555;margin-bottom:5px;}
-.ctrdoc-sb{height:62px;border:1px solid #ccc;border-radius:3px;background:#fcfcfc;}
+.ctrdoc-sb{height:62px;border:1px solid #ccc;border-radius:3px;background:#fcfcfc;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;padding:3px;}
+.ctrdoc-sb img{max-height:100%;max-width:100%;object-fit:contain;mix-blend-mode:multiply;}
+.ctrdoc-sb.ctrdoc-sb-vide{background:#fcfcfc;}
 .actu-item .ai-media{margin-top:10px;}
 .actu-item img.ai-img{width:100%;max-height:52vh;object-fit:contain;border-radius:10px;display:block;background:#0b0b0b;}
 .actu-item .ai-pdf{display:flex;align-items:center;gap:10px;background:#0e0e0e;border:1px solid #3a3a3a;border-radius:10px;padding:11px 13px;color:#8fc3f5;text-decoration:none;font-size:.9rem;margin-top:8px;font-weight:600;}
@@ -3680,6 +3695,16 @@ async function loadAll(light) {
   try{ if(typeof hrChargerModelesSupabase==='function'){ await hrChargerModelesSupabase(); } }catch(e){}
   /* ★ v687 — reprise des modèles corrigés avant v687, même si Supabase est injoignable. */
   try{ if(typeof ctrMigrerAnciensModeles==='function') ctrMigrerAnciensModeles(); }catch(e){}
+  /* ★ v691 — et on retient l'adresse publique de l'application, si on y est. */
+  try{ if(typeof ctrRetenirAppUrl==='function') await ctrRetenirAppUrl(); }catch(e){}
+  /* ★ v694 — la police de la signature est embarquée : on la charge, et on jette
+     l'image dessinée avec la police de secours dès qu'elle est prête. */
+  try{
+    if(document.fonts && document.fonts.load){
+      document.fonts.load('96px "BKRH Signature"').then(function(){ _CTR_SIG_CACHE={}; }).catch(function(){});
+    }
+  }catch(e){}
+  try{ if(typeof ctrSignatureNomGerant==='function') await ctrSignatureNomGerant(); }catch(e){}
   try{ if(typeof hrChargerSocieteSupabase==='function'){ await hrChargerSocieteSupabase(); } }catch(e){}
   try{ if(typeof hrChargerTelephoneSupabase==='function'){ await hrChargerTelephoneSupabase(); } }catch(e){}
   try{ if(typeof hrChargerDashboardSupabase==='function'){ await hrChargerDashboardSupabase(); } }catch(e){}
@@ -5743,7 +5768,7 @@ window.renderDisposContratParam=renderDisposContratParam;
 // ── MA SIGNATURE (direction) — enregistrée UNE fois, apposée sur les contrats ──
 // Stockée dans les réglages (DB.mailSettings.signatureDir), pas par contrat.
 function loadSignatureDir(){
-  var cur=(DB.mailSettings&&DB.mailSettings.signatureDir)||'';
+  var cur=ctrSignatureDir();
   var prev=document.getElementById('sig-dir-preview');
   if(prev){ prev.innerHTML = cur
     ? '<div style="font-size:.76rem;color:#4CAF50;font-weight:700;margin-bottom:6px;">✔ Signature enregistrée :</div><img src="'+cur+'" alt="signature direction" style="max-width:280px;max-height:120px;background:#fff;border:1px solid #ddd;border-radius:8px;padding:4px;">'
@@ -5757,7 +5782,7 @@ function loadSignatureDir(){
 }
 async function saveSignatureDir(){
   if(!_sigDrawn('sigpad-dir')){ toast('Dessinez d\'abord votre signature.','error'); return; }
-  var cur=(DB.mailSettings&&DB.mailSettings.signatureDir)||'';
+  var cur=ctrSignatureDir();
   if(cur && !confirm('Remplacer la signature déjà enregistrée ?')) return;
   var png=_sigData('sigpad-dir'); if(!png){ toast('Erreur','error'); return; }
   if(!DB.mailSettings) DB.mailSettings={};
@@ -12716,38 +12741,103 @@ function _ficheContratsHtml(e){
       +'<div style="font-size:.86rem;">'+bits.join(' · ')+'</div>'
       +(inf.emploi_libelle?'<div style="font-size:.72rem;color:#777;">'+inf.emploi_libelle+'</div>':'')+'</div></div>';
   }
-  // 2) Contrats/avenants générés (courriers) + documents chargés
-  var lets=(DB.letters||[]).filter(function(l){return l.empId===e.id && (l.type==='contrat'||l.sanctionType==='contrat');})
-    .map(function(l){ /* ★ v687 — chaque document sous son nom, plus quatre lignes « Contrat » */
-      var _id=ctrDocIdent(l);
-      return {kind:'letter', date:l.createdAt, nom:_id.nom, ico:_id.icone, statut:l.sigStatus||'pending', id:l.id, obj:l}; });
-  var docs=(DB.empDocs||[]).filter(function(d){return d.empId===e.id && (d.categorie==='contrat'||d.categorie==='avenant'||d.categorie==='dpae');})
-    .map(function(d){ return {kind:'doc', date:d.createdAt, nom:(_empDocCatLbl(d.categorie)), label:(d.label||d.name||''), id:d.id, cat:d.categorie, link:d.link}; });
-  var hist=lets.concat(docs).sort(function(a,b){return new Date(b.date||0)-new Date(a.date||0);});
-  var histHtml='';
-  hist.forEach(function(it){
-    var dt=it.date?new Date(it.date).toLocaleDateString('fr-FR'):'';
-    var ic=(it.kind==='doc')?_empDocCatIcon(it.cat):(it.ico||'📄');
-    var right='';
-    if(it.kind==='letter'){
-      var ss=it.statut;
-      right=ss==='signed'?'<span style="color:#4CAF50;font-weight:700;font-size:.74rem;">✍️ Signé</span>'
-        :ss==='refused'?'<span style="color:#cc5555;font-weight:700;font-size:.74rem;">❌ Refus</span>'
-        :'<span style="color:#F5A623;font-weight:700;font-size:.74rem;">⏳ À signer</span>';
-      right+=' <button class="btn btn-gray btn-sm" style="padding:2px 8px;" onclick="voirCourrier(\''+it.id+'\')">👁️</button>';
-    } else if(it.link){
-      right='<button class="btn btn-gray btn-sm" style="padding:2px 8px;" onclick="viewDoc(\''+it.id+'\')">👁️ Lire</button>';
-    }
-    histHtml+='<div style="display:flex;align-items:center;gap:9px;border-top:1px solid #222;padding:7px 0;">'
-      +'<div style="font-size:1.1rem;">'+ic+'</div>'
-      +'<div style="flex:1;min-width:0;font-size:.83rem;color:#ddd;">'+(it.nom||'Document')+(it.label?' <span style="color:#888;">— '+it.label+'</span>':'')
-      +(dt?' <span style="color:#666;font-size:.72rem;">· '+dt+'</span>':'')+'</div>'
-      +'<div style="white-space:nowrap;">'+right+'</div></div>';
+  /* ★ v690 — LE POSTE DE COMMANDE EST ICI, PAS DANS LES RÉGLAGES.
+
+     Vincent : « quand tu vas sur le dossier du salarié, tu as en bas les contrats.
+     Mais ça ne va pas dans Paramètres. »
+
+     Alors tout ce qu'on peut faire d'un contrat se fait maintenant depuis sa
+     fiche : le relire, sortir son PDF, le faire signer sur la tablette, rouvrir
+     le brouillon du mail — et le supprimer pour recommencer.
+
+     Et les documents sont GROUPÉS PAR GÉNÉRATION. Cinq documents sortis ensemble
+     forment une fournée : c'est ainsi qu'ils partent (un seul mail) et c'est ainsi
+     qu'on les efface (un seul geste). Les voir en vrac, mélangés à ceux du mois
+     dernier, ne racontait rien. */
+  var _dir=!!(curUser&&(curUser.role==='franchise'||curUser.role==='directeur')&&!window.__readOnly);
+  var lets=(DB.letters||[]).filter(function(l){return l.empId===e.id && (l.type==='contrat'||l.sanctionType==='contrat');});
+
+  /* on regroupe par fournée : letC_<horodatage>[_n] */
+  var lots={}, ordre=[];
+  lets.forEach(function(l){
+    var k=(String(l.id||'').match(/^(letC_\d+)/)||[])[1]||String(l.id||'');
+    if(!lots[k]){ lots[k]=[]; ordre.push(k); }
+    lots[k].push(l);
   });
-  if(!ligneCour && !histHtml) return '';
-  return '<div class="card" style="margin-bottom:12px;"><div class="sec-title">📄 Suivi des contrats</div>'
+  ordre.sort(function(a,b){
+    var da=Math.max.apply(null,lots[a].map(function(x){return +new Date(x.createdAt||0);}));
+    var db=Math.max.apply(null,lots[b].map(function(x){return +new Date(x.createdAt||0);}));
+    return db-da;
+  });
+
+  var histHtml='';
+  ordre.forEach(function(k){
+    var lot=lots[k].slice().sort(function(a,b){ return String(a.id).localeCompare(String(b.id),'fr',{numeric:true}); });
+    var dt=lot[0].createdAt?new Date(lot[0].createdAt).toLocaleDateString('fr-FR'):'';
+    var attente=lot.filter(function(l){ return (l.sigStatus||'pending')==='pending'; }).length;
+    var signes=lot.filter(function(l){ return l.sigStatus==='signed'; }).length;
+    var etat=attente
+      ? ('<span style="color:#F5A623;font-weight:700;">⏳ '+attente+' à signer</span>')
+      : (signes===lot.length?'<span style="color:#4CAF50;font-weight:700;">✍️ tout est signé</span>':'<span style="color:#cc5555;font-weight:700;">❌ refus</span>');
+
+    histHtml+='<div style="border-top:1px solid #262626;margin-top:8px;padding-top:8px;">'
+      +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px;">'
+        +'<div style="flex:1;min-width:150px;font-size:.72rem;color:#888;text-transform:uppercase;letter-spacing:.5px;">'
+          +'Généré le '+escapeHtmlCt(dt)+' · '+lot.length+' document'+(lot.length>1?'s':'')+' · '+etat
+        +'</div>'
+        +(_dir&&attente?('<button class="btn btn-gray btn-sm" style="padding:2px 8px;" onclick="ctrOuvrirBrouillon(\''+lot[0].id+'\')">✉️ Brouillon</button>'):'')
+        +(_dir&&lot.length>1?('<button class="btn btn-gray btn-sm" style="padding:2px 8px;color:#e8907a;" onclick="ctrSupprimerLot(\''+lot[0].id+'\')">🗑️ Tout supprimer</button>'):'')
+      +'</div>';
+
+    lot.forEach(function(l){
+      var id=ctrDocIdent(l);
+      var ss=l.sigStatus||'pending';
+      var st=ss==='signed'?'<span style="color:#4CAF50;font-weight:700;font-size:.72rem;">✍️ Signé'+(l.signedAt?(' le '+new Date(l.signedAt).toLocaleDateString('fr-FR')):'')+'</span>'
+        :ss==='refused'?'<span style="color:#cc5555;font-weight:700;font-size:.72rem;">❌ Refus</span>'
+        :'<span style="color:#F5A623;font-weight:700;font-size:.72rem;">⏳ À signer</span>';
+      histHtml+='<div style="display:flex;align-items:center;gap:9px;padding:6px 0 6px 4px;flex-wrap:wrap;">'
+        +'<div style="font-size:1.05rem;">'+id.icone+'</div>'
+        +'<div style="flex:1;min-width:140px;font-size:.83rem;color:#ddd;">'+escapeHtmlCt(id.nom)+'<br>'+st+'</div>'
+        +'<div style="display:flex;gap:4px;flex-wrap:wrap;">'
+          /* ★ v694 — la même relecture mise en page que dans le panneau d'envoi. */
+          +'<button class="btn btn-gray btn-sm" style="padding:2px 8px;" onclick="ctrRelire(\''+l.id+'\')">👁️</button>'
+          +'<button class="btn btn-gray btn-sm" style="padding:2px 8px;" onclick="telechargerPdfCourrier(\''+l.id+'\')">📄</button>'
+          +(_dir&&ss==='pending'?('<button class="btn btn-gray btn-sm" style="padding:2px 8px;" onclick="signerSurPlace(\''+l.id+'\')">✍️</button>'):'')
+          +(_dir?('<button class="btn btn-gray btn-sm" style="padding:2px 8px;color:#e8907a;" onclick="ctrSupprimerDoc(\''+l.id+'\')" title="Supprimer ce document">🗑️</button>'):'')
+        +'</div></div>';
+    });
+    histHtml+='</div>';
+  });
+
+  /* les pièces rangées dans Dropbox (PDF signés, DPAE…) restent à part */
+  var docs=(DB.empDocs||[]).filter(function(d){return d.empId===e.id && (d.categorie==='contrat'||d.categorie==='avenant'||d.categorie==='dpae');})
+    .sort(function(a,b){return new Date(b.createdAt||0)-new Date(a.createdAt||0);});
+  var docsHtml='';
+  if(docs.length){
+    docsHtml+='<div style="border-top:1px solid #262626;margin-top:10px;padding-top:8px;">'
+      +'<div style="font-size:.72rem;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">📎 Pièces rangées dans le dossier</div>';
+    docs.forEach(function(d){
+      var dt=d.createdAt?new Date(d.createdAt).toLocaleDateString('fr-FR'):'';
+      docsHtml+='<div style="display:flex;align-items:center;gap:9px;padding:6px 0 6px 4px;flex-wrap:wrap;">'
+        +'<div style="font-size:1.05rem;">'+_empDocCatIcon(d.categorie)+'</div>'
+        +'<div style="flex:1;min-width:140px;font-size:.83rem;color:#ddd;">'+escapeHtmlCt(d.label||d.name||_empDocCatLbl(d.categorie))
+        +(dt?' <span style="color:#666;font-size:.72rem;">· '+dt+'</span>':'')+'</div>'
+        +(d.link?('<button class="btn btn-gray btn-sm" style="padding:2px 8px;" onclick="viewDoc(\''+d.id+'\')">👁️ Lire</button>'):'')
+        +'</div>';
+    });
+    docsHtml+='</div>';
+  }
+
+  if(!ligneCour && !histHtml && !docsHtml) return '';
+  return '<div class="card" style="margin-bottom:12px;">'
+    +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+      +'<div class="sec-title" style="flex:1;min-width:170px;margin:0;">📄 Suivi des contrats</div>'
+      +(_dir?('<button class="btn btn-red btn-sm" onclick="openContratGen(\''+e.id+'\')">📄 Générer un contrat / avenant</button>'):'')
+    +'</div>'
+    +'<div style="margin-top:10px;"></div>'
     +ligneCour
     +(histHtml||'<div style="font-size:.8rem;color:#666;padding:4px 0;">Aucun contrat ou avenant enregistré pour l\'instant.</div>')
+    +docsHtml
     +'</div>';
 }
 
@@ -12797,8 +12887,12 @@ function bacDocs(empId){
 }
 window.bacDocs=bacDocs;
 
-/* Le titre d'un document : sa première ligne parlante. */
+/* ★ v690 — le même nom qu'ailleurs. Le bac à sable affichait la première ligne du
+   texte — « ACCORD POUR LA RÉCEPTION DE COURRIERS ÉLECTRONIQUES » en capitales —
+   pendant que la fiche du salarié disait « Accord courrier électronique ». Deux
+   noms pour un seul document : on s'y perd. */
 function bacTitre(l){
+  try{ var id=ctrDocIdent(l); if(id&&id.nom) return id.nom; }catch(_){}
   var t=String((l&&l.text)||'').split('\n').map(function(x){return x.trim();}).filter(Boolean)[0]||'';
   if(t.length>72) t=t.slice(0,70)+'…';
   return t||'Document';
@@ -12832,7 +12926,8 @@ function bacPanelHtml(e){
     var et=bacEtat(l);
     var dt=l.createdAt?new Date(l.createdAt).toLocaleString('fr-FR'):'';
     h+='<div style="display:flex;align-items:center;gap:10px;background:#141414;border-radius:8px;padding:8px 11px;margin-bottom:6px;flex-wrap:wrap;">'
-      +'<span style="font-size:1rem;">'+et.ic+'</span>'
+      +'<span style="font-size:1rem;">'+(function(){ try{ return ctrDocIdent(l).icone; }catch(_){ return et.ic; } })()+'</span>'
+      +'<span style="font-size:.9rem;">'+et.ic+'</span>'
       +'<div style="flex:1;min-width:140px;">'
         +'<div style="font-size:.83rem;color:#eee;">'+escapeHtmlCt(bacTitre(l))+'</div>'
         +'<div style="font-size:.71rem;color:#777;">'+escapeHtmlCt(dt)+' · <span style="color:'+et.coul+';">'+et.txt+'</span></div>'
@@ -12849,20 +12944,85 @@ function bacPanelHtml(e){
 }
 window.bacPanelHtml=bacPanelHtml;
 
-async function bacSupprimer(lid){
+/* ★ v690 — SUPPRIMER UN DOCUMENT, DEPUIS N'IMPORTE OÙ.
+
+   Vincent : « j'aimerais bien pouvoir supprimer des contrats, pour aller refaire. »
+
+   Jusqu'ici on ne pouvait effacer que dans le bac à sable. Un contrat généré par
+   erreur sur un vrai salarié — mauvais modèle, mauvaises heures, mauvaise date —
+   restait dans son dossier pour toujours.
+
+   Deux niveaux de garde-fou, parce que les deux cas n'ont pas le même poids :
+     · un document d'essai, ou pas encore signé → une simple confirmation ;
+     · un document SIGNÉ ou REFUSÉ → on prévient que c'est une preuve qui disparaît,
+       et il faut confirmer deux fois. */
+async function ctrSupprimerDoc(lid, opts){
+  opts=opts||{};
   var l=(DB.letters||[]).find(function(x){return x.id===lid;});
-  if(!l){ toast('Document introuvable','error'); return; }
-  if(!bacEst(l.empId)){ toast('Suppression réservée au salarié du bac à sable.','error'); return; }
-  if(!confirm('Supprimer « '+bacTitre(l)+' » ?\n\nC\'est un document d\'essai : il disparaît définitivement.')) return;
+  if(!l){ toast('Document introuvable','error'); return false; }
+  if(!(curUser&&(curUser.role==='franchise'||curUser.role==='directeur'))){
+    toast('Suppression réservée à la direction.','error'); return false;
+  }
+  var id=ctrDocIdent(l);
+  var essai=bacEst(l.empId);
+  var signe=(l.sigStatus==='signed'||l.sigStatus==='refused');
+  var qui=l.empName||'ce salarié';
+
+  if(!opts.sansConfirmation){
+    if(essai){
+      if(!confirm('Supprimer « '+id.nom+' » ?\n\nC\'est un document d\'essai ('+qui+') : il disparaît définitivement.')) return false;
+    } else if(signe){
+      var quand=(l.sigStatus==='signed'?l.signedAt:l.refusedAt);
+      if(!confirm('⚠️ « '+id.nom+' » a été '+(l.sigStatus==='signed'?'SIGNÉ':'REFUSÉ')
+        +(quand?(' le '+new Date(quand).toLocaleDateString('fr-FR')):'')+' par '+qui+'.\n\n'
+        +'Le supprimer efface la trace de cette signature dans l\'application. '
+        +'Le PDF déjà rangé dans Dropbox, lui, n\'est pas touché.\n\nContinuer ?')) return false;
+      if(!confirm('Dernière vérification.\n\nSupprimer définitivement « '+id.nom+' » de '+qui+' ?')) return false;
+    } else {
+      if(!confirm('Supprimer « '+id.nom+' » de '+qui+' ?\n\n'
+        +'Le document n\'est pas encore signé : le lien de signature envoyé au salarié ne fonctionnera plus.\n\n'
+        +'Cette suppression est définitive.')) return false;
+    }
+  }
   try{
     await sb.del('bks_letters','id=eq.'+lid);
-    await loadAll();
-    try{ if(typeof _empfId!=='undefined' && _empfId) renderEmpFicheInfos(_empfId); }catch(_){}
-    try{ _refreshCourriers(); }catch(_){}
-    try{ updateVBadge(); }catch(_){}
-    toast('Document supprimé','success');
-  }catch(err){ console.error('bacSupprimer',err); toast('Erreur à la suppression','error'); }
+    if(!opts.sansRechargement){
+      await loadAll();
+      try{ if(typeof _empfId!=='undefined' && _empfId) renderEmpFicheInfos(_empfId); }catch(_){}
+      try{ _refreshCourriers(); }catch(_){}
+      try{ updateVBadge(); }catch(_){}
+      toast('« '+id.nom+' » supprimé.','success');
+    }
+    return true;
+  }catch(err){ console.error('ctrSupprimerDoc',err); toast('Erreur à la suppression','error'); return false; }
 }
+window.ctrSupprimerDoc=ctrSupprimerDoc;
+
+/* Supprimer toute une fournée d'un coup : les 5 documents d'une même génération. */
+async function ctrSupprimerLot(lid){
+  if(!(curUser&&(curUser.role==='franchise'||curUser.role==='directeur'))){ toast('Réservé à la direction.','error'); return; }
+  var lot=ctrLotDe(lid); if(!lot.length){ toast('Rien à supprimer.','error'); return; }
+  if(lot.length===1) return ctrSupprimerDoc(lid);
+  var qui=lot[0].empName||'ce salarié';
+  var signes=lot.filter(function(l){ return l.sigStatus==='signed'||l.sigStatus==='refused'; }).length;
+  if(!confirm('Supprimer les '+lot.length+' documents de cette génération pour '+qui+' ?\n\n· '
+    +lot.map(function(l){ return ctrDocIdent(l).nom; }).join('\n· ')
+    +(signes?('\n\n⚠️ '+signes+' d\'entre eux '+(signes>1?'ont':'a')+' déjà été signé'+(signes>1?'s':'')+' ou refusé'+(signes>1?'s':'')+'.'):'')
+    +'\n\nCette suppression est définitive.')) return;
+  if(signes && !confirm('Dernière vérification : '+signes+' document(s) signé(s) vont être effacés. Continuer ?')) return;
+  var n=0;
+  for(var i=0;i<lot.length;i++){
+    if(await ctrSupprimerDoc(lot[i].id,{sansConfirmation:true, sansRechargement:true})) n++;
+  }
+  await loadAll();
+  try{ if(typeof _empfId!=='undefined' && _empfId) renderEmpFicheInfos(_empfId); }catch(_){}
+  try{ _refreshCourriers(); }catch(_){}
+  try{ updateVBadge(); }catch(_){}
+  toast(n+' document(s) supprimé(s).','success');
+}
+window.ctrSupprimerLot=ctrSupprimerLot;
+
+async function bacSupprimer(lid){ return ctrSupprimerDoc(lid); }
 window.bacSupprimer=bacSupprimer;
 
 async function bacToutEffacer(empId){
@@ -13432,7 +13592,7 @@ function telechargerPdfCourrier(lid){
   var _id=ctrDocIdent(l);
   var titre=isC?_id.titre:(({ecrit:'OBSERVATION ÉCRITE',avert:'AVERTISSEMENT ÉCRIT',mise:'MISE EN DEMEURE'}[l.sanctionType])||_id.titre);
   var date=(l.sigStatus==='signed')?(l.signedAt||null):((l.sigStatus==='refused')?(l.refusedAt||null):null);
-  avertPdf(emp, l.text||'', titre, _id.nom, {status:l.sigStatus, name:l.empName||emp.name, date:date, img:_sigImg(l), contrat:isC, dirImg:isC?((DB.mailSettings&&DB.mailSettings.signatureDir)||''):''});
+  avertPdf(emp, l.text||'', titre, _id.nom, {status:l.sigStatus, name:l.empName||emp.name, date:date, img:_sigImg(l), contrat:isC, dirImg:isC?(ctrSignatureDir()):''});
 }
 window.telechargerPdfCourrier=telechargerPdfCourrier;
 // Archive le PDF signé / refusé (AVEC la signature manuscrite) dans le dossier Dropbox
@@ -13457,18 +13617,22 @@ async function _archiveDocSigne(l, sigPng){
     var titre=isContrat?_id.titre:(({ecrit:'OBSERVATION ÉCRITE',avert:'AVERTISSEMENT ÉCRIT',mise:'MISE EN DEMEURE'}[l.sanctionType])||_id.titre);
     var refused=(l.sigStatus==='refused');
     var date=refused?(l.refusedAt||new Date().toISOString()):(l.signedAt||new Date().toISOString());
-    var blob=avertPdf(e, l.text||'', titre, _id.nom, {status:l.sigStatus, name:l.empName||e.name, date:date, img:sigPng||'', blob:true, contrat:isContrat, dirImg:isContrat?((DB.mailSettings&&DB.mailSettings.signatureDir)||''):''});
+    var blob=avertPdf(e, l.text||'', titre, _id.nom, {status:l.sigStatus, name:l.empName||e.name, date:date, img:sigPng||'', blob:true, contrat:isContrat, dirImg:isContrat?(ctrSignatureDir()):''});
     if(!blob) return '';
     try{ if(typeof dbxMigrerEquipe==='function') await dbxMigrerEquipe(e); }catch(_){}
     var ds=new Date().toISOString().slice(0,10);
     var lbl=isContrat?(_id.fichier||'Contrat'):dbxClean(_id.nom||'Document');
     var base=dbxEmpFolder(e)+'/'+lbl+'_'+(refused?'refus':'signe')+'_'+ds;
+    /* ★ v691 — un document déjà rangé ne se range pas deux fois : la fiche de Léa
+       affichait « Contrat — signé le 21/08 » en double. */
+    var dejaLa=(DB.empDocs||[]).filter(function(d){ return d.id==='ds_'+l.id; })[0];
+    if(dejaLa) return dejaLa.link||'';
     var dest=base+'.pdf', _n=1;
     while((DB.empDocs||[]).some(function(d){ return d.dbxPath===dest; })){ _n++; dest=base+'_'+_n+'.pdf'; }
     var link=await dbxUpload(dest, blob);
     /* ★ v688 — un avenant se range dans la catégorie « avenant », pas « contrat ». */
     var _cat=(_id.cle==='avenant')?'avenant':(isContrat?'contrat':'sanction');
-    await sb.insert('bks_emp_docs',{id:'ds'+Date.now()+'_'+Math.floor(Math.random()*1000),emp_id:e.id,categorie:_cat,
+    await sb.insert('bks_emp_docs',{id:'ds_'+l.id,emp_id:e.id,categorie:_cat,
       label:_id.nom+(refused?' — refus de signer ':' — signé ')+'le '+new Date(date).toLocaleDateString('fr-FR'),
       link:link,name:dest.split('/').pop(),dbx_path:dest});
     await loadAll();
@@ -18119,6 +18283,12 @@ function renderContrats(){
       +'</p>';
   }
 
+  /* ── l'adresse publique de l'application ────────────────────────────────── */
+  h+=_ctrAppUrlHtml();
+
+  /* ── ma signature de gérant ─────────────────────────────────────────────── */
+  h+=_ctrSignatureHtml();
+
   /* ── la liste des tenues ────────────────────────────────────────────────── */
   h+=_ctrTenuesHtml();
 
@@ -18142,8 +18312,159 @@ function renderContrats(){
     });
   }
 
-  box.innerHTML=_contratsSuiviHtml()+(h||'<p style="color:#777;font-size:.82rem;">Aucun modèle pour le moment.</p>');
+  box.innerHTML=_ctrRenvoiFicheHtml()+(h||'<p style="color:#777;font-size:.82rem;">Aucun modèle pour le moment.</p>');
+  try{ ctrMajVerTuile(); }catch(_){}       /* ★ v695 */
 }
+
+/* ── MA SIGNATURE (DIRECTION) ──────────────────────────────────────────────
+   Le pavé existait, mais dans Paramètres › Ma signature — une carte masquée que
+   personne n'ouvre. Sa place est ici, avec les contrats qu'elle signe. */
+/* ★ v691 — l'adresse que les salariés ouvrent : sans elle, aucun lien ne marche. */
+function _ctrAppUrlHtml(){
+  var u=ctrAppUrl(), local=ctrEstLocal();
+  var ok=!!u;
+  return '<div style="background:#141414;border:1px solid '+(ok?'#2E5E33':'#8B3020')+';border-radius:10px;padding:12px 14px;margin-bottom:12px;">'
+    +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+      +'<div style="font-size:1.2rem;">🔗</div>'
+      +'<div style="flex:1;min-width:180px;">'
+        +'<div style="font-size:.9rem;color:#fff;font-weight:700;">Adresse de l\'application</div>'
+        +'<div style="font-size:.71rem;color:'+(ok?'#8fd49a':'#e8907a')+';word-break:break-all;">'
+        +(ok?('C\'est ce lien qui part dans les mails de signature : '+escapeHtmlCt(u))
+            :'⛔ Inconnue — les mails de signature ne peuvent pas partir. Ouvrez l\'application depuis son adresse en ligne, ou indiquez-la.')
+        +'</div>'
+        +(local&&ok?'<div style="font-size:.7rem;color:#F5A623;margin-top:3px;">Vous travaillez depuis un fichier local ; c\'est l\'adresse ci-dessus qui est envoyée, pas celle de votre Mac.</div>':'')
+      +'</div>'
+      +'<button class="btn '+(ok?'btn-gray':'btn-red')+' btn-sm" onclick="ctrDefinirAppUrl()">'+(ok?'✏️ Modifier':'🔗 Indiquer l\'adresse')+'</button>'
+    +'</div>'
+    /* ★ v695 — et surtout : ce qui est DÉPLOYÉ à cette adresse est-il bien ceci ? */
+    +'<div id="ctr-tuile-ver" style="margin-top:9px;">'+ctrVerBandeau(_CTR_VER_LIGNE)+'</div>'
+    +'</div>';
+}
+window._ctrAppUrlHtml=_ctrAppUrlHtml;
+/* la vérification se lance quand la tuile s'affiche, et le bandeau se remplit */
+function ctrMajVerTuile(){
+  try{
+    ctrVerifierEnLigne().then(function(v){
+      var z=document.getElementById('ctr-tuile-ver'); if(z) z.innerHTML=ctrVerBandeau(v);
+    }).catch(function(){});
+  }catch(_){}
+}
+window.ctrMajVerTuile=ctrMajVerTuile;
+
+function _ctrSignatureHtml(){
+  var sig=ctrSignatureDir();
+  var soc={}; try{ soc=getSociete(_socRid())||{}; }catch(_){}
+  var _mode=((DB.mailSettings||{}).signatureMode)||'nom';   /* ★ v694 */
+  var _nom=ctrSignatureNom();
+  return '<div style="background:#141414;border:1px solid '+(sig?'#2E5E33':'#5a4420')+';border-radius:10px;padding:12px 14px;margin-bottom:12px;">'
+    +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+      +'<div style="font-size:1.2rem;">✍️</div>'
+      +'<div style="flex:1;min-width:170px;">'
+        +'<div style="font-size:.9rem;color:#fff;font-weight:700;">Ma signature (direction)</div>'
+        +'<div style="font-size:.71rem;color:'+(sig?'#8fd49a':'#F5A623')+';">'
+        /* ★ v694 — on dit LAQUELLE des deux, sinon on ne sait pas ce qui part. */
+        +(sig?((_mode==='dessin'?'Tracé enregistré':('Votre nom, écrit'+(_nom?(' — '+escapeHtmlCt(_nom)):'')))
+               +' · apposé automatiquement sur tous les documents, côté entreprise')
+             :'⚠️ Aucune signature : les documents partent avec un cadre vide côté entreprise')
+        +'</div>'
+      +'</div>'
+      +'<button class="btn '+(sig?'btn-gray':'btn-red')+' btn-sm" onclick="ctrOuvrirSignature()">'+(sig?'✏️ Changer':'✍️ Choisir ma signature')+'</button>'
+    +'</div>'
+    +(sig?('<div style="margin-top:9px;"><img src="'+sig+'" alt="signature de la direction" style="max-width:260px;max-height:90px;background:#fff;border:1px solid #ddd;border-radius:6px;padding:5px;"></div>'):'')
+  +'</div>';
+}
+window._ctrSignatureHtml=_ctrSignatureHtml;
+
+/* Le pavé, dans une fenêtre, sans quitter la page des contrats. */
+function ctrOuvrirSignature(){
+  var sig=ctrSignatureDir();
+  var old=document.getElementById('ctr-sig-ov'); if(old) old.remove();
+  var ov=document.createElement('div'); ov.id='ctr-sig-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  ov.innerHTML='<div style="background:#1A1A1A;border:1px solid #444;border-radius:12px;max-width:560px;width:100%;max-height:92vh;overflow:auto;">'
+    +'<div style="background:linear-gradient(135deg,#C01E00,#8B1500);padding:13px 18px;border-radius:12px 12px 0 0;color:#F5A623;font-weight:700;font-family:\'Barlow Condensed\',sans-serif;letter-spacing:1.5px;text-transform:uppercase;">✍️ Ma signature (direction)</div>'
+    +'<div style="padding:16px;">'
+    /* ★ v694 — par défaut c'est le nom du gérant : on le dit avant de proposer autre chose. */
+    +'<p style="font-size:.8rem;color:#aaa;line-height:1.55;margin:0 0 12px;">'
+      +'Par défaut, votre signature est <b>votre nom écrit</b>, repris du gérant de la fiche société — '
+      +'la même sur tous les documents et sur tous les appareils, sans rien à faire. '
+      +'Vous pouvez la remplacer par un tracé à la main si vous préférez.<br>'
+      +'Elle est apposée sur <b>tous les documents</b> côté entreprise : contrat, avenant, règlement, '
+      +'reçu de tenue, note caméras. Le salarié reçoit un document <b>déjà signé par vous</b>.</p>'
+    +(sig?('<div style="margin-bottom:10px;"><div style="font-size:.74rem;color:#8fd49a;font-weight:700;margin-bottom:5px;">Signature actuelle :</div>'
+          +'<img src="'+sig+'" style="max-width:260px;max-height:90px;background:#fff;border:1px solid #ddd;border-radius:6px;padding:5px;"></div>'):'')
+    /* ★ v691 — deux façons : l'écrire (net, toujours identique) ou la dessiner. */
+    +'<div style="background:#12211a;border:1px solid #234a34;border-radius:8px;padding:10px 12px;margin-bottom:12px;">'
+      +'<div style="font-size:.78rem;color:#8fd49a;font-weight:700;margin-bottom:6px;">✒️ La plus simple : votre nom, écrit à l\'anglaise</div>'
+      +'<div id="ctr-sig-apercu" style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:6px;min-height:52px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;"></div>'
+      +'<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">'
+        +'<input type="text" id="ctr-sig-nom" class="fi" style="flex:1;min-width:150px;" value="'+String(((getSociete(_socRid())||{}).gerant)||'').replace(/"/g,'&quot;')+'" oninput="ctrSigApercu()" placeholder="Vincent Hilaire">'
+        +'<button class="btn btn-red btn-sm" onclick="ctrEnregSignatureEcrite()">💾 Utiliser celle-ci</button>'
+      +'</div>'
+    +'</div>'
+    +'<div style="font-size:.78rem;color:#F5A623;font-weight:700;margin-bottom:6px;">✍️ Ou dessinez-la à la main :</div>'
+    +_sigPadMarkup('sigpad-ctr')
+    +'<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px;">'
+      +'<button class="btn btn-gray btn-sm" onclick="_sigClear(\'sigpad-ctr\')">↺ Effacer</button>'
+      +(sig?'<button class="btn btn-gray btn-sm" onclick="ctrSupprSignature()">🗑️ Retirer</button>':'')
+      +'<button class="btn btn-gray btn-sm" onclick="document.getElementById(\'ctr-sig-ov\').remove()">Fermer</button>'
+      +'<button class="btn btn-red btn-sm" onclick="ctrEnregSignature()">💾 Enregistrer</button>'
+    +'</div></div></div>';
+  document.body.appendChild(ov);
+  setTimeout(function(){ try{ _sigInit('sigpad-ctr'); }catch(_){} try{ ctrSigApercu(); }catch(_){} },40);
+}
+function ctrSigApercu(){
+  var el=document.getElementById('ctr-sig-apercu'); if(!el) return;
+  var nom=(document.getElementById('ctr-sig-nom')||{}).value||'';
+  var png=ctrSignatureEcrite(nom);
+  el.innerHTML=png?('<img src="'+png+'" style="max-height:56px;max-width:100%;">')
+                  :'<span style="color:#999;font-size:.78rem;">Écrivez votre nom ci-dessous</span>';
+}
+async function ctrEnregSignatureEcrite(){
+  var nom=((document.getElementById('ctr-sig-nom')||{}).value||'').trim();
+  if(!nom){ toast('Écrivez votre nom.','error'); return; }
+  var png=ctrSignatureEcrite(nom); if(!png){ toast('Erreur','error'); return; }
+  if(!DB.mailSettings) DB.mailSettings={};
+  DB.mailSettings.signatureDir=png;
+  DB.mailSettings.signatureNom=nom;          /* ★ v694 */
+  DB.mailSettings.signatureMode='nom';
+  _CTR_SIG_CACHE={};
+  try{
+    await saveDB();
+    toast('Signature enregistrée ✔','success');
+    var ov=document.getElementById('ctr-sig-ov'); if(ov) ov.remove();
+    renderContrats();
+  }catch(e){ toast('Erreur d\'enregistrement','error'); }
+}
+window.ctrSigApercu=ctrSigApercu; window.ctrEnregSignatureEcrite=ctrEnregSignatureEcrite;
+async function ctrEnregSignature(){
+  if(!_sigDrawn('sigpad-ctr')){ toast('Dessinez d\'abord votre signature.','error'); return; }
+  var brut=_sigData('sigpad-ctr'); if(!brut){ toast('Erreur','error'); return; }
+  /* ★ v691 — on recadre sur le trait : sinon le paraphe se perd dans le cadre. */
+  var png=await new Promise(function(ok){ ctrRecadrerSignature(brut, ok); });
+  if(!DB.mailSettings) DB.mailSettings={};
+  DB.mailSettings.signatureDir=png;
+  DB.mailSettings.signatureMode='dessin';    /* ★ v694 — un tracé choisi exprès */
+  try{
+    await saveDB();
+    toast('Signature enregistrée ✔ — elle s\'apposera sur tous les nouveaux documents.','success');
+    var ov=document.getElementById('ctr-sig-ov'); if(ov) ov.remove();
+    renderContrats();
+    try{ if(document.getElementById('sig-dir-preview')) loadSignatureDir(); }catch(_){}
+  }catch(e){ console.error('ctrEnregSignature',e); toast('Erreur d\'enregistrement','error'); }
+}
+async function ctrSupprSignature(){
+  if(!confirm('Retirer votre signature ?\n\nLes nouveaux documents partiront avec un cadre vide côté entreprise.')) return;
+  if(!DB.mailSettings) DB.mailSettings={};
+  delete DB.mailSettings.signatureDir;
+  DB.mailSettings.signatureMode='aucune';    /* ★ v694 */
+  try{ await saveDB(); toast('Signature retirée.','success'); }catch(e){ toast('Erreur','error'); }
+  var ov=document.getElementById('ctr-sig-ov'); if(ov) ov.remove();
+  renderContrats();
+  try{ if(document.getElementById('sig-dir-preview')) loadSignatureDir(); }catch(_){}
+}
+window.ctrOuvrirSignature=ctrOuvrirSignature;
+window.ctrEnregSignature=ctrEnregSignature; window.ctrSupprSignature=ctrSupprSignature;
 
 /* ── LES TENUES, RÉGLABLES POUR DE BON ────────────────────────────────────
    Jusqu'ici la liste des articles et leurs prix n'étaient modifiables NULLE PART
@@ -18227,39 +18548,35 @@ async function ctrTenuesReset(){
 window.ctrOuvrirTenues=ctrOuvrirTenues; window.ctrTenueAddRow=ctrTenueAddRow;
 window.ctrTenuesSave=ctrTenuesSave; window.ctrTenuesReset=ctrTenuesReset;
 window._ctrTenuesHtml=_ctrTenuesHtml;
-// Suivi des contrats générés (à signer / signés / refusés) — en tête de la page Contrats.
-function _contratsSuiviHtml(){
-  var r=curUser?curUser.role:'';
-  var lets=(DB.letters||[]).filter(function(l){return l.type==='contrat'||l.sanctionType==='contrat';});
-  if(r!=='franchise'){ var ids=(DB.employees||[]).filter(function(e){return e.restoId===curUser.restoId;}).map(function(e){return e.id;}); lets=lets.filter(function(l){return ids.indexOf(l.empId)>=0;}); }
-  lets.sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);});
-  var enAttente=lets.filter(function(l){return (l.sigStatus||'pending')==='pending';}).length;
-  var h='<div style="background:#141414;border:1px solid #2A2A2A;border-radius:10px;padding:14px;margin-bottom:16px;">'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">'
-    +'<div class="sec-title" style="margin:0;font-size:.95rem;">✍️ Contrats à signer / signés</div>'
-    +(enAttente?('<span style="background:#2A2000;color:#F5A623;padding:2px 10px;border-radius:10px;font-size:.72rem;font-weight:700;">'+enAttente+' en attente</span>'):'')
-    +'</div>';
-  if(!lets.length){ h+='<p style="font-size:.8rem;color:#777;margin:2px 0;">Aucun contrat généré pour l\'instant. Générez-en un depuis la fiche d\'un salarié (Équipe → Fiche → Documents → « Générer un contrat »).</p></div>'; return h; }
-  lets.slice(0,30).forEach(function(l){
-    var ss=l.sigStatus||'pending';
-    var st=ss==='signed'?('<span style="color:#4CAF50;font-weight:700;">✍️ Signé'+(l.signedAt?(' le '+new Date(l.signedAt).toLocaleString('fr-FR')):'')+'</span>')
-      :ss==='refused'?('<span style="color:#cc5555;font-weight:700;">❌ Refus'+(l.refusedAt?(' le '+new Date(l.refusedAt).toLocaleString('fr-FR')):'')+'</span>')
-      :'<span style="color:#F5A623;font-weight:700;">⏳ En attente de signature</span>';
-    var dt=l.createdAt?new Date(l.createdAt).toLocaleDateString('fr-FR'):'';
-    /* ★ v687 — on dit LEQUEL des documents c'est : quatre lignes jumelles ne
-       servaient à rien. */
-    var _id=ctrDocIdent(l);
-    h+='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid #222;padding:8px 0;">'
-      +'<span style="flex:1;min-width:140px;font-size:.84rem;color:#eee;">'+_id.icone+' <b>'+_id.nom+'</b><br>'
-      +'<span style="color:#aaa;font-size:.78rem;">👤 '+(l.empName||'')+'</span> <span style="color:#666;font-size:.72rem;">· '+dt+'</span><br>'+st+'</span>'
-      +'<button class="btn btn-gray btn-sm" onclick="voirCourrier(\''+l.id+'\')">👁️ Voir</button>'
-      +(ss==='pending'?('<button class="btn btn-gray btn-sm" onclick="signerSurPlace(\''+l.id+'\')">✍️ Faire signer</button>'+(l.empEmail?('<button class="btn btn-gray btn-sm" onclick="sendContratEmail(\''+l.id+'\')">✉️ Mail</button>'):'')):'')
-      +'</div>';
-  });
-  h+='</div>';
-  return h;
+/* ════════════════════════════════════════════════════════════════════════════
+   ★ v690 — LES CONTRATS D'UN SALARIÉ NE SE PROMÈNENT PAS DANS LES RÉGLAGES.
+
+   Vincent : « dans Paramètres, je ne dois pas avoir les contrats qui traînent.
+   Paramètres, c'est pour pouvoir faire les modèles. Les contrats, ils doivent
+   aller sur le salarié. Ça ne se promène pas partout : ça va dans l'équipe, dans
+   le salarié en question. »
+
+   Il a raison, et pas seulement pour l'ordre : une liste de tous les contrats en
+   cours de signature, affichée dans un écran de réglages ouvert à qui passe, ce
+   sont des noms et des situations de salariés étalés là où ils n'ont rien à faire.
+
+   La liste « Contrats à signer / signés » est donc retirée de Paramètres. Tout se
+   passe maintenant dans Équipe › fiche du salarié › Suivi des contrats — là où on
+   peut aussi les relire, les faire signer, les renvoyer et les supprimer.
+   ════════════════════════════════════════════════════════════════════════════ */
+function _ctrRenvoiFicheHtml(){
+  return '<div style="background:#141414;border:1px solid #2A2A2A;border-radius:10px;padding:12px 14px;margin-bottom:16px;'
+    +'display:flex;align-items:center;gap:11px;flex-wrap:wrap;">'
+    +'<div style="font-size:1.2rem;">👤</div>'
+    +'<div style="flex:1;min-width:200px;font-size:.8rem;color:#bbb;line-height:1.55;">'
+      +'Les contrats et avenants <b>déjà générés</b> ne sont pas ici : ils appartiennent au dossier du salarié. '
+      +'Vous les retrouvez dans <b>Équipe → sa fiche → Suivi des contrats</b>, avec de quoi les relire, '
+      +'les faire signer, renvoyer le brouillon ou les supprimer.'
+    +'</div>'
+    +'<button class="btn btn-gray btn-sm" onclick="goPage(\'equipe\')">👥 Aller à l\'équipe</button>'
+  +'</div>';
 }
-window._contratsSuiviHtml=_contratsSuiviHtml;
+window._ctrRenvoiFicheHtml=_ctrRenvoiFicheHtml;
 function delContrat(id){
   if(!confirm('Supprimer ce modèle de la bibliothèque ?'))return;
   var list=getContrats();var i=list.findIndex(function(m){return m.id===id;});
@@ -18410,7 +18727,7 @@ function _ctvRender(){
       if(!docs.length){ box.innerHTML='<em style="color:#888;">Ce modèle n\'a pas de texte.</em>'; return; }
       html=docs.map(function(d,i){
         var texte=d.lignes.map(function(pr){ return pr[0]||''; }).join('\n');
-        return (i?_ctvSep(d.titre):'')+_ctvJaune(ctrHtmlDoc(texte, soc, d.titre));
+        return (i?_ctvSep(d.titre):'')+_ctvJaune(ctrHtmlDoc(texte, soc, d.titre));   /* ★ v689 : signature comprise */
       }).join('');
     } else {
       var lignes=_ctvLignes();
@@ -18758,9 +19075,24 @@ function _statutNiveau(row){
 // ligne de grille la plus proche du poste du salarié
 function _gridMatchIdx(e){
   var g=getSalaires(); var poste=((e&&e.infos&&e.infos.poste)||(e&&e.role)||'').toString().toUpperCase().trim();
-  if(!poste) return -1;
-  var idx=g.findIndex(function(r){return (r.poste||'').toUpperCase()===poste;});
-  if(idx<0) idx=g.findIndex(function(r){var p=(r.poste||'').toUpperCase(); return p&&(poste.indexOf(p)>=0||p.indexOf(poste)>=0);});
+  var idx=-1;
+  if(poste){
+    idx=g.findIndex(function(r){return (r.poste||'').toUpperCase()===poste;});
+    if(idx<0) idx=g.findIndex(function(r){var p=(r.poste||'').toUpperCase(); return p&&(poste.indexOf(p)>=0||p.indexOf(poste)>=0);});
+  }
+  /* ★ v695 — « il y a juste le taux horaire, niveau I équipier — mais celui-là,
+     il faut qu'on puisse le changer. »
+
+     Quand le poste n'est pas renseigné dans la fiche, la liste restait sur
+     « — choisir le poste / niveau — » et TROIS champs manquaient d'un coup :
+     niveau/échelon, taux horaire, salaire brut. Un contrat d'équipier part
+     désormais sur la première ligne équipier de la grille — celle qui est vraie
+     neuf fois sur dix — et la liste reste ouverte pour en changer. */
+  if(idx<0){
+    idx=g.findIndex(function(r){ return /^EQUIPIER$/i.test(String(r.poste||'').trim()); });
+    if(idx<0) idx=g.findIndex(function(r){ return /EQUIPIER/i.test(String(r.poste||'')) && !/APPRENTI/i.test(String(r.poste||'')); });
+    if(idx<0 && g.length) idx=0;
+  }
   return idx;
 }
 // heures/semaine d'un modèle (type_heures, sinon lu dans le nom "20h")
@@ -18808,8 +19140,22 @@ function _empCand(e){
 // bon ordre), puis la fiche ; complète l'économique via la grille (opts.row) + heures
 // (opts.heures) et la société ; laisse les autres tels quels (à compléter dans l'aperçu).
 // Génère le tableau des PLAGES DE PLANIFICATION à partir des disponibilités réelles du salarié.
-function _plagesPlanifTxt(e){
+function _plagesPlanifTxt(e, heures){
   var inf=(e&&e.infos)||{};
+  /* ★ v692 — LES PLAGES DU CONTRAT CHOISI.
+
+     Vincent : « avec les dispos en conséquence du contrat qu'on a vu ensemble, qui
+     est dans Paramètres ». Le contrat 24 h porte donc les plages du 24 h de la
+     grille, véhiculé ou non selon le salarié — pas ce qui traîne dans sa fiche.
+
+     La fiche reste la source si la grille ne dit rien pour cette durée (35 h, ou
+     grille non renseignée). */
+  try{
+    if(heures && typeof grcDisposPour==='function'){
+      var g=grcDisposPour(heures, e&&e.transport, 'contrat');
+      if(g){ inf=Object.assign({}, inf, {disposContrat:g}); }
+    }
+  }catch(_){}
   // ★ v587 — LE CONTRAT porte les « dispo contrat » (ce que le salarié signe),
   // PAS ses disponibilités réelles, qui sont plus larges et servent au placement.
   // Salariés d'avant la grille : aucun disposContrat → on garde l'ancien comportement.
@@ -19371,6 +19717,56 @@ function _ctrLignePlage(t){
 }
 
 /* Le texte, relu comme un typographe le lirait. */
+/* ★ v691 — DEUX LIGNES DE SIGNATURE, UN SEUL BLOC À DEUX COLONNES.
+
+   Le contrat écrit les signatures ainsi :
+
+       Pour la Société BURGER AVENUE 500
+       Vincent Hilaire
+       {{s1|signature|85|37}}
+       Pour le salarié
+       Madame Léa Idez
+       {{s2|signature|85|37}}
+
+   Chaque ligne produisait son propre bloc, et chaque bloc dessinait le cadre de
+   L'EMPLOYEUR. Résultat, à l'écran comme dans le PDF : la signature de la
+   direction apparaissait DEUX FOIS, et le salarié n'avait aucun cadre où signer.
+   C'est ce que Vincent a vu sur son téléphone, puis en page 6 du PDF.
+
+   On rassemble donc : s1 suivi de s2, avec au plus une légende entre les deux,
+   deviennent un seul bloc — employeur à gauche, salarié à droite. */
+function _ctrLegende(b){
+  if(!b || b.t!=='bloc' || !b.l || !b.l.length || b.l.length>3) return '';
+  var t=b.l.join(' ');
+  if(t.length>90) return '';
+  if(!/Pour\s|salari|employ|G[ée]rant|Soci[ée]t[ée]|Lu et approuv/i.test(t)) return '';
+  return b.l.join(' — ');
+}
+function _ctrRassembleSignatures(out){
+  for(var i=0;i<out.length;i++){
+    var a=out[i];
+    if(!a || a.t!=='signatures' || a.qui!=='s1') continue;
+    var j=i+1, iLeg=-1, stop=false;
+    while(j<out.length && !stop){
+      var b=out[j];
+      if(b.t==='vide'){ j++; continue; }
+      if(b.t==='signatures'){ break; }
+      if(iLeg<0 && _ctrLegende(b)){ iLeg=j; j++; continue; }
+      stop=true;
+    }
+    if(stop || j>=out.length) continue;
+    var b2=out[j];
+    if(!b2 || b2.t!=='signatures' || b2.qui!=='s2') continue;
+    var droite=(iLeg>=0?_ctrLegende(out[iLeg]):'')||b2.gauche||'';
+    out[i]={t:'signatures', n:2, gauche:a.gauche, droite:droite, qui:'s1s2'};
+    var aOter=[j]; if(iLeg>=0) aOter.push(iLeg);
+    aOter.sort(function(x,y){ return y-x; }).forEach(function(k){ out.splice(k,1); });
+    i=-1;   /* les indices ont bougé : on repart du début */
+  }
+  return out;
+}
+window._ctrRassembleSignatures=_ctrRassembleSignatures;
+
 function ctrBlocs(texte){
   var L=String(texte==null?'':texte).replace(/\r/g,'').split('\n');
   var out=[], i=0;
@@ -19408,6 +19804,10 @@ function ctrBlocs(texte){
     /* ── Les signatures ─────────────────────────────────────────────────── */
     if(/\{\{s\d\|signature/.test(tr)){
       var n=(tr.match(/\{\{s\d\|signature/g)||[]).length;
+      /* ★ v691 — QUI signe sur cette ligne ? s1 = l'employeur, s2 = le salarié.
+         Le contrat les met sur DEUX lignes séparées ; sans cette information, on
+         dessinait deux fois le cadre de l'employeur et le salarié n'en avait pas. */
+      var _qui=(tr.indexOf('{{s1|signature')>=0?'s1':'')+(tr.indexOf('{{s2|signature')>=0?'s2':'');
       /* les deux lignes précédentes servent souvent de légendes */
       var g='', d='';
       for(var b=out.length-1; b>=0 && b>=out.length-3; b--){
@@ -19419,7 +19819,7 @@ function ctrBlocs(texte){
           out.splice(b,1);
         } else break;
       }
-      out.push({t:'signatures', n:(n>=2?2:1), gauche:g, droite:d});
+      out.push({t:'signatures', n:(n>=2?2:1), gauche:g, droite:d, qui:_qui});
       i++; continue;
     }
 
@@ -19496,7 +19896,7 @@ function ctrBlocs(texte){
   });
   while(net.length && net[0].t==='vide') net.shift();
   while(net.length && net[net.length-1].t==='vide') net.pop();
-  return net;
+  return _ctrRassembleSignatures(net);   /* ★ v691 */
 }
 window.ctrBlocs=ctrBlocs;
 
@@ -19795,8 +20195,173 @@ window.ctrPdfContrat=ctrPdfContrat;
 /* ═══════════════════════════════════════════════════════════════════════════
    LE MÊME DOCUMENT, À L'ÉCRAN — pour que le salarié signe ce qu'il verra.
    ═══════════════════════════════════════════════════════════════════════════ */
-function ctrHtmlDoc(texte, soc, titre){
-  soc=soc||{};
+/* ★ v689 — LA SIGNATURE DE LA DIRECTION SE VOIT À L'ÉCRAN.
+
+   Vincent : « j'aimerais bien pouvoir faire ma signature sur les contrats. »
+
+   Le pavé pour la dessiner existait déjà (Paramètres › Ma signature) — mais elle
+   n'était apposée QUE dans le PDF. À l'écran de signature, celui que le salarié a
+   sous les yeux sur la tablette, les deux cadres étaient vides : il signait un
+   document qui n'avait l'air signé de personne. Elle s'affiche maintenant partout
+   où le document se lit, exactement comme elle sortira sur le papier. */
+/* ★ v691 — UNE SIGNATURE QU'ON VOIT.
+
+   Vincent : « j'ai envie d'avoir la même signature que Vincent […] je pourrais
+   marquer Vincent en signature ? »
+
+   Deux choses n'allaient pas. Le trait dessiné était enregistré avec TOUT le
+   pavé autour : un petit paraphe au milieu d'un grand rectangle transparent
+   devenait, une fois réduit dans le cadre du contrat, une minuscule boucle
+   perdue. On le RECADRE donc sur son trait avant de l'enregistrer.
+
+   Et surtout : on n'est pas obligé de dessiner. Le nom du gérant écrit dans une
+   anglaise donne une signature nette, lisible, identique sur tous les documents —
+   exactement ce que le salarié voit déjà pour la sienne. */
+
+/* Recadre une signature sur son trait : on jette le vide autour. */
+function ctrRecadrerSignature(png, cb){
+  try{
+    var img=new Image();
+    img.onload=function(){
+      try{
+        var w=img.width, h=img.height;
+        var cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+        var cx=cv.getContext('2d'); cx.drawImage(img,0,0);
+        var d=cx.getImageData(0,0,w,h).data;
+        var x0=w, y0=h, x1=-1, y1=-1;
+        for(var y=0;y<h;y++){ for(var x=0;x<w;x++){
+          var a=d[(y*w+x)*4+3];
+          if(a>12){ if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+        } }
+        if(x1<0){ cb(png); return; }                 /* rien de dessiné */
+        var m=Math.round(Math.max(w,h)*0.03);
+        x0=Math.max(0,x0-m); y0=Math.max(0,y0-m);
+        x1=Math.min(w-1,x1+m); y1=Math.min(h-1,y1+m);
+        var cw=x1-x0+1, ch=y1-y0+1;
+        var out=document.createElement('canvas'); out.width=cw; out.height=ch;
+        out.getContext('2d').drawImage(cv, x0,y0,cw,ch, 0,0,cw,ch);
+        cb(out.toDataURL('image/png'));
+      }catch(e){ cb(png); }
+    };
+    img.onerror=function(){ cb(png); };
+    img.src=png;
+  }catch(e){ cb(png); }
+}
+window.ctrRecadrerSignature=ctrRecadrerSignature;
+
+/* ★ v695 — LE NOM S'ÉCRIT COMME UNE SIGNATURE, PAS COMME UN FORMULAIRE.
+
+   Sur sa capture, la signature donnait ceci : « Vincent H I L A I R E », chaque
+   capitale avec sa grande boucle, illisible. La cause : la fiche société porte le
+   gérant en CAPITALES (« Vincent HILAIRE »), comme partout dans l'application —
+   et une anglaise en capitales, ce n'est plus une signature, c'est un monogramme
+   répété sept fois.
+
+   Personne ne signe en capitales. On remet donc le nom en casse normale avant de
+   l'écrire : VINCENT HILAIRE → Vincent Hilaire. Les traits d'union et les
+   apostrophes sont respectés (Jean-Pierre, D'Angelo), et un nom déjà bien écrit
+   n'est pas touché.                                                            */
+function ctrNomPropre(nom){
+  var s=String(nom||'').trim(); if(!s) return '';
+  var maj=function(t){
+    return t.replace(/(^|[\-'\u2019])([a-zà-ÿ])/g, function(_, av, c){ return av+c.toUpperCase(); });
+  };
+  return s.split(/\s+/).map(function(m){
+    /* un mot ENTIÈREMENT en capitales (HILAIRE) redescend en casse normale ;
+       un mot déjà écrit normalement garde ses majuscules internes (McDonald). */
+    if(m.length>1 && m===m.toUpperCase() && m!==m.toLowerCase()) return maj(m.toLowerCase());
+    return maj(m);
+  }).join(' ');
+}
+window.ctrNomPropre=ctrNomPropre;
+
+/* La signature écrite : le nom du gérant, à l'anglaise. */
+function ctrSignatureEcrite(nom){
+  nom=ctrNomPropre(nom); if(!nom) return '';
+  var police="'BKRH Signature','Snell Roundhand','Apple Chancery','Segoe Script','Brush Script MT','Lucida Handwriting','Bradley Hand','URW Chancery L','Zapfino',cursive";
+  var cv=document.createElement('canvas');
+  var cx=cv.getContext('2d');
+  var taille=96;
+  cx.font=taille+'px '+police;
+  var larg=Math.ceil(cx.measureText(nom).width)+40;
+  cv.width=Math.max(240,larg); cv.height=Math.round(taille*1.7);
+  cx=cv.getContext('2d');
+  cx.font=taille+'px '+police;
+  cx.fillStyle='#14315c';
+  cx.textBaseline='middle';
+  cx.textAlign='center';
+  cx.fillText(nom, cv.width/2, cv.height/2);
+  return cv.toDataURL('image/png');
+}
+window.ctrSignatureEcrite=ctrSignatureEcrite;
+
+/* ★ v694 — « MA SIGNATURE, CE N'EST TOUJOURS PAS MARQUÉ VINCENT. »
+
+   Troisième fois qu'il le demande. En v692 j'avais posé une MIGRATION : au premier
+   démarrage, on remplaçait le paraphe dessiné par le nom du gérant. Elle n'a jamais
+   tourné chez lui, et pour une raison bête à pleurer — regardez l'ordre de démarrage :
+
+       ctrSignatureNomGerant()        ← ici on lit getSociete(...).gerant
+       hrChargerSocieteSupabase()     ← et c'est ICI que la société arrive
+
+   Le gérant était donc VIDE au moment où on le lisait. La fonction ressortait sans
+   rien faire — mais elle avait déjà posé son drapeau « c'est fait » dans le
+   navigateur, à la première ligne. Elle ne repasserait donc jamais. Le gribouillis
+   est resté, définitivement.
+
+   La leçon : une migration qui s'exécute une fois est un pari. On ne parie plus.
+   La signature de la direction n'est plus une image STOCKÉE qu'il faut penser à
+   remplacer un jour : elle est CALCULÉE à chaque fois qu'on en a besoin, à partir
+   du nom du gérant. Elle ne peut donc plus « ne pas avoir été migrée ».
+
+     · mode « nom » (celui par défaut) → le nom du gérant, écrit à l'anglaise ;
+     · mode « dessin »                 → le tracé, si un jour il préfère le sien ;
+     · mode « aucune »                 → cadre vide.                              */
+var _CTR_SIG_CACHE={};
+function ctrPolicePrete(){
+  try{ return !!(document.fonts && document.fonts.check('96px "BKRH Signature"')); }catch(_){ return true; }
+}
+window.ctrPolicePrete=ctrPolicePrete;
+function ctrSignatureNom(){
+  var n='';
+  try{ n=String((DB&&DB.mailSettings&&DB.mailSettings.signatureNom)||'').trim(); }catch(_){}
+  if(!n){ try{ n=String((getSociete(_socRid())||{}).gerant||'').trim(); }catch(_){} }
+  /* la société du restaurant courant n'est pas encore chargée : n'importe quelle
+     autre fiche société fait l'affaire, c'est le même gérant. */
+  if(!n){ try{
+    var A=_societesAll()||{};
+    Object.keys(A).forEach(function(k){ if(!n && A[k] && A[k].gerant) n=String(A[k].gerant).trim(); });
+  }catch(_){} }
+  return n;
+}
+function ctrSignatureDir(){
+  try{
+    var ms=(DB&&DB.mailSettings)||{};
+    if(ms.signatureMode==='aucune') return '';
+    if(ms.signatureMode==='dessin') return ms.signatureDir||'';
+    var nom=ctrSignatureNom();
+    if(nom){
+      if(_CTR_SIG_CACHE[nom]) return _CTR_SIG_CACHE[nom];
+      var png=''; try{ png=ctrSignatureEcrite(nom)||''; }catch(_){}
+      /* tant que la police embarquée n'est pas chargée, on dessine quand même
+         (police de secours) mais on ne garde RIEN : la bonne image viendra. */
+      if(png && ctrPolicePrete()) _CTR_SIG_CACHE[nom]=png;
+      if(png) return png;
+    }
+    return ms.signatureDir||'';
+  }catch(_){ return ''; }
+}
+window.ctrSignatureNom=ctrSignatureNom;
+window.ctrSignatureDir=ctrSignatureDir;
+
+function ctrHtmlDoc(texte, soc, titre, opts){
+  soc=soc||{}; opts=opts||{};
+  var _dir=(opts.dirImg!==undefined)?opts.dirImg:ctrSignatureDir();
+  var _emp=opts.empImg||'';
+  var _cadre=function(img,alt){
+    return img ? '<div class="ctrdoc-sb"><img src="'+img+'" alt="'+alt+'"></div>'
+               : '<div class="ctrdoc-sb ctrdoc-sb-vide"></div>';
+  };
   function E(x){ return (typeof escapeHtmlCt==='function')?escapeHtmlCt(String(x==null?'':x)):String(x==null?'':x); }
   var h='<div class="ctrdoc">';
   if(titre){
@@ -19840,12 +20405,30 @@ function ctrHtmlDoc(texte, soc, titre){
       return;
     }
     if(b.t==='signatures'){
+      /* ★ v691 — « Pour le salarié — Madame Léa Idez » sur une seule ligne en
+         capitales étirées se lisait mal. Le libellé en haut, le nom en dessous. */
+      var _coupe=function(t){ var p=String(t||'').split(' — '); return {t:p[0]||'', n:p.slice(1).join(' — ')}; };
+      var _g=_coupe(b.gauche), _d=_coupe(b.droite);
+      /* ★ v692 — UN BLOC « s2 » TOUT SEUL, C'EST LE SALARIÉ.
+         L'accord courrier électronique ne porte qu'une signature, celle du salarié
+         (« Signature du salarié : {{s2}} »). Elle sortait pourtant sous « POUR
+         BURGER AVENUE 500 / Vincent HILAIRE », avec la signature du gérant dedans :
+         le salarié n'avait pas où signer, et la direction signait à sa place. */
+      if(b.n===1 && b.qui==='s2'){
+        h+='<div class="ctrdoc-sig">'
+          +'<div><div class="ctrdoc-sl">'+E(_g.t||_d.t||'Le/La salarié(e)')+'</div>'
+            +'<div class="ctrdoc-sn">'+E(_g.n||opts.empNom||'')+'</div>'+_cadre(_emp,'signature du salarié')+'</div>'
+          +'</div><div class="ctrdoc-note">Signature précédée de la mention « Lu et approuvé »</div>';
+        return;
+      }
       h+='<div class="ctrdoc-sig">'
-        +'<div><div class="ctrdoc-sl">'+E(b.gauche||('Pour '+(soc.nom||"l'entreprise")))+'</div>'
-          +'<div class="ctrdoc-sn">'+E(soc.gerant||'')+'</div><div class="ctrdoc-sb"></div></div>'
-        +(b.n>=2?('<div><div class="ctrdoc-sl">'+E(b.droite||'Le/La salarié(e)')+'</div>'
-          +'<div class="ctrdoc-sn">&nbsp;</div><div class="ctrdoc-sb"></div></div>'):'')
-        +'</div><div class="ctrdoc-note">Signature précédée de la mention « Lu et approuvé »</div>';
+        +'<div><div class="ctrdoc-sl">'+E(_g.t||('Pour '+(soc.nom||"l'entreprise")))+'</div>'
+          +'<div class="ctrdoc-sn">'+E(_g.n||soc.gerant||'')+'</div>'+_cadre(_dir,'signature de la direction')+'</div>'
+        +(b.n>=2?('<div><div class="ctrdoc-sl">'+E(_d.t||'Le/La salarié(e)')+'</div>'
+          +'<div class="ctrdoc-sn">'+E(_d.n||opts.empNom||'')+'</div>'+_cadre(_emp,'signature du salarié')+'</div>'):'')
+        +'</div><div class="ctrdoc-note">'
+        +(_dir?'Le document part déjà signé par la direction. ':'')
+        +'Signature précédée de la mention « Lu et approuvé »</div>';
       return;
     }
     h+='<p class="ctrdoc-p">'+E(b.s)+'</p>';
@@ -19998,7 +20581,7 @@ function _contratRemplir(lines, e, opts){
     brut_mensuel:(tauxNum&&hMois)?_fr2(tauxNum*hMois):(inf.brut_mensuel||''),
     h_s1:hStr, h_s2:hStr, h_s3:hStr, h_s4:hStr,
     // société / employeur (Paramètres → Société)
-    plages_planification:_plagesPlanifTxt(e),
+    plages_planification:_plagesPlanifTxt(e, heures),   /* ★ v692 */
     /* ★ v679 — l'employeur, morceau par morceau, pour CE restaurant. */
     societe:soc.nom||'', societe_details:socDetails(soc), urssaf:soc.urssaf||'',
     societe_forme:soc.forme||'', societe_capital:soc.capital||'',
@@ -20051,32 +20634,47 @@ function openContratGen(empId){
       +'<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">'
         +'<div style="flex:1;min-width:200px;"><div class="flabel">Modèle de contrat</div><select id="contratgen-model" class="fi" onchange="contratGenModelChange()">'+opts+'</select></div>'
         +'<div style="flex:1;min-width:200px;"><div class="flabel">Poste / niveau (grille des salaires)</div><select id="contratgen-grille" class="fi" onchange="contratGenPreview()">'+gridOpts+'</select></div>'
-        +'<div style="min-width:130px;"><div class="flabel" id="contratgen-heures-lbl">Heures / semaine</div><input type="number" id="contratgen-heures" class="fi" min="0" step="0.5" value="'+_h0+'" oninput="contratGenPreview()"></div>'
+        /* ★ v692 — Vincent : « je ne veux pas choisir plein d'heures, je veux mon
+           contrat 15 h, 20 h, 24 h ». Plus de champ libre : la liste des durées
+           définies dans Paramètres › Grille des contrats. */
+        /* ★ v694 — la durée ne se choisit plus pour un contrat : elle est celle
+           qui a été prévue pour ce salarié. Voir ctrRenderDuree(). */
+        +'<div style="min-width:170px;" id="contratgen-duree-box"></div>'
         /* ★ v688 — un avenant prend effet à une date : elle se saisit ici. */
         +'<div style="min-width:150px;display:none;" id="contratgen-effet-box"><div class="flabel">Date d\'effet</div><input type="date" id="contratgen-effet" class="fi" value="'+_eff0+'" onchange="contratGenPreview()"></div>'
       +'</div>'
       +'<div id="contratgen-avenant-note" style="display:none;margin:-4px 0 12px;background:#1b2333;border:1px solid #2f4468;border-radius:8px;padding:9px 12px;color:#9fc0ef;font-size:.78rem;line-height:1.5;"></div>'
-      +'<div id="contratgen-essai" style="margin-bottom:10px;"></div>'
       +'<div id="contratgen-docs" style="margin-bottom:10px;"></div>'
       +'<div id="contratgen-manque"></div>'
-      +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">'
-        +'<button id="ctrg-tab-apercu" class="btn btn-sm" onclick="ctrVueMode(\'apercu\')" style="background:#C01E00;color:#fff;border:none;">👁️ Aperçu</button>'
-        +'<button id="ctrg-tab-texte" class="btn btn-gray btn-sm" onclick="ctrVueMode(\'texte\')">✏️ Modifier le texte</button>'
-        +'<span id="ctrg-tab-note" style="font-size:.73rem;color:#888;line-height:1.4;"></span>'
+      /* ★ v692 — Vincent : « là, on ne peut modifier que le niveau de la grille
+         salaire, c'est tout ». On ne corrige plus le texte ici : une correction
+         tapée dans l'aperçu ne survivait pas au modèle, et se perdait au document
+         suivant. Le texte se corrige dans Paramètres › Contrats & avenants. */
+      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">'
+        +'<span style="font-family:\'Barlow Condensed\',sans-serif;font-weight:800;font-size:.9rem;color:#F5A623;text-transform:uppercase;letter-spacing:1px;">👁️ Aperçu</span>'
+        +'<span style="font-size:.73rem;color:#888;line-height:1.4;">Le document tel qu\'il sortira en PDF. '
+          +'Pour corriger un texte, passez par <b>Paramètres → Contrats &amp; avenants</b>.</span>'
       +'</div>'
       +'<div id="contratgen-preview" style="background:#fff;color:#111;border-radius:8px;padding:22px 26px;max-height:48vh;overflow:auto;"></div>'
       +'<div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px;">'
         +'<button class="btn btn-gray" onclick="document.getElementById(\'contratgen-ov\').remove()">Annuler</button>'
-        +'<button class="btn btn-gray" onclick="contratGenAction(\'mail\')">✉️ Envoyer au salarié</button>'
-        +'<button class="btn btn-red" onclick="contratGenAction(\'tablette\')">✍️ Faire signer sur la tablette</button>'
+        /* ★ v694 — « faire signer par mail, j'aimerais bien que ce soit en vert. »
+           C'est le geste courant : il doit se voir en premier. */
+        +'<button class="btn" style="background:linear-gradient(135deg,#2e9e4f,#1d7a3a);color:#fff;border:none;font-weight:800;" onclick="contratGenAction(\'mail\')">✉️ Faire signer par mail</button>'
+        +'<button class="btn btn-gray" onclick="contratGenAction(\'tablette\')">✍️ Faire signer sur la tablette</button>'
       +'</div>'
     +'</div></div>';
   document.body.appendChild(ov);
-  try{ ctrRenderEssai(); }catch(_){}
+  /* ★ v694 — Vincent : « ne rien enregistrer, là-haut : tu peux le virer, il ne
+     sert à rien. » La case part — et l'interrupteur avec elle, sinon il resterait
+     armé quelque part sans plus rien pour le montrer, et les mails partiraient en
+     douce sur son adresse à lui au lieu de celle du salarié. */
+  try{ ctrEssaiSet(false, null); }catch(_){}
   try{ ctrMajChampsAvenant(); }catch(_){}   /* ★ v688 */
   /* ★ v686 — on repart des réglages : contrat seul coché. Sinon, avoir coché les
      annexes une fois dans la journée les laissait cochées pour tout le monde. */
   _CTR_DOCS_CHOIX=null;
+  try{ ctrRenderDuree(); }catch(_){}          /* ★ v694 */
   _CTR_VUE_MODE='apercu';
   ctrVueMode('apercu');            /* on arrive sur la vue jolie */
 }
@@ -20114,10 +20712,132 @@ function ctrVueMode(m){
 }
 window.ctrVueMode=ctrVueMode;
 
+/* ★ v692 — LES DURÉES POSSIBLES, ET RIEN D'AUTRE.
+
+   Elles viennent de Paramètres › Grille des contrats — celle où sont définies, une
+   fois pour toutes, les disponibilités contractuelles de chaque durée. Choisir
+   « 24 h » ici, c'est choisir CE contrat-là, avec SES plages.
+
+   Le 35 h reste possible pour le temps complet (pas de plages : dispo totale). */
+function ctrDureesContrat(){
+  var out=[];
+  try{
+    var G=getGrilleContrats()||{};
+    Object.keys(G).forEach(function(k){
+      var n=parseFloat(String(k).replace(',','.').replace(/[^0-9.]/g,''));
+      if(isFinite(n)&&n>0) out.push(n);
+    });
+  }catch(_){}
+  if(!out.length) out=[15,20,24];
+  if(out.indexOf(35)<0) out.push(35);
+  out.sort(function(a,b){ return a-b; });
+  return out.filter(function(v,i,t){ return t.indexOf(v)===i; });
+}
+window.ctrDureesContrat=ctrDureesContrat;
+
+/* Choisir « Autre durée… » : on demande le nombre, et on l'ajoute à la liste. */
+function ctrDureeChange(){
+  var sel=document.getElementById('contratgen-heures'); if(!sel) return;
+  if(sel.value==='_autre'){
+    var v=prompt('Durée du contrat, en heures par semaine.\n\n'
+      +'Les durées habituelles se règlent dans Paramètres › Grille des contrats — '
+      +'c\'est là que sont définies les plages de planification de chaque contrat.\n\n'
+      +'Une durée saisie ici n\'aura pas de plages toutes prêtes : celles du contrat '
+      +'le plus proche seront reprises.', '30');
+    var n=parseFloat(String(v||'').replace(',','.'));
+    if(!isFinite(n)||n<=0){ sel.innerHTML=ctrOptionsDurees(_ctrDureePrec||''); sel.value=String(_ctrDureePrec||''); return; }
+    n=Math.round(n*100)/100;
+    sel.innerHTML=ctrOptionsDurees(n); sel.value=String(n);
+  }
+  _ctrDureePrec=sel.value;
+  contratGenPreview();
+}
+var _ctrDureePrec='';
+window.ctrDureeChange=ctrDureeChange;
+
+function ctrOptionsDurees(choisie){
+  var d=ctrDureesContrat(), c=parseFloat(choisie)||0;
+  if(c && d.indexOf(c)<0) d.push(c), d.sort(function(a,b){ return a-b; });
+  return d.map(function(h){
+    var lbl=(h>=35)?(h+' h — temps complet'):(h+' h / semaine');
+    return '<option value="'+h+'"'+(c===h?' selected':'')+'>'+lbl+'</option>';
+  }).join('')
+  /* ★ v692 — la liste couvre les contrats habituels ; une durée exceptionnelle
+     reste possible, mais elle se demande, elle ne se tape pas par inadvertance. */
+  +'<option value="_autre">Autre durée…</option>';
+}
+window.ctrOptionsDurees=ctrOptionsDurees;
+
+/* ★ v694 — « LE CONTRAT EST DE 24 HEURES. ON NE DOIT PAS LE CHANGER, PARCE
+   QU'ON A PRÉVU QU'ELLE FASSE 24 HEURES. IL DOIT ÊTRE FIXE. »
+
+   Il a raison, et il a en plus mis le doigt sur le danger : « fais attention,
+   je crois qu'il est demandé ailleurs ». Il l'est. La durée hebdomadaire d'un
+   salarié est lue par hrContratHebdo() — donc par le planning, les horaires, le
+   pointage, la paie. La retaper au moment de sortir le contrat, c'était pouvoir
+   écrire 20 h sur le papier pendant que l'application en place 24 : deux vérités
+   pour un même salarié, et c'est le papier qui fait foi devant un prud'homme.
+
+   Alors on ne la retape plus. Elle est AFFICHÉE, avec l'endroit d'où elle vient,
+   et elle se corrige là où elle vit vraiment : la fiche du salarié. La liste ne
+   revient que pour un AVENANT — dont c'est précisément l'objet de changer la
+   durée — et pour le cas où le salarié n'en aurait aucune, sans quoi on serait
+   coincé.
+
+   Le champ garde son identifiant, contratgen-heures : tout ce qui le lit
+   (l'aperçu, le contrôle des plages, la bascule de planning) continue de marcher.
+   Seul un <input type="hidden"> a remplacé le <select>.                       */
+function ctrDureeSource(e){
+  var h=0, dou='';
+  try{ h=hrContratHebdo(e)||0; }catch(_){}
+  if(h) dou='Durée prévue dans sa fiche';
+  if(!h){
+    try{
+      var c=_empCand(e)||{};
+      var v=parseFloat(String(c.contrat_hebdo||c.heures||c.heures_semaine||'').replace(',','.'));
+      if(isFinite(v)&&v>0){ h=v; dou='Durée prévue au recrutement'; }
+    }catch(_){}
+  }
+  return {heures:h?(Math.round(h*100)/100):0, dou:dou};
+}
+window.ctrDureeSource=ctrDureeSource;
+
+function ctrRenderDuree(){
+  var box=document.getElementById('contratgen-duree-box'); if(!box) return;
+  var sel=document.getElementById('contratgen-model'); var key=sel?sel.value:'';
+  var av=false; try{ av=ctrEstAvenant(key); }catch(_){}
+  var e=(DB.employees||[]).find(function(x){return x.id===_contratGenEmp;});
+  var _f=function(n){ return (''+(Math.round(n*100)/100)).replace('.',','); };
+
+  if(av){
+    /* un avenant, c'est fait pour changer la durée : la liste reste. */
+    var h=_modelHeures(key,e)||'';
+    box.innerHTML='<div class="flabel" id="contratgen-heures-lbl">Nouvelle durée du contrat</div>'
+      +'<select id="contratgen-heures" class="fi" onchange="ctrDureeChange()">'+ctrOptionsDurees(h)+'</select>';
+    return;
+  }
+  var src=ctrDureeSource(e);
+  if(!src.heures){
+    /* aucune durée connue : on ne bloque pas, mais on le dit. */
+    box.innerHTML='<div class="flabel" id="contratgen-heures-lbl">Durée du contrat</div>'
+      +'<select id="contratgen-heures" class="fi" onchange="ctrDureeChange()">'+ctrOptionsDurees('')+'</select>'
+      +'<div style="font-size:.68rem;color:#F5A623;margin-top:3px;line-height:1.4;">'
+      +'⚠️ Aucune durée dans sa fiche — choisissez-la ici, puis reportez-la dans sa fiche.</div>';
+    return;
+  }
+  box.innerHTML='<div class="flabel" id="contratgen-heures-lbl">Durée du contrat</div>'
+    +'<input type="hidden" id="contratgen-heures" value="'+src.heures+'">'
+    +'<div style="background:#141414;border:1px solid #3d7a45;border-radius:8px;padding:8px 12px;">'
+      +'<div style="font-size:1rem;color:#8fd49a;font-weight:800;">'+_f(src.heures)+' h / semaine</div>'
+      +'<div style="font-size:.66rem;color:#7d8f80;line-height:1.4;">'+escapeHtmlCt(src.dou)
+      +' · elle se corrige dans sa fiche</div>'
+    +'</div>';
+}
+window.ctrRenderDuree=ctrRenderDuree;
+
 function contratGenModelChange(){
   var sel=document.getElementById('contratgen-model'); var key=sel?sel.value:'';
-  var _e=(DB.employees||[]).find(function(x){return x.id===_contratGenEmp;});
-  var h=_modelHeures(key,_e); var hi=document.getElementById('contratgen-heures'); if(hi && h) hi.value=h;
+  try{ ctrRenderDuree(); }catch(_){}          /* ★ v694 */
   _CTR_DOCS_CHOIX=null;              /* nouveau modèle : on repart des cases par défaut */
   try{ ctrMajChampsAvenant(); }catch(_){}   /* ★ v688 */
   contratGenPreview();
@@ -20135,7 +20855,6 @@ function ctrMajChampsAvenant(){
   var note=document.getElementById('contratgen-avenant-note');
   var titre=document.getElementById('contratgen-titre');
   if(box) box.style.display=av?'':'none';
-  if(lbl) lbl.textContent=av?'Nouvelle durée (h / semaine)':'Heures / semaine';
   if(titre) titre.textContent=(av?'📝 Générer un avenant — ':'📄 Générer un contrat — ')+(titre.getAttribute('data-nom')||'');
   if(!note) return;
   if(!av){ note.style.display='none'; note.innerHTML=''; return; }
@@ -20374,7 +21093,7 @@ function ctrRenderManque(e, cles){
     h+='<div style="background:#2a2a2a;border:1px solid #555;border-radius:8px;padding:10px 12px;margin-bottom:9px;color:#ddd;font-size:.79rem;line-height:1.5;">'
       +'<b style="color:#fff;">📋 Il reste '+(cles.length>1?(cles.length+' informations'):'1 information')+' à renseigner</b>'
       +bloc
-      +'<div style="margin-top:7px;color:#888;font-size:.74rem;">Vous pouvez aussi les taper directement dans l\'aperçu ci-dessous : il est modifiable.</div>'
+      +'<div style="margin-top:7px;color:#888;font-size:.74rem;">Renseignez-les à l\'endroit indiqué : elles serviront ensuite à tous les documents.</div>'
       +'</div>';
   } else {
     h+='<div style="background:#1e3320;border:1px solid #3d7a45;border-radius:8px;padding:9px 11px;margin-bottom:9px;color:#8fd49a;font-size:.79rem;">'
@@ -20443,8 +21162,39 @@ async function contratGenAction(mode){
         +'\n\nGénérer quand même ?')) return;
     }
   }
-  if(/\{[a-z_0-9]+\}/.test(texte)){
-    if(!confirm('Il reste des champs à compléter (surlignés en jaune, ex. {taux_horaire}). Envoyer quand même ?')) return;
+  /* ★ v694 — « il me met "taux horaire vide" alors qu'on l'a rempli — tu peux
+     m'expliquer pourquoi ? »
+
+     Oui, et c'était un vrai défaut. Le contrôle portait sur les CINQ documents
+     COLLÉS BOUT À BOUT, et le message citait « {taux_horaire} » à titre d'exemple,
+     écrit en dur. Le taux d'Idez Léa était bel et bien rempli : ce qui manquait,
+     c'était un champ d'un AUTRE document — les zones filmées de la note caméras,
+     par exemple, qui vivent dans Paramètres › Société. On lui reprochait donc une
+     case pleine pendant qu'on lui cachait la case vide.
+
+     Maintenant on nomme ce qui manque, document par document, et l'endroit où
+     l'on va le remplir. */
+  {
+    var _mq694=[];
+    _docs0.forEach(function(d){
+      var vus={}, dedans=[];
+      ((d.texte||'').match(/\{[a-z_0-9]+\}/g)||[]).forEach(function(x){
+        var k=x.slice(1,-1); if(!vus[k]){ vus[k]=1; dedans.push(k); }
+      });
+      if(dedans.length) _mq694.push({doc:(d.titre||d.cle||'Document'), cles:dedans});
+    });
+    if(_mq694.length){
+      var _detail=_mq694.map(function(x){
+        return '· '+x.doc+'\n     '+x.cles.map(function(k){
+          var o=CTR_OU_REMPLIR[k];
+          return (o?o.lbl:('{'+k+'}'))+' — '+((o&&CTR_OU_TXT[o.ou])||'à compléter à la main');
+        }).join('\n     ');
+      }).join('\n');
+      var _n694=_mq694.reduce(function(a,x){ return a+x.cles.length; },0);
+      if(!confirm(_n694+' information'+(_n694>1?'s':'')+' manque'+(_n694>1?'nt':'')+' encore '
+        +'(elles apparaissent en jaune dans l\'aperçu) :\n\n'+_detail
+        +'\n\nLe document partira avec ces accolades en toutes lettres.\n\nEnvoyer quand même ?')) return;
+    }
   }
   /* ★ v681 — en essai, l'adresse du salarié n'est pas nécessaire : c'est même
      tout l'intérêt (Idez Léa n'en a pas dans sa fiche). */
@@ -20461,25 +21211,29 @@ async function contratGenAction(mode){
   var _hh=document.getElementById('contratgen-heures');
   var docs=_docs0;      /* déjà préparés et relus plus haut */
 
-  if(mode==='mail' && docs.length>1){
-    if(!confirm(docs.length+' documents vont partir à '+e.name+', chacun à signer séparément :\n\n· '
-      +docs.map(function(d){ return d.titre; }).join('\n· ')
-      +'\n\nCela fera '+docs.length+' envois. Continuer ?')){ window._contratEnCours=false; return; }
-  }
-
   var faits=[], premier=null;
   try{
+    /* ★ v689 — TOUS LES DOCUMENTS D'UNE FOURNÉE PORTENT LE MÊME NUMÉRO.
+       Avant, chaque tour de boucle relisait Date.now() : si la milliseconde
+       changeait en cours de route — ce qui arrive dès que le PDF est un peu long —
+       le dernier document sortait sous « letC_…341_4 » au lieu de « letC_…340_4 ».
+       Il n'appartenait plus à la même fournée : le brouillon ne l'aurait pas repris. */
+    var _lot='letC_'+Date.now();
     for(var i=0;i<docs.length;i++){
       var d=docs[i];
-      var lid='letC_'+Date.now()+(i?('_'+i):'');
+      var lid=_lot+(i?('_'+i):'');
       await sb.insert('bks_letters',{id:lid,incident_id:'',emp_id:e.id,emp_name:e.name,
         emp_email:e.email||'',sanction_type:'contrat',type:'contrat',status:'pending',
         sig_status:'pending',body:d.texte,created_by:reporter,created_at:new Date().toISOString(),
         /* ★ v687 — le document dit qui il est. Sans ça, il redevenait « CONTRAT DE
            TRAVAIL » partout et les quatre PDF s'écrasaient dans Dropbox. */
         doc_cle:d.cle, doc_titre:d.titre});
-      try{ avertPdf(e, d.texte, d.titre, d.titre.replace(/[^A-Za-zÀ-ÿ0-9]+/g,'_').slice(0,40),
-              {contrat:true, dirImg:(DB.mailSettings&&DB.mailSettings.signatureDir)||''}); }catch(_){}
+      /* ★ v694 — « ça part en téléchargement, je ne t'ai pas demandé que ça parte
+         en téléchargement. » Cinq PDF tombaient dans le dossier Téléchargements à
+         chaque génération, avant même qu'il ait relu quoi que ce soit. Le PDF
+         définitif est celui qui sera rangé dans le dossier du salarié une fois
+         signé ; celui-là ne servait à rien qu'à encombrer. Il reste à portée :
+         👁️ Relire, dans le panneau qui suit. */
       faits.push({lid:lid, titre:d.titre});
       if(!premier) premier=lid;
     }
@@ -20487,11 +21241,13 @@ async function contratGenAction(mode){
     var ov=document.getElementById('contratgen-ov'); if(ov) ov.remove();
     if(mode==='tablette'){ try{ signerSurPlace(premier); }catch(_){} }
     else {
-      for(var k=0;k<faits.length;k++){ try{ await sendContratEmail(faits[k].lid); }catch(_){} }
+      /* ★ v689 — on n'ouvre plus rien tout seul : le navigateur bloquerait, et de
+         toute façon Vincent veut relire avant. Le panneau propose le brouillon. */
+      try{ ctrPanneauEnvoi(e, faits); }catch(_){}
     }
     try{ if(document.getElementById('empf-docs')) renderEmpDocs(e.id,'empf-docs'); }catch(_){}
     try{ if(typeof renderContrats==='function' && document.getElementById('contrats-list')) renderContrats(); }catch(_){}
-    toast(faits.length+' document(s) créé(s) pour '+e.name+' — PDF téléchargé(s).','success');
+    toast(faits.length+' document(s) créé(s) pour '+e.name+'.','success');
     /* ★ v688 — LE PIÈGE À ÉVITER.
        Un avenant signé qui ne change rien dans la fiche, c'est un salarié qui
        passe à 24 h sur le papier et reste à 15 h dans le planning. L'application
@@ -20509,6 +21265,147 @@ async function contratGenAction(mode){
   finally{ window._contratEnCours=false; }
 }
 window.contratGenAction=contratGenAction;
+
+/* ════════════════════════════════════════════════════════════════════════════
+   ★ v689 — « QUE JE REGARDE TRÈS BIEN TOUS LES DOCUMENTS, PUIS VALIDER. »
+
+   Les documents sont créés, les PDF téléchargés. Avant que quoi que ce soit parte,
+   on les remet devant Vincent : la liste, un bouton pour relire chacun, le
+   destinataire en clair — et seulement ensuite le bouton qui ouvre le brouillon.
+   Ce bouton est un VRAI clic : le navigateur ne peut plus le bloquer.
+   ════════════════════════════════════════════════════════════════════════════ */
+function ctrPanneauEnvoi(e, faits){
+  faits=(faits||[]).filter(Boolean); if(!faits.length) return;
+  var lettres=faits.map(function(f){ return (DB.letters||[]).find(function(l){return l.id===f.lid;}); }).filter(Boolean);
+  if(!lettres.length) return;
+  var br=ctrBrouillon(lettres)||{};
+  var n=faits.length;
+  var old=document.getElementById('ctr-envoi-ov'); if(old) old.remove();
+  var ov=document.createElement('div'); ov.id='ctr-envoi-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100001;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto;';
+
+  /* ★ v694 — « je peux pas relire, parce que regarde : c'est derrière. Et si
+     j'appuie sur PDF, il ne se passe rien. »
+
+     Les deux étaient vrais. « Relire » ouvrait bien une fenêtre — mais à
+     z-index 100000, sous ce panneau-ci qui est à 100001 : elle s'affichait
+     DERRIÈRE, invisible. Et « PDF » lançait un téléchargement, c'est-à-dire
+     exactement ce qu'il ne voulait plus.
+
+     Un seul bouton reste, et il fait ce qu'il annonce : la feuille mise en page,
+     par-dessus tout le reste. C'est d'ailleurs mot pour mot ce que la salariée
+     verra sur son téléphone. */
+  var lignes=lettres.map(function(l,i){
+    var id=ctrDocIdent(l);
+    return '<div style="display:flex;align-items:center;gap:9px;border-top:1px solid #262626;padding:8px 2px;flex-wrap:wrap;">'
+      +'<div style="font-size:1.05rem;width:22px;text-align:center;">'+id.icone+'</div>'
+      +'<div style="flex:1;min-width:150px;">'
+        +'<div style="font-size:.85rem;color:#eee;">'+escapeHtmlCt(id.nom)+'</div>'
+        +'<div style="font-size:.68rem;color:#666;">Document '+(i+1)+' sur '+lettres.length+'</div>'
+      +'</div>'
+      +'<button class="btn btn-gray btn-sm" onclick="ctrRelire(\''+l.id+'\')">👁️ Relire</button>'
+      +'</div>';
+  }).join('');
+
+  var sig=ctrSignatureDir();
+  var dest=br.essai
+    ? '<div style="background:#3a1a15;border:1px solid #C01E00;border-radius:8px;padding:9px 12px;color:#ff9a80;font-size:.79rem;line-height:1.5;">'
+      +'🧪 <b>Envoi d\'essai armé</b> — le brouillon sera adressé à <b>'+escapeHtmlCt(br.dest||'')+'</b>, '
+      +'pas à '+escapeHtmlCt(e.name||'ce salarié')+'. Les liens de signature sont réels.</div>'
+    : (br.dest
+      ? '<div style="background:#12211a;border:1px solid #234a34;border-radius:8px;padding:9px 12px;color:#8fd49a;font-size:.79rem;line-height:1.5;">'
+        +'✉️ Destinataire : <b>'+escapeHtmlCt(br.dest)+'</b>'+(br.cc?(' · copie à '+escapeHtmlCt(br.cc)):'')+'</div>'
+      : '<div style="background:#3a1a15;border:1px solid #8B3020;border-radius:8px;padding:9px 12px;color:#e8907a;font-size:.79rem;line-height:1.5;">'
+        +'⛔ <b>'+escapeHtmlCt(e.name||'Ce salarié')+' n\'a pas d\'adresse mail</b> dans sa fiche. '
+        +'Renseignez-la, ou armez l\'envoi d\'essai pour vous l\'envoyer à vous.</div>');
+
+  ov.innerHTML='<div style="background:#1A1A1A;border:1px solid #444;border-radius:12px;max-width:660px;width:100%;margin:auto;">'
+    +'<div style="background:linear-gradient(135deg,#1d7a3a,#12511f);padding:14px 20px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.2rem;color:#c9f5d4;text-transform:uppercase;letter-spacing:1.5px;">'
+        +'✔ '+n+' document'+(n>1?'s':'')+' créé'+(n>1?'s':'')+' — '+escapeHtmlCt(e.name||'')+'</div>'
+      +'<button onclick="document.getElementById(\'ctr-envoi-ov\').remove()" style="background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;">✕</button>'
+    +'</div>'
+    +'<div style="padding:16px 20px;">'
+      +'<p style="font-size:.82rem;color:#bbb;line-height:1.55;margin:0 0 10px;">'
+        +'Relisez-les si vous le souhaitez, puis ouvrez le brouillon. '
+        +'<b>Rien n\'est envoyé tant que vous n\'avez pas appuyé sur Envoyer dans Gmail.</b></p>'
+      +(sig
+        ? '<div style="font-size:.76rem;color:#8fd49a;margin-bottom:8px;">✍️ Vos documents partent <b>déjà signés</b> par la direction.</div>'
+        : '<div style="font-size:.76rem;color:#F5A623;margin-bottom:8px;">⚠️ Aucune signature de direction enregistrée : les documents partent avec un cadre vide côté entreprise. '
+          +'<button class="btn btn-gray btn-sm" style="padding:2px 8px;" onclick="ctrOuvrirSignature()">✍️ La dessiner</button></div>')
+      +'<div style="background:#141414;border:1px solid #2A2A2A;border-radius:10px;padding:4px 12px 10px;margin-bottom:12px;">'+lignes+'</div>'
+      /* ★ v695 — l'application en ligne est-elle bien celle-ci ? */
+      +'<div id="ctr-envoi-ver" style="margin-bottom:9px;">'+ctrVerBandeau(_CTR_VER_LIGNE)+'</div>'
+      +dest
+      /* ★ v694 — « faire signer sur tablette : on s'en fout, on l'a déjà demandé
+         avant. Il faut simplement envoyer. » Exact : le choix mail / tablette est
+         fait à la fenêtre précédente. Le reproposer ici, c'est redemander une
+         décision déjà prise. */
+      +'<div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px;">'
+        +'<button class="btn btn-gray" onclick="document.getElementById(\'ctr-envoi-ov\').remove()">Plus tard</button>'
+        +'<button class="btn" style="background:linear-gradient(135deg,#2e9e4f,#1d7a3a);color:#fff;border:none;font-weight:800;" onclick="ctrOuvrirBrouillon(\''+lettres[0].id+'\')">✉️ Ouvrir le brouillon</button>'
+      +'</div>'
+      /* ★ v694 — ce texte disait encore « un lien de signature par document ».
+         C'est faux depuis la v691 : il n'y en a qu'un. */
+      +'<p style="font-size:.73rem;color:#777;line-height:1.5;margin:12px 0 0;">'
+        +'Un seul mail, <b>un seul lien</b> : '+escapeHtmlCt((e.name||'la salariée').split(/\s+/).slice(-1)[0])
+        +' y lit les '+n+' document'+(n>1?'s':'')+' à la suite et signe <b>une seule fois</b>. '
+        +'Vous retrouverez ce brouillon à tout moment dans la <b>fiche du salarié → Suivi des contrats</b>, bouton ✉️.</p>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  /* ★ v695 — la vérification arrive quand elle arrive ; le panneau se met à jour. */
+  ctrVerifierEnLigne().then(function(v){
+    var z=document.getElementById('ctr-envoi-ver'); if(z) z.innerHTML=ctrVerBandeau(v);
+  }).catch(function(){});
+}
+window.ctrPanneauEnvoi=ctrPanneauEnvoi;
+
+/* ★ v694 — RELIRE : la feuille, pas le texte brut, et au-dessus de tout.
+
+   On affiche toute la fournée, comme le salarié la verra, avec le document
+   demandé amené sous les yeux. z-index 100010 : au-dessus du panneau d'envoi
+   (100001), de la fenêtre de génération (100000) et du reste. */
+function ctrRelire(lid){
+  var lot=[]; try{ lot=ctrLotDe(lid); }catch(_){}
+  if(!lot.length){ var _l=(DB.letters||[]).find(function(x){return x.id===lid;}); if(_l) lot=[_l]; }
+  if(!lot.length){ toast('Document introuvable','error'); return; }
+  var l0=lot[0];
+  var emp=(DB.employees||[]).find(function(x){ return x.id===l0.empId; })||null;
+  var soc={}; try{ soc=getSociete(emp&&emp.restoId)||{}; }catch(_){}
+  var resto=(soc.restaurant_nom?('BURGER KING '+soc.restaurant_nom):(soc.nom||'BURGER KING'));
+
+  var old=document.getElementById('ctr-relire-ov'); if(old) old.remove();
+  var ov=document.createElement('div'); ov.id='ctr-relire-ov';
+  ov.style.cssText='position:fixed;inset:0;background:#e9eaee;z-index:100010;overflow:auto;';
+  var feuilles=lot.map(function(x,k){
+    var id=ctrDocIdent(x);
+    return '<div id="ctrrl-'+escapeHtmlCt(x.id)+'" style="margin-bottom:18px;scroll-margin-top:70px;">'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:.82rem;font-weight:800;color:#8B1500;'
+        +'text-transform:uppercase;letter-spacing:1.5px;margin:0 4px 6px;">'
+        +'Document '+(k+1)+' sur '+lot.length+' — '+escapeHtmlCt(id.nom)+'</div>'
+      +'<div style="background:#fff;border-radius:10px;padding:26px 26px 22px;box-shadow:0 2px 10px rgba(0,0,0,.09);">'
+        +ctrHtmlDoc(_sigStripText(x.text||''), soc, id.titre, {empNom:x.empName||''})
+      +'</div></div>';
+  }).join('');
+  ov.innerHTML='<div style="position:sticky;top:0;z-index:2;background:linear-gradient(135deg,#C01E00,#8B1500);'
+      +'padding:12px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.05rem;color:#F5A623;'
+        +'text-transform:uppercase;letter-spacing:1.5px;">👁️ Relecture — '+escapeHtmlCt(resto)+'</div>'
+      +'<div style="font-size:.74rem;color:#f6d9c8;flex:1;min-width:140px;">Ce que '
+        +escapeHtmlCt(String(l0.empName||'le salarié').split(/\s+/).slice(-1)[0])+' verra sur son téléphone.</div>'
+      /* couleur forcée : en thème clair, tout ce qui descend d'un bandeau rouge
+         se voit imposer color:#fff !important — le texte disparaissait. */
+      +'<button onclick="document.getElementById(\'ctr-relire-ov\').remove()" '
+        +'style="background:#5c0e00;color:#fff!important;border:1px solid #fff;padding:7px 18px;'
+        +'border-radius:8px;font-weight:800;cursor:pointer;">✕ Fermer</button>'
+    +'</div>'
+    +'<div style="max-width:820px;margin:0 auto;padding:18px 14px 60px;">'+feuilles+'</div>';
+  document.body.appendChild(ov);
+  setTimeout(function(){
+    try{ var t=document.getElementById('ctrrl-'+lid); if(t) t.scrollIntoView({block:'start'}); }catch(_){}
+  },30);
+}
+window.ctrRelire=ctrRelire;
 
 /* Un avenant vient d'être créé : faut-il programmer le changement de contrat ? */
 async function ctrProposerBascule(e, docs, saisi){
@@ -20536,42 +21433,368 @@ async function ctrProposerBascule(e, docs, saisi){
 }
 window.ctrProposerBascule=ctrProposerBascule;
 // Mail « votre contrat à signer » (ouvre un brouillon à valider). Direction/admin.
-async function sendContratEmail(lid){
-  var l=(DB.letters||[]).find(function(x){return x.id===lid;}); if(!l){ toast('Contrat introuvable','error'); return; }
-  /* ★ v681 — en mode essai, tout part sur l'adresse d'essai. Le salarié n'a même
-     pas besoin d'avoir une adresse : c'est justement le cas d'Idez Léa. */
-  var _es=ctrEssaiActif()?ctrEssai():null;
-  if(!_es && !l.empEmail){ toast('Pas d\'email pour ce salarié.','error'); return; }
-  var emp=(DB.employees||[]).find(function(x){return x.id===l.empId;});
-  var restoLbl=emp&&RESTOS[emp.restoId]?RESTOS[emp.restoId].label:'Burger King';
-  var prenom=(l.empName||'').trim().split(/\s+/).slice(-1)[0]||'';
-  var sigUrl=window.location.origin+window.location.pathname+'#sign/'+lid;
-  /* ★ v687 — quatre mails au même objet « Votre contrat à signer », le salarié ne
-     savait pas ce qu'il ouvrait. Chaque mail dit son document. */
-  var _id=ctrDocIdent(l);
-  var subj=(_id.cle==='contrat'?'Votre contrat à signer':(_id.nom+' — à signer'))+' — '+restoLbl;
-  var _intro=(_id.cle==='contrat')
-      ? 'Veuillez trouver ci-dessous votre contrat de travail.'
-      : ('Veuillez trouver ci-dessous le document suivant, à signer séparément de votre contrat : '+_id.nom+'.');
-  var body='Bonjour '+prenom+',\n\n'+_intro+' Merci de le lire attentivement et de le signer en ligne via le lien ci-dessous :\n\n🔗 '+sigUrl+'\n\n———\n'+(l.text||'')+'\n———\n\nCordialement,\n'+restoLbl;
-  /* ★ v681 — l'essai se voit dès l'objet, et dit à qui il aurait dû aller. */
-  if(_es){
-    subj='[ESSAI] '+subj+' — '+(l.empName||'');
-    body='⚠️ ENVOI D\'ESSAI — ce message ne part PAS au salarié.\n'
-        +'Destinataire réel prévu : '+(l.empName||'')+(l.empEmail?(' <'+l.empEmail+'>'):' (aucune adresse dans sa fiche)')+'\n'
-        +'Le lien de signature ci-dessous est bien réel : signer dessus signera vraiment ce document.\n'
-        +'————————————————————————\n\n'+body;
+/* ════════════════════════════════════════════════════════════════════════════
+   ★ v689 — UN SEUL BROUILLON, QU'ON RELIT AVANT D'ENVOYER.
+
+   Vincent : « je voudrais que ça parte en signature par mail […] j'ai un mail de
+   brouillon qui apparaît, là je ne l'ai pas. Et après je dois l'envoyer moi,
+   valider plutôt. »
+
+   Deux choses n'allaient pas.
+
+   1) LE BROUILLON N'APPARAISSAIT PAS. Générer cinq documents, c'était cinq
+      window.open() enchaînés APRÈS plusieurs await (insertion en base, PDF,
+      rechargement). Or un navigateur n'autorise l'ouverture d'une fenêtre que
+      dans la foulée d'un clic : passé le premier await, le geste est « périmé »
+      et Chrome bloque tout, en silence. D'où cinq brouillons attendus et zéro
+      reçu.
+
+   2) CINQ MAILS POUR UN SEUL ENVOI. Cinq documents = cinq messages au salarié,
+      qu'il fallait valider cinq fois.
+
+   Désormais : un seul brouillon pour toute la fournée, avec un lien de signature
+   par document ; et il s'ouvre sur un VRAI clic — le bouton « Ouvrir le brouillon »
+   du panneau de relecture. Vincent relit dans Gmail et appuie sur Envoyer.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ════════════════════════════════════════════════════════════════════════════
+   ★ v691 — LE LIEN DOIT MARCHER CHEZ LE SALARIÉ, PAS SEULEMENT CHEZ VOUS.
+
+   Vincent, en relisant le brouillon : « à la place du lien, j'aurais préféré
+   autre chose. » Et il avait sous les yeux :
+
+       file:///Users/burgerking/Downloads/index_690.html#sign/letC_1787340081924
+
+   C'est le chemin du fichier SUR SON MAC. Le lien était construit avec
+   window.location — or quand l'application est ouverte depuis le dossier
+   Téléchargements, window.location est un chemin local. Léa aurait reçu cette
+   adresse : chez elle, elle ne mène à rien. Le mail serait parti, elle aurait
+   cliqué, et rien. C'est exactement ce qu'il a constaté.
+
+   L'application a une vraie adresse en ligne, celle qu'on ouvre depuis le
+   téléphone. C'est CELLE-LÀ qu'il faut mettre dans le mail. On la retient (elle
+   se remplit toute seule dès qu'on ouvre l'application en ligne), et tant qu'on
+   ne l'a pas, on REFUSE d'ouvrir le brouillon plutôt que d'envoyer un lien mort.
+   ════════════════════════════════════════════════════════════════════════════ */
+function ctrAppUrl(){
+  var u='';
+  try{ u=String((DB.mailSettings&&DB.mailSettings.appUrl)||'').trim(); }catch(_){}
+  if(u) return u.replace(/[#?].*$/,'');
+  if(/^https?:$/.test(window.location.protocol))
+    return (window.location.origin+window.location.pathname);
+  /* ★ v694 — « il n'a pas besoin de m'indiquer l'adresse. »
+     Il a raison, et j'étais allé chercher loin : l'application CONNAÎT son adresse
+     publique depuis toujours. C'est celle des QR codes de recrutement, celle des
+     liens équipier, celle de l'écran TV — publicBaseUrl(). Il n'y avait aucune
+     raison de la redemander pour les contrats. */
+  try{ var p=publicBaseUrl(); if(p && /^https?:\/\//.test(p)) return String(p).replace(/[#?].*$/,''); }catch(_){}
+  return '';
+}
+function ctrEstLocal(){ return !/^https?:$/.test(window.location.protocol); }
+
+/* ★ v695 — LE PIÈGE QUI A GÂCHÉ SON ESSAI.
+
+   Vincent teste depuis `index_694.html`, dans son dossier Téléchargements. Tout y
+   est juste. Mais le mail, lui, envoie le salarié sur **https://bkrh.vercel.app/**
+   — l'application EN LIGNE. Et en ligne, c'est encore une vieille version qui
+   tourne : sur sa capture, Léa reçoit le bandeau noir « BKRH — SIGNATURE », le
+   titre générique « Courrier », un document à la fois, DEUX cadres « Pour Burger
+   Avenue 500 » et aucun pour elle. Tout ce qu'on a réparé depuis la v691.
+
+   Corriger le fichier local ne suffit donc pas : il faut le **déployer**. Et rien,
+   nulle part, ne le disait. On le dit maintenant, avant d'ouvrir le brouillon —
+   parce qu'un mail parti vers une vieille page ne se rattrape pas.               */
+var _CTR_VER_LIGNE=null;      /* {etat:'ok'|'vieille'|'inconnue', version} */
+function ctrVersionLocale(){
+  try{ return String(window.__APP_VERSION_EMBEDDED||''); }catch(_){ return ''; }
+}
+function ctrVersionCourte(v){
+  var m=String(v||'').match(/\bv(\d+)/); return m?('v'+m[1]):String(v||'').slice(0,24);
+}
+window.ctrVersionLocale=ctrVersionLocale; window.ctrVersionCourte=ctrVersionCourte;
+
+async function ctrVerifierEnLigne(force){
+  if(_CTR_VER_LIGNE && !force) return _CTR_VER_LIGNE;
+  var base=ctrAppUrl();
+  var loc=ctrVersionLocale();
+  if(!base){ _CTR_VER_LIGNE={etat:'inconnue', version:''}; return _CTR_VER_LIGNE; }
+  /* déjà en ligne sur cette adresse : c'est forcément la bonne */
+  try{
+    if(!ctrEstLocal() && (window.location.origin+window.location.pathname).indexOf(base.replace(/\/$/,''))===0){
+      _CTR_VER_LIGNE={etat:'ok', version:loc}; return _CTR_VER_LIGNE;
+    }
+  }catch(_){}
+  try{
+    var r=await fetch(base+(base.indexOf('?')<0?'?':'&')+'_v='+Date.now(), {cache:'no-store'});
+    var html=await r.text();
+    var m=html.match(/EMBEDDED_VERSION\s*=\s*'([^']+)'/);
+    var dist=m?m[1]:'';
+    if(!dist){ _CTR_VER_LIGNE={etat:'inconnue', version:''}; }
+    else _CTR_VER_LIGNE={etat:(dist===loc?'ok':'vieille'), version:dist};
+  }catch(e){
+    /* depuis un fichier local, le navigateur refuse de lire une autre adresse.
+       On ne peut pas savoir : on le dit, plutôt que de laisser croire que tout va bien. */
+    _CTR_VER_LIGNE={etat:'inconnue', version:''};
   }
-  var ms=DB.mailSettings||{}; var cc=(ms.ccRecipients||[]).concat((ms.recipients||[]).map(function(r){return r.email;})).filter(Boolean).join(',');
-  var mode=(ms.mailMode)||'gmail';
-  /* ★ v681 — en essai : une seule adresse, et surtout AUCUNE copie aux autres. */
-  var dest=_es?_es.email:l.empEmail;
-  if(_es) cc='';
-  if(mode==='gmail'){ window.open(_gmailBase()+'&to='+encodeURIComponent(dest)+(cc?'&cc='+encodeURIComponent(cc):'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
-  else { window.open('mailto:'+dest+(cc?'?cc='+encodeURIComponent(cc)+'&':'?')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank'); }
-  try{ await sb.patch('bks_letters','id=eq.'+lid,{sent_at:new Date().toISOString()}); await loadAll(); }catch(_){}
-  toast(_es?('🧪 Essai : brouillon prêt pour '+dest+' — rien ne part au salarié.')
-           :'Mail du contrat prêt (brouillon à valider avant envoi).','success');
+  return _CTR_VER_LIGNE;
+}
+window.ctrVerifierEnLigne=ctrVerifierEnLigne;
+
+/* Le bandeau, dans le panneau d'envoi. */
+function ctrVerBandeau(v){
+  var base=ctrAppUrl();
+  var loc=ctrVersionCourte(ctrVersionLocale());
+  if(!v) return '<div style="background:#1c1c1c;border:1px solid #333;border-radius:8px;padding:8px 11px;'
+    +'color:#888;font-size:.75rem;">⏳ Vérification de l\'application en ligne…</div>';
+  if(v.etat==='ok') return '<div style="background:#12211a;border:1px solid #234a34;border-radius:8px;padding:8px 11px;'
+    +'color:#8fd49a;font-size:.75rem;line-height:1.5;">✔ L\'application en ligne est à jour ('+escapeHtmlCt(loc)+') — '
+    +'le salarié verra bien la nouvelle page de signature.</div>';
+  if(v.etat==='vieille') return '<div style="background:#3a1a15;border:1px solid #C01E00;border-radius:8px;padding:10px 12px;'
+    +'color:#ff9a80;font-size:.78rem;line-height:1.55;">'
+    +'⛔ <b>L\'application en ligne n\'est pas à jour.</b><br>'
+    +'Le lien du mail mène à <b>'+escapeHtmlCt(base)+'</b>, qui tourne encore en <b>'
+    +escapeHtmlCt(ctrVersionCourte(v.version))+'</b> alors que vous êtes en <b>'+escapeHtmlCt(loc)+'</b>.<br>'
+    +'Le salarié verrait <b>l\'ancienne page de signature</b>. Déployez cette version en ligne avant d\'envoyer.</div>';
+  return '<div style="background:#2a2216;border:1px solid #6b5320;border-radius:8px;padding:9px 12px;'
+    +'color:#f0c070;font-size:.76rem;line-height:1.55;">'
+    +'⚠️ Le lien du mail mène à <b>'+escapeHtmlCt(base)+'</b>. '
+    +'Depuis un fichier de votre Mac, je ne peux pas vérifier ce qui y est déployé.<br>'
+    +'<b>Assurez-vous d\'y avoir mis cette version ('+escapeHtmlCt(loc)+')</b> : sinon le salarié tomberait sur l\'ancienne page.</div>';
+}
+window.ctrVerBandeau=ctrVerBandeau;
+function ctrLienSignature(lid){ var b=ctrAppUrl(); return b?(b+'#sign/'+lid):''; }
+window.ctrAppUrl=ctrAppUrl; window.ctrEstLocal=ctrEstLocal; window.ctrLienSignature=ctrLienSignature;
+
+/* Au démarrage : si on est en ligne, on retient l'adresse — une seule fois, sans
+   rien demander. C'est la bonne, puisque c'est celle qu'on utilise. */
+/* ★ v692 — « TU CHANGES MON TRUC DE SIGNATURE POUR METTRE ÇA À LA PLACE. »
+
+   Vincent avait dessiné un paraphe à la souris : minuscule, illisible une fois
+   réduit dans le cadre. Il demande son nom écrit à la place. On le fait une fois,
+   automatiquement, au premier démarrage de cette version — avec la belle anglaise
+   de son Mac (Snell Roundhand). Il peut toujours en redessiner une ensuite. */
+/* ★ v694 — cette migration ne sert plus : la signature est calculée (ctrSignatureDir).
+   On la garde pour une seule chose, utile : effacer le drapeau que la v692 avait posé
+   pour rien, et retirer de la base l'ancien gribouillis devenu inutile. */
+async function ctrSignatureNomGerant(){
+  try{
+    try{ localStorage.removeItem('bkrh_sig_nom_v692'); }catch(_){}
+    _CTR_SIG_CACHE={};
+    if(!DB.mailSettings) DB.mailSettings={};
+    if(DB.mailSettings.signatureMode) return;      /* un choix a été fait : on n'y touche pas */
+    DB.mailSettings.signatureMode='nom';
+    await saveDB();
+  }catch(e){ console.warn('ctrSignatureNomGerant',e); }
+}
+window.ctrSignatureNomGerant=ctrSignatureNomGerant;
+
+async function ctrRetenirAppUrl(){
+  try{
+    if(ctrEstLocal()) return;
+    var actuelle=(window.location.origin+window.location.pathname);
+    if(String((DB.mailSettings&&DB.mailSettings.appUrl)||'').trim()===actuelle) return;
+    if(!DB.mailSettings) DB.mailSettings={};
+    DB.mailSettings.appUrl=actuelle;
+    await saveDB();
+    console.info('v691 — adresse de l\'application retenue :', actuelle);
+  }catch(e){ console.warn('ctrRetenirAppUrl',e); }
+}
+window.ctrRetenirAppUrl=ctrRetenirAppUrl;
+
+async function ctrDefinirAppUrl(){
+  var u=prompt('Adresse de l\'application — celle que vos salariés ouvrent depuis leur téléphone.\n\n'
+    +'Elle doit commencer par https://. C\'est elle qui sera mise dans les mails de signature.\n\n'
+    +'(Ouvrez l\'application depuis cette adresse une fois : elle se retiendra toute seule.)',
+    ctrAppUrl()||'https://');
+  if(u===null) return;
+  u=String(u).trim().replace(/[#?].*$/,'');
+  if(u && !/^https?:\/\//.test(u)){ alert('Cette adresse doit commencer par https://.'); return; }
+  if(!DB.mailSettings) DB.mailSettings={};
+  if(u) DB.mailSettings.appUrl=u; else delete DB.mailSettings.appUrl;
+  try{ await saveDB(); toast(u?'Adresse enregistrée ✔':'Adresse effacée.','success'); }
+  catch(e){ toast('Erreur d\'enregistrement','error'); }
+  try{ if(document.getElementById('contrats-list')) renderContrats(); }catch(_){}
+}
+window.ctrDefinirAppUrl=ctrDefinirAppUrl;
+
+/* Les documents sortis dans la même fournée : letC_1786…, letC_1786…_1, _2… */
+function ctrLotDe(lid){
+  var ref=(DB.letters||[]).filter(function(l){ return l.id===lid; })[0];
+  /* Un identifiant de fournée s'écrit letC_<horodatage>, et les documents suivants
+     letC_<horodatage>_1, _2… Attention : « letC_1787329802485 » se termine LUI AUSSI
+     par un souligné suivi de chiffres — retirer bêtement « _<chiffres> » donnerait
+     « letC », qui ramasserait alors TOUS les contrats de TOUS les salariés. */
+  var m=String(lid||'').match(/^(letC_\d+)(?:_\d+)?$/);
+  if(!m) return ref?[ref]:[];
+  var base=m[1];
+  var tous=(DB.letters||[]).filter(function(l){
+    if(ref && l.empId!==ref.empId) return false;
+    var id=String(l.id||'');
+    return id===base || (id.indexOf(base+'_')===0 && /^\d+$/.test(id.slice(base.length+1)));
+  });
+  tous.sort(function(a,b){ return String(a.id).localeCompare(String(b.id),'fr',{numeric:true}); });
+  return tous.length?tous:(ref?[ref]:[]);
+}
+window.ctrLotDe=ctrLotDe;
+
+/* Le brouillon : objet, corps, destinataire. Rien n'est ouvert ici. */
+function ctrBrouillon(lettres){
+  lettres=(lettres||[]).filter(Boolean);
+  if(!lettres.length) return null;
+  var l0=lettres[0];
+  var emp=(DB.employees||[]).find(function(x){return x.id===l0.empId;});
+  var restoLbl=(emp&&RESTOS[emp.restoId])?RESTOS[emp.restoId].label:'Burger King';
+  try{ var _s=getSociete(emp&&emp.restoId)||{}; if(_s.restaurant_nom) restoLbl='BURGER KING '+_s.restaurant_nom; }catch(_){}
+  var prenom=(l0.empName||'').trim().split(/\s+/).slice(-1)[0]||'';
+  var base=ctrAppUrl();                       /* ★ v691 — plus jamais file:/// */
+  var ids=lettres.map(function(l){ return ctrDocIdent(l); });
+  var n=lettres.length;
+
+  var subj=(n===1)
+    ? ((ids[0].cle==='contrat'?'Votre contrat à signer':(ids[0].nom+' — à signer'))+' — '+restoLbl)
+    : ('Vos '+n+' documents à signer — '+restoLbl);
+
+  /* ★ v691 — UN SEUL LIEN. Vincent : « je lis les cinq documents et je signe une
+     fois. » Le lien ouvre toute la fournée : les documents défilent, le pavé est
+     en bas, une seule signature les vaut tous. Cinq liens, c'était cinq pages à
+     ouvrir et cinq signatures. */
+  /* ★ v691 — sans adresse publique, on ne fabrique pas un mail de liens morts. */
+  if(!base) return {sansAdresse:true, dest:(l0.empEmail||''), n:n, nomSalarie:l0.empName||''};
+  var lien=base+'#sign/'+lettres[0].id;
+  var liste=lettres.map(function(l,i){ return '   '+(n>1?((i+1)+'. '):'')+ids[i].nom; }).join('\n');
+
+  var dejaSignee=!!ctrSignatureDir();
+  var body='Bonjour '+prenom+',\n\n'
+    +(n===1
+      ? 'Voici votre document à lire et à signer en ligne :'
+      : 'Voici vos '+n+' documents à lire et à signer en ligne :')
+    +'\n\n'+liste+'\n\n'
+    +'\u25B6 Ouvrez ce lien :\n'+lien+'\n\n'
+    +(n>1
+      ? 'Les '+n+' documents défilent sur la même page. Lisez-les, puis signez UNE SEULE FOIS tout en bas : votre signature vaut pour les '+n+'.\n'
+      : 'Lisez le document, puis signez au bas de la page.\n')
+    +(dejaSignee?(n>1?'Ils sont déjà signés par la direction : il ne manque que votre signature.\n':'Il est déjà signé par la direction : il ne manque que votre signature.\n'):'')
+    +'\nPour toute question, répondez simplement à ce message.\n\n'
+    +'Cordialement,\n'+restoLbl;
+
+  /* ★ v681 — l'essai : tout part sur l'adresse d'essai, et ça se voit. */
+  var _es=ctrEssaiActif()?ctrEssai():null;
+  if(_es){
+    subj='[ESSAI] '+subj+' — '+(l0.empName||'');
+    body='⚠️ ENVOI D\'ESSAI — ce message ne part PAS au salarié.\n'
+      +'Destinataire réel prévu : '+(l0.empName||'')+(l0.empEmail?(' <'+l0.empEmail+'>'):' (aucune adresse dans sa fiche)')+'\n'
+      +'Les liens de signature ci-dessous sont bien réels : signer dessus signera vraiment ces documents.\n'
+      +'————————————————————————\n\n'+body;
+  }
+
+  var ms=DB.mailSettings||{};
+  var cc=_es?'':(ms.ccRecipients||[]).concat((ms.recipients||[]).map(function(r){return r.email;})).filter(Boolean).join(',');
+  return {subj:subj, body:body, dest:(_es?_es.email:(l0.empEmail||'')), cc:cc,
+          essai:!!_es, ids:lettres.map(function(l){return l.id;}), n:n, nomSalarie:l0.empName||''};
+}
+window.ctrBrouillon=ctrBrouillon;
+
+/* Ouvre le brouillon. À N'APPELER QUE depuis un clic — sinon le navigateur bloque. */
+async function ctrOuvrirBrouillon(lid, opts_force){
+  var lot=ctrLotDe(lid);
+  var br=ctrBrouillon(lot);
+  if(!br){ toast('Document introuvable','error'); return; }
+  if(br.sansAdresse){ ctrPanneauAdresse(); return; }          /* ★ v691 */
+  /* ★ v691 — LE MAIL NE DOIT PAS PARTIR QUARANTE FOIS.
+     Vincent : « je ne veux pas qu'on retombe dessus, sinon on va appuyer quarante
+     fois et on ne va pas lui envoyer quarante fois le mail. » */
+  var _deja=lot.filter(function(l){ return l.sentAt; });
+  if(_deja.length && !opts_force){
+    var _q=_deja.map(function(l){ return +new Date(l.sentAt); }).sort().pop();
+    if(!confirm('Un brouillon a déjà été préparé pour ces documents'
+      +(_q?(' le '+new Date(_q).toLocaleString('fr-FR')):'')+'.\n\n'
+      +'Si vous l\'avez envoyé, '+(br.nomSalarie||'le salarié')+' l\'a déjà reçu — en rouvrir un autre lui enverrait le même message une deuxième fois.\n\n'
+      +'Rouvrir quand même ?')) return;
+  }
+  if(!br.dest){ toast('Ce salarié n\'a pas d\'adresse mail (à renseigner dans sa fiche), ou activez l\'envoi d\'essai.','error'); return; }
+  /* ★ v695 — un mail parti vers une vieille page ne se rattrape pas. */
+  if(_CTR_VER_LIGNE && _CTR_VER_LIGNE.etat==='vieille' && !opts_force){
+    if(!confirm('L\'application en ligne n\'est pas à jour.\n\n'
+      +'Le lien du mail mène à '+ctrAppUrl()+', qui tourne encore en '
+      +ctrVersionCourte(_CTR_VER_LIGNE.version)+' alors que vous êtes en '+ctrVersionCourte(ctrVersionLocale())+'.\n\n'
+      +(br.nomSalarie||'Le salarié')+' verrait l\'ANCIENNE page de signature : un document à la fois, '
+      +'deux cadres pour l\'employeur et aucun pour elle.\n\n'
+      +'Déployez d\'abord cette version en ligne.\n\nOuvrir le brouillon quand même ?')) return;
+  }
+  var mode=((DB.mailSettings||{}).mailMode)||'gmail';
+  var url=(mode==='gmail')
+    ? (_gmailBase()+'&to='+encodeURIComponent(br.dest)+(br.cc?'&cc='+encodeURIComponent(br.cc):'')
+       +'&su='+encodeURIComponent(br.subj)+'&body='+encodeURIComponent(br.body))
+    : ('mailto:'+br.dest+(br.cc?'?cc='+encodeURIComponent(br.cc)+'&':'?')
+       +'subject='+encodeURIComponent(br.subj)+'&body='+encodeURIComponent(br.body));
+  var w=null; try{ w=window.open(url,'_blank'); }catch(_){}
+  if(!w){
+    /* le navigateur a bloqué : on ne laisse pas Vincent sans rien. */
+    ctrBrouillonBloque(url, br);
+    return;
+  }
+  for(var i=0;i<br.ids.length;i++){
+    try{ await sb.patch('bks_letters','id=eq.'+br.ids[i],{sent_at:new Date().toISOString()}); }catch(_){}
+  }
+  try{ await loadAll(); }catch(_){}
+  try{ if(document.getElementById('contrats-list')) renderContrats(); }catch(_){}
+  /* ★ v691 — le panneau a fait son travail : on le ferme, pour qu'on ne puisse pas
+     appuyer une deuxieme fois sans s'en rendre compte. */
+  try{ var _ov=document.getElementById('ctr-envoi-ov'); if(_ov) _ov.remove(); }catch(_){}
+  try{ if(typeof _empfId!=='undefined' && _empfId) renderEmpFicheInfos(_empfId); }catch(_){}
+  toast(br.essai
+    ? ('🧪 Essai : brouillon ouvert pour '+br.dest+' — rien ne part au salarié.')
+    : ('Brouillon ouvert ('+br.n+' document'+(br.n>1?'s':'')+'). Relisez-le dans Gmail, puis appuyez sur Envoyer.'),'success');
+}
+window.ctrOuvrirBrouillon=ctrOuvrirBrouillon;
+
+/* Le navigateur a refusé d'ouvrir la fenêtre : on donne le lien à cliquer. */
+function ctrBrouillonBloque(url, br){
+  var old=document.getElementById('ctr-bloq-ov'); if(old) old.remove();
+  var ov=document.createElement('div'); ov.id='ctr-bloq-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100002;display:flex;align-items:center;justify-content:center;padding:16px;';
+  ov.innerHTML='<div style="background:#1A1A1A;border:1px solid #8B3020;border-radius:12px;max-width:520px;width:100%;padding:18px 20px;">'
+    +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.1rem;color:#F5A623;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">⛔ Votre navigateur a bloqué la fenêtre</div>'
+    +'<p style="font-size:.83rem;color:#ccc;line-height:1.55;margin:0 0 12px;">Chrome empêche les fenêtres qui s\'ouvrent toutes seules. '
+      +'Cliquez sur le bouton ci-dessous — ou autorisez les fenêtres pour ce site (l\'icône à droite de la barre d\'adresse).</p>'
+    +'<a href="'+url.replace(/"/g,'&quot;')+'" target="_blank" class="btn btn-red btn-sm" style="text-decoration:none;display:inline-block;" '
+      +'onclick="document.getElementById(\'ctr-bloq-ov\').remove();">✉️ Ouvrir le brouillon</a> '
+    +'<button class="btn btn-gray btn-sm" onclick="document.getElementById(\'ctr-bloq-ov\').remove()">Fermer</button>'
+    +'</div>';
+  document.body.appendChild(ov);
+}
+window.ctrBrouillonBloque=ctrBrouillonBloque;
+
+/* ★ v691 — on ne peut pas fabriquer de lien : on explique, et on répare sur place. */
+function ctrPanneauAdresse(){
+  var old=document.getElementById('ctr-url-ov'); if(old) old.remove();
+  var ov=document.createElement('div'); ov.id='ctr-url-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100003;display:flex;align-items:center;justify-content:center;padding:16px;';
+  ov.innerHTML='<div style="background:#1A1A1A;border:1px solid #8B3020;border-radius:12px;max-width:560px;width:100%;padding:18px 20px;">'
+    +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.1rem;color:#F5A623;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">⛔ Le lien de signature ne mènerait nulle part</div>'
+    +'<p style="font-size:.83rem;color:#ccc;line-height:1.6;margin:0 0 10px;">'
+      +'L\'application est ouverte depuis un <b>fichier de votre ordinateur</b> :<br>'
+      +'<code style="font-size:.75rem;color:#e8907a;word-break:break-all;">'+escapeHtmlCt(String(window.location.href).slice(0,120))+'</code></p>'
+    +'<p style="font-size:.83rem;color:#ccc;line-height:1.6;margin:0 0 12px;">'
+      +'Le lien mis dans le mail serait ce chemin-là. Chez le salarié, il ne mène à rien : '
+      +'ce dossier n\'existe que sur votre Mac. <b>Mieux vaut ne pas envoyer que d\'envoyer un lien mort.</b></p>'
+    +'<p style="font-size:.83rem;color:#8fd49a;line-height:1.6;margin:0 0 14px;">'
+      +'Deux façons de régler ça : ouvrez l\'application depuis <b>son adresse en ligne</b> (elle se retiendra toute seule), '
+      +'ou indiquez cette adresse ci-dessous une fois pour toutes.</p>'
+    +'<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">'
+      +'<button class="btn btn-gray btn-sm" onclick="document.getElementById(\'ctr-url-ov\').remove()">Fermer</button>'
+      +'<button class="btn btn-red btn-sm" onclick="document.getElementById(\'ctr-url-ov\').remove();ctrDefinirAppUrl()">🔗 Indiquer l\'adresse</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+}
+window.ctrPanneauAdresse=ctrPanneauAdresse;
+
+/* Le bouton ✉️ du suivi : un brouillon pour toute la fournée du document cliqué. */
+async function sendContratEmail(lid){
+  var l=(DB.letters||[]).find(function(x){return x.id===lid;});
+  if(!l){ toast('Document introuvable','error'); return; }
+  if(!ctrEssaiActif() && !l.empEmail){ toast('Ce salarié n\'a pas d\'adresse mail (à renseigner dans sa fiche).','error'); return; }
+  await ctrOuvrirBrouillon(lid);
 }
 window.sendContratEmail=sendContratEmail;
 // Archive le PDF du contrat SIGNÉ dans le dossier Dropbox du salarié + fiche.
@@ -24799,62 +26022,231 @@ async function delCode(id){
   catch(e){toast('Erreur','error');}
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   ★ v691 — CINQ DOCUMENTS, UNE SEULE SIGNATURE.
+
+   Vincent : « il y a cinq documents différents, mais je voudrais signer qu'une
+   fois. Je ne vais pas signer chaque document. Donc je lis les cinq documents et
+   je signe une fois. »
+
+   C'est aussi ce qui se passe sur le papier : on pose la pile devant le salarié,
+   il la lit, il signe. Ici, un seul lien ouvre TOUTE la fournée. Les documents
+   défilent les uns après les autres, chacun sous son titre et numéroté ; le pavé
+   est tout en bas, une fois, avec la mention de ce qu'on approuve en signant.
+
+   Chaque document garde son enregistrement, son PDF et sa trace — c'est la
+   signature qui est commune, pas les documents.
+
+   Et la page elle-même : plus de bandeau sombre ni de titre « Courrier ». Fond
+   clair, feuilles blanches, en-tête du restaurant. Ce que le salarié lit sur son
+   téléphone ressemble enfin à ce qu'il signerait sur le comptoir.
+   ════════════════════════════════════════════════════════════════════════════ */
+var _sigLot=[];
+
+function _sigEnTete(nomResto, sousTitre){
+  return '<div style="background:linear-gradient(135deg,#C01E00,#8B1500);padding:14px 20px;text-align:center;">'
+    +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.35rem;color:#F5A623;text-transform:uppercase;letter-spacing:2.5px;">'
+      +escapeHtmlCt(nomResto||'BURGER KING')+'</div>'
+    +(sousTitre?('<div style="color:#ffd9c9;font-size:.82rem;margin-top:3px;">'+escapeHtmlCt(sousTitre)+'</div>'):'')
+  +'</div>';
+}
+
 function showSignPage(lid){
   document.getElementById('loading-screen').style.display='none';
   var l=DB.letters.find(function(x){return x.id===lid;});
-  var sp=document.createElement('div');sp.style.cssText='min-height:100vh;background:#1A1A1A;';
-  sp.innerHTML='<div style="background:linear-gradient(135deg,#C01E00,#8B1500);padding:16px 24px;text-align:center;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.6rem;color:#F5A623;text-transform:uppercase;letter-spacing:3px;">BKRH — Signature</div></div><div style="max-width:640px;margin:0 auto;padding:24px;" id="sig-body"></div>';
+
+  var sp=document.createElement('div');
+  sp.id='sig-page';
+  sp.style.cssText='min-height:100vh;background:#e9eaee;position:relative;z-index:5;';
   document.body.prepend(sp);
-  var sb2=document.getElementById('sig-body');
-  if(!l){sb2.innerHTML='<p style="color:#cc5555;margin-top:20px;">Courrier introuvable.</p>';return;}
-  var st=SANCTIONS[l.sanctionType]||{label:'Courrier',color:'#FF8732'};
-  var done='';
-  if(l.sigStatus==='signed')done='<div style="text-align:center;padding:40px;"><div style="font-size:3rem;">✅</div><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.4rem;font-weight:700;color:#4CAF50;margin-top:10px;">Document signé le '+new Date(l.signedAt).toLocaleDateString('fr-FR')+'</div></div>';
-  else if(l.sigStatus==='refused')done='<div style="text-align:center;padding:40px;"><div style="font-size:3rem;">❌</div><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.4rem;font-weight:700;color:#cc5555;margin-top:10px;">Refus enregistré</div></div>';
-  var actions=done||'<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px;"><button onclick="doSignStart(\''+lid+'\')" style="background:linear-gradient(135deg,#4CAF50,#2E7D32);color:#fff;border:none;padding:12px 28px;border-radius:8px;font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:1rem;text-transform:uppercase;letter-spacing:2px;cursor:pointer;">✅ Je signe ce document</button><button onclick="doRefuse(\''+lid+'\')" style="background:#333;color:#ccc;border:1px solid #555;padding:12px 28px;border-radius:8px;font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:1rem;text-transform:uppercase;letter-spacing:2px;cursor:pointer;">❌ Je refuse de signer</button></div>';
-  sb2.innerHTML='<div style="text-align:center;margin:20px 0;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;color:#F5A623;">'+st.label+'</div><div style="color:#aaa;margin-top:5px;">Destinataire : <strong style="color:#fff;">'+l.empName+'</strong></div></div><div style="background:#fff;border-radius:8px;padding:30px 32px;margin:20px 0;">'+_ctrVue(l)+'</div>'+actions;
+  /* ★ v691 — le salarié ne doit voir QUE ses documents : on efface l'application
+     derrière, sinon le fond noir de l'écran d'accueil dépassait sous la page. */
+  try{
+    document.body.style.background='#e9eaee';
+    Array.prototype.forEach.call(document.body.children, function(el){
+      if(el!==sp) el.style.display='none';
+    });
+  }catch(_){}
+
+  if(!l){
+    sp.innerHTML=_sigEnTete('BURGER KING','')
+      +'<div style="max-width:640px;margin:0 auto;padding:40px 20px;text-align:center;color:#8B1500;font-size:1rem;">'
+      +'Ce document est introuvable. Il a peut-être été annulé — demandez un nouveau lien à la direction.</div>';
+    return;
+  }
+
+  /* toute la fournée : c'est elle qu'on lit et qu'on signe */
+  var lot=[]; try{ lot=ctrLotDe(lid); }catch(_){ }
+  if(!lot.length) lot=[l];
+  _sigLot=lot;
+
+  var emp=(DB.employees||[]).find(function(x){ return x.id===l.empId; })||null;
+  var soc={}; try{ soc=getSociete(emp&&emp.restoId)||{}; }catch(_){}
+  var resto=(soc.restaurant_nom?('BURGER KING '+soc.restaurant_nom):(soc.nom||'BURGER KING'));
+
+  var reste=lot.filter(function(x){ return (x.sigStatus||'pending')==='pending'; });
+  var faits=lot.filter(function(x){ return x.sigStatus==='signed'; });
+  var refus=lot.filter(function(x){ return x.sigStatus==='refused'; });
+
+  sp.innerHTML=_sigEnTete(resto, l.empName||'')
+    +'<div style="max-width:820px;margin:0 auto;padding:18px 14px 60px;" id="sig-body"></div>';
+  var b=document.getElementById('sig-body');
+
+  /* tout est déjà signé ou refusé */
+  if(!reste.length){
+    b.innerHTML=_sigFini(faits.length, refus.length, lot);
+    return;
+  }
+
+  b.innerHTML=_sigIntro(l.empName, reste, faits.length)
+    + reste.map(function(x,k){ return _sigFeuille(x, k+1, reste.length, soc); }).join('')
+    + _sigBasDePage(lid, reste);
+  window.scrollTo(0,0);
+  setTimeout(function(){ try{ _sigInit('sigpad-link'); }catch(_){} },60);
 }
 
-// Page de signature par lien (téléphone) : affiche le document (défilable) + pavé au doigt.
-function doSignStart(lid){
-  var l=DB.letters.find(function(x){return x.id===lid;}); if(!l) return;
-  var b=document.getElementById('sig-body'); if(!b) return;
-  var st=SANCTIONS[l.sanctionType]||{label:'Document'};
-  b.innerHTML='<div style="text-align:center;margin:6px 0 12px;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.5rem;font-weight:900;color:#F5A623;">'+st.label+'</div><div style="color:#aaa;margin-top:4px;">'+(l.empName||'')+'</div></div>'
-    +'<div style="background:#fff;border-radius:8px;padding:20px 22px;margin:10px 0;-webkit-overflow-scrolling:touch;">'+_ctrVue(l)+'</div>'
-    +'<div style="color:#F5A623;text-align:center;margin:14px 0 6px;font-weight:700;">✍️ Signez ci-dessous avec le doigt</div>'
-    +_sigPadMarkup('sigpad-link')
-    +'<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:16px 0 30px;">'
-    +'<button onclick="_sigClear(\'sigpad-link\')" style="background:#333;color:#ccc;border:1px solid #555;padding:12px 22px;border-radius:8px;font-weight:700;cursor:pointer;">↺ Effacer</button>'
-    +'<button onclick="doSignConfirm(\''+lid+'\')" style="background:linear-gradient(135deg,#4CAF50,#2E7D32);color:#fff;border:none;padding:12px 26px;border-radius:8px;font-weight:700;cursor:pointer;">✅ Valider ma signature</button>'
-    +'</div>';
-  window.scrollTo(0,0);
-  setTimeout(function(){ _sigInit('sigpad-link'); },40);
+function _sigIntro(nom, reste, dejaSignes){
+  var prenom=String(nom||'').trim().split(/\s+/).slice(-1)[0]||'';
+  return '<div style="background:#fff;border-radius:12px;padding:18px 20px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,.07);">'
+    +'<div style="font-size:1.05rem;color:#1a1a1a;font-weight:700;margin-bottom:6px;">Bonjour '+escapeHtmlCt(prenom)+',</div>'
+    +'<div style="font-size:.9rem;color:#444;line-height:1.6;">'
+      +'Voici <b>'+reste.length+' document'+(reste.length>1?'s':'')+'</b> à lire'
+      +(reste.length>1?' — ils se suivent sur cette page' : '')+'. '
+      +'<b>Vous ne signez qu\'une seule fois</b>, tout en bas, et votre signature vaut pour '
+      +(reste.length>1?'les '+reste.length+' documents.':'ce document.')
+      +(dejaSignes?(' <span style="color:#2e7d32;">('+dejaSignes+' déjà signé'+(dejaSignes>1?'s':'')+' précédemment.)</span>'):'')
+    +'</div>'
+    +'<ol style="margin:12px 0 0;padding-left:20px;font-size:.86rem;color:#333;line-height:1.9;">'
+      +reste.map(function(x){ var id=ctrDocIdent(x); return '<li>'+id.icone+' '+escapeHtmlCt(id.nom)+'</li>'; }).join('')
+    +'</ol></div>';
 }
+
+function _sigFeuille(l, k, total, soc){
+  var id=ctrDocIdent(l);
+  return '<div style="margin-bottom:16px;">'
+    +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:.82rem;font-weight:800;color:#8B1500;text-transform:uppercase;letter-spacing:1.5px;margin:0 4px 6px;">'
+      +'Document '+k+' sur '+total+' — '+escapeHtmlCt(id.nom)+'</div>'
+    +'<div style="background:#fff;border-radius:10px;padding:26px 26px 22px;box-shadow:0 2px 10px rgba(0,0,0,.07);">'
+      +ctrHtmlDoc(_sigStripText(l.text||''), soc, id.titre)
+    +'</div></div>';
+}
+
+function _sigBasDePage(lid, reste){
+  var n=reste.length;
+  return '<div style="background:#fff;border-radius:12px;padding:20px;margin-top:20px;box-shadow:0 2px 10px rgba(0,0,0,.07);">'
+    +'<div style="font-size:.92rem;color:#1a1a1a;font-weight:700;margin-bottom:4px;">Votre signature</div>'
+    +'<div style="font-size:.85rem;color:#444;line-height:1.6;margin-bottom:12px;">'
+      +'En signant ci-dessous, je reconnais avoir <b>lu et approuvé</b> '
+      +(n>1?('les '+n+' documents ci-dessus :'):'le document ci-dessus :')
+      +'<br><span style="color:#666;font-size:.82rem;">'
+      +reste.map(function(x){ return escapeHtmlCt(ctrDocIdent(x).nom); }).join(' · ')
+      +'</span></div>'
+    +_sigPadMarkup('sigpad-link')
+    +'<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px;">'
+      +'<button onclick="_sigClear(\'sigpad-link\')" style="background:#eee;color:#444;border:1px solid #ccc;padding:12px 20px;border-radius:8px;font-weight:700;cursor:pointer;">↺ Effacer</button>'
+      +'<button onclick="doSignConfirm(\''+lid+'\')" style="background:linear-gradient(135deg,#2e9e4f,#1d7a3a);color:#fff;border:none;padding:12px 26px;border-radius:8px;font-weight:800;cursor:pointer;">'
+        +'✅ Je signe '+(n>1?('les '+n+' documents'):'ce document')+'</button>'
+    +'</div>'
+    +'<div style="text-align:center;margin-top:12px;">'
+      +'<button onclick="doRefuse(\''+lid+'\')" style="background:none;border:none;color:#a04040;text-decoration:underline;cursor:pointer;font-size:.82rem;">Je refuse de signer</button>'
+    +'</div></div>';
+}
+
+function _sigFini(nSignes, nRefus, lot){
+  var ou='<div style="font-size:.86rem;color:#444;line-height:1.7;margin-top:10px;">'
+    +'Vos documents signés sont conservés dans votre dossier chez l\'employeur. '
+    +'Vous pouvez en demander une copie à tout moment à la direction du restaurant.</div>';
+  if(nRefus && !nSignes){
+    return '<div style="background:#fff;border-radius:12px;padding:34px 24px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.07);">'
+      +'<div style="font-size:2.6rem;">❌</div>'
+      +'<div style="font-size:1.15rem;font-weight:800;color:#a04040;margin-top:8px;">Refus enregistré</div>'
+      +'<div style="font-size:.86rem;color:#444;margin-top:8px;">La direction en est informée.</div></div>';
+  }
+  return '<div style="background:#fff;border-radius:12px;padding:34px 24px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.07);">'
+    +'<div style="font-size:2.6rem;">✅</div>'
+    +'<div style="font-size:1.15rem;font-weight:800;color:#1d7a3a;margin-top:8px;">'
+      +(nSignes>1?(nSignes+' documents signés'):'Document signé')+'. Merci !</div>'
+    +'<ul style="list-style:none;padding:0;margin:12px 0 0;font-size:.86rem;color:#333;line-height:1.9;">'
+      +lot.filter(function(x){return x.sigStatus==='signed';})
+          .map(function(x){ var id=ctrDocIdent(x); return '<li>'+id.icone+' '+escapeHtmlCt(id.nom)+'</li>'; }).join('')
+    +'</ul>'+ou+'</div>';
+}
+
+/* Le pavé est déjà sur la page : on ne « démarre » plus rien. Gardé pour les
+   anciens liens qui pointaient sur doSignStart. */
+function doSignStart(lid){ try{ document.getElementById('sigpad-link').scrollIntoView({behavior:'smooth',block:'center'}); }catch(_){} }
+
 async function doSignConfirm(lid){
   if(!_sigDrawn('sigpad-link')){ alert('Merci de signer dans le cadre avec votre doigt.'); return; }
-  await doSign(lid, _sigData('sigpad-link'));
+  var brut=_sigData('sigpad-link');
+  /* ★ v691 — recadrée, comme celle de la direction : sinon elle se perd dans le cadre. */
+  var png=await new Promise(function(ok){ try{ ctrRecadrerSignature(brut, ok); }catch(_){ ok(brut); } });
+  await doSign(lid, png);
 }
 window.doSignStart=doSignStart; window.doSignConfirm=doSignConfirm;
 async function doSign(lid, sigPng){
-  var l=DB.letters.find(function(x){return x.id===lid;});if(!l)return;
-  if(sigPng) _sigMem[lid]=sigPng;
-  var ok=false;
-  try{ ok=await sb.patch('bks_letters','id=eq.'+lid,{sig_status:'signed',signed_at:new Date().toISOString()}); }catch(e){ console.error(e); }
-  if(ok===false){ alert('Signature non enregistrée. Vérifiez la connexion et réessayez.'); return; }
+  /* ★ v691 — une signature, tous les documents de la fournée qui restaient. */
+  var lot=(_sigLot&&_sigLot.length)?_sigLot:(function(){ try{ return ctrLotDe(lid); }catch(_){ return []; } })();
+  var aFaire=lot.filter(function(x){ return (x.sigStatus||'pending')==='pending'; });
+  if(!aFaire.length){ var _un=DB.letters.find(function(x){return x.id===lid;}); if(_un) aFaire=[_un]; }
+  if(!aFaire.length) return;
+
+  var quand=new Date().toISOString();
+  var rates=[];
+  for(var i=0;i<aFaire.length;i++){
+    var id=aFaire[i].id;
+    if(sigPng) _sigMem[id]=sigPng;
+    var ok=false;
+    try{ ok=await sb.patch('bks_letters','id=eq.'+id,{sig_status:'signed',signed_at:quand}); }catch(e){ console.error(e); }
+    if(ok===false) rates.push(id);
+  }
+  if(rates.length===aFaire.length){
+    alert('Signature non enregistrée. Vérifiez la connexion et réessayez.');
+    return;
+  }
   try{ await loadAll(); }catch(_){}
-  try{ var _l2=DB.letters.find(function(x){return x.id===lid;}); if(_l2){ _archiveDocSigne(_l2, sigPng||'').then(function(k){ if(k) _sigDocLink[lid]=k; }); } }catch(_){}
-  document.getElementById('sig-body').innerHTML='<div style="text-align:center;padding:40px;"><div style="font-size:3rem;">✅</div><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.4rem;font-weight:700;color:#4CAF50;margin-top:10px;">Signature enregistrée. Merci !</div><div style="color:#aaa;font-size:.85rem;margin-top:8px;">Le document signé est enregistré dans votre dossier.</div></div>';
+  /* chaque document part dans le dossier du salarié, avec SA signature */
+  for(var k=0;k<aFaire.length;k++){
+    (function(id){
+      try{
+        var l2=DB.letters.find(function(x){return x.id===id;});
+        if(l2){ _archiveDocSigne(l2, sigPng||'').then(function(lien){ if(lien) _sigDocLink[id]=lien; }); }
+      }catch(_){}
+    })(aFaire[k].id);
+  }
+  var lotMaj=[]; try{ lotMaj=ctrLotDe(lid); }catch(_){ }
+  if(!lotMaj.length) lotMaj=aFaire;
+  var body=document.getElementById('sig-body');
+  if(body) body.innerHTML=_sigFini(lotMaj.filter(function(x){return x.sigStatus==='signed';}).length, 0, lotMaj);
+  try{ window.scrollTo(0,0); }catch(_){}
 }
+
 async function doRefuse(lid){
-  if(!confirm('Confirmer le refus de signature ?'))return;
-  var l=DB.letters.find(function(x){return x.id===lid;});if(!l)return;
-  var ok=false;
-  try{ ok=await sb.patch('bks_letters','id=eq.'+lid,{sig_status:'refused',refused_at:new Date().toISOString()}); }catch(e){ console.error(e); }
-  if(ok===false){ alert('Refus non enregistré. Vérifiez la connexion et réessayez.'); return; }
+  var lot=(_sigLot&&_sigLot.length)?_sigLot:(function(){ try{ return ctrLotDe(lid); }catch(_){ return []; } })();
+  var aFaire=lot.filter(function(x){ return (x.sigStatus||'pending')==='pending'; });
+  if(!aFaire.length){ var _un=DB.letters.find(function(x){return x.id===lid;}); if(_un) aFaire=[_un]; }
+  if(!aFaire.length) return;
+  if(!confirm('Confirmer le refus de signer '+(aFaire.length>1?('ces '+aFaire.length+' documents'):'ce document')+' ?\n\n'
+    +'La direction en sera informée.')) return;
+  var quand=new Date().toISOString(), rates=0;
+  for(var i=0;i<aFaire.length;i++){
+    var ok=false;
+    try{ ok=await sb.patch('bks_letters','id=eq.'+aFaire[i].id,{sig_status:'refused',refused_at:quand}); }catch(e){ console.error(e); }
+    if(ok===false) rates++;
+  }
+  if(rates===aFaire.length){ alert('Refus non enregistré. Vérifiez la connexion et réessayez.'); return; }
   try{ await loadAll(); }catch(_){}
-  try{ var _l2=DB.letters.find(function(x){return x.id===lid;}); if(_l2){ _archiveDocSigne(_l2,'').then(function(k){ if(k) _sigDocLink[lid]=k; }); } }catch(_){}
-  document.getElementById('sig-body').innerHTML='<div style="text-align:center;padding:40px;"><div style="font-size:3rem;">❌</div><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.4rem;font-weight:700;color:#cc5555;margin-top:10px;">Refus enregistré.</div></div>';
+  for(var k=0;k<aFaire.length;k++){
+    (function(id){
+      try{
+        var l2=DB.letters.find(function(x){return x.id===id;});
+        if(l2){ _archiveDocSigne(l2,'').then(function(lien){ if(lien) _sigDocLink[id]=lien; }); }
+      }catch(_){}
+    })(aFaire[k].id);
+  }
+  var body=document.getElementById('sig-body');
+  if(body) body.innerHTML=_sigFini(0, aFaire.length, aFaire);
+  try{ window.scrollTo(0,0); }catch(_){}
 }
 
 // Rafraîchit l'affichage des courriers après une signature / un refus (met à jour le statut).
@@ -24911,7 +26303,10 @@ function _ctrVue(l){
     if(estContrat && typeof ctrHtmlDoc==='function'){
       var emp=(DB.employees||[]).find(function(x){ return x.id===l.empId; })||null;
       var soc={}; try{ soc=getSociete(emp&&emp.restoId)||{}; }catch(_){}
-      return ctrHtmlDoc(txt, soc, '');
+      /* ★ v689 — la direction a déjà signé : on le montre. Et si le salarié a signé,
+         sa signature manuscrite prend sa place dans le cadre de droite. */
+      var _ei=''; try{ if(l.sigStatus==='signed' && typeof _sigImg==='function') _ei=_sigImg(l)||''; }catch(_){}
+      return ctrHtmlDoc(txt, soc, '', {empImg:_ei, empNom:(l.sigStatus==='signed'?(l.empName||''):'')});
     }
     return '<div style="color:#111;font-family:Georgia,serif;line-height:1.7;white-space:pre-wrap;font-size:.85rem;">'
       +((typeof escapeHtmlCt==='function')?escapeHtmlCt(txt):txt)+'</div>';
