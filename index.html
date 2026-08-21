@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-09-15 09:00 · v695 (signature en casse normale, niveau pre-rempli, alerte de deploiement)';
+  var EMBEDDED_VERSION = '2026-09-16 09:00 · v696 (pieces rangees supprimables, signature en casse normale, alerte de deploiement)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -12815,7 +12815,11 @@ function _ficheContratsHtml(e){
   var docsHtml='';
   if(docs.length){
     docsHtml+='<div style="border-top:1px solid #262626;margin-top:10px;padding-top:8px;">'
-      +'<div style="font-size:.72rem;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">📎 Pièces rangées dans le dossier</div>';
+      +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px;">'
+        +'<div style="flex:1;min-width:150px;font-size:.72rem;color:#888;text-transform:uppercase;letter-spacing:.5px;">📎 Pièces rangées dans le dossier</div>'
+        /* ★ v696 — et tout d'un coup, quand ce sont des essais. */
+        +(_dir&&docs.length>1?('<button class="btn btn-gray btn-sm" style="padding:2px 8px;color:#e8907a;" onclick="ctrViderPieces(\''+e.id+'\')">🗑️ Tout retirer</button>'):'')
+      +'</div>';
     docs.forEach(function(d){
       var dt=d.createdAt?new Date(d.createdAt).toLocaleDateString('fr-FR'):'';
       docsHtml+='<div style="display:flex;align-items:center;gap:9px;padding:6px 0 6px 4px;flex-wrap:wrap;">'
@@ -12823,6 +12827,11 @@ function _ficheContratsHtml(e){
         +'<div style="flex:1;min-width:140px;font-size:.83rem;color:#ddd;">'+escapeHtmlCt(d.label||d.name||_empDocCatLbl(d.categorie))
         +(dt?' <span style="color:#666;font-size:.72rem;">· '+dt+'</span>':'')+'</div>'
         +(d.link?('<button class="btn btn-gray btn-sm" style="padding:2px 8px;" onclick="viewDoc(\''+d.id+'\')">👁️ Lire</button>'):'')
+        /* ★ v696 — Vincent : « ces trucs-là, tu peux me les supprimer, ça n'a rien
+           à faire là. » Il avait quatre PDF d'essai empilés ici et AUCUN bouton pour
+           les enlever : seul « 👁️ Lire ». Il fallait passer par la base pour faire le
+           ménage. Plus maintenant. */
+        +(_dir?('<button class="btn btn-gray btn-sm" style="padding:2px 8px;color:#e8907a;" onclick="ctrSupprimerPiece(\''+d.id+'\')" title="Retirer cette pièce du dossier">🗑️</button>'):'')
         +'</div>';
     });
     docsHtml+='</div>';
@@ -13021,6 +13030,58 @@ async function ctrSupprimerLot(lid){
   toast(n+' document(s) supprimé(s).','success');
 }
 window.ctrSupprimerLot=ctrSupprimerLot;
+
+/* ★ v696 — RETIRER UNE PIÈCE DÉJÀ RANGÉE DANS LE DOSSIER.
+
+   Ce sont les PDF signés archivés (Dropbox + fiche). Ils ne se supprimaient nulle
+   part depuis la fiche — d'où les quatre « Contrat de travail — signé le 21/08/2026 »
+   empilés chez Idez Léa après une matinée d'essais. */
+async function ctrSupprimerPiece(docId, opts){
+  opts=opts||{};
+  if(!(curUser&&(curUser.role==='franchise'||curUser.role==='directeur'))){ toast('Réservé à la direction.','error'); return false; }
+  var d=(DB.empDocs||[]).find(function(x){ return x.id===docId; });
+  if(!d){ toast('Pièce introuvable.','error'); return false; }
+  var essai=false; try{ essai=bacEst(d.empId); }catch(_){}
+  if(!opts.sansConfirmation){
+    if(!confirm('Retirer cette pièce du dossier ?\n\n'+(d.label||d.name||'Document')
+      +(d.dbxPath?('\n'+d.dbxPath):'')
+      +(essai?'\n\nC\'est un document d\'essai (bac à sable).':'')
+      +'\n\nLe PDF sera aussi effacé de Dropbox. Cette suppression est définitive.')) return false;
+  }
+  try{
+    if(d.dbxPath){ try{ if(typeof dbxDelete==='function') await dbxDelete(d.dbxPath); }catch(_){} }
+    await sb.del('bks_emp_docs','id=eq.'+docId);
+    if(!opts.sansRechargement){
+      await loadAll();
+      try{ if(typeof _empfId!=='undefined' && _empfId) renderEmpFicheInfos(_empfId); }catch(_){}
+      try{ if(typeof _empDocCtx!=='undefined' && _empDocCtx && _empDocCtx.boxId) renderEmpDocs(d.empId,_empDocCtx.boxId); }catch(_){}
+      toast('Pièce retirée du dossier ✔','success');
+    }
+    return true;
+  }catch(e){ console.error('ctrSupprimerPiece',e); toast('Erreur à la suppression','error'); return false; }
+}
+window.ctrSupprimerPiece=ctrSupprimerPiece;
+
+async function ctrViderPieces(empId){
+  if(!(curUser&&(curUser.role==='franchise'||curUser.role==='directeur'))){ toast('Réservé à la direction.','error'); return; }
+  var docs=(DB.empDocs||[]).filter(function(d){
+    return d.empId===empId && (d.categorie==='contrat'||d.categorie==='avenant'||d.categorie==='dpae');
+  });
+  if(!docs.length){ toast('Rien à retirer.','error'); return; }
+  var e=(DB.employees||[]).find(function(x){ return x.id===empId; })||{};
+  if(!confirm('Retirer les '+docs.length+' pièces rangées dans le dossier de '+(e.name||'ce salarié')+' ?\n\n· '
+    +docs.map(function(d){ return (d.label||d.name||'Document'); }).join('\n· ')
+    +'\n\nLes PDF seront aussi effacés de Dropbox. Cette suppression est définitive.')) return;
+  var n=0;
+  for(var i=0;i<docs.length;i++){
+    if(await ctrSupprimerPiece(docs[i].id,{sansConfirmation:true, sansRechargement:true})) n++;
+  }
+  await loadAll();
+  try{ if(typeof _empfId!=='undefined' && _empfId) renderEmpFicheInfos(_empfId); }catch(_){}
+  try{ if(typeof _empDocCtx!=='undefined' && _empDocCtx && _empDocCtx.boxId) renderEmpDocs(empId,_empDocCtx.boxId); }catch(_){}
+  toast(n+' pièce(s) retirée(s) du dossier.','success');
+}
+window.ctrViderPieces=ctrViderPieces;
 
 async function bacSupprimer(lid){ return ctrSupprimerDoc(lid); }
 window.bacSupprimer=bacSupprimer;
