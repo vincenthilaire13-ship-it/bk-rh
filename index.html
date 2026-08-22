@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-10-01 15:00 · v717 (apprentissage : deux formules, 33h+2h ou 35h avec recup)';
+  var EMBEDDED_VERSION = '2026-10-01 19:00 · v721 (date deffet en vert, on ne redemande plus ce quon sait)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1304,6 +1304,10 @@ html.theme-light .ag-empty{color:#8b9099 !important;}
 .ctrdoc-tab tfoot td{background:#fff;border-top:2px solid #3c3c3c;border-bottom:none;
   font-weight:800;color:#8B1500;text-transform:uppercase;font-size:.7rem;padding-top:7px;}
 .ctrdoc-note{font-size:.68rem;color:#888;font-style:italic;margin:2px 0 12px;text-align:left;}
+/* ★ v720 — le bandeau de date d'effet d'un avenant : on ne peut pas le rater. */
+.ctrdoc-effet{font-family:Arial,sans-serif;font-weight:800;font-size:.92rem;text-align:center;
+  color:#8a5300;background:#FFF4DE;border:1px solid #D69E2E;border-radius:6px;
+  padding:8px 12px;margin:10px 0 14px;letter-spacing:.2px;}
 .ctrdoc-sig{display:flex;gap:18px;margin:22px 0 4px;border-top:1px solid #ddd;padding-top:14px;}
 .ctrdoc-sig>div{flex:1;min-width:0;}
 .ctrdoc-sl{font-family:Arial,sans-serif;font-size:.66rem;font-weight:800;color:#777;
@@ -7434,8 +7438,50 @@ function arcAutoPointages(resto, ym){
 window.arcAutoPlanning=arcAutoPlanning; window.arcAutoPointages=arcAutoPointages;
 
 var RPT_TILES=[
-  {id:'traits',    em:'📋', tt:'Traits de la semaine', ds:'Tous les créneaux à couvrir, jour par jour', color:'#8e24aa'},
-  {id:'planhebdo', em:'🗓️', tt:'Planning de la semaine', ds:'Qui travaille quand (planning fait)', color:'#00897b'},
+  /* ★ v719 — LA TUILE « TRAITS DE LA SEMAINE » EST SUPPRIMÉE.
+
+     Vincent : « elle n'a aucun impact sur les horaires. On fait les horaires, on
+     fait Contrôle des heures, donc elle n'a plus d'impact. Pour moi, elle ne
+     sert plus à rien. »
+
+     Elle marchait, contrairement à celle du planning hebdomadaire : elle
+     affichait les 184 créneaux de la semaine, sept colonnes, avec le nom en vert
+     sur les traits pourvus. Mais :
+
+       · elle ne montrait QUE la semaine ouverte dans Horaires — aucun choix de
+         semaine depuis Rapports ;
+       · elle imprimait « du ? au ? » quand on venait directement dans Rapports :
+         DAY_DATES est encore vide tant qu'aucune semaine n'a été affichée ;
+       · et l'écran Horaires montre déjà ces traits, en mieux, avec la grille et
+         le déplacement des personnes.
+
+     La chaîne de travail passe par Horaires puis Contrôle des heures. Cette
+     tuile n'était sur le chemin de personne.
+
+     Le code (genTraitsReport, rptPdfTraits, _rptSemaineDates, _hhmm) est intact
+     dans la v718 si on veut un jour une vraie feuille de traits imprimable —
+     avec ses dates, et le choix de la semaine.                                */
+  /* ★ v718 — LA TUILE « PLANNING DE LA SEMAINE » EST SUPPRIMÉE.
+
+     Vincent : « si ça ne sert à rien, tu la supprimes. On commence à épurer,
+     pour qu'on n'ait pas les trucs qui ne servent à rien. »
+
+     Elle ne POUVAIT PAS fonctionner. Le rapport était écrit ici, tout en haut du
+     fichier ; la variable qui contient le planning calculé (HR_MONTH_RESULT) est
+     déclarée à l'intérieur du grand module horaires. De cet endroit-là, elle est
+     invisible — vérifié : « typeof HR_MONTH_RESULT » répond toujours
+     « undefined » depuis l'extérieur. La tuile affichait donc éternellement
+     « Aucun planning calculé, va dans Horaires », même juste après un placement.
+     Deuxième faiblesse : ce planning n'est jamais enregistré, il disparaît à
+     chaque rechargement de la page.
+
+     Ce qu'elle voulait montrer existe ailleurs, et qui marche :
+       · Horaires → le tableau de la semaine, en direct ;
+       · Rapports → Plannings archivés — chaque semaine, conservée ;
+       · Rapports → Plannings transférés — les semaines envoyées aux équipes.
+
+     Le code du PDF paysage (rptPdfPlanHebdo) part avec elle. Il est intact dans
+     la v717 si on veut le reprendre pour imprimer une semaine depuis Rapports.  */
   {id:'planpartage', em:'📤', tt:'Plannings transférés', ds:'Semaines transférées aux employés (imprimables)', color:'#0277bd'},
   {id:'arch_plannings', em:'🗓️', tt:'Plannings archivés', ds:'Le planning de chaque semaine, à voir et à télécharger', color:'#0061ff'},
   {id:'arch_pointages', em:'⏱️', tt:'Pointages archivés', ds:'Les pointages de chaque mois, à voir et à télécharger', color:'#1d7a3a'},
@@ -7977,7 +8023,7 @@ function tileDrop(ev){
   try{ toast('Ordre des tuiles mis à jour','success'); }catch(e){}
 }
 window.tileDragStart=tileDragStart;window.tileDragOver=tileDragOver;window.tileDragLeave=tileDragLeave;window.tileDragEnd=tileDragEnd;window.tileDrop=tileDrop;
-var RPT_ORDER_DEFAUT=['planhebdo','incidents','mutuelle','visitemed','sejour'];
+var RPT_ORDER_DEFAUT=['incidents','mutuelle','visitemed','sejour'];   /* ★ v718 */
 function _rptDefCmp(a,b){ var ia=RPT_ORDER_DEFAUT.indexOf(a.id),ib=RPT_ORDER_DEFAUT.indexOf(b.id); ia=ia<0?999:ia; ib=ib<0?999:ib; if(ia!==ib) return ia-ib; return (a.tt||'').localeCompare(b.tt||'','fr',{sensitivity:'base'}); }
 function renderRptTiles(){
   var pick=document.getElementById('rpt-pick'); if(!pick) return;
@@ -8030,7 +8076,7 @@ function rptOpen(type){
   document.getElementById('rpt-panel-title').textContent=t.tt;
   // options visibles selon le type
   var showPeriod=(type==='incidents'), showPerson=(type==='incidents');
-  var showPdf=(type==='incidents'||type==='traits'||type==='planhebdo');
+  var showPdf=(type==='incidents');   /* ★ v719 */
   document.getElementById('rpt-opt-period-wrap').style.display=showPeriod?'block':'none';
   document.getElementById('rpt-opt-person-wrap').style.display=showPerson?'block':'none';
   document.getElementById('rpt-pdf-btn').style.display=showPdf?'inline-block':'none';
@@ -8049,8 +8095,6 @@ function rptRefresh(){
   if(_rptCurrent==='incidents'){ genReport(); }
   else if(_rptCurrent==='dispos'){ genDispoReport(); }
   else if(_rptCurrent==='competences'){ genCompetReport(); }
-  else if(_rptCurrent==='traits'){ genTraitsReport(); }
-  else if(_rptCurrent==='planhebdo'){ genPlanHebdoReport(); }
   else if(_rptCurrent==='planpartage'){ genPlanPartageReport(); }
   else if(_rptCurrent==='mutuelle'){ genMutuelleReport(); }
   else if(_rptCurrent==='sejour'){ genSejourReport(); }
@@ -9133,80 +9177,10 @@ function genCompetReport(){
 }
 
 /* — RAPPORT TRAITS DE LA SEMAINE (créneaux à couvrir, jour par jour) — */
-function _rptSemaineDates(){
-  // dates de la semaine actuellement affichée dans Horaires
-  var dts=[];
-  if(typeof DAY_DATES!=='undefined' && DAY_DATES[0]){
-    for(var i=0;i<7;i++){ dts.push(DAY_DATES[i]||''); }
-  }
-  return dts;
-}
-function _hhmm(min){ var h=Math.floor(min/60)%24,m=min%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
-function genTraitsReport(){
-  var out=document.getElementById('rpt-out');
-  var joursN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
-  var dts=_rptSemaineDates();
-  var resto=(typeof HR_GRILLE_RESTO!=='undefined'&&HR_GRILLE_RESTO)?HR_GRILLE_RESTO:(hrCurrentResto?hrCurrentResto():'');
-  // rassembler, par jour, tous les traits (besoin) depuis ROWS_BY_DAY
-  var parJour=[];
-  var aucun=true;
-  for(var d=0;d<7;d++){
-    var arr=[];
-    ((window.ROWS_BY_DAY&&window.ROWS_BY_DAY[d])||[]).forEach(function(r){ r.bars.forEach(function(b){
-      if(estTraitEncadrement(b.l)) return;
-      arr.push({s:b.s,e:b.e,l:b.l,emp:b.emp||null});
-    }); });
-    arr.sort(function(a,b){return a.s-b.s || (a.l||'').localeCompare(b.l||'');});
-    if(arr.length) aucun=false;
-    parJour[d]=arr;
-  }
-  var titre='du '+(dts[0]||'?')+' au '+(dts[6]||'?');
-  var h='<div style="text-align:center;padding:14px;background:linear-gradient(135deg,#1A1A1A,#2C2C2C);border-radius:var(--r);margin-bottom:14px;border:1px solid #333;">'
-    +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:1.4rem;color:var(--yellow);text-transform:uppercase;letter-spacing:2px;">📋 Traits de la semaine</div>'
-    +'<p style="color:#888;margin-top:4px;font-size:.82rem;">'+titre+(resto?(' · '+(RESTOS[resto.toLowerCase()]?RESTOS[resto.toLowerCase()].label:resto)):'')+'</p></div>';
-  if(aucun){
-    h+='<div style="color:#aaa;padding:14px;">Aucun trait sur la semaine affichée. Va dans Horaires, choisis la semaine, puis reviens ici.</div>';
-    out.innerHTML=h; return;
-  }
-  // tableau : une colonne par jour, les créneaux empilés
-  h+='<div style="overflow-x:auto;"><table class="rpt-table" style="font-size:.8rem;"><thead><tr>';
-  for(var j=0;j<7;j++){ h+='<th>'+joursN[j]+(dts[j]?'<br><span style="font-weight:400;color:#888;font-size:.72rem;">'+dts[j].slice(8,10)+'/'+dts[j].slice(5,7)+'</span>':'')+'</th>'; }
-  h+='</tr></thead><tbody><tr style="vertical-align:top;">';
-  for(var j2=0;j2<7;j2++){
-    var arr=parJour[j2];
-    if(!arr.length){ h+='<td style="color:#666;">—</td>'; continue; }
-    var cell=arr.map(function(b){
-      return '<div style="margin-bottom:3px;white-space:nowrap;"><b>'+_hhmm(b.s)+'–'+_hhmm(b.e)+'</b> '+b.l+(b.emp?(' <span style="color:#1A9850;">· '+b.emp+'</span>'):'')+'</div>';
-    }).join('');
-    h+='<td style="text-align:left;">'+cell+'</td>';
-  }
-  h+='</tr></tbody></table></div>';
-  out.innerHTML=h;
-}
-
 /* — RAPPORT PLANNING HEBDOMADAIRE (réutilise le tableau de Horaires) — */
-function genPlanHebdoReport(){
-  var out=document.getElementById('rpt-out');
-  if(typeof HR_MONTH_RESULT==='undefined' || !HR_MONTH_RESULT || !HR_MONTH_RESULT.semaines || !HR_MONTH_RESULT.semaines.length){
-    out.innerHTML='<div style="color:#aaa;padding:14px;">Aucun planning calculé. Va dans Horaires, clique « 🧠 Placement intelligent », puis reviens ici.</div>';
-    return;
-  }
-  // hrRenderPlanningHebdo écrit dans #hrx-emploi-semaine : on le génère puis on copie son contenu
-  var tmp=document.getElementById('hrx-emploi-semaine');
-  var stash=tmp?tmp.innerHTML:null;
-  if(tmp){
-    try{ hrRenderPlanningHebdo(); out.innerHTML=tmp.innerHTML; tmp.innerHTML=stash; }
-    catch(e){ out.innerHTML='<div style="color:#aaa;padding:14px;">Impossible de générer le planning. Recalcule-le dans Horaires.</div>'; }
-  } else {
-    out.innerHTML='<div style="color:#aaa;padding:14px;">Ouvre d\'abord Horaires pour générer le planning.</div>';
-  }
-}
-
 /* — Aiguillage du bouton PDF selon la tuile ouverte — */
 function rptPdf(){
   if(_rptCurrent==='incidents'){ if(typeof pdfEquipierFromRpt==='function') pdfEquipierFromRpt(); return; }
-  if(_rptCurrent==='traits'){ rptPdfTraits(); return; }
-  if(_rptCurrent==='planhebdo'){ rptPdfPlanHebdo(); return; }
 }
 
 function _pdfDoc(orient){
@@ -9215,129 +9189,6 @@ function _pdfDoc(orient){
 }
 function _strip(s){return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
 
-function rptPdfTraits(){
-  try{
-    var joursN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
-    var dts=_rptSemaineDates();
-    var doc=_pdfDoc('landscape');
-    var W=297,H=210,M=10,y=16;
-    doc.setFillColor(142,36,170);doc.rect(0,0,W,12,'F');
-    doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(13);
-    doc.text('TRAITS DE LA SEMAINE',M,8);
-    doc.setFontSize(9);doc.setFont('helvetica','normal');
-    doc.text('du '+(dts[0]||'?')+' au '+(dts[6]||'?'),W-M,8,{align:'right'});
-    y=18;
-    var colW=(W-2*M)/7, x0=M;
-    doc.setFontSize(8);
-    // entêtes jours
-    doc.setFont('helvetica','bold');doc.setTextColor(30,30,30);
-    for(var j=0;j<7;j++){ doc.text(joursN[j]+(dts[j]?(' '+dts[j].slice(8,10)+'/'+dts[j].slice(5,7)):''), x0+j*colW+1, y); }
-    y+=2; doc.setDrawColor(180,180,180); doc.line(M,y,W-M,y); y+=4;
-    // contenu par colonne
-    var lignes=[[],[],[],[],[],[],[]], maxL=0;
-    for(var d=0;d<7;d++){
-      var arr=[];
-      ((window.ROWS_BY_DAY&&window.ROWS_BY_DAY[d])||[]).forEach(function(r){ r.bars.forEach(function(b){
-        if(estTraitEncadrement(b.l))return;
-        arr.push({s:b.s,e:b.e,l:b.l,emp:b.emp||null});
-      }); });
-      arr.sort(function(a,b){return a.s-b.s;});
-      lignes[d]=arr.map(function(b){ return _hhmm(b.s)+'-'+_hhmm(b.e)+' '+_strip(b.l)+(b.emp?(' ('+_strip(b.emp)+')'):''); });
-      if(lignes[d].length>maxL) maxL=lignes[d].length;
-    }
-    doc.setFont('helvetica','normal');doc.setFontSize(6.5);
-    var yStart=y;
-    for(var d2=0;d2<7;d2++){
-      var yy=yStart;
-      lignes[d2].forEach(function(t){
-        if(yy>H-8){ return; }
-        var wrapped=doc.splitTextToSize(t, colW-2);
-        doc.text(wrapped, x0+d2*colW+1, yy);
-        yy+=wrapped.length*3+1;
-      });
-    }
-    doc.save('traits_semaine_'+(dts[0]||'')+'.pdf');
-    if(typeof toast==='function') toast('PDF des traits généré','success');
-  }catch(e){ if(typeof toast==='function') toast('Erreur PDF : '+e.message,'error'); }
-}
-
-function rptPdfPlanHebdo(){
-  try{
-    if(typeof HR_MONTH_RESULT==='undefined' || !HR_MONTH_RESULT || !HR_MONTH_RESULT.semaines || !HR_MONTH_RESULT.semaines.length){
-      if(typeof toast==='function') toast('Calcule d\'abord le planning dans Horaires','error'); return;
-    }
-    var R=HR_MONTH_RESULT;
-    var semIdx=(typeof HR_HEBDO_SEM!=='undefined')?HR_HEBDO_SEM:0;
-    if(semIdx>=R.semaines.length) semIdx=0;
-    var sem=R.semaines[semIdx];
-    var joursN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
-    var lundi=hrParse(sem.lundi); var dates=[]; for(var i=0;i<7;i++){var dd=new Date(lundi);dd.setDate(lundi.getDate()+i);dates.push(dd);}
-    function jjmm(d){return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');}
-    function hhmm(min){var h=Math.floor(min/60)%24,m=min%60;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
-    function fmtHC(min){var h=Math.floor(min/60),m=min%60;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
-    var ids={}; R.semaines.forEach(function(s){ Object.keys(s.parEmp).forEach(function(id){ ids[id]=s.parEmp[id].name; }); });
-    var liste=Object.keys(ids).map(function(id){return {id:id,name:ids[id]};}).sort(function(a,b){return a.name.localeCompare(b.name);});
-    function contratDe(id){var e=(DB.employees||[]).find(function(x){return x.id===id;});return hrContratHebdo(e);}
-
-    var doc=_pdfDoc('landscape');
-    var W=297,H=210,M=8,y=14;
-    doc.setFillColor(0,137,123);doc.rect(0,0,W,12,'F');
-    doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(13);
-    doc.text('PLANNING HEBDOMADAIRE',M,8);
-    doc.setFontSize(9);doc.setFont('helvetica','normal');
-    doc.text('du '+jjmm(dates[0])+'/'+dates[0].getFullYear()+' au '+jjmm(dates[6])+'/'+dates[6].getFullYear(),W-M,8,{align:'right'});
-    y=17;
-    // colonnes : nom + 7 jours + plan/contrat
-    var nameW=42, dayW=(W-2*M-nameW-26)/7, x0=M;
-    doc.setFontSize(7);doc.setTextColor(40,40,40);doc.setFont('helvetica','bold');
-    doc.text('NOM Prenom',x0+1,y);
-    for(var j=0;j<7;j++){ doc.text(joursN[j].slice(0,3)+' '+jjmm(dates[j]), x0+nameW+j*dayW+1, y); }
-    doc.text('PLAN/CONTRAT',x0+nameW+7*dayW+1,y);
-    y+=1.5; doc.setDrawColor(120,120,120); doc.line(M,y,W-M,y); y+=3.5;
-    doc.setFont('helvetica','normal');doc.setFontSize(6.5);
-    liste.forEach(function(e){
-      if(y>H-8){ doc.addPage('a4','landscape'); y=14; }
-      var pe=sem.parEmp[e.id]; var contrat=contratDe(e.id);
-      doc.setTextColor(20,20,20);doc.setFont('helvetica','bold');
-      doc.text(_strip(e.name).slice(0,28), x0+1, y);
-      doc.setFont('helvetica','normal');
-      var totMin=0; var rowH=4;
-      for(var jj=0;jj<7;jj++){
-        var cren=(pe&&pe.jours[jj])?pe.jours[jj].slice():[];
-        cren.sort(function(a,b){return a.s-b.s;});
-        var txt;
-        if(!cren.length){
-          var et=_hrEtatJour(e.id, iso(dates[jj]));
-          if(et){ txt=et.info.court; doc.setTextColor(20,20,20); if(et.compteHeures){ totMin+=_hrMinCpJour(e.id); } }
-          else { txt='Repos'; doc.setTextColor(150,150,150); }
-        }
-        else {
-          var plages=[],cur=null;
-          cren.forEach(function(b){ totMin+=(b.e-b.s); if(cur&&b.s<=cur.e){cur.e=Math.max(cur.e,b.e);}else{cur={s:b.s,e:b.e};plages.push(cur);} });
-          txt=plages.map(function(p){return hhmm(p.s)+'-'+hhmm(p.e);}).join('  ');
-          doc.setTextColor(20,20,20);
-        }
-        var wr=doc.splitTextToSize(txt, dayW-1);
-        doc.text(wr, x0+nameW+jj*dayW+1, y);
-        if(wr.length*3>rowH) rowH=wr.length*3;
-      }
-      // plan/contrat
-      var planTxt=fmtHC(totMin)+' / '+(contrat!=null?fmtHC(Math.round(contrat*60)):'-');
-      if(contrat!=null && totMin/60<contrat-0.01) doc.setTextColor(224,134,0);
-      else if(contrat!=null && totMin/60>contrat+0.01) doc.setTextColor(214,35,0);
-      else doc.setTextColor(26,152,80);
-      doc.setFont('helvetica','bold');
-      doc.text(planTxt, x0+nameW+7*dayW+1, y);
-      doc.setFont('helvetica','normal');
-      y+=rowH+2.5;
-      doc.setDrawColor(230,230,230); doc.line(M,y-1.5,W-M,y-1.5);
-    });
-    doc.save('planning_'+sem.lundi+'.pdf');
-    if(typeof toast==='function') toast('PDF du planning généré','success');
-  }catch(e){ if(typeof toast==='function') toast('Erreur PDF : '+e.message,'error'); }
-}
-window.genTraitsReport=genTraitsReport;
-window.genPlanHebdoReport=genPlanHebdoReport;
 window.rptPdf=rptPdf;
 
 /* — EXPORT EXCEL du rapport ouvert — */
@@ -11612,6 +11463,45 @@ function renderEmpDocs(empId,boxId){
      où Vincent ne veut plus que la suite des périodes de travail. On montre donc
      DEUX choses dans ce tiroir : les documents signés dans l'application, et les
      pièces rangées dans Dropbox. */
+  /* ★ v720 — ON RECONNAÎT UN AVENANT AU PREMIER COUP D'ŒIL.
+
+     Vincent : « il faut qu'on voie rapidement que c'est un avenant, on ne le
+     voit pas. Il faut qu'on voie la date de démarrage. Là, on ne voit rien du
+     tout. »
+
+     Les six documents signés se ressemblaient tous : une icône, un nom, une date
+     de signature. Or la date qui compte pour un avenant n'est pas celle où on
+     l'a signé — c'est celle où il PREND EFFET. On ajoute donc à chaque ligne une
+     pastille de type, colorée, et pour un avenant la date d'effet et la nouvelle
+     durée, lues dans le texte du document lui-même. */
+  var _CAT_DOC={
+    avenant:  {lbl:'AVENANT',   c:'#F5A623', f:'#3a2c10'},
+    contrat:  {lbl:'CONTRAT',   c:'#4CAF50', f:'#12281a'},
+    reglement:{lbl:'RÈGLEMENT', c:'#b58edc', f:'#241a33'},
+    tenue:    {lbl:'TENUE',     c:'#5bb8d4', f:'#122a33'},
+    cameras:  {lbl:'CAMÉRAS',   c:'#9aa4ae', f:'#1e2226'},
+    lre:      {lbl:'ACCORD MAIL', c:'#9aa4ae', f:'#1e2226'},
+    accord_mail:{lbl:'ACCORD MAIL', c:'#9aa4ae', f:'#1e2226'}
+  };
+  function _pastilleDoc(cle){
+    var C=_CAT_DOC[cle]; if(!C) return '';
+    return '<span style="background:'+C.f+';border:1px solid '+C.c+';color:'+C.c+';border-radius:5px;'
+      +'padding:1px 7px;font-size:.66rem;font-weight:800;letter-spacing:.06em;white-space:nowrap;">'+C.lbl+'</span>';
+  }
+  /* la date d'effet et la durée, lues dans le texte de l'avenant */
+  function _effetDoc(txt){
+    var t=String(txt||'');
+    var md=t.match(/à compter du\s*(\d{2}\/\d{2}\/\d{4})/i);
+    var mh=t.match(/en la portant à\s*([\d ,.]+)\s*heures/i);
+    if(!md && !mh) return '';
+    var bits=[];
+    if(md) bits.push('prend effet le <b>'+md[1]+'</b>');
+    if(mh){
+      var hm=parseFloat(String(mh[1]).replace(/\s/g,'').replace(',','.'));
+      if(isFinite(hm)&&hm>0) bits.push('<b>'+(''+(Math.round(hm*12/52*100)/100)).replace('.',',')+' h/sem</b>');
+    }
+    return '<span style="font-size:.72rem;color:#F5A623;">⏱ '+bits.join(' · ')+'</span>';
+  }
   var _hRH='';
   var _dirRH=(!window.__readOnly && curUser && (curUser.role==='franchise'||curUser.role==='directeur'));
   var _sigs=(DB.letters||[]).filter(function(l){
@@ -11620,16 +11510,25 @@ function renderEmpDocs(empId,boxId){
   }).sort(function(a,b){ return new Date(b.signedAt||b.refusedAt||b.createdAt||0)-new Date(a.signedAt||a.refusedAt||a.createdAt||0); });
 
   if(_sigs.length){
-    _hRH+='<div style="font-size:.74rem;color:#888;margin:4px 0 4px;">✍️ Signés dans l\'application</div>';
+    _hRH+='<div style="font-size:.74rem;color:#888;margin:4px 0 6px;padding-left:2px;">✍️ Signés dans l\'application</div>';
     _sigs.forEach(function(l){
       var id=ctrDocIdent(l);
       var ok=(l.sigStatus==='signed');
       var dt=ok?(l.signedAt?new Date(l.signedAt).toLocaleDateString('fr-FR'):''):(l.refusedAt?new Date(l.refusedAt).toLocaleDateString('fr-FR'):'');
-      _hRH+='<div style="display:flex;align-items:center;gap:8px;background:#141414;border-radius:6px;padding:7px 10px;margin-bottom:5px;flex-wrap:wrap;">'
-        +'<span style="font-size:1.02rem;">'+id.icone+'</span>'
-        +'<span style="flex:1;min-width:150px;font-size:.82rem;color:#ddd;">'+escapeHtmlCt(id.nom)
+      /* ★ v721 — TOUT S'ALIGNE. Vincent : « dans la feuille trois, je vois que
+         ce n'est pas aligné. » L'icône a maintenant une largeur fixe, la
+         pastille aussi : les noms démarrent tous au même endroit, et les boutons
+         tombent en colonne à droite — y compris sur les pièces rangées, qui
+         n'avaient pas d'icône du tout. */
+      _hRH+='<div style="display:flex;align-items:center;gap:8px;background:#141414;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
+        +'<span style="width:22px;flex:0 0 22px;text-align:center;font-size:1.02rem;">'+id.icone+'</span>'
+        +'<span style="flex:1;min-width:150px;font-size:.82rem;color:#ddd;">'
+          +'<span style="display:inline-block;width:104px;">'+_pastilleDoc(id.cle)+'</span>'
+          +escapeHtmlCt(id.nom)
           +'<br><span style="font-size:.72rem;color:'+(ok?'#4CAF50':'#cc5555')+';font-weight:700;">'
-          +(ok?('✍️ Signé'+(dt?(' le '+dt):'')):('❌ Refus'+(dt?(' le '+dt):'')))+'</span></span>'
+          +(ok?('✍️ Signé'+(dt?(' le '+dt):'')):('❌ Refus'+(dt?(' le '+dt):'')))+'</span>'
+          +(function(){ var _e=(id.cle==='avenant')?_effetDoc(l.text||l.body||''):''; return _e?('<br>'+_e):''; })()
+          +'</span>'
         +'<button class="btn btn-gray btn-sm" onclick="ctrRelire(\''+l.id+'\')">👁️ Lire</button>'
         +'<button class="btn btn-gray btn-sm" onclick="telechargerPdfCourrier(\''+l.id+'\')">⬇️ Télécharger</button>'
         +(_dirRH?('<button class="btn-danger" style="padding:3px 8px;" onclick="ctrSupprimerDoc(\''+l.id+'\')">🗑️</button>'):'')
@@ -11643,11 +11542,15 @@ function renderEmpDocs(empId,boxId){
     EMPDOC_CATS.forEach(function(cat){
       var grp=docs.filter(function(d){return d.categorie===cat.id;});
       if(!grp.length)return;
-      _hRH+='<div style="font-size:.74rem;color:#888;margin:8px 0 4px;">'+cat.icon+' '+cat.label+' — rangé dans le dossier</div>';
+      _hRH+='<div style="font-size:.74rem;color:#888;margin:10px 0 6px;padding-left:2px;">'+cat.icon+' '+cat.label+' — rangé dans le dossier</div>';
       grp.forEach(function(d){
         var dt=d.createdAt?new Date(d.createdAt).toLocaleDateString('fr-FR'):'';
+        var _pas=_pastilleDoc(cat.id==='accord_mail'?'accord_mail':cat.id);
         _hRH+='<div style="display:flex;align-items:center;gap:8px;background:#141414;border-radius:6px;padding:7px 10px;margin-bottom:5px;">'
-          +'<span style="flex:1;min-width:0;font-size:.82rem;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(d.label||d.name||'Document')+(dt?' <span style="color:#666;font-size:.72rem;">· '+dt+'</span>':'')+'</span>'
+          +'<span style="width:22px;flex:0 0 22px;text-align:center;font-size:1.02rem;">'+(cat.icon||'📎')+'</span>'
+          +'<span style="flex:1;min-width:0;font-size:.82rem;color:#ddd;">'
+            +'<span style="display:inline-block;width:104px;">'+(_pas||'')+'</span>'
+            +(d.label||d.name||'Document')+(dt?' <span style="color:#666;font-size:.72rem;">· '+dt+'</span>':'')+'</span>'
           +(d.link?'<button class="btn btn-gray btn-sm" onclick="viewDoc(\''+d.id+'\')">👁️ Lire</button> <button class="btn btn-gray btn-sm" onclick="dlDoc(\''+d.link+'\')">⬇️ Télécharger</button>':'<span style="font-size:.72rem;color:#a8460f;">non lisible</span>')
           +((curUser&&curUser.role==='franchise')?'<button class="btn-danger" style="padding:3px 8px;" onclick="delEmpDoc(\''+d.id+'\')">🗑️</button>':'')
           +'</div>';
@@ -19686,16 +19589,13 @@ function _plagesPlanifTxt(e, heures){
 
      La fiche reste la source si la grille ne dit rien pour cette durée (35 h, ou
      grille non renseignée). */
-  try{
-    if(heures && typeof grcDisposPour==='function'){
-      var g=grcDisposPour(heures, e&&e.transport, 'contrat');
-      if(g){ inf=Object.assign({}, inf, {disposContrat:g}); }
-    }
-  }catch(_){}
   // ★ v587 — LE CONTRAT porte les « dispo contrat » (ce que le salarié signe),
   // PAS ses disponibilités réelles, qui sont plus larges et servent au placement.
   // Salariés d'avant la grille : aucun disposContrat → on garde l'ancien comportement.
-  var dispos=inf.disposContrat||inf.dispos||{};
+  /* ★ v720 — une seule fonction décide, pour le texte comme pour le contrôle. */
+  var dispos=(typeof _ctrPlagesDuDocument==='function')
+    ? _ctrPlagesDuDocument(e, heures)
+    : (inf.disposContrat||inf.dispos||{});
   var JN=[['lun','Lundi'],['mar','Mardi'],['mer','Mercredi'],['jeu','Jeudi'],['ven','Vendredi'],['sam','Samedi'],['dim','Dimanche']];
   function toMin(hm){ if(!hm) return null; var p=String(hm).replace('h',':').split(':'); var h=parseInt(p[0],10); var m=parseInt(p[1]||'0',10); if(isNaN(h))return null; return h*60+(isNaN(m)?0:m); }
   function fmt(hm){ if(!hm) return ''; var p=String(hm).replace('h',':').split(':'); var h=parseInt(p[0],10)||0; var m=parseInt(p[1]||'0',10)||0; return ('0'+h).slice(-2)+'h'+('0'+m).slice(-2); }
@@ -19886,6 +19786,35 @@ window.ctrDesenDurcir=ctrDesenDurcir;
    des contrats et le contrat sort de la loi sans que personne ne le voie. On le
    vérifie donc à chaque fabrication de contrat.
    ═══════════════════════════════════════════════════════════════════════════ */
+/* ★ v720 — LE CONTRÔLE REGARDAIT LES PLAGES D'UN AUTRE CONTRAT.
+
+   Vincent, en préparant l'avenant de Léa (24 h → 15 h) : « tu mets "les plages
+   de planification sortent de la loi" — non. Tu dois prendre les plages qu'on a
+   vues à 15 heures. C'est marqué en dessous. »
+
+   Il avait deux chiffres sous les yeux, pour la même chose :
+
+     · le document, et la note bleue : 31h30 — les plages de la grille 15 h ;
+     · l'alerte rouge : 72h00 pour un plafond de 45h00 — les plages de sa FICHE,
+       c'est-à-dire celles de son contrat de 24 h, celui qu'on est justement en
+       train de remplacer.
+
+   L'alerte comparait donc les anciennes plages au nouveau plafond. Elle criait
+   toujours, et elle bloquait la génération derrière un « Générer quand même ? ».
+
+   Une seule fonction dit maintenant quelles plages porte le document, et le
+   contrôle lit la même chose que le papier.                                   */
+function _ctrPlagesDuDocument(e, heures){
+  var inf=(e&&e.infos)||{};
+  try{
+    if(heures && typeof grcDisposPour==='function'){
+      var g=grcDisposPour(heures, e&&e.transport, 'contrat');
+      if(g) return g;                      /* la grille de la durée choisie */
+    }
+  }catch(_){}
+  return inf.disposContrat||inf.dispos||{};   /* 35 h, ou grille non renseignée */
+}
+window._ctrPlagesDuDocument=_ctrPlagesDuDocument;
 function ctrPlagesControle(dispos, heuresHebdo){
   var JN=[['lun','Lundi'],['mar','Mardi'],['mer','Mercredi'],['jeu','Jeudi'],['ven','Vendredi'],['sam','Samedi'],['dim','Dimanche']];
   function toMin(hm){ if(!hm) return null; var p=String(hm).replace('h',':').split(':'); var h=parseInt(p[0],10); var m=parseInt(p[1]||'0',10); if(isNaN(h))return null; return h*60+(isNaN(m)?0:m); }
@@ -22365,6 +22294,16 @@ function _ctrRassembleSignatures(out){
 }
 window._ctrRassembleSignatures=_ctrRassembleSignatures;
 
+/* ★ v720 — LA DATE D'EFFET DOIT SE VOIR.
+
+   Vincent : « la date de l'avenant, il faut que tu la mettes d'une autre
+   couleur qu'on la voie, elle n'apparaît pas assez. Comme quoi ça commence à
+   telle date. C'est important, je ne l'ai pas vue. »
+
+   Elle était noyée au milieu d'une phrase de six lignes. Un avenant porte
+   maintenant, juste sous son titre, un bandeau à part : la date à laquelle il
+   prend effet et la nouvelle durée. Même bandeau à l'écran et dans le PDF. */
+var CTR_MARQUE_EFFET='\u23F1EFFET\u23F1';
 function ctrBlocs(texte){
   var L=String(texte==null?'':texte).replace(/\r/g,'').split('\n');
   var out=[], i=0;
@@ -22396,6 +22335,9 @@ function ctrBlocs(texte){
 
   while(i<L.length){
     var t=L[i], tr=t.trim();
+    if(tr.indexOf(CTR_MARQUE_EFFET)===0){
+      out.push({t:'effet', s:tr.slice(CTR_MARQUE_EFFET.length).trim()}); i++; continue;
+    }
 
     if(!tr){ out.push({t:'vide'}); i++; continue; }
 
@@ -22590,6 +22532,15 @@ function ctrPdfContrat(emp, texte, titre, soc, sig){
   blocs.forEach(function(b){
     if(b.t==='vide'){ y+=2.6; return; }
 
+    if(b.t==='effet'){
+      y+=3; place(13);
+      doc.setFillColor(255,244,222); doc.setDrawColor(214,158,46);
+      doc.rect(M-2, y-5.4, L+4, 9.6, 'FD');
+      doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(150,90,0);
+      doc.text(_s(b.s), W/2, y, {align:'center'});
+      doc.setTextColor(17,17,17); y+=10.5;
+      return;
+    }
     if(b.t==='soustitre'){
       y+=3; place(9);
       doc.setFont('helvetica','bold'); doc.setFontSize(11.5); doc.setTextColor(17,17,17);
@@ -22969,6 +22920,7 @@ function ctrHtmlDoc(texte, soc, titre, opts){
   }
   ctrBlocs(texte).forEach(function(b){
     if(b.t==='vide'){ h+='<div class="ctrdoc-v"></div>'; return; }
+    if(b.t==='effet'){ h+='<div class="ctrdoc-effet">'+E(b.s)+'</div>'; return; }
     if(b.t==='soustitre'){ h+='<div class="ctrdoc-st">'+E(b.s)+'</div>'; return; }
     if(b.t==='article'){ h+='<div class="ctrdoc-a">'+E(b.s)+'</div>'; return; }
     if(b.t==='sousart'){ h+='<div class="ctrdoc-sa">'+E(b.s)+'</div>'; return; }
@@ -23155,7 +23107,19 @@ function _contratRemplir(lines, e, opts){
     iban:inf.iban||_ipC.iban||'', bic:inf.bic||_ipC.bic||'', banque:inf.banque||_ipC.banque||'',
     titre_sejour_num:inf.titre_sejour_num||_ipC.titre_sejour_num||'',
     fin_carte_sejour:_frD(inf.fin_carte_sejour||_ipC.fin_carte_sejour||''),
-    adresse:adresse, nationalite:c.nationalite||inf.nationalite||'',
+    /* ★ v721 — « LA NATIONALITÉ, TU LA CONNAIS. VA CHERCHER LES RENSEIGNEMENTS
+       ET ARRÊTE DE ME DEMANDER. »
+
+       Vincent a raison sur le principe, et il y avait un vrai trou : la
+       nationalité était cherchée dans la candidature et dans la fiche, mais PAS
+       dans ce que le salarié a saisi lui-même sur sa page de dépôt
+       (onboarding.infosPerso) — alors que le n° de sécurité sociale, lui, y
+       était déjà cherché. Un salarié qui avait rempli sa page voyait donc
+       « nationalité à renseigner » alors qu'il l'avait donnée.
+
+       Désormais les deux, et tous les champs d'identité, sont cherchés aux TROIS
+       endroits : la fiche, la candidature, la page remplie par le salarié. */
+    adresse:adresse, nationalite:c.nationalite||inf.nationalite||_ipC.nationalite||'',
     date_signature:new Date().toLocaleDateString('fr-FR'),
     civilite:civilite,
     // économique : depuis la grille des salaires + heures choisies
@@ -23262,7 +23226,22 @@ function openContratGen(empId, _modeleVoulu){
            qui a été prévue pour ce salarié. Voir ctrRenderDuree(). */
         +'<div style="min-width:170px;" id="contratgen-duree-box"></div>'
         /* ★ v688 — un avenant prend effet à une date : elle se saisit ici. */
-        +'<div style="min-width:150px;display:none;" id="contratgen-effet-box"><div class="flabel">Date d\'effet</div><input type="date" id="contratgen-effet" class="fi" value="'+_eff0+'" onchange="contratGenPreview()"></div>'
+        /* ★ v721 — LA DATE D'EFFET SE VOIT AUSSI DANS LE PANNEAU.
+
+           Vincent : « la date d'effet, il faut que tu la mettes en vert, qu'on
+           la voie. » C'est le champ qui décide de tout — quand l'ancien contrat
+           s'arrête, quand le nouveau démarre, ce que le planning donnera. Il
+           avait la même allure grise que les autres. */
+        +'<div style="min-width:186px;display:none;" id="contratgen-effet-box">'
+          +'<div class="flabel" style="color:#3ecf8e;font-weight:800;">📅 Date d\'effet</div>'
+          +'<input type="date" id="contratgen-effet" class="fi" value="'+_eff0+'" onchange="contratGenPreview()" '
+            /* !important : la règle générale des champs date est elle-même en
+               !important, sans quoi le vert ne prendrait pas. */
+            +'style="border:2px solid #3ecf8e !important;background:#10241a !important;'
+            +'color:#bff3d7 !important;font-weight:800;">'
+          +'<div style="font-size:.66rem;color:#7fb79a;margin-top:3px;line-height:1.35;">'
+            +'C\'est ce jour-là que l\'ancien contrat s\'arrête et que le nouveau démarre.</div>'
+        +'</div>'
       +'</div>'
       +'<div id="contratgen-avenant-note" style="display:none;margin:-4px 0 12px;background:#1b2333;border:1px solid #2f4468;border-radius:8px;padding:9px 12px;color:#9fc0ef;font-size:.78rem;line-height:1.5;"></div>'
       +'<div id="contratgen-docs" style="margin-bottom:10px;"></div>'
@@ -23526,11 +23505,40 @@ function ctrMajChampsAvenant(){
 window.ctrMajChampsAvenant=ctrMajChampsAvenant;
 /* ★ v680 — quels documents la direction veut sortir, cette fois-ci. */
 var _CTR_DOCS_CHOIX=null;
-function ctrRenderChoixDocs(dispo){
+/* ★ v721 — UN ACCORD DE SIGNATURE ÉLECTRONIQUE SUFFIT POUR TOUT.
+
+   Vincent : « l'accord de signature électronique, tu n'as pas besoin de le
+   mettre à chaque fois. J'ai un accord de signature, ça suffit pour tout. »
+
+   C'est juste : cet accord vaut pour la relation de travail, pas pour un
+   document. On regarde donc s'il a déjà été signé — dans les documents signés
+   ou dans les pièces rangées — et si oui, la case ne se coche plus toute seule
+   et la ligne dit depuis quand il l'a donné. Elle reste cochable : si un jour
+   il faut le refaire, rien n'empêche. */
+function _ctrAccordDejaSigne(empId){
+  try{
+    var L=(DB.letters||[]).filter(function(l){
+      return l.empId===empId && l.sigStatus==='signed'
+        && (l.docCle==='lre' || /accord.*courrier/i.test(l.docTitre||''));
+    }).sort(function(a,b){ return new Date(b.signedAt||0)-new Date(a.signedAt||0); })[0];
+    if(L) return (L.signedAt||'').slice(0,10);
+    var D=(DB.empDocs||[]).filter(function(d){
+      return d.empId===empId && (d.categorie==='accord_mail' || /accord courrier/i.test(d.label||''));
+    }).sort(function(a,b){ return new Date(b.createdAt||0)-new Date(a.createdAt||0); })[0];
+    if(D) return (D.createdAt||'').slice(0,10);
+  }catch(_){}
+  return '';
+}
+window._ctrAccordDejaSigne=_ctrAccordDejaSigne;
+function ctrRenderChoixDocs(dispo, empId){
   var box=document.getElementById('contratgen-docs'); if(!box) return;
+  var _accLe=empId?_ctrAccordDejaSigne(empId):'';
   if(!_CTR_DOCS_CHOIX){
     _CTR_DOCS_CHOIX={};
-    dispo.forEach(function(d){ _CTR_DOCS_CHOIX[d.cle]=!!d.defaut; });
+    dispo.forEach(function(d){
+      /* l'accord déjà donné ne se recoche pas tout seul */
+      _CTR_DOCS_CHOIX[d.cle]=(d.cle==='lre' && _accLe) ? false : !!d.defaut;
+    });
   }
   if(dispo.length<2){ box.innerHTML=''; return; }
   var h='<div style="background:#141414;border:1px solid #333;border-radius:8px;padding:10px 12px;">'
@@ -23538,10 +23546,14 @@ function ctrRenderChoixDocs(dispo){
       +'Ce modèle contient '+dispo.length+' documents distincts — par défaut, seul le contrat sort'
       +'</div><div style="display:flex;gap:12px;flex-wrap:wrap;">';
   dispo.forEach(function(d){
-    h+='<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.8rem;color:#ccc;">'
+    var _deja=(d.cle==='lre' && _accLe);
+    h+='<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.8rem;color:'+(_deja?'#8a8f96':'#ccc')+';">'
       +'<input type="checkbox" '+(_CTR_DOCS_CHOIX[d.cle]?'checked':'')
       +' onchange="ctrToggleDoc(\''+d.cle+'\',this.checked)" style="width:15px;height:15px;accent-color:var(--orange);">'
-      +escapeHtmlCt(d.court)+'</label>';
+      +escapeHtmlCt(d.court)
+      +(_deja?('<span style="font-size:.7rem;color:#3ecf8e;">✔️ déjà signé'
+        +(_accLe?(' le '+(String(_accLe).slice(8,10)+'/'+String(_accLe).slice(5,7)+'/'+String(_accLe).slice(0,4))):'')+' — inutile de le refaire</span>'):'')
+      +'</label>';
   });
   h+='</div><div style="margin-top:7px;font-size:.73rem;color:#888;line-height:1.5;">'
     +'Chaque document coché sort <b>séparément</b> : son titre, son employeur, son salarié, sa signature. '
@@ -23559,7 +23571,7 @@ function ctrDocsChoisis(e, opts){
   if(!lines) return [];
   var soc=getSociete(e.restoId)||{};
   var dispo=ctrDocsDuModele(key);          /* ★ v688 */
-  ctrRenderChoixDocs(dispo);
+  ctrRenderChoixDocs(dispo, e&&e.id);      /* ★ v721 */
   var out=[];
   dispo.forEach(function(d){
     if(dispo.length>1 && _CTR_DOCS_CHOIX && !_CTR_DOCS_CHOIX[d.cle]) return;
@@ -23573,7 +23585,28 @@ function ctrDocsChoisis(e, opts){
              /* ★ v698 — la dotation de CE salarié, pour SA durée de contrat. */
              : (d.cle==='tenue')   ? ctrNoteTenues(e, {heures:(parseFloat(opts&&opts.heures)||undefined)})
              : ctrEnTete(sec, e, soc).concat(d.lignes);
-    out.push({cle:d.cle, titre:d.titre, court:d.court, lignes:_contratRemplir(brut, e, opts)});
+    var _lg=_contratRemplir(brut, e, opts);
+    /* ★ v720 — pour un avenant, la date d'effet et la nouvelle durée passent en
+       tête, dans leur bandeau. On les lit dans le texte déjà rempli : ce qui est
+       annoncé est donc exactement ce qui est écrit plus bas. */
+    if(d.cle==='avenant'){
+      try{
+        var _tt=_lg.map(function(pr){ return pr[0]||''; }).join('\n');
+        var _md=_tt.match(/à compter du\s*(\d{2}\/\d{2}\/\d{4})/i);
+        var _mh=_tt.match(/en la portant à\s*([\d ,.]+)\s*heures/i);
+        var _bits=[];
+        if(_md) _bits.push('Prend effet le '+_md[1]);
+        if(_mh){
+          var _hm=parseFloat(String(_mh[1]).replace(/\s/g,'').replace(',','.'));
+          if(isFinite(_hm)&&_hm>0){
+            var _hs=Math.round(_hm*12/52*100)/100;
+            _bits.push('nouvelle durée : '+(''+_hs).replace('.',',')+' h par semaine');
+          }
+        }
+        if(_bits.length) _lg.unshift([CTR_MARQUE_EFFET+' '+_bits.join('  ·  '), 1]);
+      }catch(_){}
+    }
+    out.push({cle:d.cle, titre:d.titre, court:d.court, lignes:_lg});
   });
   return out;
 }
@@ -23705,7 +23738,8 @@ function ctrRenderManque(e, cles){
   /* 2) la loi sur les plages de planification */
   try{
     var _hi=document.getElementById('contratgen-heures');
-    var _ctl=ctrPlagesControle((e.infos&&(e.infos.disposContrat||e.infos.dispos))||{}, _hi?_hi.value:'');
+    /* ★ v720 — les plages DU DOCUMENT, pas celles de l'ancien contrat. */
+    var _ctl=ctrPlagesControle(_ctrPlagesDuDocument(e, _hi?_hi.value:''), _hi?_hi.value:'');
     if(_ctl.alertes.length){
       h+='<div style="background:#3a1a15;border:1px solid #8B3020;border-radius:8px;padding:10px 12px;margin-bottom:9px;color:#e8907a;font-size:.79rem;line-height:1.55;">'
         +'<b>⛔ Les plages de planification sortent de la loi</b><br>'
@@ -23801,7 +23835,9 @@ async function contratGenAction(mode){
     }
     /* Et la loi sur les plages. */
     var _hi2=document.getElementById('contratgen-heures');
-    var _c2=ctrPlagesControle((e.infos&&(e.infos.disposContrat||e.infos.dispos))||{}, _hi2?_hi2.value:'');
+    /* ★ v720 — même source que l'aperçu : on ne bloque plus sur des plages qui
+       ne sont pas dans le document. */
+    var _c2=ctrPlagesControle(_ctrPlagesDuDocument(e, _hi2?_hi2.value:''), _hi2?_hi2.value:'');
     if(_c2.alertes.length){
       if(!confirm('Les plages de planification sortent de la loi :\n\n· '+_c2.alertes.join('\n· ')
         +'\n\n(12 h par jour au maximum ; au plus 3 fois la durée hebdomadaire, plafonné à 75 h.)'
@@ -24320,7 +24356,35 @@ function ctrBrouillon(lettres){
   /* ★ v691 — sans adresse publique, on ne fabrique pas un mail de liens morts. */
   if(!base) return {sansAdresse:true, dest:(l0.empEmail||''), n:n, nomSalarie:l0.empName||''};
   var lien=base+'#sign/'+lettres[0].id;
-  var liste=lettres.map(function(l,i){ return '   '+(n>1?((i+1)+'. '):'')+ids[i].nom; }).join('\n');
+  /* ★ v720 — LE MAIL DIT CE QU'IL Y A DANS L'AVENANT.
+
+     Vincent : « ce qui aurait été sympa, c'est de dire : voici votre avenant au
+     contrat, c'est un de quinze heures ou de vingt heures, à partir de telle
+     date. Ce serait sympa. »
+
+     Il a raison : le salarié recevait « Avenant au contrat » et devait ouvrir le
+     lien pour savoir de quoi on parle. On lit la nouvelle durée et la date
+     d'effet directement dans le texte du document — celui qui part —, donc ce
+     qui est annoncé est forcément ce qui est écrit. Rien n'est deviné : si le
+     texte ne dit rien, la ligne ne s'ajoute pas. */
+  function _ctrResumeDoc(l, id){
+    if(id.cle!=='avenant') return '';
+    var t=String(l.text||l.body||'');
+    var mh=t.match(/en la portant à\s*([\d ,.]+)\s*heures/i);
+    var md=t.match(/à compter du\s*(\d{2}\/\d{2}\/\d{4})/i);
+    var bits=[];
+    if(mh){
+      var hm=parseFloat(String(mh[1]).replace(/\s/g,'').replace(',','.'));
+      if(isFinite(hm)&&hm>0){
+        var hs=Math.round(hm*12/52*100)/100;      /* mensuel → hebdomadaire */
+        bits.push((''+ (Math.round(hs*100)/100)).replace('.',',')+' h par semaine');
+      }
+    }
+    if(md) bits.push('à partir du '+md[1]);
+    return bits.length?(' — '+bits.join(', ')):'';
+  }
+  var liste=lettres.map(function(l,i){
+    return '   '+(n>1?((i+1)+'. '):'')+ids[i].nom+_ctrResumeDoc(l, ids[i]); }).join('\n');
 
   var dejaSignee=!!ctrSignatureDir();
   var body='Bonjour '+prenom+',\n\n'
@@ -24392,6 +24456,24 @@ async function ctrOuvrirBrouillon(lid, opts_force){
     ctrBrouillonBloque(url, br);
     return;
   }
+  await _ctrApresBrouillon(br);
+}
+/* ★ v720 — CE QUI SE PASSE UNE FOIS LE BROUILLON OUVERT.
+
+   Vincent : « j'envoie le mail, ça me remet sur ça, on a l'impression qu'on ne
+   l'a pas envoyé, donc il faut le renvoyer. »
+
+   Il avait raison, et le défaut était précis. Quand Chrome bloque la fenêtre —
+   ce qui lui est arrivé — on affichait un lien de secours. Le lien ouvrait bien
+   le brouillon, mais tout ce qui suit était sauté : la date d'envoi n'était pas
+   enregistrée et le panneau restait à l'écran, identique. On revenait donc
+   dessus en croyant que rien n'était parti, et on rouvrait un deuxième
+   brouillon — le salarié recevait le même document deux fois.
+
+   Les deux chemins — fenêtre ouverte, ou lien de secours cliqué — finissent
+   maintenant par ici. */
+async function _ctrApresBrouillon(br){
+  if(!br) return;
   for(var i=0;i<br.ids.length;i++){
     try{ await sb.patch('bks_letters','id=eq.'+br.ids[i],{sent_at:new Date().toISOString()}); }catch(_){}
   }
@@ -24405,10 +24487,11 @@ async function ctrOuvrirBrouillon(lid, opts_force){
     ? ('🧪 Essai : brouillon ouvert pour '+br.dest+' — rien ne part au salarié.')
     : ('Brouillon ouvert ('+br.n+' document'+(br.n>1?'s':'')+'). Relisez-le dans Gmail, puis appuyez sur Envoyer.'),'success');
 }
-window.ctrOuvrirBrouillon=ctrOuvrirBrouillon;
+window.ctrOuvrirBrouillon=ctrOuvrirBrouillon; window._ctrApresBrouillon=_ctrApresBrouillon;
 
 /* Le navigateur a refusé d'ouvrir la fenêtre : on donne le lien à cliquer. */
 function ctrBrouillonBloque(url, br){
+  window._CTR_BR_BLOQ=br;          /* ★ v720 — pour la sortie commune */
   var old=document.getElementById('ctr-bloq-ov'); if(old) old.remove();
   var ov=document.createElement('div'); ov.id='ctr-bloq-ov';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100002;display:flex;align-items:center;justify-content:center;padding:16px;';
@@ -24417,7 +24500,9 @@ function ctrBrouillonBloque(url, br){
     +'<p style="font-size:.83rem;color:#ccc;line-height:1.55;margin:0 0 12px;">Chrome empêche les fenêtres qui s\'ouvrent toutes seules. '
       +'Cliquez sur le bouton ci-dessous — ou autorisez les fenêtres pour ce site (l\'icône à droite de la barre d\'adresse).</p>'
     +'<a href="'+url.replace(/"/g,'&quot;')+'" target="_blank" class="btn btn-red btn-sm" style="text-decoration:none;display:inline-block;" '
-      +'onclick="document.getElementById(\'ctr-bloq-ov\').remove();">✉️ Ouvrir le brouillon</a> '
+      /* ★ v720 — le lien de secours fait exactement ce que fait la fenêtre :
+         il enregistre l'envoi et referme le panneau. */
+      +'onclick="document.getElementById(\'ctr-bloq-ov\').remove(); try{ _ctrApresBrouillon(window._CTR_BR_BLOQ); }catch(_){}">✉️ Ouvrir le brouillon</a> '
     +'<button class="btn btn-gray btn-sm" onclick="document.getElementById(\'ctr-bloq-ov\').remove()">Fermer</button>'
     +'</div>';
   document.body.appendChild(ov);
