@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-10-01 19:00 · v721 (date deffet en vert, on ne redemande plus ce quon sait)';
+  var EMBEDDED_VERSION = '2026-10-03 10:00 · v725 (les regles de direction sortent du code)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -1308,6 +1308,25 @@ html.theme-light .ag-empty{color:#8b9099 !important;}
 .ctrdoc-effet{font-family:Arial,sans-serif;font-weight:800;font-size:.92rem;text-align:center;
   color:#8a5300;background:#FFF4DE;border:1px solid #D69E2E;border-radius:6px;
   padding:8px 12px;margin:10px 0 14px;letter-spacing:.2px;}
+/* ★ v722 — LE RÉSUMÉ DE LA DÉMISSION, LISIBLE DANS LES DEUX THÈMES.
+
+   L'écran de Vincent est en thème CLAIR. Or le thème clair réécrit les couleurs
+   posées en ligne : tout « color:#fff » y devient #23262c. Un encadré au fond
+   sombre écrit en dur, avec des mots en blanc dedans, donne donc du texte
+   presque noir sur presque noir — le défaut déjà rencontré sur la fiche
+   candidat. On passe par une classe : chaque thème a ses couleurs, aucune
+   n'est devinée. */
+.dem-res{background:#1a1210;border:1px solid #4a2c22;border-radius:10px;padding:11px 13px;
+  font-size:.79rem;color:#e2c8bd;line-height:1.6;margin-bottom:4px;}
+.dem-res b{color:#fff;}
+.dem-res .dem-fin{color:#3ecf8e;font-size:.88rem;}
+.dem-res .dem-att{color:#e8a020;}
+.dem-pourquoi{font-size:.7rem;color:#8fa0b8;margin-top:4px;line-height:1.5;}
+html.theme-light .dem-res{background:#fdf1ec !important;border-color:#e0bcac !important;color:#5a3428 !important;}
+html.theme-light .dem-res b{color:#3d1f14 !important;}
+html.theme-light .dem-res .dem-fin{color:#1e7b51 !important;}
+html.theme-light .dem-res .dem-att{color:#9a6206 !important;}
+html.theme-light .dem-pourquoi{color:#5a6673 !important;}
 .ctrdoc-sig{display:flex;gap:18px;margin:22px 0 4px;border-top:1px solid #ddd;padding-top:14px;}
 .ctrdoc-sig>div{flex:1;min-width:0;}
 .ctrdoc-sl{font-family:Arial,sans-serif;font-size:.66rem;font-weight:800;color:#777;
@@ -2337,25 +2356,16 @@ html,body{overflow-x:hidden;}
       <div id="imp-qualif-report" style="font-size:.82rem;margin-top:14px;"></div>
       <button class="btn btn-red btn-sm" onclick="impQualifApply()" id="imp-qualif-apply" style="display:none;margin-top:10px;">💾 Importer dans la base</button>
     </div>
-    <div class="card param-card" id="pc-dispos" style="display:none;">
-      <div class="sec-title">📅 Disponibilité contrat — base des contrats</div>
-      <p style="font-size:.83rem;color:#aaa;margin-bottom:14px;">Fixe ici, <b>par type de contrat</b> (15h, 20h, 24h, 35h), les créneaux standards jour par jour. C'est la <b>base</b> qui alimente les contrats : quand tu fabriques le contrat d'un salarié, ces créneaux se remplissent automatiquement selon son type de contrat (et tu pourras les vérifier / modifier avant signature). Tu peux aussi les ajuster par salarié dans sa fiche (« Compétences &amp; dispos » → « Disponibilités du contrat »).</p>
-      <div id="dispos-contrat-editor"></div>
-      <details style="margin-top:18px;border-top:1px solid #2a2a2a;padding-top:14px;">
-        <summary style="cursor:pointer;color:#8fbced;font-size:.84rem;font-weight:700;">📊 Ou importer une base depuis Excel</summary>
-        <div style="margin-top:12px;">
-          <p style="font-size:.8rem;color:#aaa;margin-bottom:10px;">Glissez le fichier Excel des disponibilités (exporté depuis les Rapports). Le restaurant est lu automatiquement (colonne « Restaurant »).</p>
-          <div id="imp-dispo-drop" ondragover="bkDragOver(event,this)" ondragleave="bkDragLeave(this)" ondrop="bkDropDispo(event,this)" onclick="document.getElementById('imp-dispo-file').click()" style="border:2px dashed #555;border-radius:14px;padding:26px 18px;text-align:center;cursor:pointer;transition:all .15s;background:#141414;">
-            <div style="font-size:2rem;">📊</div>
-            <div style="font-size:.92rem;color:#ddd;margin-top:8px;font-weight:600;">Glissez le fichier Excel ici</div>
-            <div style="font-size:.8rem;color:#888;margin-top:4px;">ou cliquez pour le choisir — <span id="imp-dispo-file-name">aucun fichier</span></div>
-          </div>
-          <input type="file" id="imp-dispo-file" accept=".xlsx,.xls" style="display:none;" onchange="bkFileDispo(this.files[0])">
-          <div id="imp-dispo-report" style="font-size:.82rem;margin-top:14px;"></div>
-          <button class="btn btn-red btn-sm" onclick="impDispoApply()" id="imp-dispo-apply" style="display:none;margin-top:10px;">💾 Importer dans la base</button>
-        </div>
-      </details>
-    </div>
+    <!-- ★ v724 — la carte « import Excel des disponibilités » a été retirée.
+         Vincent : « je n'ai jamais envoyé de fichier pour les disponibilités,
+         et on ira dans Paramètres pour régler la grille. »
+         C'était l'outil de la reprise : faire entrer dans l'application les
+         disponibilités qui vivaient dans Excel. Au 22/08/2026, 158 salariés
+         actifs sur 175 les ont renseignées — le travail est fait. Elles se
+         maintiennent ailleurs : la Grille des contrats à l'embauche, la fiche du
+         salarié ensuite. Ce qui restait, c'était un bouton qui REMPLAÇAIT les
+         disponibilités de tout le monde en un clic, sans que personne s'en serve.
+         L'export vers Excel, lui, reste dans Rapports. -->
     <div class="card param-card" id="pc-version" style="display:none;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <div class="sec-title" style="margin-bottom:0;">ℹ️ Version de l'application</div>
       <span id="app-version-badge" style="background:#1A1A1A;border:1px solid #444;color:var(--orange);padding:5px 14px;border-radius:20px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px;"></span>
@@ -2860,6 +2870,16 @@ html,body{overflow-x:hidden;}
       <input type="file" id="ct-file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none;" onchange="handleContratUpload(this)">
       <div id="ct-status" style="font-size:.74rem;color:#888;margin-top:8px;"></div>
     </div>
+  </div>
+  <!-- ★ v725 — LES RÈGLES QUI ÉTAIENT DANS LE CODE.
+       Vincent : « je ne vais pas te demander à chaque fois de faire des
+       modifications si je veux changer quelque chose. Je veux pouvoir le faire
+       directement dans les paramètres. » Quatre règles de direction qui
+       décidaient toutes seules, sans case nulle part. -->
+  <div class="card">
+    <div class="sec-title">⚖️ Règles de départ et d'apprentissage</div>
+    <p style="font-size:.82rem;color:#aaa;margin-bottom:14px;">Ce que l'application applique quand quelqu'un part ou entre en apprentissage. Modifiez ici : le prochain départ, la prochaine liasse et le prochain apprentissage en tiennent compte — sans nouvelle version.</p>
+    <div id="regles-rh-body"></div>
   </div>
 </div>
 
@@ -3706,6 +3726,8 @@ async function loadAll(light) {
   }
   // Réglages partagés (tous appareils) depuis Supabase — RIEN ne reste en local seul.
   try{ if(typeof hrChargerReglementSupabase==='function'){ await hrChargerReglementSupabase(); } }catch(e){}
+  /* ★ v725 — les règles RH (préavis, motifs, documents de fin, apprentissage) */
+  try{ if(typeof hrChargerReglesRH==='function'){ await hrChargerReglesRH(); } }catch(e){}
   try{ if(typeof hrChargerSalairesSupabase==='function'){ await hrChargerSalairesSupabase(); } }catch(e){}
   try{ if(typeof hrChargerContratsSupabase==='function'){ await hrChargerContratsSupabase(); } }catch(e){}
   try{ if(typeof hrChargerCodesSupabase==='function'){ await hrChargerCodesSupabase(); } }catch(e){}
@@ -3734,7 +3756,6 @@ async function loadAll(light) {
   try{ if(typeof hrChargerDashboardSupabase==='function'){ await hrChargerDashboardSupabase(); } }catch(e){}
   try{ if(typeof hrChargerVisibiliteSupabase==='function'){ await hrChargerVisibiliteSupabase(); } }catch(e){}
   try{ if(typeof hrChargerIpadCfg==='function'){ await hrChargerIpadCfg(); } }catch(e){}
-  try{ if(typeof hrChargerDisposContratSupabase==='function'){ await hrChargerDisposContratSupabase(); } }catch(e){}
   try{ if(typeof hrChargerGrilleContrats==='function'){ await hrChargerGrilleContrats(); } }catch(e){}
   try{ if(typeof hrChargerPostesFamilles==='function'){ await hrChargerPostesFamilles(); } }catch(e){}
   /* ★ v664 — LE RATTRAPAGE AUTOMATIQUE EST COUPÉ.
@@ -4543,6 +4564,13 @@ function _entrerDansApp(r){
     renderMailRcps();
     renderCCRcps();
     startSync();
+    /* ★ v723 — les départs dont le dernier jour vient de passer, et dont le solde
+       de tout compte est déjà là, partent aux Archives sans qu'on le demande. */
+    try{
+      if(['franchise','directeur'].indexOf(r)>=0 && !window.__readOnly){
+        setTimeout(function(){ try{ sortiesBalayage(); }catch(_){} }, 3000);
+      }
+    }catch(_){}
 }
 
 function logout() {
@@ -5730,76 +5758,44 @@ function grcResume(heures, transport){
 }
 window.grcResume=grcResume;
 
-// ══ DISPONIBILITÉS DU CONTRAT — base par TYPE de contrat (15h/20h/24h/35h) ═══════
-// L'admin fixe une fois, jour par jour, les créneaux standards de chaque type de
-// contrat. Ces créneaux servent de base au contrat du salarié (modifiables ensuite
-// dans sa fiche + à la fabrication du contrat, avant signature).
-var CONTRAT_TYPES=['15h','20h','24h','35h'];
-var DISPOS_CONTRAT=null, _dcTypeSel='24h';
-function dcDefault(){ var o={}; CONTRAT_TYPES.forEach(function(t){ o[t]={}; (typeof JOURS!=='undefined'?JOURS:[]).forEach(function(j){ o[t][j[0]]={on:false,from:'11:00',to:'15:00'}; }); }); return o; }
-function getDisposContrat(){
-  if(DISPOS_CONTRAT) return DISPOS_CONTRAT;
-  try{ var raw=localStorage.getItem('bkrh_dispos_contrat'); if(raw){ DISPOS_CONTRAT=Object.assign(dcDefault(),JSON.parse(raw)); return DISPOS_CONTRAT; } }catch(e){}
-  DISPOS_CONTRAT=dcDefault(); return DISPOS_CONTRAT;
-}
-function saveDisposContrat(){
-  try{ localStorage.setItem('bkrh_dispos_contrat',JSON.stringify(DISPOS_CONTRAT)); }catch(e){}
-  try{ if(typeof SB!=='undefined' && SB){ SB.from('app_config').upsert({cle:'bkrh_dispos_contrat',valeur:DISPOS_CONTRAT},{onConflict:'cle'}).then(function(){}).catch(function(){}); } }catch(e){}
-}
-async function hrChargerDisposContratSupabase(){
-  try{ if(typeof SB==='undefined'||!SB) return; var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_dispos_contrat').maybeSingle(); if(r&&r.data&&r.data.valeur){ DISPOS_CONTRAT=Object.assign(dcDefault(),r.data.valeur); try{localStorage.setItem('bkrh_dispos_contrat',JSON.stringify(DISPOS_CONTRAT));}catch(e){} } }catch(e){ console.warn('dispos contrat charger',e); }
-}
-window.hrChargerDisposContratSupabase=hrChargerDisposContratSupabase;
-// Renvoie les dispos de base pour un type de contrat (objet {jk:{on,from,to}}).
-// Créneaux de base pour LE CONTRAT d'un salarié.
-// ★ v587 : si le salarié a été embauché avec la grille (infos.disposContrat), c'est
-// ELLE qui fait foi — c'est ce que la direction a décidé de faire signer. Sinon on
-// retombe sur l'ancienne base par type de contrat, inchangée.
+/* ══ ★ v723 — LA BASE EN DOUBLE A ÉTÉ SUPPRIMÉE ═══════════════════════════
+
+   Il y avait DEUX endroits pour régler les disponibilités d'un contrat :
+
+     · Paramètres › 📋 Grille des contrats — 15h/20h/24h/35h, véhiculé ou non,
+       et les DEUX colonnes : dispo contrat (ce qu'il signe) et dispo réelles
+       (ce sur quoi le planning a le droit de le placer). C'est elle que lisent
+       la fabrication du contrat (v587) et l'avenant (v720).
+
+     · Paramètres › 📅 Disponibilité contrat — base des contrats : la même idée,
+       en plus pauvre (ni véhiculé, ni réelles), et JAMAIS enregistrée côté
+       serveur — vérifié dans app_config le 22/08/2026 : la clé
+       bkrh_dispos_contrat n'existait pas. Autrement dit : vide partout, sauf
+       peut-être dans un navigateur.
+
+   Vincent : « les disponibilités des contrats, je vais où ? » — la question
+   n'aurait pas dû se poser. On garde la grille, on retire le doublon, et le
+   dernier recours de disposContratPour retombe sur la grille, qui, elle, est
+   renseignée. L'import Excel des disponibilités RÉELLES (celui qui remplit
+   infos.dispos en masse depuis l'export des Rapports) n'a rien à voir : il
+   reste, seul, dans sa carte.                                              */
+/* Les créneaux du CONTRAT d'un salarié.
+   1. ce qu'il a signé (infos.disposContrat) — ça fait foi ;
+   2. sinon la grille des contrats, pour sa durée et son moyen de transport ;
+   3. sinon rien : à 35 h il n'y a pas de plages, c'est une dispo totale. */
 function disposContratPour(typeHeures, emp){
   try{
     if(emp && emp.infos && emp.infos.disposContrat) return emp.infos.disposContrat;
   }catch(_){}
-  var cfg=getDisposContrat(); var key=(''+typeHeures).replace(/[^0-9]/g,'')+'h';
-  return cfg[key]||cfg[_dcTypeSel]||{};
+  try{
+    if(typeof grcDisposPour==='function'){
+      var g=grcDisposPour(typeHeures, (emp&&emp.transport)||'', 'contrat');
+      if(g) return g;
+    }
+  }catch(_){}
+  return {};
 }
 window.disposContratPour=disposContratPour;
-function dcSelType(t){ _dcTypeSel=t; renderDisposContratParam(); }
-function dcToggle(jk,on){ var cfg=getDisposContrat(); if(!cfg[_dcTypeSel])cfg[_dcTypeSel]={}; if(!cfg[_dcTypeSel][jk])cfg[_dcTypeSel][jk]={from:'11:00',to:'15:00'}; cfg[_dcTypeSel][jk].on=on; renderDisposContratParam(); }
-function dcSetHeure(jk,champ,val){ var cfg=getDisposContrat(); if(!cfg[_dcTypeSel])cfg[_dcTypeSel]={}; if(!cfg[_dcTypeSel][jk])cfg[_dcTypeSel][jk]={on:true}; cfg[_dcTypeSel][jk][champ]=val; }
-function dcCopyAll(){ var cfg=getDisposContrat(); var d=cfg[_dcTypeSel]||{}; var first=null; for(var k in d){ if(d[k]&&d[k].on){ first=d[k]; break; } } if(!first){ try{toast('Coche d\'abord un jour.','error');}catch(_){} return; } (typeof JOURS!=='undefined'?JOURS:[]).forEach(function(j){ cfg[_dcTypeSel][j[0]]={on:true,from:first.from,to:first.to}; }); renderDisposContratParam(); }
-function dcSave(){ saveDisposContrat(); try{ var s=document.getElementById('dc-status'); if(s){ s.textContent='✅ Disponibilités du contrat '+_dcTypeSel+' enregistrées'; setTimeout(function(){ if(s)s.textContent=''; },3000); } }catch(_){} try{ toast('Base '+_dcTypeSel+' enregistrée','success'); }catch(_){} }
-window.dcSelType=dcSelType; window.dcToggle=dcToggle; window.dcSetHeure=dcSetHeure; window.dcCopyAll=dcCopyAll; window.dcSave=dcSave;
-function renderDisposContratParam(){
-  var box=document.getElementById('dispos-contrat-editor'); if(!box) return;
-  var cfg=getDisposContrat();
-  if(!cfg[_dcTypeSel]) _dcTypeSel=CONTRAT_TYPES[0];
-  var d=cfg[_dcTypeSel]||{};
-  var tabs=CONTRAT_TYPES.map(function(t){
-    var on=(t===_dcTypeSel);
-    return '<button onclick="dcSelType(\''+t+'\')" style="background:'+(on?'#D62300':'#2C2C2C')+';color:#fff;border:1px solid '+(on?'#D62300':'#444')+';border-radius:20px;padding:7px 16px;font-size:.88rem;font-weight:800;cursor:pointer;">'+t+'</button>';
-  }).join('');
-  var days=(typeof JOURS!=='undefined'?JOURS:[]).map(function(j){
-    var jk=j[0]; var dd=d[jk]||{}; var on=!!dd.on;
-    return '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#141414;border-radius:8px;padding:8px 11px;">'
-      +'<label style="display:flex;align-items:center;gap:7px;min-width:120px;cursor:pointer;">'
-        +'<input type="checkbox" '+(on?'checked':'')+' onchange="dcToggle(\''+jk+'\',this.checked)" style="width:16px;height:16px;accent-color:var(--orange);">'
-        +'<span style="font-size:.85rem;color:#ddd;font-weight:600;">'+j[1]+'</span></label>'
-      +'<div style="display:flex;align-items:center;gap:6px;'+(on?'':'opacity:.35;pointer-events:none;')+'">'
-        +'<span style="font-size:.78rem;color:#888;">de</span>'
-        +'<input type="time" value="'+(dd.from||'11:00')+'" onchange="dcSetHeure(\''+jk+'\',\'from\',this.value)" class="fi" style="width:auto;padding:4px 6px;">'
-        +'<span style="font-size:.78rem;color:#888;">à</span>'
-        +'<input type="time" value="'+(dd.to||'15:00')+'" onchange="dcSetHeure(\''+jk+'\',\'to\',this.value)" class="fi" style="width:auto;padding:4px 6px;">'
-      +'</div></div>';
-  }).join('');
-  box.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">'+tabs+'</div>'
-    +'<div style="font-size:.8rem;color:#F5A623;font-weight:700;margin-bottom:8px;">Disponibilités standard du contrat <b>'+_dcTypeSel+'</b> :</div>'
-    +'<div style="display:flex;flex-direction:column;gap:8px;">'+days+'</div>'
-    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">'
-      +'<button class="btn btn-gray btn-sm" onclick="dcCopyAll()">📋 Appliquer le 1er jour coché à tous</button>'
-      +'<button class="btn btn-red btn-sm" onclick="dcSave()">💾 Enregistrer la base '+_dcTypeSel+'</button>'
-    +'</div><div id="dc-status" style="font-size:.78rem;color:#888;margin-top:8px;"></div>';
-}
-window.renderDisposContratParam=renderDisposContratParam;
 
 // ── MA SIGNATURE (direction) — enregistrée UNE fois, apposée sur les contrats ──
 // Stockée dans les réglages (DB.mailSettings.signatureDir), pas par contrat.
@@ -5844,7 +5840,6 @@ var PARAM_TILES=[
   {ico:'🧹', titre:'Fiches créées par le recrutement', sub:'Vérifier et retirer', type:'card', card:'pc-fiches-recrut', id:'pc-fiches-recrut', fn:'paramFichesRecrut()', accent:'#e8623a'},
   {ico:'📋', titre:'Compléter les fiches', sub:'Remplir les cases vides depuis le recrutement', type:'card', card:'pc-completer-fiches', id:'pc-completer-fiches', fn:'paramCompleterFiches()', accent:'#1d7a3a'},
   {ico:'📋', titre:'Incidents',     sub:'Suivi disciplinaire',          type:'page', page:'incidents',      accent:'#D62300'},
-  {ico:'📅', titre:'Disponibilité contrat',sub:'Base des contrats (import Excel)', type:'card', card:'pc-dispos',      accent:'#1565c0'},
   {ico:'💶', titre:'Salaires',      sub:'Grille des salaires',          type:'page', page:'salaires',       accent:'#2e7d32'},
   {ico:'📄', titre:'Contrats',      sub:'Contrats & avenants',          type:'page', page:'contrats',       accent:'#e87722'},
   {ico:'⚖️', titre:'Réglementation',sub:'Règles du planning',           type:'page', page:'reglementation', accent:'#8e44ad'},
@@ -5924,7 +5919,6 @@ function paramOuvrir(type, ref){
     if(ref==='pc-pin'){ try{ renderPinSettings(); }catch(_){} }
     if(ref==='pc-photo'){ try{ photoParamInit(); }catch(_){} }
     if(ref==='pc-pointer'){ try{ ptgMsgCharger('suivi'); }catch(_){} try{ ptgRenderMsgAdmin(); }catch(_){} }
-    if(ref==='pc-dispos'){ try{ renderDisposContratParam(); }catch(_){} }
     if(ref==='pc-messagerie'){ try{ renderMsgReglesParam(); }catch(_){} }
     if(ref==='pc-conso'){ try{ renderConso(); }catch(_){} }
     if(ref==='pc-recap'){ try{ renderRecapParam(); }catch(_){} }
@@ -10921,6 +10915,13 @@ var EMPDOC_CATS=[
   {id:'tenue',label:'Reçu de tenue',icon:'👕'},
   {id:'cameras',label:'Information caméras',icon:'📹'},
   {id:'accord_mail',label:'Accord courrier électronique',icon:'✉️'},
+  /* ★ v722 — LE COURRIER QUE LE SALARIÉ REMET.
+
+     Vincent : « le fait que quelqu'un démissionne, il va me donner son courrier
+     de démission. » Ce papier-là n'est ni un contrat ni une sanction : c'est lui
+     qui date le départ, et c'est la seule preuve écrite qu'on en a. Il a donc sa
+     case, comme le reste. */
+  {id:'demission',label:'Courrier de démission',icon:'📤'},
   {id:'sanction',label:'Sanction',icon:'⚠️'},
   {id:'arret_maladie',label:'Arrêt maladie',icon:'🏥'},
   {id:'visite_medicale',label:'Avis médical',icon:'🩺'},
@@ -11481,7 +11482,8 @@ function renderEmpDocs(empId,boxId){
     tenue:    {lbl:'TENUE',     c:'#5bb8d4', f:'#122a33'},
     cameras:  {lbl:'CAMÉRAS',   c:'#9aa4ae', f:'#1e2226'},
     lre:      {lbl:'ACCORD MAIL', c:'#9aa4ae', f:'#1e2226'},
-    accord_mail:{lbl:'ACCORD MAIL', c:'#9aa4ae', f:'#1e2226'}
+    accord_mail:{lbl:'ACCORD MAIL', c:'#9aa4ae', f:'#1e2226'},
+    demission:{lbl:'DÉMISSION', c:'#e8623a', f:'#33170f'}
   };
   function _pastilleDoc(cle){
     var C=_CAT_DOC[cle]; if(!C) return '';
@@ -11809,13 +11811,14 @@ function genPdfConfigured(){
 
 
 // ── SORTIE D'UN SALARIÉ ───────────────────────────────────────────────────────
-var SORTIE_DOCS=[
-  {id:'solde',label:'Solde de tout compte',obligatoire:true},
-  {id:'certificat',label:'Certificat de travail'},
-  {id:'attestation',label:'Attestation France Travail'},
-  {id:'autre',label:'Autre document'}
-];
-function _motifLbl(m){return {fpe:'Fin période d\'essai',demission:'Démission',renvoi:'Renvoi'}[m]||m||'';}
+/* ★ v725 — la liste vient des réglages (Paramètres › Contrats). */
+function _motifLbl(m){
+  try{
+    var t=sortieMotifsListe().filter(function(x){ return x.cle===m; })[0];
+    if(t) return t.nom;
+  }catch(_){}
+  return {fpe:'Fin période d\'essai',demission:'Démission',renvoi:'Renvoi'}[m]||m||'';
+}
 var _sortieEmpId=null,_sortieDocs={};
 
 function openSortie(id){
@@ -11835,7 +11838,7 @@ function renderSortie(){
   h+='<div style="background:#1A1A1A;border-radius:8px;padding:12px;margin-bottom:12px;">'
     +'<div class="flabel">Motif de la sortie</div>'
     +'<select id="sortie-motif" class="fi" style="margin-bottom:8px;">'
-    +['','fpe','demission','renvoi'].map(function(m){var lbl=m===''?'— Choisir —':_motifLbl(m);return '<option value="'+m+'"'+(e.sortieMotif===m?' selected':'')+'>'+lbl+'</option>';}).join('')
+    +[''].concat(sortieMotifsListe().map(function(x){return x.cle;})).map(function(m){var lbl=m===''?'— Choisir —':_motifLbl(m);return '<option value="'+m+'"'+(e.sortieMotif===m?' selected':'')+'>'+lbl+'</option>';}).join('')
     +'</select>'
     +'<div class="flabel">Date de sortie (dernier jour)</div>'
     +'<input type="date" id="sortie-date" class="fi" value="'+(e.sortieDate||'')+'" style="margin-bottom:10px;">'
@@ -11855,7 +11858,7 @@ function renderSortie(){
     h+='<div style="background:#1A1A1A;border-radius:8px;padding:12px;margin-bottom:12px;">'
       +'<div class="flabel">📎 Documents de fin de contrat</div>'
       +'<p style="font-size:.74rem;color:#888;margin-bottom:10px;">Le <strong>solde de tout compte</strong> est obligatoire pour valider la sortie. Les autres sont conseillés.</p>';
-    SORTIE_DOCS.forEach(function(d){
+    sortieDocsListe().forEach(function(d){
       var has=_sortieDocs[d.id]&&(_sortieDocs[d.id].data||_sortieDocs[d.id].link);
       h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap;">'
         +'<span style="flex:1;min-width:150px;font-size:.83rem;color:'+(has?'#4CAF50':'#ccc')+';">'+(has?'✅':'⬜')+' '+d.label+(d.obligatoire?' *':'')+'</span>'
@@ -11938,15 +11941,120 @@ function handleSortieDoc(key,input){
   var file=input.files[0];if(!file)return;
   if(file.size>6*1024*1024){alert('Fichier trop volumineux (max 6 Mo).');return;}
   var reader=new FileReader();
-  reader.onload=function(ev){_sortieDocs[key]={data:ev.target.result,name:file.name};renderSortie();};
+  reader.onload=async function(ev){
+    _sortieDocs[key]={data:ev.target.result,name:file.name};
+    renderSortie();
+    /* ★ v723 — le document est rangé TOUT DE SUITE, pas à la validation : sinon
+       il disparaît en fermant la fenêtre. Et si c'est le solde de tout compte
+       d'un salarié déjà parti, l'archivage part dans la foulée. */
+    var e=DB.employees.find(function(x){return x.id===_sortieEmpId;});
+    if(!e) return;
+    try{ await _sortieDocEnregistrer(e, key, _sortieDocs[key]); }
+    catch(err){ console.error('document de sortie', err); return; }
+    if(key==='solde' && sortieAArchiver(e)){
+      try{ await _sortieArchiver(e, e.sortieDocs, false); }catch(err){ console.error(err); }
+    }else{
+      try{ renderSortie(); }catch(_){}
+    }
+  };
   reader.readAsDataURL(file);
 }
-async function validerSortie(){
-  var e=DB.employees.find(function(x){return x.id===_sortieEmpId;});if(!e)return;
-  if(!(_sortieDocs['solde']&&(_sortieDocs['solde'].data||_sortieDocs['solde'].link))){alert('Le solde de tout compte est obligatoire.');return;}
-  if(!confirm('Valider la sortie définitive de '+e.name+' ?\n\nLes documents seront archivés dans Dropbox et le salarié quittera l\'équipe active (historique conservé).'))return;
-  // Archivage Dropbox : on harmonise sur /Archives/<Resto>/<Nom Prenom>/
-  var dbxReady=(DBX_APP_KEY.indexOf('__')<0&&DBX_REFRESH.indexOf('__')<0);
+/* ══ ★ v723 — L'ARCHIVAGE NE SE DEMANDE PLUS, IL SE FAIT ═══════════════════
+
+   Vincent : « des salariés démissionnés qui ont été sortis, tu les archives.
+   Quand le solde de tout compte est fini, il faut que ça parte à l'archivage. »
+
+   Constat au 22/08/2026 : CINQ personnes étaient parties depuis des semaines et
+   dormaient encore dans l'équipe active — SAIDANI SARAH (23/07), TOADER LIAM
+   (29/07), VIGROUX LUCAS (12/08), ROZMANOWSKI DIMITRI (16/08), RICHET QUENTIN
+   (21/08). Toutes démissionnaires, aucune avec son solde de tout compte joint.
+   Elles attendaient un clic sur « Valider la sortie définitive » que personne
+   n'allait faire.
+
+   La règle est maintenant : DERNIER JOUR PASSÉ + SOLDE DE TOUT COMPTE JOINT =
+   archivage, tout seul. Deux moments où on regarde :
+     · quand on joint le solde de tout compte (le geste volontaire) ;
+     · au démarrage de l'application, pour ceux dont la date vient de passer.
+
+   Rien ne part en silence sur une simple date : sans le solde, la personne
+   reste, et le bandeau « départs à finir » d'État équipe réclame le papier.
+   L'archivage reste réversible — le bouton « Réactiver » de la fiche archivée
+   n'a pas changé.                                                         */
+function _sortieDbxPret(){
+  try{ return (DBX_APP_KEY.indexOf('__')<0 && DBX_REFRESH.indexOf('__')<0); }catch(_){ return false; }
+}
+function _sortieAujourdISO(){
+  var t=new Date();
+  return t.getFullYear()+'-'+('0'+(t.getMonth()+1)).slice(-2)+'-'+('0'+t.getDate()).slice(-2);
+}
+/* ★ v725 — « le solde de tout compte » était le seul document obligatoire, écrit
+   en dur. C'est maintenant une case à cocher par document, dans les réglages :
+   tant qu'un document obligatoire manque, le départ n'est pas fini. */
+function _sortieDocLa(docs, id){
+  var d=(docs||{})[id];
+  return !!(d && (d.data||d.link));
+}
+function _sortieSoldeLa(docs){
+  var obl=sortieDocsListe().filter(function(d){ return d.obligatoire; });
+  if(!obl.length) obl=[{id:'solde'}];
+  for(var i=0;i<obl.length;i++){ if(!_sortieDocLa(docs, obl[i].id)) return false; }
+  return true;
+}
+function _sortieDocsManquants(docs){
+  return sortieDocsListe().filter(function(d){ return d.obligatoire && !_sortieDocLa(docs, d.id); })
+                          .map(function(d){ return d.label; });
+}
+window._sortieDocsManquants=_sortieDocsManquants;
+/* prêt à partir : le dernier jour est passé ET le solde est là */
+function sortieAArchiver(e){
+  if(!e || e.archived || e.sortieValidee) return false;
+  var d=String(e.sortieDate||e.exitDate||'').slice(0,10);
+  if(!d || d>=_sortieAujourdISO()) return false;
+  return _sortieSoldeLa(e.sortieDocs);
+}
+/* parti, mais il manque le papier : c'est le bandeau « départs à finir » */
+function sortieEnAttente(e){
+  if(!e || e.archived || e.sortieValidee) return false;
+  var d=String(e.sortieDate||e.exitDate||'').slice(0,10);
+  if(!d || d>=_sortieAujourdISO()) return false;
+  return !_sortieSoldeLa(e.sortieDocs);
+}
+window.sortieAArchiver=sortieAArchiver; window.sortieEnAttente=sortieEnAttente;
+/* La liste, pour le bandeau. */
+function sortiesEnAttente(restoId){
+  return (DB.employees||[]).filter(function(e){
+    if(!sortieEnAttente(e)) return false;
+    if(restoId && restoId!=='ALL' && (e.restoId||e.resto_id)!==restoId) return false;
+    return true;
+  }).sort(function(a,b){ return String(a.sortieDate||'')<String(b.sortieDate||'')?-1:1; });
+}
+window.sortiesEnAttente=sortiesEnAttente;
+
+/* Un document de sortie, rangé tout de suite : il ne doit pas dépendre d'un clic
+   plus tard. Il monte dans le dossier du salarié — quand il partira aux Archives,
+   le dossier partira avec lui. */
+async function _sortieDocEnregistrer(e, key, it){
+  var lien=it.link||'', chemin='';
+  if(!lien && it.data && _sortieDbxPret()){
+    try{
+      await dbxMigrerEquipe(e);
+      var ext=(it.name&&it.name.indexOf('.')>=0)?it.name.split('.').pop():'pdf';
+      var lbl=(sortieDocsListe().filter(function(d){return d.id===key;})[0]||{}).label||key;
+      chemin=dbxEmpFolder(e)+'/'+dbxClean(lbl)+'.'+ext;
+      lien=await dbxUpload(chemin, _dataUrlToBlob(it.data));
+    }catch(err){ console.error('Dropbox document de sortie', err); lien=''; }
+  }
+  var docs=Object.assign({}, e.sortieDocs||{}, _sortieDocs||{});
+  docs[key]= lien ? {link:lien, name:(it.name||'')} : {data:it.data, name:(it.name||'')};
+  try{ _sortieDocs[key]=docs[key]; }catch(_){}
+  await sb.patch('bks_employees','id=eq.'+e.id,{sortie_docs:docs});
+  e.sortieDocs=docs;
+  return docs;
+}
+/* L'archivage lui-même — le même chemin qu'avant, sans la question. */
+async function _sortieArchiver(e, docs, silencieux){
+  docs=docs||e.sortieDocs||{};
+  var dbxReady=_sortieDbxPret();
   var rid=e.restoId||'';
   var restoLbl=RESTOS[rid]?RESTOS[rid].label:(rid||'Autre');
   var dateStr=(e.sortieDate||new Date().toISOString().slice(0,10));
@@ -11963,29 +12071,56 @@ async function validerSortie(){
   // 2) les documents de sortie (solde, etc.) sont déposés dans le dossier Archives
   var folder='/Archives/'+dbxClean(restoLbl)+'/'+dbxClean(e.name);
   if(dbxReady){
-    for(var key in _sortieDocs){
-      if(!_sortieDocs.hasOwnProperty(key))continue;
-      var it=_sortieDocs[key];
+    for(var key in docs){
+      if(!docs.hasOwnProperty(key))continue;
+      var it=docs[key];
       if(it&&it.data&&!it.link){
         try{
           var ext=(it.name&&it.name.indexOf('.')>=0)?it.name.split('.').pop():'pdf';
-          var lbl=(SORTIE_DOCS.find(function(d){return d.id===key;})||{}).label||key;
+          var lbl=(sortieDocsListe().filter(function(d){return d.id===key;})[0]||{}).label||key;
           var fname=dbxClean(lbl)+'.'+ext;
           var blob=_dataUrlToBlob(it.data);
           var link=await dbxUpload(folder+'/'+fname,blob);
-          _sortieDocs[key]={link:link,name:it.name||fname};
+          docs[key]={link:link,name:it.name||fname};
         }catch(upErr){console.error('Dropbox sortie échec',upErr);}
       }
     }
   }
   try{
-    await sb.patch('bks_employees','id=eq.'+_sortieEmpId,{
-      sortie_statut:'validee',sortie_validee:true,sortie_docs:_sortieDocs,
+    await sb.patch('bks_employees','id=eq.'+e.id,{
+      sortie_statut:'validee',sortie_validee:true,sortie_docs:docs,
       archived:true,exit_date:e.sortieDate,exit_motif:e.sortieMotif
     });
-    await loadAll();closeModal('modal-sortie');renderEquipe();
-    toast(e.name+' sorti(e) et archivé(e) ✔','success');
-  }catch(err){toast('Erreur','error');console.error(err);}
+    e.sortieDocs=docs; e.sortieStatut='validee'; e.sortieValidee=true; e.archived=true;
+    try{ await loadAll(); }catch(_){}
+    if(!silencieux){ try{ closeModal('modal-sortie'); }catch(_){} }
+    try{ renderEquipe(); }catch(_){}
+    try{ toast(e.name+' sorti(e) et archivé(e) ✔','success'); }catch(_){}
+    return true;
+  }catch(err){ try{ toast('L\'archivage de '+e.name+' a échoué.','error'); }catch(_){} console.error(err); return false; }
+}
+/* Le balayage : ceux dont la date vient de passer, et dont le papier est là. */
+var _sortieBalayageFait=false;
+async function sortiesBalayage(){
+  if(_sortieBalayageFait) return 0;
+  _sortieBalayageFait=true;
+  var prets=(DB.employees||[]).filter(sortieAArchiver);
+  if(!prets.length) return 0;
+  var n=0;
+  for(var i=0;i<prets.length;i++){
+    try{ if(await _sortieArchiver(prets[i], prets[i].sortieDocs, true)) n++; }catch(err){ console.error('balayage sortie',err); }
+  }
+  if(n){ try{ toast(n+' départ'+(n>1?'s':'')+' archivé'+(n>1?'s':'')+' automatiquement','success'); }catch(_){} }
+  return n;
+}
+window.sortiesBalayage=sortiesBalayage;
+
+/* Le bouton reste, pour archiver avant la fin du préavis si on le veut. */
+async function validerSortie(){
+  var e=DB.employees.find(function(x){return x.id===_sortieEmpId;});if(!e)return;
+  if(!_sortieSoldeLa(_sortieDocs)){alert('Le solde de tout compte est obligatoire.');return;}
+  if(!confirm('Valider la sortie définitive de '+e.name+' ?\n\nLes documents seront archivés dans Dropbox et le salarié quittera l\'équipe active (historique conservé).'))return;
+  await _sortieArchiver(e, Object.assign({}, e.sortieDocs||{}, _sortieDocs||{}), false);
 }
 
 function pdfEquipierFromRpt(){
@@ -12695,26 +12830,6 @@ function impMatchEmpNomPrenom(nom,prenom,resto){
   if(soft.length>1)return {ambigu:soft};
   return {introuvable:true};
 }
-var _impDispoResult=null;
-async function impDispoApply(){
-  if(!_impDispoResult||!_impDispoResult.length){toast('Analysez d\'abord','error');return;}
-  if(!confirm('Importer les disponibilités pour '+_impDispoResult.length+' salarié(s) ? Cela REMPLACE leurs disponibilités actuelles.'))return;
-  var rep=document.getElementById('imp-dispo-report');
-  var done=0,fail=0;
-  for(var i=0;i<_impDispoResult.length;i++){
-    var it=_impDispoResult[i];
-    var e=DB.employees.find(function(x){return x.id===it.empId;});
-    if(!e){fail++;continue;}
-    if(!e.infos)e.infos={};
-    e.infos.dispos=it.dispos;   // remplace
-    try{ await sb.patch('bks_employees','id=eq.'+e.id,{infos:e.infos}); done++; }
-    catch(err){ console.error(err); fail++; }
-  }
-  rep.innerHTML='<div style="color:#81c784;font-weight:700;">✅ Import terminé : '+done+' enregistré(s)'+(fail?(' · '+fail+' échec(s)'):'')+'</div>';
-  toast('Disponibilités importées ('+done+')','success');
-  try{ await loadAll(); }catch(e){}
-}
-window.impDispoApply=impDispoApply;
 
 /* ════════ IMPORT PAR FICHIER EXCEL (glisser-déposer) ════════
    Les fichiers exportés depuis les Rapports contiennent une colonne « Restaurant »
@@ -12795,55 +12910,13 @@ function bkFileQualif(file){
   });
 }
 
-// ── DISPONIBILITÉS ──
-function bkFileDispo(file){
-  if(!file) return;
-  document.getElementById('imp-dispo-file-name').textContent=file.name;
-  _impLireXlsx(file, function(rows){
-    if(!rows||rows.length<2){ toast('Fichier vide','error'); return; }
-    var header=rows[0].map(function(c){return (c==null?'':String(c)).trim();});
-    var iResto=impColIndex(header,['restaurant','resto']);
-    var iNom=impColIndex(header,['nom']);
-    if(iNom<0) iNom=(iResto===0?1:0);
-    // colonnes jours = les 7 colonnes après le Nom (hors Restaurant)
-    var joursCols=[];
-    for(var c=0;c<header.length;c++){ if(c!==iResto&&c!==iNom&&header[c]) joursCols.push(c); }
-    joursCols=joursCols.slice(0,7);
-    _impDispoResult=[];
-    var report='', ok=0, problems=0;
-    for(var i=1;i<rows.length;i++){
-      var r=rows[i]; if(!r) continue;
-      var nom=(r[iNom]==null?'':String(r[iNom])).trim(); if(!nom) continue;
-      var rid=(iResto>=0)?impLabelToResto(r[iResto]):null;
-      if(!rid){ report+='<div style="color:#e57373;">❌ <b>'+nom+'</b> — restaurant non lu dans le fichier</div>'; problems++; continue; }
-      var dispos={}; var nbJ=0;
-      IMP_JOURS.forEach(function(jk,idx){
-        var col=joursCols[idx];
-        var h=(col!=null)?impHeure(r[col]):null;
-        if(h){ dispos[jk]={on:true,from:h.from,to:h.to,creneaux:[{from:h.from,to:h.to}]}; nbJ++; }
-        else dispos[jk]={on:false};
-      });
-      var m=impMatchEmpNomPrenom(nom,'',rid);
-      if(m.introuvable){ report+='<div style="color:#e57373;">❌ <b>'+nom+'</b> — introuvable dans '+(RESTOS[rid]?RESTOS[rid].label:rid)+'</div>'; problems++; continue; }
-      if(m.ambigu){ report+='<div style="color:#e57373;">❓ <b>'+nom+'</b> — plusieurs correspondances</div>'; problems++; continue; }
-      _impDispoResult.push({empId:m.emp.id,empName:m.emp.name,dispos:dispos});
-      ok++;
-      report+='<div style="color:#81c784;">✅ <b>'+m.emp.name+'</b> <span style="color:#888;">['+(RESTOS[rid]?RESTOS[rid].label:rid)+']</span> → '+nbJ+' jour(s) dispo</div>';
-    }
-    report='<div style="margin-bottom:8px;font-weight:700;color:#fff;">'+ok+' salarié(s) prêt(s)'+(problems?(' · '+problems+' à vérifier'):'')+'</div>'+report;
-    document.getElementById('imp-dispo-report').innerHTML=report;
-    document.getElementById('imp-dispo-apply').style.display=(ok>0)?'inline-block':'none';
-    toast(ok+' ligne(s) lue(s)','success');
-  });
-}
-
+// ── DISPONIBILITÉS : import retiré en v724 (voir le commentaire dans la page).
 // ── Glisser-déposer ──
 function bkDragOver(ev,el){ ev.preventDefault(); el.style.borderColor='var(--orange)'; el.style.background='#1f1a14'; }
 function bkDragLeave(el){ el.style.borderColor='#555'; el.style.background='#141414'; }
 function bkDropQualif(ev,el){ ev.preventDefault(); bkDragLeave(el); var f=ev.dataTransfer&&ev.dataTransfer.files&&ev.dataTransfer.files[0]; if(f) bkFileQualif(f); }
-function bkDropDispo(ev,el){ ev.preventDefault(); bkDragLeave(el); var f=ev.dataTransfer&&ev.dataTransfer.files&&ev.dataTransfer.files[0]; if(f) bkFileDispo(f); }
-window.bkFileQualif=bkFileQualif;window.bkFileDispo=bkFileDispo;
-window.bkDragOver=bkDragOver;window.bkDragLeave=bkDragLeave;window.bkDropQualif=bkDropQualif;window.bkDropDispo=bkDropDispo;
+window.bkFileQualif=bkFileQualif;
+window.bkDragOver=bkDragOver;window.bkDragLeave=bkDragLeave;window.bkDropQualif=bkDropQualif;
 
 // ── Frise de suivi des contrats d'un salarié (fiche de poste) ──
 // Regroupe : le contrat en cours (déduit des infos) + les contrats/avenants générés
@@ -12940,10 +13013,29 @@ function _ctrPeriodes(e){
   /* chaque période s'arrête quand la suivante commence */
   for(var i=0;i<P.length-1;i++) P[i].fin=P[i+1].debut;
   var last=P[P.length-1];
+  /* ★ v722 — LE DÉPART FERME LA FRISE, ET DONC LA PAYE.
+
+     Vincent : « et comme tu arrêtes, bien sûr, les horaires. »
+
+     Les horaires savaient déjà s'arrêter (sortieBloque, jour par jour). La frise,
+     elle, ne lisait que infos.date_sortie — la date écrite à la main sur une
+     vieille fiche — et pas e.sortieDate, celle que pose la déclaration de sortie.
+     Résultat : un salarié parti gardait un contrat « en cours » sans fin, et
+     hrContratHebdoAu — que le tableau paye interroge depuis la v711 — répondait
+     ses heures pour des mois où il n'était plus là.
+
+     Un départ ferme donc TOUT : ce qui démarrait après n'existe pas, et ce qui
+     courait encore s'arrête son dernier jour (inclus). */
+  var _sortieP=String(inf.date_sortie||(e&&e.sortieDate)||(e&&e.exitDate)||'').slice(0,10);
   if(!last.fin){
     if(inf.date_fin_cdd) last.fin=inf.date_fin_cdd;
     else if(estAppr && inf.apprentissage_fin && P.length===1) last.fin=inf.apprentissage_fin;
-    else if(inf.date_sortie) last.fin=inf.date_sortie;
+    else if(_sortieP) last.fin=_sortieP;
+  }
+  if(_sortieP){
+    P=P.filter(function(p){ return !(p.debut && p.debut>_sortieP); });
+    P.forEach(function(p){ if(!p.fin || p.fin>_sortieP) p.fin=_sortieP; });
+    if(!P.length) return [];
   }
 
   var auj=_ctrIsoAuj();
@@ -15757,6 +15849,8 @@ var REGLEMENT_DEFAUT={
   joursRepos:2,          // jours de repos consécutifs par semaine
   reposQuotidienH:12,    // repos minimum entre deux journées (h) — appliqué au placement
   viseContratExact:true, // chaque semaine vise le contrat exact
+  margeComplPct:5,       // [perso] ★ v725 — marge autorisée au-dessus du contrat (< 35 h)
+  trait35MaxiHeures:5,   // [perso] ★ v725 — créneau maximum pour un 35 h
   traitMiniHeures:2,     // [perso] durée minimale d'un trait (créneau)
   traitMaxiHeures:4,     // [perso] durée maximale d'un trait (créneau)
   maxTraitsJour:2,       // [perso] nombre maximum de traits par jour et par personne (Vincent : 2 maxi)
@@ -15780,6 +15874,244 @@ var REGLEMENT_DEFAUT={
   }
 };
 var REGLEMENT=null;
+/* ══ ★ v725 — LES RÈGLES RH, SORTIES DU CODE ═══════════════════════════════
+
+   Vincent : « ces tuiles-là servent à faire des modifications. C'est de là que
+   je vais modifier. Je ne vais pas te demander à chaque fois. »
+
+   Quatre règles décidaient toutes seules, sans case nulle part : les durées de
+   préavis, les motifs de sortie, les documents de fin de contrat, et les
+   formules d'apprentissage. Elles vivent maintenant ici, réglables dans
+   Paramètres › Contrats, partagées entre les trois restaurants (app_config).
+
+   Les valeurs d'usine sont EXACTEMENT celles d'avant : tant que personne ne
+   touche à rien, l'application se comporte comme en v724.                    */
+function reglesRhDefaut(){
+  return {
+    /* convention de la restauration rapide (IDCC 1501) */
+    preavis:{ eqMoins6:'8j', eq6a24:'15j', eqPlus24:'1m',
+              mgrMoins24:'1m', mgrPlus24:'2m', dir:'3m' },
+    motifs:[{cle:'fpe', nom:'Fin période d\'essai'},
+            {cle:'demission', nom:'Démission'},
+            {cle:'renvoi', nom:'Renvoi'}],
+    docsFin:[{id:'solde', label:'Solde de tout compte', obligatoire:true},
+             {id:'certificat', label:'Certificat de travail', obligatoire:false},
+             {id:'attestation', label:'Attestation France Travail', obligatoire:false},
+             {id:'autre', label:'Autre document', obligatoire:false}],
+    apprFormules:[
+      {cle:'simple', nom:'35 h par semaine, sans particularité', payees:35, placees:35, court:'35 h'},
+      {cle:'cfa2h',  nom:'Équipier — 33 h au restaurant + 2 h de formation en ligne',
+       payees:35, placees:33, court:'33 h placées + 2 h en ligne'},
+      {cle:'recup',  nom:'Leader / manager — 35 h au restaurant + 1 journée de récup par mois',
+       payees:35, placees:35, court:'35 h + 1 jour de récup / mois'}]
+  };
+}
+var REGLES_RH=null;
+function getReglesRH(){
+  if(REGLES_RH) return REGLES_RH;
+  try{ var raw=localStorage.getItem('bkrh_regles_rh');
+       if(raw){ REGLES_RH=Object.assign(reglesRhDefaut(), JSON.parse(raw)); return REGLES_RH; } }catch(_){}
+  REGLES_RH=reglesRhDefaut(); return REGLES_RH;
+}
+function saveReglesRH(){
+  try{ localStorage.setItem('bkrh_regles_rh', JSON.stringify(REGLES_RH)); }catch(_){}
+  try{ if(typeof SB!=='undefined'&&SB) SB.from('app_config')
+        .upsert({cle:'bkrh_regles_rh', valeur:REGLES_RH},{onConflict:'cle'}).then(function(){},function(){}); }catch(_){}
+}
+async function hrChargerReglesRH(){
+  try{
+    if(typeof SB==='undefined'||!SB) return;
+    var r=await SB.from('app_config').select('valeur').eq('cle','bkrh_regles_rh').maybeSingle();
+    if(r&&r.data&&r.data.valeur){
+      REGLES_RH=Object.assign(reglesRhDefaut(), r.data.valeur);
+      try{ localStorage.setItem('bkrh_regles_rh', JSON.stringify(REGLES_RH)); }catch(_){}
+      try{ if(document.getElementById('regles-rh-body')) renderReglesRH(); }catch(_){}
+    }
+  }catch(_){}
+}
+window.getReglesRH=getReglesRH; window.hrChargerReglesRH=hrChargerReglesRH;
+window.reglesRhDefaut=reglesRhDefaut;
+/* la liste des documents de fin de contrat, telle qu'elle est réglée */
+function sortieDocsListe(){
+  var L=(getReglesRH().docsFin||[]).filter(function(d){ return d&&d.id&&d.label; });
+  return L.length?L:reglesRhDefaut().docsFin;
+}
+window.sortieDocsListe=sortieDocsListe;
+function sortieMotifsListe(){
+  var L=(getReglesRH().motifs||[]).filter(function(m){ return m&&m.cle&&m.nom; });
+  return L.length?L:reglesRhDefaut().motifs;
+}
+window.sortieMotifsListe=sortieMotifsListe;
+
+/* ── L'ÉCRAN DE RÉGLAGE (Paramètres › Contrats) ─────────────────────────── */
+var REGLES_PREAVIS_CHOIX=[
+  {cle:'aucun', nom:'Pas de préavis'},
+  {cle:'8j',    nom:'8 jours'},
+  {cle:'15j',   nom:'15 jours'},
+  {cle:'1m',    nom:'1 mois'},
+  {cle:'2m',    nom:'2 mois'},
+  {cle:'3m',    nom:'3 mois'}
+];
+var REGLES_PREAVIS_LIGNES=[
+  ['eqMoins6',  'Équipier / leader — moins de 6 mois'],
+  ['eq6a24',    'Équipier / leader — de 6 mois à 2 ans'],
+  ['eqPlus24',  'Équipier / leader — plus de 2 ans'],
+  ['mgrMoins24','Manager — jusqu\'à 2 ans'],
+  ['mgrPlus24', 'Manager — plus de 2 ans'],
+  ['dir',       'Directeur']
+];
+function _rrEsc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function renderReglesRH(){
+  var box=document.getElementById('regles-rh-body'); if(!box) return;
+  var R=getReglesRH();
+  var peut=!!(curUser && (curUser.role==='franchise'||curUser.role==='directeur') && !window.__readOnly);
+  var dis=peut?'':' disabled';
+  var bloc=function(titre, sous, corps){
+    return '<div style="border:1px solid #333;border-radius:12px;padding:13px 15px;margin-bottom:14px;">'
+      +'<div style="font-size:.92rem;font-weight:800;color:#F5A623;margin-bottom:3px;">'+titre+'</div>'
+      +'<div style="font-size:.76rem;color:#888;line-height:1.5;margin-bottom:11px;">'+sous+'</div>'+corps+'</div>';
+  };
+  /* 1 — le préavis */
+  var h1='';
+  REGLES_PREAVIS_LIGNES.forEach(function(L){
+    h1+='<div style="display:flex;align-items:center;gap:10px;background:#141414;border:1px solid #2A2A2A;'
+      +'border-radius:8px;padding:9px 12px;margin-bottom:7px;flex-wrap:wrap;">'
+      +'<div style="flex:1;min-width:210px;font-size:.85rem;color:#ddd;">'+L[1]+'</div>'
+      +'<select onchange="rrSetPreavis(\''+L[0]+'\',this.value)"'+dis+' class="fi" style="width:auto;padding:6px 10px;">'
+      +REGLES_PREAVIS_CHOIX.map(function(c){
+          return '<option value="'+c.cle+'"'+((R.preavis&&R.preavis[L[0]])===c.cle?' selected':'')+'>'+c.nom+'</option>'; }).join('')
+      +'</select></div>';
+  });
+  /* 2 — les motifs de sortie */
+  var h2='';
+  sortieMotifsListe().forEach(function(m,i){
+    var fige=(m.cle==='demission');
+    h2+='<div style="display:flex;align-items:center;gap:9px;background:#141414;border:1px solid #2A2A2A;'
+      +'border-radius:8px;padding:8px 11px;margin-bottom:7px;flex-wrap:wrap;">'
+      +'<input type="text" value="'+_rrEsc(m.nom)+'" onchange="rrSetMotif('+i+',this.value)"'+dis
+      +' class="fi" style="flex:1;min-width:180px;padding:6px 9px;">'
+      +(fige?'<span style="font-size:.7rem;color:#7fb79a;">utilisé par le panneau Démission</span>'
+            :'<button class="btn-danger"'+dis+' onclick="rrSupprMotif('+i+')" title="Retirer ce motif">🗑️</button>')
+      +'</div>';
+  });
+  h2+='<button class="btn btn-gray btn-sm"'+dis+' onclick="rrAjoutMotif()">➕ Ajouter un motif</button>';
+  /* 3 — les documents de fin de contrat */
+  var h3='';
+  sortieDocsListe().forEach(function(d,i){
+    var fige=(d.id==='solde');
+    h3+='<div style="display:flex;align-items:center;gap:9px;background:#141414;border:1px solid #2A2A2A;'
+      +'border-radius:8px;padding:8px 11px;margin-bottom:7px;flex-wrap:wrap;">'
+      +'<input type="text" value="'+_rrEsc(d.label)+'" onchange="rrSetDocLabel('+i+',this.value)"'+dis
+      +' class="fi" style="flex:1;min-width:180px;padding:6px 9px;">'
+      +'<label style="display:flex;align-items:center;gap:6px;font-size:.78rem;color:#bbb;cursor:pointer;">'
+        +'<input type="checkbox" '+(d.obligatoire?'checked':'')+dis+' onchange="rrSetDocObl('+i+',this.checked)" '
+        +'style="width:16px;height:16px;accent-color:var(--orange);">obligatoire</label>'
+      +(fige?'<span style="font-size:.7rem;color:#7fb79a;">déclenche l\'archivage</span>'
+            :'<button class="btn-danger"'+dis+' onclick="rrSupprDoc('+i+')" title="Retirer ce document">🗑️</button>')
+      +'</div>';
+  });
+  h3+='<button class="btn btn-gray btn-sm"'+dis+' onclick="rrAjoutDoc()">➕ Ajouter un document</button>';
+  /* 4 — les formules d'apprentissage */
+  var h4='';
+  ctrApprFormules().forEach(function(F,i){
+    h4+='<div style="background:#141414;border:1px solid #2A2A2A;border-radius:8px;padding:9px 12px;margin-bottom:7px;">'
+      +'<div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center;">'
+        +'<input type="text" value="'+_rrEsc(F.nom)+'" onchange="rrSetApprNom('+i+',this.value)"'+dis
+        +' class="fi" style="flex:1;min-width:230px;padding:6px 9px;">'
+        +'<span style="font-size:.76rem;color:#888;">payées</span>'
+        +'<input type="number" step="0.5" min="0" value="'+(F.payees!=null?F.payees:35)+'" onchange="rrSetApprNb('+i+',\'payees\',this.value)"'+dis
+        +' class="fi" style="width:74px;text-align:center;padding:6px;">'
+        +'<span style="font-size:.76rem;color:#888;">placées</span>'
+        +'<input type="number" step="0.5" min="0" value="'+(F.placees!=null?F.placees:35)+'" onchange="rrSetApprNb('+i+',\'placees\',this.value)"'+dis
+        +' class="fi" style="width:74px;text-align:center;padding:6px;">'
+        +((i>2)?('<button class="btn-danger"'+dis+' onclick="rrSupprAppr('+i+')">🗑️</button>'):'')
+      +'</div></div>';
+  });
+  h4+='<button class="btn btn-gray btn-sm"'+dis+' onclick="rrAjoutAppr()">➕ Ajouter une formule</button>';
+
+  box.innerHTML=
+     bloc('📤 Durée du préavis de démission',
+          'Ce que l\'application propose quand vous déclarez une démission. Vous pouvez toujours le corriger au cas par cas, et le dernier jour reste modifiable à la main. Valeurs d\'usine : celles de la convention de la restauration rapide.', h1)
+    +bloc('🚪 Motifs de sortie',
+          'Les choix proposés quand un salarié part. Ajoutez ce qui vous manque — une rupture conventionnelle, par exemple. La démission garde son panneau (courrier, préavis, dernier jour).', h2)
+    +bloc('📎 Documents de fin de contrat',
+          'Ce qu\'on vous réclame avant d\'archiver quelqu\'un. Cochez « obligatoire » pour bloquer l\'archivage tant que le document manque. Le solde de tout compte ne se supprime pas : c\'est lui qui déclenche l\'archivage automatique.', h3)
+    +bloc('🎓 Formules d\'apprentissage',
+          '<b>Payées</b> = ce qui part en paye. <b>Placées</b> = ce qu\'on met au planning au restaurant. Un équipier qui suit 2 h de formation en ligne est payé 35 et placé 33.', h4)
+    +'<div style="font-size:.74rem;color:#777;line-height:1.5;">Ces réglages sont communs aux trois restaurants. Ils s\'appliquent au prochain départ, à la prochaine liasse et au prochain apprentissage — rien n\'est retouché dans ce qui est déjà signé.</div>';
+}
+window.renderReglesRH=renderReglesRH;
+function _rrEnreg(msg){
+  saveReglesRH(); renderReglesRH();
+  try{ toast(msg||'Règle enregistrée ✔','success'); }catch(_){}
+}
+function rrSetPreavis(cle,val){ var R=getReglesRH(); R.preavis=R.preavis||{}; R.preavis[cle]=val; _rrEnreg('Préavis enregistré ✔'); }
+function rrSetMotif(i,val){
+  var R=getReglesRH(); val=String(val||'').trim();
+  if(!val){ try{ toast('Un motif ne peut pas être vide.','error'); }catch(_){} renderReglesRH(); return; }
+  R.motifs[i].nom=val; _rrEnreg('Motif enregistré ✔');
+}
+function rrAjoutMotif(){
+  var R=getReglesRH();
+  R.motifs=R.motifs||[];
+  R.motifs.push({cle:'m'+Date.now(), nom:'Nouveau motif'});
+  _rrEnreg('Motif ajouté — donnez-lui son nom.');
+}
+function rrSupprMotif(i){
+  var R=getReglesRH(); var m=R.motifs[i]; if(!m) return;
+  if(m.cle==='demission'){ try{ toast('La démission ne peut pas être retirée.','error'); }catch(_){} return; }
+  var pris=(DB.employees||[]).filter(function(e){ return e.sortieMotif===m.cle && !e.archived; }).length;
+  if(pris && !confirm(pris+' salarié(s) portent ce motif. Le retirer quand même ?')) return;
+  R.motifs.splice(i,1); _rrEnreg('Motif retiré.');
+}
+function rrSetDocLabel(i,val){
+  var R=getReglesRH(); val=String(val||'').trim();
+  if(!val){ try{ toast('Un document doit avoir un nom.','error'); }catch(_){} renderReglesRH(); return; }
+  R.docsFin[i].label=val; _rrEnreg('Document enregistré ✔');
+}
+function rrSetDocObl(i,on){ var R=getReglesRH(); R.docsFin[i].obligatoire=!!on; _rrEnreg(on?'Document rendu obligatoire ✔':'Document rendu facultatif ✔'); }
+function rrAjoutDoc(){
+  var R=getReglesRH(); R.docsFin=R.docsFin||[];
+  R.docsFin.push({id:'d'+Date.now(), label:'Nouveau document', obligatoire:false});
+  _rrEnreg('Document ajouté — donnez-lui son nom.');
+}
+function rrSupprDoc(i){
+  var R=getReglesRH(); var d=R.docsFin[i]; if(!d) return;
+  if(d.id==='solde'){ try{ toast('Le solde de tout compte ne peut pas être retiré.','error'); }catch(_){} return; }
+  R.docsFin.splice(i,1); _rrEnreg('Document retiré.');
+}
+function rrSetApprNom(i,val){
+  var R=getReglesRH(); val=String(val||'').trim();
+  if(!val){ renderReglesRH(); return; }
+  R.apprFormules=ctrApprFormules().slice(); R.apprFormules[i].nom=val; _rrEnreg('Formule enregistrée ✔');
+}
+function rrSetApprNb(i,champ,val){
+  var n=parseFloat(String(val).replace(',','.')); if(!isFinite(n)||n<0) n=0;
+  var R=getReglesRH(); R.apprFormules=ctrApprFormules().slice();
+  R.apprFormules[i][champ]=n;
+  var F=R.apprFormules[i];
+  F.court=(F.placees!=null&&F.payees!=null&&F.placees!==F.payees)
+    ? (String(F.placees).replace('.',',')+' h placées + '+String(Math.round((F.payees-F.placees)*10)/10).replace('.',',')+' h')
+    : (String(F.payees).replace('.',',')+' h');
+  _rrEnreg('Formule enregistrée ✔');
+}
+function rrAjoutAppr(){
+  var R=getReglesRH(); R.apprFormules=ctrApprFormules().slice();
+  R.apprFormules.push({cle:'f'+Date.now(), nom:'Nouvelle formule', payees:35, placees:35, court:'35 h'});
+  _rrEnreg('Formule ajoutée — donnez-lui son nom.');
+}
+function rrSupprAppr(i){
+  var R=getReglesRH(); R.apprFormules=ctrApprFormules().slice();
+  var F=R.apprFormules[i]; if(!F) return;
+  var pris=(DB.employees||[]).filter(function(e){ return (e.infos||{}).apprentissage_formule===F.cle; }).length;
+  if(pris && !confirm(pris+' apprenti(s) suivent cette formule. La retirer quand même ?')) return;
+  R.apprFormules.splice(i,1); _rrEnreg('Formule retirée.');
+}
+window.rrSetPreavis=rrSetPreavis; window.rrSetMotif=rrSetMotif; window.rrAjoutMotif=rrAjoutMotif;
+window.rrSupprMotif=rrSupprMotif; window.rrSetDocLabel=rrSetDocLabel; window.rrSetDocObl=rrSetDocObl;
+window.rrAjoutDoc=rrAjoutDoc; window.rrSupprDoc=rrSupprDoc; window.rrSetApprNom=rrSetApprNom;
+window.rrSetApprNb=rrSetApprNb; window.rrAjoutAppr=rrAjoutAppr; window.rrSupprAppr=rrSupprAppr;
+
 function getReglement(){
   if(REGLEMENT) return REGLEMENT;
   try{var raw=localStorage.getItem('bkrh_reglement');if(raw){REGLEMENT=Object.assign({},REGLEMENT_DEFAUT,JSON.parse(raw));
@@ -15843,7 +16175,13 @@ var REGL_LABELS={
   traitMaxiHeures:['Duree maximale d\'un creneau','h','Regle perso : un creneau ne depasse pas ce temps d\'affilee.','perso',true],
   maxTraitsJour:['Nombre de creneaux max par jour','','Regle perso : nombre de creneaux maximum par personne et par jour (2 = midi + soir).','perso',true],
   petitsContratsWeekend:['Petits contrats : week-end obligatoire','oui/non','Regle perso : les petits contrats (etudiants) ne travaillent que ven/sam/dim. A desactiver pendant les vacances scolaires.','perso',true],
-  petitsContratsSeuilH:['Seuil "petit contrat" (week-end only)','h','Regle perso : en-dessous de ce contrat hebdo, l\'equipier ne travaille que le week-end.','perso',true]
+  petitsContratsSeuilH:['Seuil "petit contrat" (week-end only)','h','Regle perso : en-dessous de ce contrat hebdo, l\'equipier ne travaille que le week-end.','perso',true],
+  /* ★ v725 — DEUX REGLES QUI ETAIENT ECRITES DANS LE CODE.
+     Vincent : « je ne vais pas te demander a chaque fois de faire des
+     modifications si je veux changer quelque chose. » Ces deux-la decidaient
+     tous les plannings et n'avaient aucune case. */
+  margeComplPct:['Marge autorisee au-dessus du contrat','%','Regle perso : de combien le placement peut depasser un contrat de MOINS de 35h (heures complementaires). A 5%, un 24h peut aller jusqu\'a 25h12. Un 35h n\'a jamais de marge.','perso',true],
+  trait35MaxiHeures:['Duree maximale d\'un creneau pour un 35 h','h','Regle perso (Vincent) : un temps plein ne fait pas de creneaux plus longs que ca. Les autres contrats suivent la duree maximale d\'un creneau, juste au-dessus.','perso',true]
 };
 function renderReglement(){
   var box=document.getElementById('regl-list'); if(!box) return;
@@ -16126,7 +16464,24 @@ var PTG_CFG=null;
 /* ★ v602 — TOLERANCE DE POINTAGE, reglable dans Parametres › ⏱️ Badgeuse.
    5 minutes par defaut, dans un sens comme dans l autre : au-dela, le salarie
    doit se justifier. Mettre 0 pour exiger l heure pile.                       */
-function ptgCfgDefaut(){ return {code:false, prioMaintenant:true, tolerance:5, debutJour:5}; }
+function ptgCfgDefaut(){ return {code:false, prioMaintenant:true, tolerance:5, debutJour:5, retardMin:15}; }
+/* ★ v725 — LE SEUIL DE RETARD DU CONTRÔLE DES HEURES.
+   Il valait 15 minutes, écrit dans le code du contrôle. Il se règle maintenant
+   avec les autres réglages du pointage. À ne pas confondre avec la « tolérance
+   de pointage » juste au-dessus : celle-ci dit à partir de quand le salarié doit
+   se justifier en pointant ; celle-là dit à partir de quand le contrôle des
+   heures affiche le créneau en rouge. */
+function ptgSeuilRetard(){
+  try{ var v=parseInt(getPtgCfg().retardMin,10); if(isNaN(v)||v<0||v>120) v=15; return v; }catch(_){ return 15; }
+}
+try{ window.ptgSeuilRetard=ptgSeuilRetard; }catch(_){}
+function ptgSetRetard(v){
+  var n=parseInt(v,10); if(isNaN(n)||n<0) n=0; if(n>120) n=120;
+  getPtgCfg().retardMin=n; savePtgCfg();
+  try{ toast('Seuil de retard : '+n+' min','success'); }catch(_){}
+  try{ renderBadgeuseParam(); }catch(_){}
+}
+try{ window.ptgSetRetard=ptgSetRetard; }catch(_){}
 /* ★ v622 — LA JOURNÉE DE TRAVAIL VA DE 05:00 À 05:00 LE LENDEMAIN.
    Vincent : « la journée commence à sept heures du matin et se termine à
    deux, trois heures du matin ». Entre 03:00 et 07:00 il n'y a personne :
@@ -17543,7 +17898,7 @@ function ptgCtrlTimeline(dateISO, emps){
       //   (rec.cren['<s>-<e>']) ou, à défaut, l'ancien pointage unique attribué au
       //   créneau qu'il chevauche. Chaque créneau peut être absent indépendamment.
       //   VERT = conforme · ROUGE = retard / parti tôt · ORANGE = avance / dépassement.
-      var SEUIL=15;
+      var SEUIL=(typeof ptgSeuilRetard==='function')?ptgSeuilRetard():15;
       function _segPtg(a,b,col,ti,lab){ if(b<=a) return; bars+='<div title="'+ti+'" style="position:absolute;top:23px;height:14px;min-width:5px;left:'+pct(a)+'%;width:'+(pct(b)-pct(a))+'%;background:'+col+';border-radius:3px;color:#fff;font-size:.55rem;font-weight:700;line-height:14px;padding:0 4px;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.22);">'+(lab||'')+'</div>'; }
       var _colM='#d64535', _colP='#e0a021';
       var _rc=(rec&&rec.cren)||null;
@@ -18670,6 +19025,8 @@ function _ctrCarteModele(m){
 window._ctrCarteModele=_ctrCarteModele;
 
 function renderContrats(){
+  /* ★ v725 — la carte des règles de départ vit sur la même page. */
+  try{ renderReglesRH(); }catch(_){}
   var box=document.getElementById('contrats-list');if(!box)return;
   var list=getContrats();
   var h='';
@@ -34105,12 +34462,23 @@ function hrPlafondHebdoMin(emp){
 //   • 35 h (et plus) : EXACTEMENT le contrat, aucune heure au-delà ;
 //   • en dessous     : +5 % d'heures complémentaires MAXIMUM (avant : +10 %).
 // Exemples : 24 h → 25 h 12 max · 20 h → 21 h max · 15 h → 15 h 45 max · 35 h → 35 h.
-var HR_MARGE_COMPL = 0.05;             // ← la marge, à un seul endroit
+/* ★ v725 — la marge n'est plus une constante : elle se règle dans
+   Paramètres › Réglementation, et le placement la relit à chaque calcul.
+   La valeur d'usine reste 5 %. */
+function hrMargeCompl(){
+  try{
+    var R=(typeof getReglement==='function')?getReglement():null;
+    var v=(R&&R.margeComplPct!=null)?parseFloat(R.margeComplPct):5;
+    if(!isFinite(v)||v<0||v>100) v=5;
+    return v/100;
+  }catch(_){ return 0.05; }
+}
+try{ window.hrMargeCompl=hrMargeCompl; }catch(_){}
 function hrPlafondMaxMin(emp){
   var h=(typeof hrContratHebdo==='function')?hrContratHebdo(emp):null;
   if(h==null) return null;             // pas de contrat connu -> pas de plafond
   if(h>=35) return Math.round(h*60);   // 35h (et +) : exact, pas de complémentaires
-  return Math.round(h*(1+HR_MARGE_COMPL)*60);
+  return Math.round(h*(1+hrMargeCompl())*60);
 }
 try{ window.hrPlafondMaxMin=hrPlafondMaxMin; }catch(_){}
 // Minutes DÉJÀ posées sur la semaine affichée pour un salarié (traits équipier, hors
@@ -37433,6 +37801,14 @@ function ctrPeriodes(e){
                  .sort(function(a,b){ return a.du<b.du?-1:1; })[0];
   if(suivant && !principale.au) principale.au=_ctrVeille(suivant.du);
 
+  /* ★ v722 — le départ borne TOUTES les périodes, pas seulement la principale.
+     Sans ça, un avenant signé avant la démission continuait tout seul après le
+     dernier jour, et la colonne « Jusqu'à » restait vide. */
+  if(sortie){
+    out=out.filter(function(p){ return !(p.du && p.du>sortie); });
+    out.forEach(function(p){ if(!p.au || p.au>sortie) p.au=sortie; });
+  }
+
   out.sort(function(a,b){ return String(a.du||'')<String(b.du||'')?-1:1; });
   var auj=_ctrAuj();
   out.forEach(function(p){
@@ -37680,7 +38056,7 @@ function hrEERenderContrats(){
      que partent les avenants. La fiche du salarié, elle, ne fait plus que lire. */
   h+='<div style="background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:12px 14px;margin-bottom:14px;color:#a9b0b8;font-size:.82rem;line-height:1.6;">'
     +'<b style="color:#ddd;">C\'est ici que se fait la vie du contrat.</b> '
-    +'Avenants, mises en apprentissage, corrections de fiche : tout part de cet écran. '
+    +'Avenants, mises en apprentissage, démissions : tout part de cet écran. '
     +'La fiche du salarié, elle, ne fait que les afficher.<br>'
     +'<b style="color:#ddd;">La durée fait foi, même sans le papier.</b> '
     +'Ce qui est renseigné ici sert au planning et à la paye. La colonne '
@@ -37709,6 +38085,33 @@ function hrEERenderContrats(){
     +'📄 '+nbSansDoc+' sans contrat rangé dans le dossier</span>';
   h+='</div>';
 
+  /* ★ v723 — LES DÉPARTS À FINIR.
+
+     Ceux dont le dernier jour est passé et dont il manque le solde de tout
+     compte. Ils ne sont plus dans les horaires, mais ils ne peuvent pas être
+     archivés : il manque le papier. Au 22/08/2026 ils étaient cinq, et rien à
+     l'écran ne le disait. */
+  try{
+    var _att=(typeof sortiesEnAttente==='function')
+      ? sortiesEnAttente(_etatRestoActif()) : [];
+    if(_att.length){
+      h+='<div style="background:#3a1a15;border:1px solid #C01E00;border-radius:10px;padding:12px 14px;margin-bottom:12px;">'
+        +'<div style="font-size:.88rem;color:#ff9a80;font-weight:800;margin-bottom:4px;">'
+          +'⏳ '+_att.length+' départ'+(_att.length>1?'s':'')+' à finir</div>'
+        +'<div style="font-size:.78rem;color:#e8c0b4;line-height:1.55;margin-bottom:9px;">'
+          +'Ils sont partis, ils ne sont plus dans les horaires — mais il manque leur '
+          +'<b>solde de tout compte</b>. Dès qu\'il est joint, le dossier part aux Archives tout seul.</div>'
+        +'<div style="display:flex;gap:7px;flex-wrap:wrap;">'
+        +_att.map(function(x){
+            return '<button class="btn btn-gray btn-sm" style="padding:4px 10px;" '
+              +'onclick="openSortie(\''+String(x.id).replace(/'/g,"")+'\')">'
+              +_msgEsc(x.name||'—')+' <span style="color:#e8a08a;">· parti le '
+              +_ctrFr(String(x.sortieDate||'').slice(0,10))+'</span></button>';
+          }).join('')
+        +'</div></div>';
+    }
+  }catch(_){}
+
   h+='<div style="overflow:auto;"><table style="width:100%;border-collapse:collapse;font-size:.84rem;">'
     +'<thead><tr style="background:#1b1b1b;color:#bbb;text-align:left;">'
     +'<th style="padding:8px 9px;">Nom</th><th style="padding:8px 9px;">Contrat en cours</th>'
@@ -37730,7 +38133,8 @@ function hrEERenderContrats(){
     var suspendu=P.some(function(p){ return p.etat==='suspendue'; });
     h+='<tr style="border-bottom:1px solid #262626;vertical-align:top;">'
       +'<td style="padding:7px 9px;font-weight:700;color:#eee;">'+_msgEsc(e.name||'—')
-        +(suspendu?'<br><span style="font-size:.72rem;color:#8e44ad;font-weight:700;">contrat suspendu</span>':'')+'</td>'
+        +(suspendu?'<br><span style="font-size:.72rem;color:#8e44ad;font-weight:700;">contrat suspendu</span>':'')
+        +_ctrDemBadge(e)+'</td>'
       /* ★ v717 — sous la durée payée, ce qu'on place vraiment au restaurant,
          quand les deux diffèrent (33 h + 2 h de formation à distance). */
       +'<td style="padding:7px 9px;font-weight:800;color:'+(hh==null?'#e8623a':'#fff')+';">'
@@ -37776,8 +38180,22 @@ function hrEERenderContrats(){
              /* ★ v715 — le troisième geste : l'apprentissage. */
              +'<button class="btn btn-gray btn-sm" style="padding:3px 9px;margin-right:5px;" '
              +'onclick="ctrApprOuvrir(\''+String(e.id).replace(/'/g,"")+'\')" title="Dates de l\'apprentissage (CERFA) — le contrat en cours passe en stand-by">🎓 Apprentissage</button>'
-             +'<button class="btn btn-gray btn-sm" style="padding:3px 9px;margin-right:5px;" '
-             +'onclick="ctrCorrigerOuvrir(\''+String(e.id).replace(/'/g,"")+'\')" title="Rattraper une fiche incomplète">✏️ Corriger</button>')
+             /* ★ v723 — ✏️ CORRIGER EST PARTI.
+
+                Vincent : « soit on a le contrat qui a été fait au recrutement, donc
+                c'est bon ; soit un avenant sur ce contrat, donc c'est bon aussi ;
+                soit un apprentissage, donc il n'y a rien à corriger. »
+
+                Il a raison : ce bouton ne servait qu'aux fiches d'avant
+                l'application, et il n'a jamais servi — aucune fiche ne portait de
+                correction à la main. Ce qu'il permettait, en revanche, c'était de
+                changer une durée de contrat sans avenant et sans date d'effet.
+                Les fiches incomplètes restent signalées dans la colonne
+                « À vérifier » : c'est un vrai contrat qu'il leur faut, pas une
+                saisie. */
+             /* ★ v722 — le troisième geste : le départ volontaire. */
+             +'<button class="btn btn-gray btn-sm" style="padding:3px 9px;margin-right:5px;color:#e8a08a;" '
+             +'onclick="ctrDemOuvrir(\''+String(e.id).replace(/'/g,"")+'\')" title="Démission : courrier, préavis, dernier jour — les horaires s\'arrêtent ce jour-là">📤 Démission</button>')
           : '')
         +'<button class="btn btn-gray btn-sm" onclick="ctrToggle(\''+String(e.id).replace(/'/g,"")+'\')">'
         +(CTR_OUVERT===e.id?'▲ Fermer':'▼ Détail')+'</button></td></tr>';
@@ -37846,78 +38264,18 @@ function _ctrAujourdISO(){
   var t=new Date();
   return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
 }
-/* ── ★ v712 — CORRIGER UN CONTRAT SANS FAIRE D'AVENANT ────────────────────
-   « Il y a des gens dont tu n'as pas le contrat pour l'instant. Tu considères
-     qu'ils ont ces contrats-là — j'en ai des 24, des 35 heures. »
-
-   Sur 231 fiches, 44 n'ont pas de date d'entrée et 67 pas de type de contrat.
-   Exiger un avenant papier pour chacune n'aurait aucun sens : ce ne sont pas des
-   changements de contrat, ce sont des trous de saisie. On les rattrape ici, et
-   l'application retient que c'est une SAISIE À LA MAIN — pour qu'on distingue
-   toujours ce qui vient d'un document de ce qui vient de nous.
-
-   Un vrai changement de durée passe par « 📄 Avenant », qui garde sa date
-   d'effet et ferme la période précédente. C'est écrit dans le panneau. */
-var _ctrCorId=null;
-function ctrCorrigerOuvrir(empId){
-  var e=(DB.employees||[]).find(function(x){ return String(x.id)===String(empId); }); if(!e) return;
-  _ctrCorId=empId;
-  var inf=e.infos||{};
-  var ov=document.getElementById('ctr-cor-ov'); if(ov) ov.remove();
-  ov=document.createElement('div'); ov.id='ctr-cor-ov';
-  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:12000;display:flex;'
-    +'align-items:flex-start;justify-content:center;overflow:auto;padding:26px 14px;';
-  var champ=function(id,lbl,val,type,aide){
-    return '<div style="margin-bottom:12px;"><label style="display:block;font-size:.76rem;color:#aaa;margin-bottom:4px;">'+lbl+'</label>'
-      +'<input id="'+id+'" type="'+(type||'text')+'" value="'+_msgEsc(val||'')+'" '
-      +'style="width:100%;box-sizing:border-box;background:#0e0e0e;border:1px solid #444;border-radius:9px;color:#fff;'
-      +'padding:10px 12px;font-family:inherit;font-size:.92rem;">'
-      +(aide?('<div style="font-size:.7rem;color:#777;margin-top:3px;">'+aide+'</div>'):'')+'</div>';
-  };
-  var dejaMain=inf.contrat_saisi_main;
-  ov.innerHTML='<div style="max-width:520px;width:100%;background:#161618;border:1px solid #3a3a3a;border-radius:16px;padding:22px;">'
-    +'<div style="font-weight:900;font-size:1.1rem;color:#F5A623;margin-bottom:4px;">✏️ Corriger le contrat</div>'
-    +'<div style="font-size:.86rem;color:#ddd;margin-bottom:4px;">'+_msgEsc(e.name||'')+'</div>'
-    +'<p style="font-size:.77rem;color:#999;line-height:1.55;margin:0 0 14px;">'
-      +'Pour <b>rattraper une fiche incomplète</b>, pas pour changer un contrat. '
-      +'Un vrai changement de durée se fait avec un <b>avenant</b> : il garde sa date d\'effet '
-      +'et ferme la période précédente.</p>'
-    +(dejaMain?('<div style="background:#2a2416;border:1px solid #6b5320;border-radius:9px;padding:8px 11px;margin-bottom:14px;'
-      +'font-size:.75rem;color:#f0c070;">Déjà saisi à la main le '+_ctrFr(dejaMain.le||'')
-      +(dejaMain.par?(' par '+_msgEsc(dejaMain.par)):'')+'.</div>'):'')
-    +champ('ctr-cor-hebdo','Durée hebdomadaire (heures)', (inf.contrat_hebdo!=null?inf.contrat_hebdo:''), 'text', 'Ce qu\'il fait réellement — 24, 30, 35…')
-    +champ('ctr-cor-type','Type de contrat', (inf.contrat_type||inf.cdi_cdd||''), 'text', 'CDI, CDD, apprentissage, saisonnier…')
-    +champ('ctr-cor-entree','Date d\'entrée', (inf.date_entree||''), 'date', 'Le premier jour travaillé — c\'est elle qui démarre les horaires.')
-    +champ('ctr-cor-fin','Fin prévue (CDD, apprentissage)', (inf.date_fin_cdd||''), 'date', 'Laissez vide pour un CDI.')
-    +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap;">'
-      +'<button class="btn btn-gray btn-sm" onclick="ctrCorrigerFermer()">Annuler</button>'
-      +'<button class="btn btn-red btn-sm" onclick="ctrCorrigerEnreg()">Enregistrer</button>'
-    +'</div></div>';
-  document.body.appendChild(ov);
-}
-function ctrCorrigerFermer(){ var ov=document.getElementById('ctr-cor-ov'); if(ov) ov.remove(); }
-async function ctrCorrigerEnreg(){
-  var e=(DB.employees||[]).find(function(x){ return String(x.id)===String(_ctrCorId); }); if(!e) return;
-  var g=function(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; };
-  var hh=g('ctr-cor-hebdo').replace(',','.');
-  if(hh && !(parseFloat(hh)>0)){ try{ toast('La durée doit être un nombre d\'heures.','error'); }catch(_){} return; }
-  var inf=Object.assign({}, e.infos||{});
-  inf.contrat_hebdo = hh;
-  inf.contrat_type  = g('ctr-cor-type');
-  inf.date_entree   = g('ctr-cor-entree');
-  inf.date_fin_cdd  = g('ctr-cor-fin');
-  inf.contrat_saisi_main = { le:_ctrAujourdISO(), par:((curUser&&curUser.name)||'') };
-  try{
-    await sb.patch('bks_employees','id=eq.'+e.id,{infos:inf});
-    e.infos=inf;
-    try{ await loadAll(); }catch(_){}
-    ctrCorrigerFermer();
-    try{ hrEERenderContrats(); }catch(_){}
-    try{ toast('Contrat corrigé ✔','success'); }catch(_){}
-  }catch(err){ console.error('ctrCorrigerEnreg',err); try{ toast('La correction n\'a pas pu être enregistrée.','error'); }catch(_){} }
-}
-window._ctrPeutAgir=_ctrPeutAgir; window.ctrCorrigerOuvrir=ctrCorrigerOuvrir;
-window.ctrCorrigerEnreg=ctrCorrigerEnreg; window.ctrCorrigerFermer=ctrCorrigerFermer;
+/* ── ★ v723 — « CORRIGER LE CONTRAT » A ÉTÉ RETIRÉ ────────────────────────
+   Le panneau de la v712 (durée, type, date d'entrée saisis à la main) n'existe
+   plus. Vincent, le 22/08/2026 : « soit on a le contrat qui a été fait au
+   recrutement, soit un avenant sur ce contrat, soit un apprentissage — donc il
+   n'y a rien à corriger. »
+   Vérifié avant de le retirer : sur 175 salariés actifs, AUCUNE fiche ne portait
+   de correction à la main (infos.contrat_saisi_main). Le bouton n'avait jamais
+   servi, mais il permettait de changer une durée sans avenant ni date d'effet.
+   Les fiches incomplètes — 29 sans type, 13 sans durée, 12 sans date d'entrée —
+   restent signalées dans la colonne « À vérifier » d'État équipe. Il leur faut
+   un contrat, pas une saisie. */
+window._ctrPeutAgir=_ctrPeutAgir;
 
 /* ══ ★ v715 — L'APPRENTISSAGE (CERFA) ══════════════════════════════════════
 
@@ -37977,8 +38335,19 @@ var CTR_APPR_FORMULES=[
   {cle:'recup',  nom:'Leader / manager — 35 h au restaurant + 1 journée de récup par mois',
    payees:35, placees:35, court:'35 h + 1 jour de récup / mois'}
 ];
+/* ★ v725 — la liste vient des réglages ; CTR_APPR_FORMULES reste le secours. */
+function ctrApprFormules(){
+  try{
+    var L=(typeof getReglesRH==='function')?(getReglesRH().apprFormules||[]):[];
+    L=L.filter(function(f){ return f&&f.cle&&f.nom; });
+    if(L.length) return L;
+  }catch(_){}
+  return CTR_APPR_FORMULES;
+}
+try{ window.ctrApprFormules=ctrApprFormules; }catch(_){}
 function _ctrApprFormule(cle){
-  return CTR_APPR_FORMULES.filter(function(f){ return f.cle===cle; })[0] || CTR_APPR_FORMULES[0];
+  var L=ctrApprFormules();
+  return L.filter(function(f){ return f.cle===cle; })[0] || L[0];
 }
 window.CTR_APPR_FORMULES=CTR_APPR_FORMULES;
 function _ctrApprContratAvant(e){
@@ -38096,7 +38465,7 @@ function ctrApprOuvrir(empId){
       +'<select id="ctr-appr-formule" onchange="ctrApprMaj()" '
       +'style="width:100%;box-sizing:border-box;background:#0e0e0e;border:1px solid #444;border-radius:9px;color:#fff;'
       +'padding:10px 12px;font-family:inherit;font-size:.92rem;">'
-      +CTR_APPR_FORMULES.map(function(F){
+      +ctrApprFormules().map(function(F){
           return '<option value="'+F.cle+'"'+((inf.apprentissage_formule||'simple')===F.cle?' selected':'')+'>'
             +_msgEsc(F.nom)+'</option>'; }).join('')
       +'</select>'
@@ -38170,6 +38539,281 @@ async function ctrApprRetirer(){
 window.ctrApprOuvrir=ctrApprOuvrir; window.ctrApprEnreg=ctrApprEnreg;
 window.ctrApprFermer=ctrApprFermer; window.ctrApprRetirer=ctrApprRetirer;
 window.ctrApprMaj=ctrApprMaj; window._ctrApprContratAvant=_ctrApprContratAvant;
+
+/* ════════════════════════════════════════════════════════════════════════════
+   ★ v722 — LA DÉMISSION.
+
+   Vincent : « une personne dans l'état d'équipe, il faut que tu me prépares
+   aussi le fait que quelqu'un démissionne. Il va me donner son courrier de
+   démission, et on va indiquer la date. Et ça veut dire qu'il faudra que soit il
+   y a un préavis, soit il n'y a pas de préavis — donc indiquer le préavis. Et
+   quand est-ce qu'il s'arrête ? Et comme tu arrêtes, bien sûr, les horaires. »
+
+   Quatre choses, dans cet ordre : la DATE du courrier, le COURRIER lui-même, le
+   PRÉAVIS, et le DERNIER JOUR qui en découle. Ce dernier jour est la seule
+   donnée que le reste de l'application lit : les horaires s'arrêtent dessus
+   (sortieBloque, déjà en place), la frise le prend comme fin de contrat, et
+   l'écran 🚪 Sortie reprend la main pour le solde de tout compte et l'archivage.
+
+   Le préavis est PROPOSÉ, jamais imposé : convention de la restauration rapide
+   (IDCC 1501) — 8 jours avant 6 mois d'ancienneté, 15 jours de 6 mois à 2 ans,
+   1 mois au-delà ; agent de maîtrise 1 mois, 2 mois après 2 ans ; cadre 3 mois.
+   Vincent corrige d'un clic, et peut toujours dire « pas de préavis ».      */
+var CTR_PREAVIS=[
+  {cle:'aucun', nom:'Pas de préavis — il part tout de suite', jours:0},
+  {cle:'8j',    nom:'8 jours',   jours:8},
+  {cle:'15j',   nom:'15 jours',  jours:15},
+  {cle:'1m',    nom:'1 mois',    mois:1},
+  {cle:'2m',    nom:'2 mois',    mois:2},
+  {cle:'3m',    nom:'3 mois',    mois:3},
+  {cle:'libre', nom:'Autre — je donne le dernier jour à la main', libre:true}
+];
+function _ctrPreavisDef(cle){
+  for(var i=0;i<CTR_PREAVIS.length;i++){ if(CTR_PREAVIS[i].cle===cle) return CTR_PREAVIS[i]; }
+  return CTR_PREAVIS[0];
+}
+/* combien de mois complets entre deux dates ISO */
+function _ctrMoisEntre(a, b){
+  try{
+    var d1=new Date(String(a).slice(0,10)+'T12:00:00'), d2=new Date(String(b).slice(0,10)+'T12:00:00');
+    if(isNaN(d1)||isNaN(d2)) return null;
+    var m=(d2.getFullYear()-d1.getFullYear())*12+(d2.getMonth()-d1.getMonth());
+    if(d2.getDate()<d1.getDate()) m--;
+    return m;
+  }catch(_){ return null; }
+}
+/* le préavis que la convention prévoit — avec la phrase qui l'explique */
+/* ★ v725 — les six durées ne sont plus écrites ici : elles se règlent dans
+   Paramètres › Contrats › Règles de départ. Les valeurs d'usine sont celles de
+   la convention, inchangées. */
+function _ctrPreavisRegles(){
+  var d={ eqMoins6:'8j', eq6a24:'15j', eqPlus24:'1m', mgrMoins24:'1m', mgrPlus24:'2m', dir:'3m' };
+  try{ var r=(typeof getReglesRH==='function')?(getReglesRH().preavis||{}):{}; return Object.assign(d, r); }
+  catch(_){ return d; }
+}
+function _ctrPreavisPropose(e, dateISO){
+  var inf=(e&&e.infos)||{};
+  var R=_ctrPreavisRegles();
+  var _nom=function(cle){ return _ctrPreavisDef(cle).nom.toLowerCase(); };
+  var entree=String(inf.date_anciennete||inf.date_entree||'').slice(0,10);
+  var anc=(entree&&dateISO)?_ctrMoisEntre(entree, dateISO):null;
+  var role=String((e&&e.role)||'equipier');
+  if(role==='directeur') return {cle:R.dir, pourquoi:'Directeur : '+_nom(R.dir)+', quelle que soit l\'ancienneté.'};
+  if(role==='manager'){
+    if(anc!=null && anc>24) return {cle:R.mgrPlus24, pourquoi:'Manager, plus de 2 ans : '+_nom(R.mgrPlus24)+'.'};
+    return {cle:R.mgrMoins24, pourquoi:'Manager, jusqu\'à 2 ans : '+_nom(R.mgrMoins24)+'.'};
+  }
+  if(anc==null) return {cle:R.eq6a24, pourquoi:'Pas de date d\'entrée dans sa fiche : proposition par défaut, à vérifier.'};
+  if(anc<6)  return {cle:R.eqMoins6, pourquoi:'Moins de 6 mois chez vous ('+anc+' mois) : '+_nom(R.eqMoins6)+'.'};
+  if(anc<24) return {cle:R.eq6a24,   pourquoi:'Entre 6 mois et 2 ans ('+anc+' mois) : '+_nom(R.eq6a24)+'.'};
+  return {cle:R.eqPlus24, pourquoi:'Plus de 2 ans chez vous ('+anc+' mois) : '+_nom(R.eqPlus24)+'.'};
+}
+/* le dernier jour travaillé : le préavis court à partir du LENDEMAIN du courrier */
+function _ctrDemDernierJour(dateISO, cle){
+  var P=_ctrPreavisDef(cle);
+  if(P.libre) return '';
+  try{
+    var d=new Date(String(dateISO).slice(0,10)+'T12:00:00');
+    if(isNaN(d)) return '';
+    if(P.mois){
+      var j=d.getDate();
+      d.setMonth(d.getMonth()+P.mois);
+      /* 31/01 + 1 mois ne doit pas basculer au 3 mars : on retombe sur le dernier
+         jour du mois visé. */
+      if(d.getDate()<j) d.setDate(0);
+    }else{
+      d.setDate(d.getDate()+(P.jours||0));
+    }
+    return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  }catch(_){ return ''; }
+}
+var _ctrDemId=null, _ctrDemPiece=null;
+
+function _ctrDemResume(e, dc, cle, dernier){
+  if(!dc) return '<b class="dem-att">Indiquez d\'abord la date du courrier.</b>';
+  var P=_ctrPreavisDef(cle);
+  var bits=[];
+  bits.push('Courrier remis le <b>'+_ctrFr(dc)+'</b>.');
+  if(P.cle==='aucun') bits.push('<b>Pas de préavis</b> : le dernier jour est celui que vous indiquez.');
+  else if(P.libre)    bits.push('Préavis <b>à la main</b> : c\'est le dernier jour que vous saisissez qui fait foi.');
+  else                bits.push('Préavis de <b>'+P.nom.toLowerCase()+'</b>, à partir du lendemain.');
+  if(!dernier) return bits.join(' ')+' <b class="dem-att">Il manque le dernier jour.</b>';
+  bits.push('<br><b class="dem-fin">Dernier jour travaillé : '+_ctrFr(dernier)+'</b>');
+  bits.push('<br>Les horaires s\'arrêtent ce jour-là : après, '+_msgEsc((e&&e.name)||'ce salarié')
+    +' n\'est plus proposé au placement, et son contrat est fermé à cette date.');
+  /* un dernier jour déjà passé, c'est possible (on saisit après coup) — on le dit */
+  try{ if(dernier<_ctrAujourdISO()) bits.push('<br><span class="dem-att">Cette date est déjà passée : le départ prend effet immédiatement.</span>'); }catch(_){}
+  return bits.join(' ');
+}
+function ctrDemMaj(){
+  var e=(DB.employees||[]).find(function(x){ return String(x.id)===String(_ctrDemId); }); if(!e) return;
+  var g=function(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; };
+  var dc=g('ctr-dem-date'), cle=g('ctr-dem-preavis')||'15j';
+  var elD=document.getElementById('ctr-dem-dernier');
+  var P=_ctrPreavisDef(cle);
+  /* le dernier jour se recalcule tant qu'on ne l'a pas pris en main */
+  if(elD && !P.libre && dc){
+    var calc=_ctrDemDernierJour(dc, cle);
+    if(calc && elD.dataset.cle!==(dc+'|'+cle)){ elD.value=calc; elD.dataset.cle=dc+'|'+cle; }
+  }
+  var box=document.getElementById('ctr-dem-resume');
+  if(box) box.innerHTML=_ctrDemResume(e, dc, cle, (elD?String(elD.value||'').trim():''));
+  var pr=document.getElementById('ctr-dem-pourquoi');
+  if(pr){
+    var prop=_ctrPreavisPropose(e, dc||_ctrAujourdISO());
+    pr.innerHTML=(prop.cle===cle)
+      ? ('✔️ '+_msgEsc(prop.pourquoi))
+      : ('La convention proposerait plutôt <b>'+_msgEsc(_ctrPreavisDef(prop.cle).nom)+'</b> — '+_msgEsc(prop.pourquoi));
+  }
+}
+function ctrDemFichier(input){
+  var f=input&&input.files&&input.files[0]; if(!f) return;
+  if(f.size>8*1024*1024){ try{ toast('Fichier trop volumineux (max 8 Mo).','error'); }catch(_){} input.value=''; return; }
+  var r=new FileReader();
+  r.onload=function(ev){
+    _ctrDemPiece={data:ev.target.result, name:f.name};
+    var z=document.getElementById('ctr-dem-piece-txt');
+    if(z) z.innerHTML='📎 <b style="color:#3ecf8e;">'+_msgEsc(f.name)+'</b> — il sera rangé dans son dossier.';
+  };
+  r.readAsDataURL(f);
+}
+function ctrDemOuvrir(empId){
+  var e=(DB.employees||[]).find(function(x){ return String(x.id)===String(empId); }); if(!e) return;
+  _ctrDemId=empId; _ctrDemPiece=null;
+  var inf=e.infos||{};
+  var deja=(e.sortieMotif==='demission' && !!e.sortieDate);
+  var dc0=inf.demission_courrier_date||_ctrAujourdISO();
+  var cle0=inf.demission_preavis||_ctrPreavisPropose(e, dc0).cle;
+  var der0=(deja?e.sortieDate:_ctrDemDernierJour(dc0, cle0));
+  var ov=document.getElementById('ctr-dem-ov'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='ctr-dem-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:12000;display:flex;'
+    +'align-items:flex-start;justify-content:center;overflow:auto;padding:26px 14px;';
+  var champ=function(id,lbl,val,type,aide,style){
+    return '<div style="margin-bottom:12px;"><label style="display:block;font-size:.76rem;color:#aaa;margin-bottom:4px;">'+lbl+'</label>'
+      +'<input id="'+id+'" type="'+(type||'text')+'" value="'+_msgEsc(val||'')+'" oninput="ctrDemMaj()" onchange="ctrDemMaj()" '
+      +'style="width:100%;box-sizing:border-box;background:#0e0e0e;border:1px solid #444;border-radius:9px;color:#fff;'
+      +'padding:10px 12px;font-family:inherit;font-size:.92rem;'+(style||'')+'">'
+      +(aide?('<div style="font-size:.7rem;color:#777;margin-top:3px;">'+aide+'</div>'):'')+'</div>';
+  };
+  ov.innerHTML='<div style="max-width:560px;width:100%;background:#161618;border:1px solid #3a3a3a;border-radius:16px;padding:22px;">'
+    +'<div style="font-weight:900;font-size:1.1rem;color:#e8623a;margin-bottom:4px;">📤 Démission</div>'
+    +'<div style="font-size:.86rem;color:#ddd;margin-bottom:4px;">'+_msgEsc(e.name||'')+'</div>'
+    +'<p style="font-size:.77rem;color:#999;line-height:1.55;margin:0 0 14px;">'
+      +'La date du <b>courrier qu\'il vous remet</b>, le préavis, et le dernier jour qui en découle. '
+      +'C\'est ce dernier jour qui arrête les horaires.</p>'
+    +champ('ctr-dem-date','Date du courrier de démission', dc0, 'date', 'Le jour où il vous l\'a remis — c\'est de là que part le préavis.')
+    /* le courrier lui-même */
+    +'<div style="margin-bottom:12px;">'
+      +'<label style="display:block;font-size:.76rem;color:#aaa;margin-bottom:4px;">Le courrier (facultatif)</label>'
+      +'<input type="file" id="ctr-dem-piece" accept="application/pdf,image/*" style="display:none;" onchange="ctrDemFichier(this)">'
+      +'<div onclick="document.getElementById(\'ctr-dem-piece\').click()" '
+        +'style="border:2px dashed #444;border-radius:10px;padding:14px 12px;text-align:center;cursor:pointer;color:#999;font-size:.8rem;">'
+        +'<span id="ctr-dem-piece-txt">📥 Photographiez ou déposez son courrier — il sera rangé dans son dossier.</span></div>'
+    +'</div>'
+    /* le préavis */
+    +'<div style="margin-bottom:12px;"><label style="display:block;font-size:.76rem;color:#aaa;margin-bottom:4px;">Préavis</label>'
+      +'<select id="ctr-dem-preavis" onchange="ctrDemMaj()" '
+      +'style="width:100%;box-sizing:border-box;background:#0e0e0e;border:1px solid #444;border-radius:9px;color:#fff;'
+      +'padding:10px 12px;font-family:inherit;font-size:.92rem;">'
+      +CTR_PREAVIS.map(function(P){
+          return '<option value="'+P.cle+'"'+(cle0===P.cle?' selected':'')+'>'+_msgEsc(P.nom)+'</option>'; }).join('')
+      +'</select>'
+      +'<div id="ctr-dem-pourquoi" class="dem-pourquoi"></div></div>'
+    /* le dernier jour, en vert : c'est LUI qui décide */
+    +'<div style="margin-bottom:12px;">'
+      +'<label style="display:block;font-size:.76rem;color:#3ecf8e;font-weight:800;margin-bottom:4px;">🚪 Dernier jour travaillé</label>'
+      +'<input id="ctr-dem-dernier" type="date" value="'+_msgEsc(der0||'')+'" oninput="ctrDemMaj()" onchange="ctrDemMaj()" '
+      +'style="width:100%;box-sizing:border-box;border:2px solid #3ecf8e !important;background:#10241a !important;'
+      +'color:#bff3d7 !important;font-weight:800;border-radius:9px;padding:10px 12px;font-family:inherit;font-size:.92rem;">'
+      +'<div style="font-size:.7rem;color:#7fb79a;margin-top:3px;">Calculé d\'après le préavis. Vous pouvez le corriger : c\'est lui qui fait foi.</div></div>'
+    +'<div id="ctr-dem-resume" class="dem-res"></div>'
+    +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap;">'
+      +(deja?'<button class="btn btn-gray btn-sm" onclick="ctrDemRetirer()">✕ Annuler la démission</button>':'')
+      +'<button class="btn btn-gray btn-sm" onclick="ctrDemFermer()">Fermer</button>'
+      +'<button class="btn btn-red btn-sm" onclick="ctrDemEnreg()">Enregistrer la démission</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  ctrDemMaj();
+}
+function ctrDemFermer(){ var ov=document.getElementById('ctr-dem-ov'); if(ov) ov.remove(); _ctrDemPiece=null; }
+async function ctrDemEnreg(){
+  var e=(DB.employees||[]).find(function(x){ return String(x.id)===String(_ctrDemId); }); if(!e) return;
+  var g=function(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; };
+  var dc=g('ctr-dem-date'), cle=g('ctr-dem-preavis')||'15j', der=g('ctr-dem-dernier');
+  if(!dc){ try{ toast('Il faut la date du courrier de démission.','error'); }catch(_){} return; }
+  if(!der){ try{ toast('Il faut le dernier jour travaillé.','error'); }catch(_){} return; }
+  if(der<dc){ try{ toast('Le dernier jour ne peut pas être avant le courrier.','error'); }catch(_){} return; }
+  var inf=Object.assign({}, e.infos||{});
+  inf.demission_courrier_date=dc;
+  inf.demission_preavis=cle;
+  inf.demission_preavis_txt=_ctrPreavisDef(cle).nom;
+  inf.demission_dernier_jour=der;
+  try{
+    await sb.patch('bks_employees','id=eq.'+e.id,
+      {sortie_statut:'en_cours', sortie_motif:'demission', sortie_date:der, infos:inf});
+    e.infos=inf; e.sortieStatut='en_cours'; e.sortieMotif='demission'; e.sortieDate=der;
+    /* le courrier, s'il y en a un : rangé comme les autres documents */
+    if(_ctrDemPiece && _ctrDemPiece.data){
+      try{ await _ctrDemRangerPiece(e, dc, _ctrDemPiece); }catch(err){ console.error('courrier démission', err); }
+    }
+    try{ await loadAll(); }catch(_){}
+    ctrDemFermer();
+    try{ hrEERenderContrats(); }catch(_){}
+    try{ renderEquipe(); }catch(_){}
+    try{ toast('Démission enregistrée — dernier jour le '+_ctrFr(der),'success'); }catch(_){}
+  }catch(err){
+    console.error('ctrDem', err);
+    try{ toast('La démission n\'a pas pu être enregistrée.','error'); }catch(_){}
+  }
+}
+/* le même chemin que « Ajouter un document » : Dropbox si elle est configurée,
+   la ligne dans tous les cas. */
+async function _ctrDemRangerPiece(e, dateISO, piece){
+  var link='', dbxPath='';
+  try{
+    var pret=(typeof DBX_APP_KEY!=='undefined' && DBX_APP_KEY.indexOf('__')<0
+              && typeof DBX_REFRESH!=='undefined' && DBX_REFRESH.indexOf('__')<0);
+    if(pret){
+      try{ await dbxMigrerEquipe(e); }catch(_){}
+      var ext=(piece.name&&piece.name.indexOf('.')>=0)?piece.name.split('.').pop():'pdf';
+      dbxPath=dbxEmpFolder(e)+'/Courrier_de_demission_'+dbxClean(e.name)+'_'+dateISO+'.'+ext;
+      link=await dbxUpload(dbxPath, _dataUrlToBlob(piece.data));
+    }
+  }catch(err){ console.error('Dropbox démission', err); dbxPath=''; }
+  await sb.insert('bks_emp_docs',{id:'d'+Date.now(), emp_id:e.id, categorie:'demission',
+    label:'Courrier de démission du '+_ctrFr(dateISO), link:link, name:(piece.name||''), dbx_path:dbxPath});
+}
+async function ctrDemRetirer(){
+  var e=(DB.employees||[]).find(function(x){ return String(x.id)===String(_ctrDemId); }); if(!e) return;
+  if(!confirm('Annuler la démission de '+(e.name||'ce salarié')+' ?\n\n'
+    +'Il reste dans l\'équipe et repasse dans les horaires. Son courrier, s\'il est rangé, reste dans son dossier.')) return;
+  var inf=Object.assign({}, e.infos||{});
+  inf.demission_courrier_date=''; inf.demission_preavis=''; inf.demission_preavis_txt=''; inf.demission_dernier_jour='';
+  try{
+    await sb.patch('bks_employees','id=eq.'+e.id,
+      {sortie_statut:'', sortie_motif:'', sortie_date:'', infos:inf});
+    e.infos=inf; e.sortieStatut=''; e.sortieMotif=''; e.sortieDate='';
+    try{ await loadAll(); }catch(_){}
+    ctrDemFermer();
+    try{ hrEERenderContrats(); }catch(_){}
+    try{ renderEquipe(); }catch(_){}
+    try{ toast('Démission annulée.',''); }catch(_){}
+  }catch(err){ try{ toast('L\'annulation n\'a pas pu être enregistrée.','error'); }catch(_){} }
+}
+/* ce qu'on affiche dans le tableau, sous le nom */
+function _ctrDemBadge(e){
+  if(!e || e.sortieMotif!=='demission' || !e.sortieDate) return '';
+  var d=String(e.sortieDate).slice(0,10);
+  var fini=(d<_ctrAujourdISO());
+  return '<br><span style="font-size:.72rem;font-weight:700;color:#e8623a;white-space:nowrap;">📤 '
+    +(fini?('parti le '+_ctrFr(d)):('en préavis — part le '+_ctrFr(d)))+'</span>';
+}
+window.ctrDemOuvrir=ctrDemOuvrir; window.ctrDemFermer=ctrDemFermer;
+window.ctrDemEnreg=ctrDemEnreg;   window.ctrDemRetirer=ctrDemRetirer;
+window.ctrDemMaj=ctrDemMaj;       window.ctrDemFichier=ctrDemFichier;
+window._ctrPreavisPropose=_ctrPreavisPropose; window._ctrDemDernierJour=_ctrDemDernierJour;
+window._ctrDemBadge=_ctrDemBadge; window.CTR_PREAVIS=CTR_PREAVIS;
 
 // ══ VUE « SALARIÉS FIXÉS » (État équipe) ═══════════════════════════════════════
 // Permet de poser, pour un salarié, des horaires FIXES jour par jour (repos, ou
@@ -38980,7 +39624,11 @@ function hrAgrandirTraits35h(ctx, equipiers){
   var R=(typeof getReglement==='function')?getReglement():{};
   var maxi=Math.round((R.traitMaxiHeures!=null?parseFloat(R.traitMaxiHeures):4)*60); // 4h
   var mini=Math.round((R.traitMiniHeures!=null?parseFloat(R.traitMiniHeures):2)*60); // 2h
-  var PLAFOND_35H=Math.round(5*60); // règle Vincent : 5h MAX pour les traits 35h
+  /* ★ v725 — c'était « règle Vincent : 5h », en dur. C'est maintenant une case
+     dans Paramètres › Réglementation. */
+  var PLAFOND_35H=Math.round((function(){
+    try{ var v=parseFloat((getReglement()||{}).trait35MaxiHeures); return (isFinite(v)&&v>0)?v:5; }catch(_){ return 5; }
+  })()*60);
   var STEP35=60;                    // on agrandit par pas d'1h
   // équipiers 35h (déjà filtrés par l'étape, mais on revérifie le contrat)
   var ids35={}; (equipiers||[]).forEach(function(e){ if((hrContratHebdo(e)||0)>=35) ids35[e.id]=e; });
@@ -48910,6 +49558,12 @@ function renderBadgeuseParam(){
       +'<div style="flex:1;"><div style="font-weight:700;">⏳ Tolérance de pointage</div>'
       +'<div style="font-size:.8rem;color:#999;">Combien de minutes avant ou après son heure un salarié peut pointer <b>sans se justifier</b>. Au-delà, il doit choisir un motif. Mettre <b>0</b> pour exiger l\'heure pile.</div></div>'
       +'<input type="number" min="0" max="60" step="1" value="'+((typeof ptgTolerancePtg==='function')?ptgTolerancePtg():5)+'" onchange="ptgSetTolerance(this.value)" style="width:74px;background:#111;border:1px solid #444;border-radius:9px;color:#fff;padding:9px;font-size:1rem;text-align:center;font-weight:800;">'
+      +'<span style="color:#999;font-size:.85rem;">min</span></div>'
+    /* ★ v725 — le seuil de retard du contrôle des heures. */
+    +'<div style="display:flex;align-items:center;gap:12px;background:#1b1b1f;border:1px solid #333;border-radius:12px;padding:12px 14px;margin-bottom:9px;">'
+      +'<div style="flex:1;"><div style="font-weight:700;">🔴 Retard : à partir de combien de minutes ?</div>'
+      +'<div style="font-size:.8rem;color:#999;">Dans <b>Contrôle des heures</b>, un salarié arrivé après son heure passe au <b>rouge</b> à partir de ce retard-là (en dessous, il reste orange). Rien à voir avec la tolérance ci-dessus : celle-ci décide de ce que le salarié doit justifier en pointant, celle-là de ce que <b>vous</b> voyez au contrôle.</div></div>'
+      +'<input type="number" min="0" max="120" step="1" value="'+((typeof ptgSeuilRetard==='function')?ptgSeuilRetard():15)+'" onchange="ptgSetRetard(this.value)" style="width:74px;background:#111;border:1px solid #444;border-radius:9px;color:#fff;padding:9px;font-size:1rem;text-align:center;font-weight:800;">'
       +'<span style="color:#999;font-size:.85rem;">min</span></div>'
     /* ★ v622 — l'heure où bascule la journée de travail. */
     +'<div style="display:flex;align-items:center;gap:12px;background:#1b1b1f;border:1px solid #333;border-radius:12px;padding:12px 14px;margin-bottom:9px;">'
