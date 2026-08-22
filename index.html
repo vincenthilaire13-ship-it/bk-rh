@@ -104,7 +104,7 @@ var HR_PLANNING_BY_RESTO = window.HR_PLANNING_BY_RESTO;
   // Version embarquée dans CE fichier. Format : 'YYYY-MM-DD HH:MM' + numéro de build.
   // Le numéro de build (vN) augmente à CHAQUE livraison, ce qui garantit que l'app
   // détecte la nouvelle version même sans heure exacte.
-  var EMBEDDED_VERSION = '2026-10-01 09:00 · v711 (le tableau paye demande la duree du mois calcule)';
+  var EMBEDDED_VERSION = '2026-10-01 15:00 · v717 (apprentissage : deux formules, 33h+2h ou 35h avec recup)';
   window.__APP_VERSION_EMBEDDED = EMBEDDED_VERSION;
   // Si on vient juste de se recharger pour cette version, on ne reboucle pas
   try{
@@ -11058,6 +11058,18 @@ var EMPDOC_CATS=[
   {id:'contrat',label:'Contrat',icon:'📄'},
   {id:'dpae',label:'DPAE',icon:'🧾'},
   {id:'avenant',label:'Avenant',icon:'📝'},
+  /* ★ v713 — LES DOCUMENTS D'UNE LIASSE NE SONT PAS DES CONTRATS.
+
+     Quand une liasse part à la signature, elle contient le contrat ET, si on les
+     a cochés, le règlement intérieur, le reçu de tenue, la note caméras et
+     l'accord courrier électronique. Tous étaient rangés dans « Contrat ».
+     L'écran Contrats comptait donc l'accord de Léa comme un contrat rangé : il
+     affichait « 1 contrat » alors qu'aucun contrat n'était dans le dossier.
+     Chacun a maintenant sa case. */
+  {id:'reglement',label:'Règlement intérieur',icon:'📕'},
+  {id:'tenue',label:'Reçu de tenue',icon:'👕'},
+  {id:'cameras',label:'Information caméras',icon:'📹'},
+  {id:'accord_mail',label:'Accord courrier électronique',icon:'✉️'},
   {id:'sanction',label:'Sanction',icon:'⚠️'},
   {id:'arret_maladie',label:'Arrêt maladie',icon:'🏥'},
   {id:'visite_medicale',label:'Avis médical',icon:'🩺'},
@@ -11645,7 +11657,10 @@ function renderEmpDocs(empId,boxId){
   var _nSig=_sigs.filter(function(l){ return l.sigStatus==='signed'; }).length;
   h+=_accSection('rh-'+empId,'📁','Contrats & documents signés',{
     etat:(_nSig?(_nSig+' signé'+(_nSig>1?'s':'')):'')+((_nSig&&docs.length)?' · ':'')+(docs.length?(docs.length+' au dossier'):''),
-    actions:(_dirRH?('<button class="btn btn-red btn-sm" style="padding:2px 8px;" onclick="openContratGen(\''+empId+'\')">📄 Générer un contrat / avenant</button>'):''),
+    /* ★ v712 — même règle dans l'onglet Documents : on range et on relit, on ne
+       génère plus d'ici. */
+    actions:(_dirRH?('<button class="btn btn-gray btn-sm" style="padding:2px 8px;" onclick="ctrAllerAuxContrats(\''+empId+'\')" '
+      +'title="Les avenants se font dans État équipe">→ Modifier dans État équipe</button>'):''),
     contenu:_hRH
   });
   // ajout d'un document (masqué en lecture seule)
@@ -12956,6 +12971,14 @@ function _ctrIsoAuj(){
   var t=new Date();
   return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
 }
+/* Le lendemain d'une date ISO — une fin de contrat est INCLUSE, la suivante
+   commence donc le jour d'après. */
+function _ctrLendemain(iso){
+  try{ var d=new Date(String(iso).slice(0,10)+'T12:00:00');
+    d.setDate(d.getDate()+1);
+    return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  }catch(_){ return iso; }
+}
 function _ctrPeriodes(e){
   var inf=(e&&e.infos)||{};
   var _n=function(v){ var x=parseFloat(String(v==null?'':v).replace(',','.')); return (isFinite(x)&&x>0)?x:0; };
@@ -12968,10 +12991,33 @@ function _ctrPeriodes(e){
     P.push({debut:(estAppr&&inf.apprentissage_debut)?inf.apprentissage_debut:(inf.date_entree||''),
             hebdo:_n(inf.contrat_hebdo), type:typ, motif:'Contrat d\'embauche'});
   }
-  /* la sortie d'apprentissage ouvre une période */
+  /* ★ v715 — L'APPRENTISSAGE POSÉ SUR UN CONTRAT EXISTANT.
+
+     Vincent, en m'envoyant le CERFA : « ça mettra en stand-by si on a un
+     contrat […] et après l'apprentissage, tu reprends l'ancien contrat, de
+     l'ancienne durée, automatiquement. »
+
+     La frise ne savait pas le faire. Pour RIBES LUCAS — CDI 24 h au BK 526,
+     apprentissage du 01/09/2026 au 31/08/2027 — elle ne montrait qu'une seule
+     période de 24 h, et « combien d'heures à cette date ? » répondait 24 h
+     pendant tout son apprentissage. Le tableau paye l'aurait payé 104 h/mois au
+     lieu de 151,67. Son apprentissage commence dans dix jours.
+
+     Une période d'apprentissage s'insère donc dans la suite. Le contrat d'avant
+     s'arrête à son début, elle court à 35 h, et le contrat reprend le lendemain
+     de sa fin. C'est une chaîne : personne n'a besoin d'inventer un état
+     « suspendu », les dates suffisent. */
+  if(!estAppr && (inf.apprentissage_debut||inf.apprentissage_fin)){
+    P.push({debut:(inf.apprentissage_debut||''), hebdo:(_n(inf.apprentissage_hebdo)||35),
+            type:'apprentissage', motif:'Apprentissage'});
+  }
+  /* la sortie d'apprentissage ouvre une période — LE LENDEMAIN de la fin.
+     ★ v715 — elle démarrait le jour même de la fin d'apprentissage : le dernier
+     jour d'apprentissage était déjà compté au contrat d'après. */
   if(inf.apprentissage_fin && _n(inf.contrat_apres)){
-    P.push({debut:inf.apprentissage_fin, hebdo:_n(inf.contrat_apres),
-            type:(inf.contrat_type_apres||'CDI'), motif:'Fin d\'apprentissage'});
+    P.push({debut:_ctrLendemain(inf.apprentissage_fin), hebdo:_n(inf.contrat_apres),
+            type:(inf.contrat_type_apres||typ||'CDI'),
+            motif:'Reprise du contrat après l\'apprentissage'});
   }
   /* les avenants déjà enregistrés */
   (inf.contrat_periodes||[]).forEach(function(p){
@@ -13008,7 +13054,10 @@ function _ctrPeriodes(e){
      contrat déjà actif : un avenant programmé. */
   if(!P.some(function(p){ return p.etat==='cours'; })){
     var f=P.filter(function(p){ return p.etat==='futur'; })[0];
-    if(f) f.etat='cours';
+    /* ★ v713 — il reste vert (c'est SON contrat, Vincent y tient), mais on ne
+       dit plus « depuis le 3 septembre » d'une date qui n'est pas arrivée : on
+       dit « à partir du ». */
+    if(f){ f.etat='cours'; f.pasEncore=true; }
   }
   return P.reverse();     /* la plus récente en haut */
 }
@@ -13076,10 +13125,11 @@ function _ctrPeriodeHtml(p, inf){
   var _f=function(n){ return (''+(Math.round(n*100)/100)).replace('.',','); };
   var estAppr=String(p.type||'').toLowerCase().indexOf('apprent')>=0;
   var lbl=estAppr?'Apprentissage':(String(p.type||'').toUpperCase()||'Contrat');
-  var col = p.etat==='cours' ? {b:'#12211a',c:'#234a34',t:'#4CAF50',x:'Contrat en cours'}
+  var col = (p.etat==='cours'&&p.pasEncore) ? {b:'#12211a',c:'#234a34',t:'#4CAF50',x:'Contrat à venir'}
+          : p.etat==='cours' ? {b:'#12211a',c:'#234a34',t:'#4CAF50',x:'Contrat en cours'}
           : p.etat==='futur' ? {b:'#141d2b',c:'#2f4468',t:'#7fb0ef',x:'À venir'}
                              : {b:'#161616',c:'#2A2A2A',t:'#888',x:'Terminé'};
-  var quand = p.etat==='futur' ? ('à partir du '+_frDate(p.debut))
+  var quand = (p.etat==='futur'||p.pasEncore) ? ('à partir du '+_frDate(p.debut))
             : p.etat==='cours' ? ('depuis le '+_frDate(p.debut))
             : (p.debut?('du '+_frDate(p.debut)+(p.fin?(' au '+_frDate(p.fin)):'')):'');
   var bits=[];
@@ -13116,12 +13166,19 @@ function _ficheContratsHtml(e){
   var _ctrResume='';
   if(_ctrEnCours){
     var _hh=parseFloat(String(_ctrEnCours.hebdo).replace(',','.'));
+    /* ★ v713 — le résumé du menu déroulant disait « depuis le 03/09/2026 »
+       pour quelqu'un qui ne commence que dans douze jours. */
     _ctrResume=(isFinite(_hh)&&_hh>0?((''+_hh).replace('.',',')+' h/sem'):'')
-      +(_ctrEnCours.debut?(' · depuis le '+_frDate(_ctrEnCours.debut)):'');
+      +(_ctrEnCours.debut?((_ctrEnCours.pasEncore?' · à partir du ':' · depuis le ')+_frDate(_ctrEnCours.debut)):'');
   } else { _ctrResume='aucun contrat renseigné'; }
   var carteContrats=_accSection('fiche-contrats','📄','Suivi des contrats',{
     etat:_ctrResume,
-    actions:(_dir?('<button class="btn btn-red btn-sm" onclick="openContratGen(\''+e.id+'\')">📄 Générer un contrat / avenant</button>'):''),
+    /* ★ v712 — « dans les informations du salarié, je souhaite avoir QUE des
+       informations. On ne peut pas générer de contrat, on ne peut rien faire. »
+       La frise reste — on lit que le contrat est en cours et à combien d'heures.
+       Le geste, lui, a déménagé dans État équipe › Contrats. */
+    actions:(_dir?('<button class="btn btn-gray btn-sm" onclick="ctrAllerAuxContrats(\''+e.id+'\')" '
+      +'title="Les avenants et les corrections se font dans État équipe">→ Modifier dans État équipe</button>'):''),
     contenu:(friseHtml||'<div style="font-size:.8rem;color:#666;padding:4px 0;">Aucun contrat renseigné — complétez « Emploi &amp; contrat » dans sa fiche.</div>')
       +(per.length>1?('<div style="font-size:.7rem;color:#666;margin-top:4px;">Chaque avenant ouvre une nouvelle période et ferme la précédente.</div>'):'')
   });
@@ -14037,8 +14094,14 @@ async function _archiveDocSigne(l, sigPng){
     var dest=base+'.pdf', _n=1;
     while((DB.empDocs||[]).some(function(d){ return d.dbxPath===dest; })){ _n++; dest=base+'_'+_n+'.pdf'; }
     var link=await dbxUpload(dest, blob);
-    /* ★ v688 — un avenant se range dans la catégorie « avenant », pas « contrat ». */
-    var _cat=(_id.cle==='avenant')?'avenant':(isContrat?'contrat':'sanction');
+    /* ★ v688 — un avenant se range dans la catégorie « avenant », pas « contrat ».
+       ★ v713 — et le règlement intérieur, le reçu de tenue, la note caméras et
+       l'accord courrier électronique ne sont pas des contrats non plus. Chaque
+       document de la liasse part dans SA case ; ce qui reste sous « Contrat »
+       est vraiment un contrat, et l'écran Contrats peut être cru. */
+    var _catParCle={contrat:'contrat', avenant:'avenant', reglement:'reglement',
+                    tenue:'tenue', cameras:'cameras', lre:'accord_mail'};
+    var _cat=isContrat?(_catParCle[_id.cle]||'contrat'):'sanction';
     await sb.insert('bks_emp_docs',{id:'ds_'+l.id,emp_id:e.id,categorie:_cat,
       label:_id.nom+(refused?' — refus de signer ':' — signé ')+'le '+new Date(date).toLocaleDateString('fr-FR'),
       link:link,name:dest.split('/').pop(),dbx_path:dest});
@@ -23107,7 +23170,10 @@ function _contratRemplir(lines, e, opts){
     heures_semaine_avant:_hAvS, heures_mois_avant:_hAvM,
     brut_mensuel_avant:(tauxNum&&_hAvMn)?_fr2(tauxNum*_hAvMn):'',
     date_effet:_frD(opts.effet)||'',
-    date_contrat_initial:_frD(inf.date_contrat_initial||inf.date_anciennete||c.dateDebut)||'',
+    /* ★ v714 — « Les autres dispositions de votre contrat de travail en date du
+       … demeurent inchangées » sortait avec le trou. La date du contrat initial,
+       c'est celle de l'entrée du salarié quand rien d'autre n'est renseigné. */
+    date_contrat_initial:_frD(inf.date_contrat_initial||inf.date_anciennete||c.dateDebut||inf.date_entree)||'',
     /* l'adresse du salarié, en deux lignes comme sur une lettre */
     adresse_rue:(inf.adresse||c.adresse||''),
     cp_ville_salarie:(cpville||inf.cp_ville||[inf.code_postal||'',inf.ville||''].filter(Boolean).join(' ')),
@@ -23141,11 +23207,24 @@ function _contratRemplir(lines, e, opts){
       if(/\{[a-z_0-9]+\}/.test(t)) return;          /* il manque quelque chose : la ligne saute */
       t=t.replace(/^«\?»\s*/,'');
     }
+    /* ★ v714 — LA MÊME PHRASE SORTAIT DEUX FOIS.
+
+       Le tableau des plages de planification imprime lui-même sa note de bas de
+       tableau — « (1) Maximum 12 heures par jour. (2) Maximum 3 fois la durée
+       hebdomadaire… ». Le modèle d'avenant la portait AUSSI en toutes lettres :
+       elle apparaissait donc deux fois de suite sous le tableau. On garde celle
+       du tableau, qui est collée dessous, et on laisse tomber la copie. */
+    if(/^\(1\)\s*Maximum\s+12\s+heures\s+par\s+jour/i.test(t.trim())) return;
     out.push([t, pair[1]]);
   });
   return out;
 }
-function openContratGen(empId){
+/* ★ v714 — ON PEUT DEMANDER UN MODÈLE PRÉCIS EN OUVRANT LA FENÊTRE.
+
+   Vincent : « je vais cliquer dans État équipe pour faire cet avenant ». Le
+   bouton s'appelle « 📄 Avenant » : la fenêtre doit s'ouvrir SUR l'avenant, pas
+   sur le contrat d'embauche qu'il faudrait ensuite choisir à la main. */
+function openContratGen(empId, _modeleVoulu){
   if(!(curUser&&(curUser.role==='franchise'||curUser.role==='directeur'))){ toast('Réservé à la direction.','error'); return; }
   var e=(DB.employees||[]).find(function(x){return x.id===empId;}); if(!e){ toast('Salarié introuvable.','error'); return; }
   _contratGenEmp=empId;
@@ -23153,10 +23232,17 @@ function openContratGen(empId){
   var old=document.getElementById('contratgen-ov'); if(old) old.remove();
   var ov=document.createElement('div'); ov.id='contratgen-ov';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100000;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto;';
-  var opts=models.length?models.map(function(m){return '<option value="'+m.key+'">'+m.nom+'</option>';}).join(''):'<option value="">(aucun modèle avec texte éditable)</option>';
+  /* ★ v714 — le modèle demandé arrive sélectionné. */
+  var _mv='';
+  if(_modeleVoulu){
+    var _cand=models.filter(function(m){ return m.key===_modeleVoulu; })[0]
+           || models.filter(function(m){ try{ return ctrEstAvenant(m.key)===(_modeleVoulu==='avenant'); }catch(_){ return false; } })[0];
+    if(_cand) _mv=_cand.key;
+  }
+  var opts=models.length?models.map(function(m){return '<option value="'+m.key+'"'+(m.key===_mv?' selected':'')+'>'+m.nom+'</option>';}).join(''):'<option value="">(aucun modèle avec texte éditable)</option>';
   var _mIdx=_gridMatchIdx(e);
   var gridOpts='<option value="">— choisir le poste / niveau —</option>'+getSalaires().map(function(r,i){return '<option value="'+i+'"'+(i===_mIdx?' selected':'')+'>'+r.poste+' · '+tauxEffectif(r.taux).toFixed(2).replace('.',',')+' €</option>';}).join('');
-  var _h0=_modelHeures(models.length?models[0].key:'', e)||'';   /* ★ v687 */
+  var _h0=_modelHeures(_mv||(models.length?models[0].key:''), e)||'';   /* ★ v687 · v714 */
   /* ★ v688 — par défaut, un avenant prend effet le 1er du mois prochain. */
   var _d1=new Date(); _d1=new Date(_d1.getFullYear(), _d1.getMonth()+1, 1);
   var _eff0=_d1.getFullYear()+'-'+('0'+(_d1.getMonth()+1)).slice(-2)+'-01';
@@ -23406,9 +23492,33 @@ function ctrMajChampsAvenant(){
     note.innerHTML='⚠️ <b>Rien ne change :</b> le salarié est déjà à <b>'+_f(act)+' h/semaine</b>. '
       +'Saisissez la <b>nouvelle</b> durée à droite.';
   } else if(nouv){
+    /* ★ v714 — CETTE PHRASE ÉTAIT FAUSSE DEPUIS LA v692.
+
+       Elle disait que les plages venaient de la fiche du salarié. Elles viennent
+       en réalité de la GRILLE DES CONTRATS, pour la NOUVELLE durée — c'est
+       exactement ce que Vincent demande : « tu prends les disponibilités que tu
+       connais pour 10, 15, 20, 24 ». On le dit, et on contrôle au passage la
+       règle écrite dans l'avenant lui-même : les plages ne peuvent pas dépasser
+       3 fois la durée hebdomadaire, avec un plafond de 75 heures. */
+    var _src='', _tot=0, _cle='';
+    try{
+      _cle=(typeof grcCleContrat==='function')?(grcCleContrat(nouv)||''):'';
+      var _txt=_plagesPlanifTxt(e, nouv)||'';
+      var _m=_txt.match(/Total hebdomadaire des plages\s*:\s*(\d+)h(\d+)/);
+      if(_m) _tot=parseInt(_m[1],10)+parseInt(_m[2],10)/60;
+      _src=_cle
+        ? ('grille du contrat <b>'+_cle+'</b>'+((typeof grcEstVehicule==='function'&&grcEstVehicule(e&&e.transport))?' (véhiculé)':' (non véhiculé)'))
+        : 'ses disponibilités contractuelles (aucune grille pour cette durée)';
+    }catch(_){}
+    var _max=Math.min(nouv*3, 75);
+    var _fh=function(v){ var h=Math.floor(v), m=Math.round((v-h)*60); return h+'h'+('0'+m).slice(-2); };
     note.innerHTML='📝 Aujourd\'hui <b>'+_f(act)+' h/semaine</b> ('+_f(act*52/12)+' h/mois) → '
-      +'<b>'+_f(nouv)+' h/semaine</b> ('+_f(nouv*52/12)+' h/mois). '
-      +'Les plages de planification reprises sont les <b>disponibilités contractuelles</b> de sa fiche : vérifiez qu\'elles couvrent la nouvelle durée.';
+      +'<b>'+_f(nouv)+' h/semaine</b> ('+_f(nouv*52/12)+' h/mois).<br>'
+      +'Plages de planification reprises de la '+_src+
+      (_tot?(' — <b>'+_fh(_tot)+'</b> au total, maximum autorisé '+_fh(_max)
+             +(_tot>_max+0.01
+               ? ' <b style="color:#e8623a;">⚠️ dépassé : ces plages ne tiennent pas dans un contrat de '+_f(nouv)+' h</b>'
+               : ' ✔️')):'')+'.';
   } else {
     note.innerHTML='📝 Aujourd\'hui <b>'+_f(act)+' h/semaine</b>. Saisissez la nouvelle durée à droite.';
   }
@@ -25696,16 +25806,38 @@ async function _candAssurerSalarie(c){
     var _match=(DB.employees||[]).filter(function(e){return ((typeof _nomKey==='function')?_nomKey(e.name):(''+e.name).toLowerCase())===_k;});
     emp=_match.find(function(e){return !e.archived;})||_match.find(function(e){return !!e.archived;})||null;
   }
+  /* ★ v715 — L'APPRENTISSAGE CHOISI AU RECRUTEMENT ARRIVE JUSQU'À LA FICHE.
+
+     Vincent : « s'il n'y a pas de contrat, c'est au niveau du recrutement que tu
+     pourras choisir apprentissage […] il n'y a pas de CDI, rien, mais tu mets en
+     trente-cinq heures. »
+
+     Le recrutement le savait déjà — Pinto Marine est enregistrée en poste
+     « Apprenti » — mais l'embauche ne recopiait QUE la date de démarrage. Les
+     treize personnes de la rentrée sont toutes arrivées sans type de contrat.
+     On recopie maintenant ce qui a été choisi, et seulement s'il manque : on
+     n'écrase jamais une fiche déjà renseignée. */
+  var _estAppr=(String(c.poste||'')==='Apprenti' || c.niveauApprentissage==='Apprentissage'
+                || String(c.contratType||'').indexOf('appr')===0);
+  var _poseContrat=function(inf){
+    if(_estAppr){
+      if(!inf.contrat_type) inf.contrat_type='apprentissage';
+      if(!inf.contrat_hebdo) inf.contrat_hebdo='35';
+    }else if(c.niveauApprentissage==='CDI' && !inf.contrat_type){
+      inf.contrat_type='cdi';
+    }
+    return inf;
+  };
   var empId=null;
   if(emp){
     // rattacher + réactiver si besoin + poser la date d'entrée (démarrage) si absente
     empId=emp.id;
-    var _inf=Object.assign({}, emp.infos||{}); if(!_inf.date_entree) _inf.date_entree=c.dateDebut;
+    var _inf=_poseContrat(Object.assign({}, emp.infos||{})); if(!_inf.date_entree) _inf.date_entree=c.dateDebut;
     try{ if(emp.archived && typeof reactivateEmp==='function'){ await reactivateEmp(emp.id, true); } }catch(_){}
     try{ await sb.patch('bks_employees','id=eq.'+emp.id,{from_cand_id:c.id, infos:_inf}); }catch(_){}
   } else {
     var eid='u'+Date.now();
-    var _infosEmb={date_entree:c.dateDebut};
+    var _infosEmb=_poseContrat({date_entree:c.dateDebut});
     if(String(c.rqth||'').toLowerCase()==='oui') _infosEmb.rqth='oui';
     if(c.photo) _infosEmb.photo=c.photo;
     var _newEmp=await sb.insert('bks_employees',{id:eid,name:nom,role:_roleEmb,resto_id:c.restoId,archived:false,email:c.email||'',phone:c.phone||'',from_cand_id:c.id,infos:_infosEmb});
@@ -25835,6 +25967,18 @@ async function candCreerSalarieEquipe(c){
          (avant, aucun trait n'est plaçable — voir entreeBloque).            */
       if(c.dateDebut) _infosEmb.date_entree=c.dateDebut;
       if(c.contratHeures!=null && _infosEmb.contrat_hebdo==null) _infosEmb.contrat_hebdo=c.contratHeures;
+      /* ★ v715 — le type de contrat choisi au recrutement suit lui aussi.
+         Un apprenti arrive en « apprentissage », 35 h — pas en fiche muette. */
+      try{
+        var _apprE=(String(c.poste||'')==='Apprenti' || c.niveauApprentissage==='Apprentissage'
+                    || String(c.contratType||'').indexOf('appr')===0);
+        if(_apprE){
+          if(!_infosEmb.contrat_type) _infosEmb.contrat_type='apprentissage';
+          if(_infosEmb.contrat_hebdo==null||_infosEmb.contrat_hebdo==='') _infosEmb.contrat_hebdo='35';
+        }else if(c.niveauApprentissage==='CDI' && !_infosEmb.contrat_type){
+          _infosEmb.contrat_type='cdi';
+        }
+      }catch(_ap){}
       if(!(c.contratSigneDoc&&(c.contratSigneDoc.data||c.contratSigneDoc.link))) _infosEmb.dossierAFinaliser='oui';
       // ★ v587 — GRILLE DES CONTRATS (uniquement à l'embauche, jamais sur un
       // salarié déjà en place) : selon le contrat (15/20/24 h) et le transport
@@ -33758,6 +33902,16 @@ function hrContratHebdo(emp){
       return p && p.debut && p.debut<=today && parseFloat(p.hebdo)>0;
     }).sort(function(a,b){ return String(a.debut).localeCompare(String(b.debut)); });
     if(_ps.length) return parseFloat(_ps[_ps.length-1].hebdo);
+    /* ★ v715 — un apprentissage POSÉ SUR un contrat existant : pendant sa
+       durée, ce sont ses heures à lui (35 h en général), pas celles du contrat
+       mis en stand-by. Sans ça, RIBES LUCAS restait à 24 h dans tout le
+       planning pendant son année d'apprentissage. */
+    var _tA=String(inf.contrat_type||inf.cdi_cdd||'').toLowerCase();
+    if(_tA.indexOf('apprent')<0 && inf.apprentissage_debut && inf.apprentissage_fin
+       && today>=inf.apprentissage_debut && today<=inf.apprentissage_fin){
+      var _hA2=parseFloat(inf.apprentissage_hebdo); if(!isFinite(_hA2)||_hA2<=0) _hA2=35;
+      return _hA2;
+    }
     // 1) Nouveau contrat programmé (ex. saisonnier -> nouveau contrat au 1er septembre)
     if(inf.contrat_futur_date && today>=inf.contrat_futur_date){
       var hf=parseFloat(inf.contrat_futur_hebdo); if(!isNaN(hf)&&hf>0) return hf;
@@ -36212,12 +36366,37 @@ function _etatEquipiers(){
 }
 // Sous-vue actuellement ouverte dans État équipe : 'tuiles' | 'etat' | 'dispos' | 'competences'
 var HR_EE_VUE='tuiles';
+/* ★ v712 — DEUX FILS COUPÉS, RETROUVÉS EN FAISANT LE CONTRÔLE.
+
+   Quand on choisit un restaurant sur l'écran État équipe, le code qui reçoit le
+   clic est écrit tout en haut du fichier — DEHORS. Il pose
+   « HR_ETAT_RESTO_FILTRE = bk500 » et « HR_EE_VUE = tuiles ».
+   Mais les deux vraies variables, celles que l'écran lit, sont déclarées ICI,
+   à l'intérieur du grand module. Le clic écrivait donc à côté : l'écran
+   continuait d'afficher le BK 526 (sa valeur de repli) quel que soit le
+   restaurant demandé, et la sous-vue ouverte ne se refermait pas.
+
+   Plutôt que de retoucher les trois endroits d'en haut, on branche les deux
+   noms : écrire dehors revient maintenant à écrire ici. */
+try{
+  Object.defineProperty(window,'HR_EE_VUE',{
+    configurable:true,
+    get:function(){ return HR_EE_VUE; },
+    set:function(v){ HR_EE_VUE=v; }
+  });
+  Object.defineProperty(window,'HR_ETAT_RESTO_FILTRE',{
+    configurable:true,
+    get:function(){ return HR_ETAT_RESTO_FILTRE; },
+    set:function(v){ HR_ETAT_RESTO_FILTRE=(v==null?'':String(v)).toLowerCase(); }
+  });
+}catch(_){}
 // Routeur : affiche les tuiles, ou la sous-vue demandée.
 function hrRenderEtatEquipe(){
   var box=document.getElementById('etat-equipe-list'); if(!box) return;
   var selWrap=document.getElementById('etat-equipe-resto');
   if(selWrap){ selWrap.style.display='none'; }
   if(curUser&&curUser.role==='directeur'){ HR_ETAT_RESTO_FILTRE=curUser.restoId; }
+  if(HR_EE_VUE==='contrats'){ hrEERenderContrats(); return; }
   if(HR_EE_VUE==='etat'){ _hrEtatRenderAbsences(); return; }
   if(HR_EE_VUE==='dispos'){ hrEERenderDispos(); return; }
   if(HR_EE_VUE==='competences'){ hrEERenderCompetences(); return; }
@@ -36243,7 +36422,22 @@ function hrEERenderTuiles(){
   // comptage demandes en attente (pour pastille sur la tuile État)
   var nbAttente=0;
   eq.forEach(function(e){ (HR_ABSENCES[e.id]||[]).forEach(function(a){ if(a&&a.statut==='attente') nbAttente++; }); });
+  /* ★ v712 — LA TUILE CONTRATS REVIENT.
+
+     Vincent, v677 : « État équipe, on a fait une connerie, il faut virer les
+     contrats. On va les laisser dans chaque personne. »
+     Vincent, aujourd'hui : « c'est de là que partiront les avenants, les
+     modifications de contrat. Parce que c'est grâce à ça : quand est-ce que
+     finit le contrat, quand est-ce qu'il commence, pour faire les horaires. »
+
+     Il a changé d'avis, et c'est son droit. Le code de la v669 avait été mis de
+     côté SANS ÊTRE SUPPRIMÉ, avec une note disant « il n'y aura qu'à
+     rebrancher ». C'est ce qu'on fait : on rebranche, on n'écrit pas une
+     deuxième fois ce qui existe. */
+  var nbCtrAlerte=0;
+  try{ eq.forEach(function(e){ if((ctrAnomalies(e)||[]).some(function(a){ return a && a.g>1; })) nbCtrAlerte++; }); }catch(_){}
   var tuiles=[
+    {vue:'contrats',    ico:'📄', titre:'Contrats',        sub:'Durées, débuts, fins — ce qui pilote le planning', col:'#b8860b', badge:nbCtrAlerte},
     {vue:'etat',        ico:'🗓️', titre:'État / Absences', sub:'Congés · maladie · absence · indispo', col:'#d98324', badge:nbAttente},
     {vue:'dispos',      ico:'📅', titre:'Disponibilités',  sub:'Créneaux par jour de semaine',          col:'#1565c0', badge:0},
     {vue:'competences', ico:'🎯', titre:'Compétences',     sub:'Qui sait faire quoi',                   col:'#2e7d32', badge:0},
@@ -37118,6 +37312,7 @@ function ctrPeriodes(e){
   var estApprenti=(type==='apprentissage');
   if(estApprenti && (aDeb||aFin)){
     principale.libelle='Apprentissage';
+    principale.formule=(i.apprentissage_formule||'');
     if(aDeb) principale.du=aDeb;
     if(aFin) principale.au=aFin;
     if(apres){
@@ -37126,9 +37321,13 @@ function ctrPeriodes(e){
         libelle:'Reprise après apprentissage', futur:true});
     }
   } else if(aDeb || aFin){
-    out.push({du:aDeb, au:aFin, heures:null,
+    /* ★ v715 — la pastille disait « Apprentissage · — » : ses heures manquaient.
+       Un apprentissage a une durée (35 h sauf exception), et c'est elle qui
+       compte pendant qu'il court. */
+    out.push({du:aDeb, au:aFin, heures:(_ctrNum(i.apprentissage_hebdo)||35),
       type:'apprentissage', dispos:null, disposSource:null,
-      origine:'fiche', libelle:'Apprentissage', suspend:true});
+      origine:'fiche', libelle:'Apprentissage', suspend:true,
+      formule:(i.apprentissage_formule||'')});
     if(apres){
       out.push({du:(aFin?_ctrDateApres(aFin):null), au:null, heures:apres, type:'',
         dispos:null, disposSource:null, origine:'fiche',
@@ -37179,6 +37378,33 @@ function ctrPeriodeActive(e, iso){
       || L.find(function(p){ return (!p.du||p.du<=d) && (!p.au||p.au>=d); }) || null;
 }
 window.ctrPeriodeActive=ctrPeriodeActive;
+
+/* ★ v713 — LA PÉRIODE QU'ON MONTRE DANS LE TABLEAU.
+
+   Vincent, en regardant IDEZ LEA : « son contrat est de 24 h, il est censé
+   démarrer le 3 septembre… à partir du moment où on indique que cette fille-là
+   va être là à partir du 3 septembre pour faire les horaires, le contrat
+   démarre au 3 septembre pour qu'elle puisse être dans les horaires. »
+
+   Le tableau n'affichait QUE le contrat en cours. Une personne qui démarre dans
+   douze jours n'en a pas : ses colonnes Depuis et Jusqu'à restaient vides. Le
+   22/08/2026, TREIZE personnes étaient dans ce cas — toute la rentrée.
+
+   On montre donc, dans l'ordre : le contrat en cours ; sinon le prochain qui
+   démarre ; sinon le dernier terminé. Et on dit lequel des trois c'est. */
+function ctrPeriodeAffichee(e){
+  var L=ctrPeriodes(e)||[];
+  var cur=ctrPeriodeActive(e);
+  if(cur) return {p:cur, quand:(cur.etat==='suspendue'?'suspendue':'en_cours')};
+  var fut=L.filter(function(p){ return p.etat==='a_venir' && p.du; })
+           .sort(function(a,b){ return a.du<b.du?-1:1; })[0];
+  if(fut) return {p:fut, quand:'a_venir'};
+  var fin=L.filter(function(p){ return p.etat==='terminee' && p.au; })
+           .sort(function(a,b){ return a.au<b.au?1:-1; })[0];
+  if(fin) return {p:fin, quand:'terminee'};
+  return {p:L[0]||null, quand:'inconnue'};
+}
+window.ctrPeriodeAffichee=ctrPeriodeAffichee;
 
 /* ★ CE QUI CLOCHE — les anomalies qu'on peut voir sans rien écrire. */
 function ctrAnomalies(e){
@@ -37340,7 +37566,13 @@ function ctrToggle(id){
 }
 window.ctrToggle=ctrToggle;
 
-/* ══ VUE « CONTRATS » — MISE DE CÔTÉ EN v677 ═══════════════════════════════════
+/* ══ VUE « CONTRATS » — REMISE EN SERVICE EN v712 ══════════════════════════
+   Écrite en v669, débranchée en v677 à la demande de Vincent, rebranchée
+   aujourd'hui à sa demande inverse. Le code n'avait pas été supprimé ; il n'y a
+   donc rien eu à réécrire. Ce qui suit est l'ancienne note, gardée pour
+   l'histoire.
+
+   ══ ANCIENNE NOTE ═════════════════════════════════════════════════════════════
    Vincent : « État équipe, on a fait une connerie, il faut virer les contrats.
    Les contrats, on va les laisser dans chaque personne, et on va travailler
    ensemble après sur les contrats. »
@@ -37359,11 +37591,16 @@ function hrEERenderContrats(){
   var eq=_etatEquipiers();
   var h=_hrEEHeader('Contrats','tous les contrats du restaurant — et leur historique');
 
+  /* ★ v712 — la « prochaine étape » annoncée en v669 est arrivée : c'est d'ici
+     que partent les avenants. La fiche du salarié, elle, ne fait plus que lire. */
   h+='<div style="background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:12px 14px;margin-bottom:14px;color:#a9b0b8;font-size:.82rem;line-height:1.6;">'
-    +'<b style="color:#ddd;">Première étape : on regarde, on ne touche à rien.</b> '
-    +'Cette page reconstitue la ligne de vie du contrat de chacun à partir de sa fiche — '
-    +'rien n\'est enregistré, rien n\'est modifié. Vérifie que la photo est juste : '
-    +'les avenants et les mises en apprentissage viendront ensuite.</div>';
+    +'<b style="color:#ddd;">C\'est ici que se fait la vie du contrat.</b> '
+    +'Avenants, mises en apprentissage, corrections de fiche : tout part de cet écran. '
+    +'La fiche du salarié, elle, ne fait que les afficher.<br>'
+    +'<b style="color:#ddd;">La durée fait foi, même sans le papier.</b> '
+    +'Ce qui est renseigné ici sert au planning et à la paye. La colonne '
+    +'<b>Contrat rangé</b> dit seulement si le document signé est dans l\'application — '
+    +'on les intégrera au fur et à mesure.</div>';
 
   /* le compte des anomalies */
   var nbAno=0, nbDispo=0;
@@ -37397,7 +37634,9 @@ function hrEERenderContrats(){
 
   eq.slice().sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||'')); }).forEach(function(e){
     var P=ctrPeriodes(e);
-    var act=ctrPeriodeActive(e);
+    /* ★ v713 — plus de « — » pour quelqu'un qui démarre bientôt : on affiche le
+       contrat qui va commencer, et on dit qu'il commence. */
+    var _aff=ctrPeriodeAffichee(e), act=_aff.p, _quand=_aff.quand;
     var ano=ctrAnomalies(e);
     var i=e.infos||{};
     var t=(act&&act.type)||_ctrType(e);
@@ -37407,11 +37646,27 @@ function hrEERenderContrats(){
     h+='<tr style="border-bottom:1px solid #262626;vertical-align:top;">'
       +'<td style="padding:7px 9px;font-weight:700;color:#eee;">'+_msgEsc(e.name||'—')
         +(suspendu?'<br><span style="font-size:.72rem;color:#8e44ad;font-weight:700;">contrat suspendu</span>':'')+'</td>'
+      /* ★ v717 — sous la durée payée, ce qu'on place vraiment au restaurant,
+         quand les deux diffèrent (33 h + 2 h de formation à distance). */
       +'<td style="padding:7px 9px;font-weight:800;color:'+(hh==null?'#e8623a':'#fff')+';">'
-        +(hh==null?'—':(hh+' h'))+'</td>'
+        +(hh==null?'—':(hh+' h'))
+        +(function(){
+            var _fq=(i.apprentissage_formule||'');
+            if(!_fq || _fq==='simple') return '';
+            var _F=_ctrApprFormule(_fq);
+            var _enCours=(act&&String(act.type||'').toLowerCase().indexOf('apprent')>=0);
+            if(!_enCours) return '';
+            return '<br><span style="font-size:.71rem;font-weight:600;color:#b58edc;">'
+              +_msgEsc(_F.court)+'</span>';
+          })()
+        +'</td>'
       +'<td style="padding:7px 9px;"><span style="background:'+CTR_TYPE_COL[t]+';color:#fff;border-radius:6px;padding:2px 8px;font-size:.75rem;font-weight:700;">'
         +CTR_TYPE_LBL[t]+'</span></td>'
-      +'<td style="padding:7px 9px;color:#aaa;">'+(act&&act.du?_ctrFr(act.du):'—')+'</td>'
+      +'<td style="padding:7px 9px;color:'+(_quand==='a_venir'?'#5b9bd5':(_quand==='terminee'?'#888':'#aaa'))+';">'
+        +(act&&act.du?_ctrFr(act.du):'—')
+        +(_quand==='a_venir'?'<br><span style="font-size:.71rem;font-weight:700;color:#5b9bd5;">démarre — à venir</span>':'')
+        +(_quand==='terminee'?'<br><span style="font-size:.71rem;color:#888;">terminé</span>':'')
+        +(_quand==='suspendue'?'<br><span style="font-size:.71rem;font-weight:700;color:#8e44ad;">suspendu</span>':'')+'</td>'
       +'<td style="padding:7px 9px;color:#aaa;">'+(act&&act.au?_ctrFr(act.au):'—')+'</td>'
       +'<td style="padding:7px 9px;color:'+((hh!=null&&hd>0&&hd<hh)?'#e8623a':'#aaa')+';">'
         +(hd>0?((Math.round(hd*10)/10+'').replace('.',',')+' h'):'—')+'</td>'
@@ -37429,6 +37684,16 @@ function hrEERenderContrats(){
           : '<span style="color:#3ecf8e;">✓</span>')
       +'</td>'
       +'<td style="padding:7px 9px;text-align:right;white-space:nowrap;">'
+        /* ★ v712 — les deux gestes qui ont quitté la fiche du salarié. */
+        +(_ctrPeutAgir()
+          ? ('<button class="btn btn-red btn-sm" style="padding:3px 9px;margin-right:5px;" '
+             +'onclick="openContratGen(\''+String(e.id).replace(/'/g,"")+'\',\'avenant\')" title="Avenant : nouvelle durée + date d\'effet — il ferme le contrat précédent">📄 Avenant</button>'
+             /* ★ v715 — le troisième geste : l'apprentissage. */
+             +'<button class="btn btn-gray btn-sm" style="padding:3px 9px;margin-right:5px;" '
+             +'onclick="ctrApprOuvrir(\''+String(e.id).replace(/'/g,"")+'\')" title="Dates de l\'apprentissage (CERFA) — le contrat en cours passe en stand-by">🎓 Apprentissage</button>'
+             +'<button class="btn btn-gray btn-sm" style="padding:3px 9px;margin-right:5px;" '
+             +'onclick="ctrCorrigerOuvrir(\''+String(e.id).replace(/'/g,"")+'\')" title="Rattraper une fiche incomplète">✏️ Corriger</button>')
+          : '')
         +'<button class="btn btn-gray btn-sm" onclick="ctrToggle(\''+String(e.id).replace(/'/g,"")+'\')">'
         +(CTR_OUVERT===e.id?'▲ Fermer':'▼ Détail')+'</button></td></tr>';
     /* ★ v670 — le détail : dispos contractuelles vs réelles, et les documents */
@@ -37442,8 +37707,19 @@ function hrEERenderContrats(){
       P.forEach(function(p){
         var col=(p.etat==='en_cours')?'#3ecf8e':(p.etat==='a_venir')?'#5b9bd5':(p.etat==='suspendue')?'#8e44ad':'#666';
         var lblEtat={en_cours:'en cours',terminee:'terminée',a_venir:'à venir',suspendue:'suspendue',inconnue:'?'}[p.etat]||'';
+        /* ★ v714 — « Contrat en cours · … · à venir » se contredisait tout seul :
+           le libellé est le NOM de la période, l'état dit où elle en est. Tant
+           qu'elle n'a pas commencé, on l'appelle simplement « Contrat ». */
+        var _lbl=(p.etat==='a_venir'&&/en cours/i.test(p.libelle||''))?'Contrat':(p.libelle||'');
+        /* ★ v717 — 33 h + 2 h à distance, ou 35 h + un jour de récup : ça se lit
+           sans ouvrir le panneau. */
+        var _fmt='';
+        try{
+          if(p.formule && p.formule!=='simple' && typeof _ctrApprFormule==='function')
+            _fmt=' · '+_ctrApprFormule(p.formule).court;
+        }catch(_){}
         h+='<span style="border:1px solid '+col+';color:'+col+';border-radius:7px;padding:3px 9px;font-size:.74rem;font-weight:700;">'
-          +_msgEsc(p.libelle)+' · '+(p.heures!=null?(p.heures+' h'):'—')
+          +_msgEsc(_lbl)+' · '+(p.heures!=null?(p.heures+' h'):'—')+_msgEsc(_fmt)
           +(p.du?(' · du '+_ctrFr(p.du)):'')+(p.au?(' au '+_ctrFr(p.au)):'')
           +' · '+lblEtat+'</span>';
       });
@@ -37458,6 +37734,357 @@ function hrEERenderContrats(){
   box.innerHTML=h;
 }
 window.hrEERenderContrats=hrEERenderContrats;
+
+/* ★ v712 — depuis la fiche, on ne modifie plus : on va là où ça se modifie.
+   Le renvoi bascule sur le restaurant du salarié, ouvre État équipe et déplie
+   directement sa ligne — on ne le cherche pas dans la liste. */
+function ctrAllerAuxContrats(empId){
+  try{
+    var e=(DB.employees||[]).find(function(x){ return String(x.id)===String(empId); });
+    if(e && curUser && curUser.role==='franchise' && e.restoId){
+      window.ACTIVE_RESTO=e.restoId;
+      try{ majBadgeRestoActif(); }catch(_){}
+    }
+    if(e && typeof HR_ETAT_RESTO_FILTRE!=='undefined') HR_ETAT_RESTO_FILTRE=(e.restoId||'').toLowerCase();
+    CTR_OUVERT=empId||null;
+    HR_EE_VUE='contrats';
+    try{ goPage('etatequipe'); }catch(_){}
+    setTimeout(function(){ try{ hrRenderEtatEquipe(); }catch(_){} }, 60);
+  }catch(err){ console.warn('ctrAllerAuxContrats',err); }
+}
+window.ctrAllerAuxContrats=ctrAllerAuxContrats;
+
+function _ctrPeutAgir(){
+  return !!(curUser && (curUser.role==='franchise'||curUser.role==='directeur') && !window.__readOnly);
+}
+function _ctrAujourdISO(){
+  var t=new Date();
+  return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+}
+/* ── ★ v712 — CORRIGER UN CONTRAT SANS FAIRE D'AVENANT ────────────────────
+   « Il y a des gens dont tu n'as pas le contrat pour l'instant. Tu considères
+     qu'ils ont ces contrats-là — j'en ai des 24, des 35 heures. »
+
+   Sur 231 fiches, 44 n'ont pas de date d'entrée et 67 pas de type de contrat.
+   Exiger un avenant papier pour chacune n'aurait aucun sens : ce ne sont pas des
+   changements de contrat, ce sont des trous de saisie. On les rattrape ici, et
+   l'application retient que c'est une SAISIE À LA MAIN — pour qu'on distingue
+   toujours ce qui vient d'un document de ce qui vient de nous.
+
+   Un vrai changement de durée passe par « 📄 Avenant », qui garde sa date
+   d'effet et ferme la période précédente. C'est écrit dans le panneau. */
+var _ctrCorId=null;
+function ctrCorrigerOuvrir(empId){
+  var e=(DB.employees||[]).find(function(x){ return String(x.id)===String(empId); }); if(!e) return;
+  _ctrCorId=empId;
+  var inf=e.infos||{};
+  var ov=document.getElementById('ctr-cor-ov'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='ctr-cor-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:12000;display:flex;'
+    +'align-items:flex-start;justify-content:center;overflow:auto;padding:26px 14px;';
+  var champ=function(id,lbl,val,type,aide){
+    return '<div style="margin-bottom:12px;"><label style="display:block;font-size:.76rem;color:#aaa;margin-bottom:4px;">'+lbl+'</label>'
+      +'<input id="'+id+'" type="'+(type||'text')+'" value="'+_msgEsc(val||'')+'" '
+      +'style="width:100%;box-sizing:border-box;background:#0e0e0e;border:1px solid #444;border-radius:9px;color:#fff;'
+      +'padding:10px 12px;font-family:inherit;font-size:.92rem;">'
+      +(aide?('<div style="font-size:.7rem;color:#777;margin-top:3px;">'+aide+'</div>'):'')+'</div>';
+  };
+  var dejaMain=inf.contrat_saisi_main;
+  ov.innerHTML='<div style="max-width:520px;width:100%;background:#161618;border:1px solid #3a3a3a;border-radius:16px;padding:22px;">'
+    +'<div style="font-weight:900;font-size:1.1rem;color:#F5A623;margin-bottom:4px;">✏️ Corriger le contrat</div>'
+    +'<div style="font-size:.86rem;color:#ddd;margin-bottom:4px;">'+_msgEsc(e.name||'')+'</div>'
+    +'<p style="font-size:.77rem;color:#999;line-height:1.55;margin:0 0 14px;">'
+      +'Pour <b>rattraper une fiche incomplète</b>, pas pour changer un contrat. '
+      +'Un vrai changement de durée se fait avec un <b>avenant</b> : il garde sa date d\'effet '
+      +'et ferme la période précédente.</p>'
+    +(dejaMain?('<div style="background:#2a2416;border:1px solid #6b5320;border-radius:9px;padding:8px 11px;margin-bottom:14px;'
+      +'font-size:.75rem;color:#f0c070;">Déjà saisi à la main le '+_ctrFr(dejaMain.le||'')
+      +(dejaMain.par?(' par '+_msgEsc(dejaMain.par)):'')+'.</div>'):'')
+    +champ('ctr-cor-hebdo','Durée hebdomadaire (heures)', (inf.contrat_hebdo!=null?inf.contrat_hebdo:''), 'text', 'Ce qu\'il fait réellement — 24, 30, 35…')
+    +champ('ctr-cor-type','Type de contrat', (inf.contrat_type||inf.cdi_cdd||''), 'text', 'CDI, CDD, apprentissage, saisonnier…')
+    +champ('ctr-cor-entree','Date d\'entrée', (inf.date_entree||''), 'date', 'Le premier jour travaillé — c\'est elle qui démarre les horaires.')
+    +champ('ctr-cor-fin','Fin prévue (CDD, apprentissage)', (inf.date_fin_cdd||''), 'date', 'Laissez vide pour un CDI.')
+    +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap;">'
+      +'<button class="btn btn-gray btn-sm" onclick="ctrCorrigerFermer()">Annuler</button>'
+      +'<button class="btn btn-red btn-sm" onclick="ctrCorrigerEnreg()">Enregistrer</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+}
+function ctrCorrigerFermer(){ var ov=document.getElementById('ctr-cor-ov'); if(ov) ov.remove(); }
+async function ctrCorrigerEnreg(){
+  var e=(DB.employees||[]).find(function(x){ return String(x.id)===String(_ctrCorId); }); if(!e) return;
+  var g=function(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; };
+  var hh=g('ctr-cor-hebdo').replace(',','.');
+  if(hh && !(parseFloat(hh)>0)){ try{ toast('La durée doit être un nombre d\'heures.','error'); }catch(_){} return; }
+  var inf=Object.assign({}, e.infos||{});
+  inf.contrat_hebdo = hh;
+  inf.contrat_type  = g('ctr-cor-type');
+  inf.date_entree   = g('ctr-cor-entree');
+  inf.date_fin_cdd  = g('ctr-cor-fin');
+  inf.contrat_saisi_main = { le:_ctrAujourdISO(), par:((curUser&&curUser.name)||'') };
+  try{
+    await sb.patch('bks_employees','id=eq.'+e.id,{infos:inf});
+    e.infos=inf;
+    try{ await loadAll(); }catch(_){}
+    ctrCorrigerFermer();
+    try{ hrEERenderContrats(); }catch(_){}
+    try{ toast('Contrat corrigé ✔','success'); }catch(_){}
+  }catch(err){ console.error('ctrCorrigerEnreg',err); try{ toast('La correction n\'a pas pu être enregistrée.','error'); }catch(_){} }
+}
+window._ctrPeutAgir=_ctrPeutAgir; window.ctrCorrigerOuvrir=ctrCorrigerOuvrir;
+window.ctrCorrigerEnreg=ctrCorrigerEnreg; window.ctrCorrigerFermer=ctrCorrigerFermer;
+
+/* ══ ★ v715 — L'APPRENTISSAGE (CERFA) ══════════════════════════════════════
+
+   Vincent, en envoyant le CERFA de BALME JULES : « on peut faire le CERFA, donc
+   là on indiquera les dates. C'est l'apprentissage 35 heures. Ça mettra en
+   stand-by si on a un contrat […] et après l'apprentissage, tu reprends
+   l'ancien contrat, de l'ancienne durée, automatiquement. Si par contre il n'y
+   avait pas d'ancien contrat, à la fin de son contrat d'apprentissage elle
+   n'est plus là, elle est sortie. »
+
+   Deux situations, et l'application les distingue toute seule :
+
+     · IL Y AVAIT UN CONTRAT — il s'arrête à la veille de l'apprentissage, les
+       35 h courent, et il REPREND tout seul le lendemain de la fin, à la même
+       durée qu'avant. C'est écrit dans la fiche (contrat_apres), donc le
+       planning et la paye le savent d'avance.
+
+     · IL N'Y AVAIT RIEN — le CERFA EST le contrat : type apprentissage, 35 h.
+       À la fin, rien ne reprend, et le planning refuse déjà de placer la
+       personne au-delà de cette date.
+
+   Ce panneau n'invente aucun chiffre : il recopie ce qui est écrit sur le
+   CERFA, et il dit ce que ça va faire avant de l'enregistrer.               */
+var _ctrApprId=null;
+/* ★ v717 — LES DEUX FORMULES D'APPRENTISSAGE.
+
+   Vincent : « il y en a qui doivent faire que trente-trois heures par semaine
+   et deux heures à la maison. Et d'autres doivent faire trente-cinq heures et
+   avoir une journée de récup par mois. Il faut que je puisse choisir. »
+
+   Le CERFA dit toujours la même chose : « durée hebdomadaire du travail :
+   35 heures ». Tout apprenti doit 2 h de formation en ligne par semaine. Ce qui
+   change, c'est comment ces 2 h sont réglées — et Vincent l'a précisé :
+
+     · ÉQUIPIERS — 33 h au restaurant. « Les deux heures, ça sera payé comme des
+       heures normales. On n'a pas sur la fiche de paye deux heures à part. »
+       La paye compte donc LES HEURES FAITES + 2 h par semaine : 33 h → 35 h,
+       et « s'ils font 33 h 30, ils feront 35 h 30 ».
+
+     · LEADERS ET MANAGERS — 35 h au restaurant pour de vrai. « Ils sont payés
+       35 h par semaine, ils font effectivement 35 h par semaine. Sauf qu'on
+       leur enlève une journée de repos qu'on leur offre par mois, pour les deux
+       heures en ligne par semaine. » Les 2 h ne sont donc pas ajoutées : elles
+       sont compensées par la journée offerte.
+
+   D'où deux nombres, et non plus un : ce qui est PLACÉ au restaurant, et ce qui
+   est PAYÉ. Aujourd'hui la paye lit toujours les 35 h du contrat (v711) : elle
+   n'ajoute PAS encore les 2 h aux heures réellement faites. C'est le prochain
+   pas, et il se fera avec Vincent — on ne touche pas à la paye sans prévenir.
+   Ce que fait cette version, c'est ENREGISTRER la formule, proprement, pour que
+   le jour où on branchera, l'information soit déjà là et juste.            */
+var CTR_APPR_FORMULES=[
+  {cle:'simple', nom:'35 h par semaine, sans particularité',
+   payees:35, placees:35, court:'35 h'},
+  {cle:'cfa2h',  nom:'Équipier — 33 h au restaurant + 2 h de formation en ligne',
+   payees:35, placees:33, court:'33 h placées + 2 h en ligne'},
+  {cle:'recup',  nom:'Leader / manager — 35 h au restaurant + 1 journée de récup par mois',
+   payees:35, placees:35, court:'35 h + 1 jour de récup / mois'}
+];
+function _ctrApprFormule(cle){
+  return CTR_APPR_FORMULES.filter(function(f){ return f.cle===cle; })[0] || CTR_APPR_FORMULES[0];
+}
+window.CTR_APPR_FORMULES=CTR_APPR_FORMULES;
+function _ctrApprContratAvant(e){
+  /* la durée du contrat qui existait AVANT l'apprentissage, s'il y en avait un */
+  var inf=(e&&e.infos)||{};
+  var typ=String(inf.contrat_type||inf.cdi_cdd||'').toLowerCase();
+  if(typ.indexOf('apprent')>=0) return 0;          /* le contrat EST l'apprentissage */
+  var h=parseFloat(String(inf.contrat_hebdo||'').replace(',','.'));
+  return (isFinite(h)&&h>0)?h:0;
+}
+/* ★ v716 — LA DURÉE EN MOIS, AFFICHÉE.
+
+   Vincent : « on a des apprentissages qui durent douze mois, quatorze mois,
+   vingt-quatre mois. On a forcément une date de fin. »
+
+   Aucune durée n'est imposée — mais une date mal tapée (une année à côté) se
+   voit tout de suite quand le panneau annonce « soit 12 mois » ou « soit
+   132 mois ». C'est un garde-fou de lecture, pas une règle : on prévient, on
+   ne bloque pas. */
+function _ctrApprMois(deb, fin){
+  try{
+    var a=new Date(String(deb).slice(0,10)+'T12:00:00');
+    var b=new Date(String(fin).slice(0,10)+'T12:00:00');
+    if(isNaN(a)||isNaN(b)) return null;
+    /* la date de fin est INCLUSE : on compte jusqu'au lendemain, sinon
+       « du 16/07/2026 au 15/07/2027 » donnerait 13 mois au lieu de 12. */
+    b.setDate(b.getDate()+1);
+    var m=(b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth());
+    if(b.getDate()<a.getDate()) m-=1;
+    return m>0?m:null;
+  }catch(_){ return null; }
+}
+function _ctrApprResume(e, deb, fin, hh, cleF){
+  var F=_ctrApprFormule(cleF);
+  var av=_ctrApprContratAvant(e);
+  var _f=function(n){ return (''+(Math.round(n*100)/100)).replace('.',','); };
+  var d1=deb?_ctrFr(deb):'…', d2=fin?_ctrFr(fin):'…';
+  var _mois=(deb&&fin)?_ctrApprMois(deb,fin):null;
+  var _duree='';
+  if(_mois!=null){
+    _duree='<div style="margin-bottom:6px;color:'+((_mois<6||_mois>36)?'#e8623a':'#8fb79a')+';">'
+      +'Durée : <b>'+_mois+' mois</b>'
+      +((_mois<6||_mois>36)?' — <b>vérifiez les dates</b>, un apprentissage dure en général de 12 à 24 mois.':'')
+      +'</div>';
+  }
+  /* ★ v717 — ce qui est payé, et ce qui est placé : deux phrases distinctes. */
+  var _det='';
+  if(F.cle==='cfa2h'){
+    _det='<div style="margin-top:6px;color:#bcd3c2;">'
+      +'<b>Placé '+_f(F.placees)+' h</b> au restaurant. Sur la paye, <b>les heures faites + 2 h par semaine</b>, '
+      +'en heures normales — <b>aucune ligne « 2 h » à part sur le bulletin</b>. '
+      +'S\'il fait 33 h 30 une semaine, il est payé 35 h 30.'
+      +'<div style="margin-top:5px;color:#e8a020;font-size:.95em;">⚠️ La paye n\'ajoute pas encore ces 2 h toute seule : '
+      +'pour l\'instant elle compte les 35 h du contrat. C\'est le prochain chantier.</div></div>';
+  }else if(F.cle==='recup'){
+    _det='<div style="margin-top:6px;color:#bcd3c2;">'
+      +'<b>Placé et payé '+_f(F.payees)+' h.</b> Les 2 h de formation en ligne ne sont pas ajoutées : '
+      +'elles sont compensées par <b>une journée de récupération offerte chaque mois</b>, '
+      +'à poser dans <b>État / Absences</b> — le placement ne la devine pas tout seul.</div>';
+  }
+  if(av>0){
+    return _duree+'<b style="color:#8fd49a;">Son contrat de '+_f(av)+' h passe en stand-by.</b><br>'
+      +'Jusqu\'au '+(deb?_ctrFr(_ctrVeille(deb)):'…')+' : '+_f(av)+' h. '
+      +'Du '+d1+' au '+d2+' : <b>'+_f(hh)+' h</b> d\'apprentissage. '
+      +'À partir du '+(fin?_ctrFr(_ctrLendemain(fin)):'…')+' : <b>retour à '+_f(av)+' h</b>, automatiquement.'
+      +_det;
+  }
+  return _duree+'<b style="color:#8fd49a;">Le CERFA est son contrat.</b><br>'
+    +'Du '+d1+' au '+d2+' : <b>'+_f(hh)+' h</b> d\'apprentissage, en type « apprentissage ». '
+    +'Il n\'avait pas de contrat avant : <b>au-delà du '+d2+', il n\'est plus là</b> — '
+    +'le planning refuse déjà de le placer après cette date. Si l\'apprentissage est renouvelé, '
+    +'il suffira de revenir ici changer les dates.'
+    +_det;
+}
+function ctrApprMaj(){
+  var e=(DB.employees||[]).find(function(x){ return String(x.id)===String(_ctrApprId); }); if(!e) return;
+  var g=function(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; };
+  var cleF=g('ctr-appr-formule')||'simple';
+  var F=_ctrApprFormule(cleF);
+  /* la durée payée suit la formule choisie, sauf si la direction la corrige à la main */
+  var hi=document.getElementById('ctr-appr-hebdo');
+  if(hi && hi.dataset && hi.dataset.formule!==cleF){ hi.value=F.payees; hi.dataset.formule=cleF; }
+  var hh=parseFloat(g('ctr-appr-hebdo').replace(',','.')); if(!isFinite(hh)||hh<=0) hh=F.payees;
+  var box=document.getElementById('ctr-appr-resume');
+  if(box) box.innerHTML=_ctrApprResume(e, g('ctr-appr-debut'), g('ctr-appr-fin'), hh, cleF);
+}
+function ctrApprOuvrir(empId){
+  var e=(DB.employees||[]).find(function(x){ return String(x.id)===String(empId); }); if(!e) return;
+  _ctrApprId=empId;
+  var inf=e.infos||{};
+  var ov=document.getElementById('ctr-appr-ov'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='ctr-appr-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:12000;display:flex;'
+    +'align-items:flex-start;justify-content:center;overflow:auto;padding:26px 14px;';
+  var champ=function(id,lbl,val,type,aide){
+    return '<div style="margin-bottom:12px;"><label style="display:block;font-size:.76rem;color:#aaa;margin-bottom:4px;">'+lbl+'</label>'
+      +'<input id="'+id+'" type="'+(type||'text')+'" value="'+_msgEsc(val||'')+'" oninput="ctrApprMaj()" onchange="ctrApprMaj()" '
+      +'style="width:100%;box-sizing:border-box;background:#0e0e0e;border:1px solid #444;border-radius:9px;color:#fff;'
+      +'padding:10px 12px;font-family:inherit;font-size:.92rem;">'
+      +(aide?('<div style="font-size:.7rem;color:#777;margin-top:3px;">'+aide+'</div>'):'')+'</div>';
+  };
+  var deja=!!(inf.apprentissage_debut||inf.apprentissage_fin);
+  var hh0=(inf.apprentissage_hebdo||35);
+  ov.innerHTML='<div style="max-width:560px;width:100%;background:#161618;border:1px solid #3a3a3a;border-radius:16px;padding:22px;">'
+    +'<div style="font-weight:900;font-size:1.1rem;color:#F5A623;margin-bottom:4px;">🎓 Apprentissage — CERFA</div>'
+    +'<div style="font-size:.86rem;color:#ddd;margin-bottom:4px;">'+_msgEsc(e.name||'')+'</div>'
+    +'<p style="font-size:.77rem;color:#999;line-height:1.55;margin:0 0 14px;">'
+      +'Recopiez ici les <b>dates du CERFA</b> — « date de début d\'exécution du contrat » et '
+      +'« date de fin du contrat ou de la période d\'apprentissage ». Le document officiel, lui, '
+      +'reste celui du CFA : rangez-le dans ses documents une fois signé.</p>'
+    +champ('ctr-appr-debut','Début de l\'apprentissage', (inf.apprentissage_debut||''), 'date', 'CERFA : date de début d\'exécution du contrat.')
+    +champ('ctr-appr-fin','Fin de l\'apprentissage', (inf.apprentissage_fin||''), 'date', 'CERFA : date de fin du contrat ou de la période d\'apprentissage.')
+    /* ★ v717 — la formule, avant la durée : c'est elle qui la propose. */
+    +'<div style="margin-bottom:12px;"><label style="display:block;font-size:.76rem;color:#aaa;margin-bottom:4px;">Formule</label>'
+      +'<select id="ctr-appr-formule" onchange="ctrApprMaj()" '
+      +'style="width:100%;box-sizing:border-box;background:#0e0e0e;border:1px solid #444;border-radius:9px;color:#fff;'
+      +'padding:10px 12px;font-family:inherit;font-size:.92rem;">'
+      +CTR_APPR_FORMULES.map(function(F){
+          return '<option value="'+F.cle+'"'+((inf.apprentissage_formule||'simple')===F.cle?' selected':'')+'>'
+            +_msgEsc(F.nom)+'</option>'; }).join('')
+      +'</select>'
+      +'<div style="font-size:.7rem;color:#777;margin-top:3px;">Ce qui est payé ne change pas — c\'est ce qu\'on place au restaurant qui change.</div></div>'
+    +champ('ctr-appr-hebdo','Durée hebdomadaire payée (CERFA)', hh0, 'text', 'CERFA : durée hebdomadaire du travail. 35 h dans la quasi-totalité des cas.')
+    +'<div id="ctr-appr-resume" style="background:#111a13;border:1px solid #2c4a34;border-radius:10px;padding:11px 13px;'
+      +'font-size:.79rem;color:#bcd3c2;line-height:1.6;margin-bottom:4px;"></div>'
+    +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap;">'
+      +(deja?'<button class="btn btn-gray btn-sm" onclick="ctrApprRetirer()">✕ Retirer l\'apprentissage</button>':'')
+      +'<button class="btn btn-gray btn-sm" onclick="ctrApprFermer()">Annuler</button>'
+      +'<button class="btn btn-red btn-sm" onclick="ctrApprEnreg()">Enregistrer</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  ctrApprMaj();
+}
+function ctrApprFermer(){ var ov=document.getElementById('ctr-appr-ov'); if(ov) ov.remove(); }
+async function _ctrApprPatch(e, inf, msg){
+  try{
+    await sb.patch('bks_employees','id=eq.'+e.id,{infos:inf});
+    e.infos=inf;
+    try{ await loadAll(); }catch(_){}
+    ctrApprFermer();
+    try{ hrEERenderContrats(); }catch(_){}
+    try{ toast(msg,'success'); }catch(_){}
+  }catch(err){ console.error('ctrAppr',err); try{ toast('L\'apprentissage n\'a pas pu être enregistré.','error'); }catch(_){} }
+}
+async function ctrApprEnreg(){
+  var e=(DB.employees||[]).find(function(x){ return String(x.id)===String(_ctrApprId); }); if(!e) return;
+  var g=function(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; };
+  var deb=g('ctr-appr-debut'), fin=g('ctr-appr-fin');
+  var hh=parseFloat(g('ctr-appr-hebdo').replace(',','.'));
+  if(!deb || !fin){ try{ toast('Il faut les deux dates du CERFA.','error'); }catch(_){} return; }
+  if(fin<=deb){ try{ toast('La fin doit être après le début.','error'); }catch(_){} return; }
+  if(!isFinite(hh)||hh<=0) hh=35;
+  var cleF=g('ctr-appr-formule')||'simple';
+  var F=_ctrApprFormule(cleF);
+  var av=_ctrApprContratAvant(e);
+  var inf=Object.assign({}, e.infos||{});
+  inf.apprentissage_debut=deb;
+  inf.apprentissage_fin=fin;
+  inf.apprentissage_hebdo=hh;                 /* ce qui est PAYÉ — ce que dit le CERFA */
+  inf.apprentissage_formule=cleF;
+  /* ★ v717 — ce qu'on PLACE au restaurant. Écrit dès maintenant pour que le jour
+     où les horaires seront branchés, l'information soit déjà là et juste. */
+  inf.apprentissage_placees=(cleF==='cfa2h')?Math.max(0, hh-2):hh;
+  if(av>0){
+    /* il avait un contrat : il reprend tout seul, à la même durée. */
+    inf.contrat_apres=av;
+    inf.contrat_type_apres=(inf.contrat_type||inf.cdi_cdd||'');
+  }else{
+    /* le CERFA EST le contrat. Rien ne reprend derrière. */
+    inf.contrat_type='apprentissage';
+    inf.contrat_hebdo=hh;
+    if(!inf.date_entree) inf.date_entree=deb;
+    inf.contrat_apres='';
+    inf.contrat_type_apres='';
+  }
+  inf.appr_saisi_main={ le:_ctrAujourdISO(), par:((curUser&&curUser.name)||'') };
+  await _ctrApprPatch(e, inf, 'Apprentissage enregistré ✔');
+}
+async function ctrApprRetirer(){
+  var e=(DB.employees||[]).find(function(x){ return String(x.id)===String(_ctrApprId); }); if(!e) return;
+  if(!confirm('Retirer l\'apprentissage de '+(e.name||'ce salarié')+' ?\n\n'
+    +'Ses dates sont effacées. Son contrat redevient ce qu\'il était.')) return;
+  var inf=Object.assign({}, e.infos||{});
+  inf.apprentissage_debut=''; inf.apprentissage_fin=''; inf.apprentissage_hebdo='';
+  inf.apprentissage_formule=''; inf.apprentissage_placees='';
+  inf.contrat_apres=''; inf.contrat_type_apres='';
+  await _ctrApprPatch(e, inf, 'Apprentissage retiré.');
+}
+window.ctrApprOuvrir=ctrApprOuvrir; window.ctrApprEnreg=ctrApprEnreg;
+window.ctrApprFermer=ctrApprFermer; window.ctrApprRetirer=ctrApprRetirer;
+window.ctrApprMaj=ctrApprMaj; window._ctrApprContratAvant=_ctrApprContratAvant;
 
 // ══ VUE « SALARIÉS FIXÉS » (État équipe) ═══════════════════════════════════════
 // Permet de poser, pour un salarié, des horaires FIXES jour par jour (repos, ou
